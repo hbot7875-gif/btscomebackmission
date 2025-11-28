@@ -5,11 +5,11 @@ const CONFIG = {
     API_BASE_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
 
     TEAM_COLORS: {
-    'Indigo': '#4cc9f0',      // Cyan
-    'Echo': '#f72585',        // Hot Pink
-    'Agust D': '#ff9500',     // Amber
-    'JITB': '#7209b7'         // Purple
-}
+        'Indigo': '#4cc9f0',
+        'Echo': '#f72585',
+        'Agust D': '#ff9500',
+        'JITB': '#7209b7'
+    }, // ✅ ADDED COMMA
 
     TEAM_PFPS: {
         'Indigo': 'https://i.ibb.co/V0124fWL/team-indigoo.png',
@@ -65,11 +65,12 @@ function getTeamPFP(team) {
 }
 
 function getTeamClass(team) {
+    if (!team) return '';
     return team.toLowerCase().replace(/\s+/g, '-');
 }
 
 function formatNumber(num) {
-    return Number(num).toLocaleString();
+    return Number(num || 0).toLocaleString();
 }
 
 // ==================== API CALL ====================
@@ -82,13 +83,13 @@ async function apiCall(action, params = {}) {
         }
     });
 
-    console.log('API Call:', url.toString());
+    console.log('API Call:', action, params);
 
     try {
         const res = await fetch(url.toString());
         const data = await res.json();
 
-        console.log('API Response:', data);
+        console.log('API Response:', action, data);
 
         if (data.error) throw new Error(data.error);
         return data;
@@ -146,7 +147,7 @@ async function handleLogin() {
     console.log('Login button clicked');
     
     const agentInput = document.getElementById('agent-input');
-    const agentNo = agentInput.value.trim();
+    const agentNo = agentInput ? agentInput.value.trim() : '';
     
     console.log('Agent input value:', agentNo);
 
@@ -162,7 +163,8 @@ async function handleLogin() {
         const allAgents = await apiCall('getAllAgents');
         console.log('All agents response:', allAgents);
 
-        const exists = allAgents.agents.some(a => a.agentNo.toString().trim() === agentNo);
+        const agents = allAgents.agents || [];
+        const exists = agents.some(a => a.agentNo && a.agentNo.toString().trim() === agentNo);
         
         console.log('Agent exists:', exists);
 
@@ -189,7 +191,7 @@ async function handleFindAgent() {
     console.log('Find agent button clicked');
     
     const instaInput = document.getElementById('instagram-input');
-    const instagram = instaInput.value.trim();
+    const instagram = instaInput ? instaInput.value.trim() : '';
     
     console.log('Instagram input value:', instagram);
 
@@ -209,7 +211,8 @@ async function handleFindAgent() {
 
         if (res.result && res.result.includes('Your Agent Number is:')) {
             const agentNo = res.result.split(':')[1].trim();
-            document.getElementById('agent-input').value = agentNo;
+            const agentInput = document.getElementById('agent-input');
+            if (agentInput) agentInput.value = agentNo;
             showFindResult(res.result, 'success');
         } else {
             showFindResult(res.result || 'Instagram username not found', 'error');
@@ -243,7 +246,11 @@ async function showDashboard() {
         STATE.allWeeks = weeksData.weeks || [];
         STATE.currentWeek = weeksData.current || STATE.allWeeks[0];
 
-        console.log('Fetching agent data...');
+        if (!STATE.currentWeek) {
+            throw new Error('No weeks available');
+        }
+
+        console.log('Fetching agent data for week:', STATE.currentWeek);
         const agentData = await apiCall('getAgentData', {
             agentNo: STATE.agentNo,
             week: STATE.currentWeek
@@ -252,7 +259,7 @@ async function showDashboard() {
 
         STATE.agentData = agentData;
 
-        // CRITICAL: Hide login, show dashboard
+        // Hide login, show dashboard
         const loginScreen = document.getElementById('login-screen');
         const dashboardScreen = document.getElementById('dashboard-screen');
 
@@ -261,12 +268,12 @@ async function showDashboard() {
 
         if (loginScreen) {
             loginScreen.classList.remove('active');
-            loginScreen.style.display = 'none'; // Force hide
+            loginScreen.style.display = 'none';
         }
 
         if (dashboardScreen) {
             dashboardScreen.classList.add('active');
-            dashboardScreen.style.display = 'block'; // Force show
+            dashboardScreen.style.display = 'block';
         }
 
         console.log('Initializing dashboard components...');
@@ -281,7 +288,7 @@ async function showDashboard() {
     } catch (err) {
         console.error('Dashboard error:', err);
         showLoading(false);
-        showAlert('Failed to load dashboard. Please try again.', 'danger');
+        showAlert('Failed to load dashboard: ' + err.message, 'danger');
         logout();
     }
 }
@@ -301,13 +308,15 @@ function initDashboard() {
     setInterval(updateLastUpdate, 60000);
 }
 
-// ==================== FIXED: Single updateAgentInfo function ====================
 function updateAgentInfo() {
     const p = STATE.agentData?.profile;
-    if (!p) return;
+    if (!p) {
+        console.warn('No profile data available');
+        return;
+    }
 
     const color = getTeamColor(p.team);
-    const initial = p.name.charAt(0).toUpperCase();
+    const initial = p.name ? p.name.charAt(0).toUpperCase() : '?';
     const pfp = getTeamPFP(p.team);
     const teamClass = 'team-' + getTeamClass(p.team);
 
@@ -325,18 +334,18 @@ function updateAgentInfo() {
     }
 
     const agentName = document.getElementById('agent-name');
-    if (agentName) agentName.textContent = p.name;
+    if (agentName) agentName.textContent = p.name || 'Agent';
 
     const agentTeam = document.getElementById('agent-team');
     if (agentTeam) {
-        agentTeam.textContent = p.team;
+        agentTeam.textContent = p.team || 'Unknown';
         agentTeam.style.color = color;
     }
 
     const agentId = document.getElementById('agent-id');
     if (agentId) agentId.textContent = `ID: ${STATE.agentNo}`;
 
-    // Update profile page avatar
+    // Update profile page elements if they exist
     const profileAvatar = document.getElementById('profile-avatar');
     if (profileAvatar) {
         profileAvatar.className = `profile-avatar ${teamClass}`;
@@ -350,11 +359,11 @@ function updateAgentInfo() {
     }
 
     const profileName = document.getElementById('profile-name');
-    if (profileName) profileName.textContent = p.name;
+    if (profileName) profileName.textContent = p.name || 'Agent';
 
     const profileTeam = document.getElementById('profile-team');
     if (profileTeam) {
-        profileTeam.textContent = p.team;
+        profileTeam.textContent = p.team || 'Unknown';
         profileTeam.style.color = color;
     }
 
@@ -437,11 +446,14 @@ function closeMobileMenu() {
 
 function logout() {
     localStorage.removeItem('spyBattleAgent');
+    STATE.agentNo = null;
+    STATE.agentData = null;
     location.reload();
 }
 
 // ==================== PAGE LOADER ====================
 async function loadPage(page) {
+    console.log('Loading page:', page);
     STATE.currentPage = page;
     
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -454,26 +466,46 @@ async function loadPage(page) {
     showLoading(true);
 
     try {
-        const loaders = {
-            home: loadHomePage,
-            profile: loadProfilePage,
-            rankings: loadRankingsPage,
-            goals: loadGoalsPage,
-            album2x: loadAlbum2xPage,
-            'team-level': loadTeamLevelPage,
-            'team-charts': loadTeamChartsPage,
-            'team-comparison': loadTeamComparisonPage,
-            summary: loadSummaryPage,
-            drawer: loadDrawerPage,
-            announcements: loadAnnouncementsPage
-        };
-        
-        if (loaders[page]) {
-            await loaders[page]();
+        switch(page) {
+            case 'home':
+                await loadHomePage();
+                break;
+            case 'profile':
+                await loadProfilePage();
+                break;
+            case 'rankings':
+                await loadRankingsPage();
+                break;
+            case 'goals':
+                await loadGoalsPage();
+                break;
+            case 'album2x':
+                await loadAlbum2xPage();
+                break;
+            case 'team-level':
+                await loadTeamLevelPage();
+                break;
+            case 'team-charts':
+                await loadTeamChartsPage();
+                break;
+            case 'team-comparison':
+                await loadTeamComparisonPage();
+                break;
+            case 'summary':
+                await loadSummaryPage();
+                break;
+            case 'drawer':
+                await loadDrawerPage();
+                break;
+            case 'announcements':
+                await loadAnnouncementsPage();
+                break;
+            default:
+                console.warn('Unknown page:', page);
         }
     } catch (err) {
         console.error('Page load error:', err);
-        showAlert('Failed to load page data', 'danger');
+        showAlert('Failed to load page: ' + err.message, 'danger');
     } finally {
         showLoading(false);
     }
@@ -481,97 +513,116 @@ async function loadPage(page) {
 
 // ==================== HOME PAGE ====================
 async function loadHomePage() {
+    console.log('Loading home page data...');
+    
     const currentWeekDisplay = document.getElementById('current-week-display');
     if (currentWeekDisplay) {
         currentWeekDisplay.textContent = `Active Week: ${STATE.currentWeek}`;
     }
 
-    const summary = await apiCall('getWeeklySummary', { week: STATE.currentWeek });
-    const rankings = await apiCall('getRankings', { week: STATE.currentWeek, limit: 5 });
-    const goalsData = await apiCall('getGoalsProgress', { week: STATE.currentWeek });
+    try {
+        const [summary, rankings, goalsData] = await Promise.all([
+            apiCall('getWeeklySummary', { week: STATE.currentWeek }),
+            apiCall('getRankings', { week: STATE.currentWeek, limit: 5 }),
+            apiCall('getGoalsProgress', { week: STATE.currentWeek })
+        ]);
 
-    const team = STATE.agentData.profile.team;
-    const teamInfo = summary.teams[team] || {};
+        const team = STATE.agentData?.profile?.team;
+        const teamInfo = summary.teams?.[team] || {};
 
-    updateMissionStatus('home-track-status', teamInfo.trackGoalPassed);
-    updateMissionStatus('home-album-status', teamInfo.albumGoalPassed);
-    updateMissionStatus('home-2x-status', teamInfo.album2xPassed);
+        updateMissionStatus('home-track-status', teamInfo.trackGoalPassed);
+        updateMissionStatus('home-album-status', teamInfo.albumGoalPassed);
+        updateMissionStatus('home-2x-status', teamInfo.album2xPassed);
 
-    // Show team goals in mission cards
-    let trackGoalsText = '';
-    let albumGoalsText = '';
+        // Show team goals in mission cards
+        let trackGoalsText = '';
+        let albumGoalsText = '';
 
-    Object.entries(goalsData.trackGoals || {}).forEach(([track, data]) => {
-        if (data.teams[team]) {
-            const t = data.teams[team];
-            trackGoalsText += `${track}: ${t.current}/${data.goal}<br>`;
-        }
-    });
-
-    Object.entries(goalsData.albumGoals || {}).forEach(([album, data]) => {
-        if (data.teams[team]) {
-            const t = data.teams[team];
-            albumGoalsText += `${album}: ${t.current}/${data.goal}<br>`;
-        }
-    });
-
-    const cards = document.querySelectorAll('.mission-card');
-    if (cards[0]) {
-        const desc = cards[0].querySelector('.mission-desc');
-        if (desc) desc.innerHTML = trackGoalsText || 'Complete team track targets';
-    }
-    if (cards[1]) {
-        const desc = cards[1].querySelector('.mission-desc');
-        if (desc) desc.innerHTML = albumGoalsText || 'Complete team album targets';
-    }
-
-    // Top performers
-    const performersHTML = rankings.rankings.map((r, i) => `
-        <div class="stat-box">
-            <div class="rank-badge">${i + 1}</div>
-            <div style="margin-top: 12px; font-size: 14px; font-weight: bold;">${r.name}</div>
-            <div class="team-badge ${getTeamClass(r.team)}" style="margin-top: 8px; color: ${getTeamColor(r.team)};">${r.team}</div>
-            <div style="color: var(--primary); font-weight: bold; margin-top: 8px;">${r.totalXP} XP</div>
-        </div>
-    `).join('');
-
-    const topPerformersEl = document.getElementById('home-top-performers');
-    if (topPerformersEl) {
-        topPerformersEl.innerHTML = `<div class="stats-grid">${performersHTML}</div>`;
-    }
-
-    // Team standings with auto-resized PFPs
-    const teams = Object.keys(summary.teams);
-    const standingsHTML = teams.map(t => {
-        const data = summary.teams[t];
-        const pfp = getTeamPFP(t);
-        const teamClass = 'team-' + getTeamClass(t);
-        
-        return `
-            <div class="stat-box" style="border-color: ${getTeamColor(t)};">
-                ${pfp 
-                    ? `<div class="team-pfp-container ${teamClass}">
-                           <img src="${pfp}" 
-                                alt="${t} team" 
-                                onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\"font-size:24px;\\">🎭</div>';">
-                       </div>` 
-                    : `<div style="font-size: 24px; margin-bottom: 8px;">🎭</div>`
+        if (goalsData.trackGoals) {
+            Object.entries(goalsData.trackGoals).forEach(([track, data]) => {
+                if (data.teams && data.teams[team]) {
+                    const t = data.teams[team];
+                    trackGoalsText += `${track}: ${t.current}/${data.goal}<br>`;
                 }
-                <div style="color: ${getTeamColor(t)}; font-weight: bold; font-size: 16px;">${t}</div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
-                    Level ${data.level}
-                </div>
-                <div style="color: var(--primary); font-weight: bold; margin-top: 8px;">
-                    ${data.teamXP} XP
-                </div>
-                ${data.isWinner ? '<div style="margin-top: 8px;">🏆 Winner</div>' : ''}
-            </div>
-        `;
-    }).join('');
+            });
+        }
 
-    const standingsEl = document.getElementById('home-team-standings');
-    if (standingsEl) {
-        standingsEl.innerHTML = `<div class="stats-grid">${standingsHTML}</div>`;
+        if (goalsData.albumGoals) {
+            Object.entries(goalsData.albumGoals).forEach(([album, data]) => {
+                if (data.teams && data.teams[team]) {
+                    const t = data.teams[team];
+                    albumGoalsText += `${album}: ${t.current}/${data.goal}<br>`;
+                }
+            });
+        }
+
+        const cards = document.querySelectorAll('.mission-card');
+        if (cards[0]) {
+            const desc = cards[0].querySelector('.mission-desc');
+            if (desc) desc.innerHTML = trackGoalsText || 'Complete team track targets';
+        }
+        if (cards[1]) {
+            const desc = cards[1].querySelector('.mission-desc');
+            if (desc) desc.innerHTML = albumGoalsText || 'Complete team album targets';
+        }
+
+        // Top performers
+        const rankingsList = rankings.rankings || [];
+        const performersHTML = rankingsList.map((r, i) => `
+            <div class="stat-box">
+                <div class="rank-badge">${i + 1}</div>
+                <div style="margin-top: 12px; font-size: 14px; font-weight: bold;">${r.name || 'Unknown'}</div>
+                <div class="team-badge ${getTeamClass(r.team)}" style="margin-top: 8px; color: ${getTeamColor(r.team)};">${r.team || 'Unknown'}</div>
+                <div style="color: var(--primary); font-weight: bold; margin-top: 8px;">${formatNumber(r.totalXP)} XP</div>
+            </div>
+        `).join('');
+
+        const topPerformersEl = document.getElementById('home-top-performers');
+        if (topPerformersEl) {
+            topPerformersEl.innerHTML = performersHTML 
+                ? `<div class="stats-grid">${performersHTML}</div>`
+                : '<p>No rankings available</p>';
+        }
+
+        // Team standings
+        const teams = Object.keys(summary.teams || {});
+        const standingsHTML = teams.map(t => {
+            const data = summary.teams[t];
+            const pfp = getTeamPFP(t);
+            const teamClass = 'team-' + getTeamClass(t);
+            
+            return `
+                <div class="stat-box" style="border-color: ${getTeamColor(t)};">
+                    ${pfp 
+                        ? `<div class="team-pfp-container ${teamClass}">
+                               <img src="${pfp}" 
+                                    alt="${t} team" 
+                                    onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\"font-size:24px;\\">🎭</div>';">
+                           </div>` 
+                        : `<div style="font-size: 24px; margin-bottom: 8px;">🎭</div>`
+                    }
+                    <div style="color: ${getTeamColor(t)}; font-weight: bold; font-size: 16px;">${t}</div>
+                    <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+                        Level ${data.level || 0}
+                    </div>
+                    <div style="color: var(--primary); font-weight: bold; margin-top: 8px;">
+                        ${formatNumber(data.teamXP)} XP
+                    </div>
+                    ${data.isWinner ? '<div style="margin-top: 8px;">🏆 Winner</div>' : ''}
+                </div>
+            `;
+        }).join('');
+
+        const standingsEl = document.getElementById('home-team-standings');
+        if (standingsEl) {
+            standingsEl.innerHTML = standingsHTML 
+                ? `<div class="stats-grid">${standingsHTML}</div>`
+                : '<p>No team data available</p>';
+        }
+        
+    } catch (err) {
+        console.error('Error loading home page:', err);
+        throw err;
     }
 }
 
@@ -588,59 +639,358 @@ function updateMissionStatus(elementId, passed) {
     }
 }
 
-// Placeholder loaders for other pages (keep your existing implementations)
+// ==================== PROFILE PAGE ====================
 async function loadProfilePage() {
     console.log('Loading profile page...');
-    // Keep your existing implementation
+    
+    const p = STATE.agentData?.profile;
+    const s = STATE.agentData?.stats;
+    
+    if (!p || !s) {
+        console.warn('No profile/stats data');
+        return;
+    }
+
+    // Update profile stats
+    const statsContainer = document.getElementById('profile-stats');
+    if (statsContainer) {
+        statsContainer.innerHTML = `
+            <div class="stat-box">
+                <div class="stat-value">${formatNumber(s.totalXP)}</div>
+                <div class="stat-label">Total XP</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">#${s.rank || 'N/A'}</div>
+                <div class="stat-label">Rank</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">${formatNumber(s.trackCount)}</div>
+                <div class="stat-label">Tracks</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">${formatNumber(s.albumCount)}</div>
+                <div class="stat-label">Albums</div>
+            </div>
+        `;
+    }
 }
 
+// ==================== RANKINGS PAGE ====================
 async function loadRankingsPage() {
     console.log('Loading rankings page...');
-    // Keep your existing implementation
+    
+    try {
+        const data = await apiCall('getRankings', { week: STATE.currentWeek, limit: 100 });
+        const rankings = data.rankings || [];
+        
+        const container = document.getElementById('rankings-list');
+        if (!container) return;
+
+        if (rankings.length === 0) {
+            container.innerHTML = '<p>No rankings available</p>';
+            return;
+        }
+
+        container.innerHTML = rankings.map((r, i) => `
+            <div class="ranking-item ${r.agentNo == STATE.agentNo ? 'highlight' : ''}">
+                <div class="rank">#${i + 1}</div>
+                <div class="info">
+                    <div class="name">${r.name || 'Unknown'}</div>
+                    <div class="team" style="color: ${getTeamColor(r.team)}">${r.team || 'Unknown'}</div>
+                </div>
+                <div class="xp">${formatNumber(r.totalXP)} XP</div>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Rankings error:', err);
+        throw err;
+    }
 }
 
+// ==================== GOALS PAGE ====================
 async function loadGoalsPage() {
     console.log('Loading goals page...');
-    // Keep your existing implementation
+    
+    try {
+        const data = await apiCall('getGoalsProgress', { week: STATE.currentWeek });
+        const team = STATE.agentData?.profile?.team;
+        
+        const container = document.getElementById('goals-content');
+        if (!container) return;
+
+        let html = '<h3>Track Goals</h3>';
+        
+        if (data.trackGoals) {
+            Object.entries(data.trackGoals).forEach(([track, info]) => {
+                const teamData = info.teams?.[team] || { current: 0 };
+                const progress = Math.min(100, (teamData.current / info.goal) * 100);
+                
+                html += `
+                    <div class="goal-item">
+                        <div class="goal-header">
+                            <span>${track}</span>
+                            <span>${teamData.current}/${info.goal}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        html += '<h3 style="margin-top: 24px;">Album Goals</h3>';
+        
+        if (data.albumGoals) {
+            Object.entries(data.albumGoals).forEach(([album, info]) => {
+                const teamData = info.teams?.[team] || { current: 0 };
+                const progress = Math.min(100, (teamData.current / info.goal) * 100);
+                
+                html += `
+                    <div class="goal-item">
+                        <div class="goal-header">
+                            <span>${album}</span>
+                            <span>${teamData.current}/${info.goal}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        container.innerHTML = html;
+    } catch (err) {
+        console.error('Goals error:', err);
+        throw err;
+    }
 }
 
+// ==================== ALBUM 2X PAGE ====================
 async function loadAlbum2xPage() {
-    console.log('Loading album2x page...');
-    // Keep your existing implementation
+    console.log('Loading album 2x page...');
+    
+    try {
+        const data = await apiCall('getAlbum2xProgress', { week: STATE.currentWeek });
+        
+        const container = document.getElementById('album2x-content');
+        if (!container) return;
+
+        const albums = data.albums || [];
+        
+        if (albums.length === 0) {
+            container.innerHTML = '<p>No 2x album data available</p>';
+            return;
+        }
+
+        container.innerHTML = albums.map(album => `
+            <div class="album-2x-item">
+                <h4>${album.name}</h4>
+                <div class="stats-grid">
+                    ${Object.entries(album.teams || {}).map(([team, count]) => `
+                        <div class="stat-box" style="border-color: ${getTeamColor(team)}">
+                            <div style="color: ${getTeamColor(team)}">${team}</div>
+                            <div class="stat-value">${formatNumber(count)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Album 2x error:', err);
+        throw err;
+    }
 }
 
+// ==================== TEAM LEVEL PAGE ====================
 async function loadTeamLevelPage() {
     console.log('Loading team level page...');
-    // Keep your existing implementation
+    
+    try {
+        const data = await apiCall('getTeamLevels', { week: STATE.currentWeek });
+        
+        const container = document.getElementById('team-level-content');
+        if (!container) return;
+
+        const teams = data.teams || {};
+        
+        container.innerHTML = `
+            <div class="stats-grid">
+                ${Object.entries(teams).map(([team, info]) => `
+                    <div class="stat-box" style="border-color: ${getTeamColor(team)}">
+                        <div style="color: ${getTeamColor(team)}; font-weight: bold; font-size: 18px;">${team}</div>
+                        <div class="stat-value" style="font-size: 32px;">Level ${info.level || 0}</div>
+                        <div class="stat-label">${formatNumber(info.xp || 0)} XP</div>
+                        <div class="progress-bar" style="margin-top: 12px;">
+                            <div class="progress-fill" style="width: ${info.progress || 0}%; background: ${getTeamColor(team)}"></div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (err) {
+        console.error('Team level error:', err);
+        throw err;
+    }
 }
 
+// ==================== TEAM CHARTS PAGE ====================
 async function loadTeamChartsPage() {
     console.log('Loading team charts page...');
-    // Keep your existing implementation
+    
+    const container = document.getElementById('team-charts-content');
+    if (container) {
+        container.innerHTML = '<p>Charts coming soon...</p>';
+    }
 }
 
+// ==================== TEAM COMPARISON PAGE ====================
 async function loadTeamComparisonPage() {
     console.log('Loading team comparison page...');
-    // Keep your existing implementation
+    
+    try {
+        const data = await apiCall('getTeamComparison', { week: STATE.currentWeek });
+        
+        const container = document.getElementById('team-comparison-content');
+        if (!container) return;
+
+        const teams = data.teams || {};
+        
+        container.innerHTML = `
+            <div class="comparison-table">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 12px; text-align: left;">Team</th>
+                            <th style="padding: 12px; text-align: right;">Total XP</th>
+                            <th style="padding: 12px; text-align: right;">Members</th>
+                            <th style="padding: 12px; text-align: right;">Avg XP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.entries(teams).map(([team, info]) => `
+                            <tr style="border-top: 1px solid var(--glass-border);">
+                                <td style="padding: 12px; color: ${getTeamColor(team)}; font-weight: bold;">${team}</td>
+                                <td style="padding: 12px; text-align: right;">${formatNumber(info.totalXP || 0)}</td>
+                                <td style="padding: 12px; text-align: right;">${info.members || 0}</td>
+                                <td style="padding: 12px; text-align: right;">${formatNumber(info.avgXP || 0)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (err) {
+        console.error('Team comparison error:', err);
+        throw err;
+    }
 }
 
+// ==================== SUMMARY PAGE ====================
 async function loadSummaryPage() {
     console.log('Loading summary page...');
-    // Keep your existing implementation
+    
+    try {
+        const data = await apiCall('getWeeklySummary', { week: STATE.currentWeek });
+        
+        const container = document.getElementById('summary-content');
+        if (!container) return;
+
+        const teams = data.teams || {};
+        const winner = Object.entries(teams).find(([_, t]) => t.isWinner);
+        
+        container.innerHTML = `
+            ${winner ? `
+                <div class="winner-banner" style="text-align: center; padding: 24px; background: var(--glass-bg); border-radius: 12px; margin-bottom: 24px;">
+                    <div style="font-size: 48px;">🏆</div>
+                    <h2 style="color: ${getTeamColor(winner[0])}; margin: 12px 0;">${winner[0]} Wins!</h2>
+                    <p>${formatNumber(winner[1].teamXP)} Total XP</p>
+                </div>
+            ` : ''}
+            
+            <div class="stats-grid">
+                ${Object.entries(teams).map(([team, info]) => `
+                    <div class="stat-box" style="border-color: ${getTeamColor(team)}">
+                        <div style="color: ${getTeamColor(team)}; font-weight: bold;">${team}</div>
+                        <div class="stat-value">${formatNumber(info.teamXP || 0)}</div>
+                        <div class="stat-label">Total XP</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (err) {
+        console.error('Summary error:', err);
+        throw err;
+    }
 }
 
+// ==================== DRAWER PAGE ====================
 async function loadDrawerPage() {
     console.log('Loading drawer page...');
-    // Keep your existing implementation
+    
+    try {
+        const data = await apiCall('getDrawerEligible', { week: STATE.currentWeek });
+        
+        const container = document.getElementById('drawer-content');
+        if (!container) return;
+
+        const eligible = data.eligible || [];
+        
+        if (eligible.length === 0) {
+            container.innerHTML = '<p>No eligible agents for drawer this week</p>';
+            return;
+        }
+
+        container.innerHTML = `
+            <p style="margin-bottom: 16px;">${eligible.length} agents eligible for the drawer</p>
+            <div class="eligible-list">
+                ${eligible.map(agent => `
+                    <div class="eligible-item" style="padding: 12px; background: var(--glass-bg); border-radius: 8px; margin-bottom: 8px;">
+                        <span style="font-weight: bold;">${agent.name}</span>
+                        <span style="color: ${getTeamColor(agent.team)}; margin-left: 12px;">${agent.team}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (err) {
+        console.error('Drawer error:', err);
+        throw err;
+    }
 }
 
+// ==================== ANNOUNCEMENTS PAGE ====================
 async function loadAnnouncementsPage() {
     console.log('Loading announcements page...');
-    // Keep your existing implementation
+    
+    try {
+        const data = await apiCall('getAnnouncements');
+        
+        const container = document.getElementById('announcements-content');
+        if (!container) return;
+
+        const announcements = data.announcements || [];
+        
+        if (announcements.length === 0) {
+            container.innerHTML = '<p>No announcements at this time</p>';
+            return;
+        }
+
+        container.innerHTML = announcements.map(a => `
+            <div class="announcement-item" style="padding: 16px; background: var(--glass-bg); border-radius: 12px; margin-bottom: 16px;">
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">${a.date || ''}</div>
+                <h3 style="margin-bottom: 8px;">${a.title || ''}</h3>
+                <p style="color: var(--text-secondary);">${a.content || ''}</p>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Announcements error:', err);
+        throw err;
+    }
 }
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing...');
+    console.log('DOM loaded, initializing app...');
     initLogin();
 });
