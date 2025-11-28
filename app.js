@@ -13,7 +13,7 @@ const CONFIG = {
     },
 
     TEAM_PFPS: {
-        'Indigo': 'https://i.ibb.co/4g9KWg3/team-Indigo.png',
+        'Indigo': 'https://i.ibb.co/TqDYc5r5/team-Indigo.png',
         'Echo': 'https://i.ibb.co/xwYRSyx/Team-Echo.png',
         'Agust D': 'https://i.ibb.co/BVc11nz9/Team-agustd.png',
         'JITB': 'https://i.ibb.co/FbdLFwhv/Team-jitb.png'
