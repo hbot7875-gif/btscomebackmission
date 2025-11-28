@@ -177,21 +177,23 @@
                     </div>
                 </div>
 
+                <!-- Alert Container -->
+                <div class="alert-container" id="alert-container"></div>
+
                 <!-- Pages Container -->
                 <div class="pages-container">
+                    
                     <!-- HOME PAGE -->
                     <div class="page active" id="page-home">
                         <div class="page-header">
-                            <h1 class="page-title" data-text="MISSION CONTROL">MISSION CONTROL</h1>
+                            <h1 class="page-title">MISSION CONTROL</h1>
                             <p class="page-subtitle" id="current-week-display">Loading...</p>
                         </div>
-                        
-                        <div class="alert-container" id="alert-container"></div>
                         
                         <div class="hero-section">
                             <div class="hero-content">
                                 <h2 class="hero-title">WELCOME BACK, OPERATIVE</h2>
-                                <p class="hero-text">Your mission: Stream strategically, complete all objectives, and help your squad advance. Every 10 streams = 1 XP. Complete all 3 weekly missions to achieve clearance level up.</p>
+                                <p class="hero-text">Your mission: Stream strategically, complete all objectives, and help your squad advance.</p>
                             </div>
                         </div>
                         
@@ -199,19 +201,19 @@
                             <div class="mission-card" data-nav="goals">
                                 <div class="mission-icon">🎵</div>
                                 <div class="mission-title">TRACK GOALS</div>
-                                <p class="mission-desc">Team must complete weekly track streaming targets together</p>
+                                <p class="mission-desc">Team track streaming targets</p>
                                 <div class="mission-status" id="home-track-status">Loading...</div>
                             </div>
                             <div class="mission-card" data-nav="goals">
                                 <div class="mission-icon">💿</div>
                                 <div class="mission-title">ALBUM GOALS</div>
-                                <p class="mission-desc">Team-specific album streaming targets</p>
+                                <p class="mission-desc">Team album streaming targets</p>
                                 <div class="mission-status" id="home-album-status">Loading...</div>
                             </div>
                             <div class="mission-card" data-nav="album2x">
                                 <div class="mission-icon">✨</div>
                                 <div class="mission-title">ALBUM 2X MISSION</div>
-                                <p class="mission-desc">Individual mission: Each agent must stream their team album tracks at least 2× each</p>
+                                <p class="mission-desc">Stream team album tracks 2× each</p>
                                 <div class="mission-status" id="home-2x-status">Loading...</div>
                             </div>
                         </div>
@@ -238,13 +240,13 @@
                     <!-- PROFILE PAGE -->
                     <div class="page" id="page-profile">
                         <div class="page-header">
-                            <h1 class="page-title" data-text="AGENT DOSSIER">AGENT DOSSIER</h1>
-                            <p class="page-subtitle">Your classified statistics and contributions</p>
+                            <h1 class="page-title">AGENT DOSSIER</h1>
+                            <p class="page-subtitle">Your classified statistics</p>
                         </div>
                         
                         <div class="profile-hero">
                             <div class="profile-avatar" id="profile-avatar">
-                                <span id="profile-initial">A</span>
+                                <span>A</span>
                             </div>
                             <div class="profile-info">
                                 <h2 class="profile-name" id="profile-name">Agent Name</h2>
@@ -277,51 +279,21 @@
                                 <div class="loading-text">LOADING...</div>
                             </div>
                         </div>
-                        
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">✨ ALBUM 2X STATUS</h3>
-                            </div>
-                            <div class="card-body" id="profile-2x">
-                                <div class="loading-text">LOADING...</div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- RANKINGS PAGE -->
                     <div class="page" id="page-rankings">
                         <div class="page-header">
-                            <h1 class="page-title" data-text="GLOBAL RANKINGS">GLOBAL RANKINGS</h1>
-                            <p class="page-subtitle">Operative leaderboard by Total XP</p>
+                            <h1 class="page-title">GLOBAL RANKINGS</h1>
+                            <p class="page-subtitle">Operative leaderboard</p>
                         </div>
-                        
-                        <div class="team-legend" id="team-legend"></div>
                         
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">🏆 LEADERBOARD</h3>
-                                <div class="card-actions">
-                                    <input type="text" id="rank-search" placeholder="Search agent..." class="search-input">
-                                </div>
                             </div>
-                            <div class="card-body">
-                                <div class="table-wrapper">
-                                    <table class="data-table" id="rankings-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Rank</th>
-                                                <th>Agent</th>
-                                                <th>Team</th>
-                                                <th>Streams</th>
-                                                <th>XP</th>
-                                                <th>Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="rankings-body">
-                                            <tr><td colspan="6" class="loading-text">LOADING...</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                            <div class="card-body" id="rankings-list">
+                                <div class="loading-text">LOADING...</div>
                             </div>
                         </div>
                     </div>
@@ -329,59 +301,121 @@
                     <!-- GOALS PAGE -->
                     <div class="page" id="page-goals">
                         <div class="page-header">
-                            <h1 class="page-title" data-text="GOALS PROGRESS">GOALS PROGRESS</h1>
-                            <p class="page-subtitle">Track and Album targets by squad</p>
+                            <h1 class="page-title">GOALS PROGRESS</h1>
+                            <p class="page-subtitle">Track and Album targets</p>
                         </div>
                         
-                        <div class="goals-container" id="goals-container">
-                            <div class="loading-text">LOADING...</div>
+                        <div class="card">
+                            <div class="card-body" id="goals-content">
+                                <div class="loading-text">LOADING...</div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- ALBUM 2X PAGE -->
                     <div class="page" id="page-album2x">
                         <div class="page-header">
-                            <h1 class="page-title" data-text="ALBUM 2X MISSION">ALBUM 2X MISSION</h1>
-                            <p class="page-subtitle">Individual album completion status</p>
+                            <h1 class="page-title">ALBUM 2X MISSION</h1>
+                            <p class="page-subtitle">Individual album completion</p>
                         </div>
                         
-                        <div class="album2x-container" id="album2x-container">
-                            <div class="loading-text">LOADING...</div>
+                        <div class="card">
+                            <div class="card-body" id="album2x-content">
+                                <div class="loading-text">LOADING...</div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- TEAM LEVEL PAGE -->
                     <div class="page" id="page-team-level">
                         <div class="page-header">
-                            <h1 class="page-title" data-text="TEAM INTEL">TEAM INTEL</h1>
-                            <p class="page-subtitle">Classified squad progress and mission status</p>
+                            <h1 class="page-title">TEAM INTEL</h1>
+                            <p class="page-subtitle">Squad progress</p>
                         </div>
                         
-                        <div class="team-level-container" id="team-level-container">
-                            <div class="loading-text">LOADING...</div>
+                        <div class="card">
+                            <div class="card-body" id="team-level-content">
+                                <div class="loading-text">LOADING...</div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- TEAM CHARTS PAGE -->
                     <div class="page" id="page-team-charts">
                         <div class="page-header">
-                            <h1 class="page-title" data-text="TEAM ANALYTICS">TEAM ANALYTICS</h1>
-                            <p class="page-subtitle">XP growth and mission completion trends</p>
+                            <h1 class="page-title">TEAM ANALYTICS</h1>
+                            <p class="page-subtitle">XP trends</p>
                         </div>
                         
-                        <div class="team-selector" id="chart-team-selector">
-                            <label>SELECT SQUAD:</label>
-                            <div class="team-buttons" id="team-chart-buttons"></div>
-                        </div>
-                        
-                        <div class="charts-grid">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3 class="card-title">📈 SQUAD XP GROWTH</h3>
-                                </div>
-                                <div class="card-body">
-                                    <canvas id="team-xp-chart"></canvas>
-                                </div>
+                        <div class="card">
+                            <div class="card-body" id="team-charts-content">
+                                <canvas id="team-xp-chart"></canvas>
                             </div>
-                            
-                
+                        </div>
+                    </div>
+
+                    <!-- TEAM COMPARISON PAGE -->
+                    <div class="page" id="page-team-comparison">
+                        <div class="page-header">
+                            <h1 class="page-title">TEAM COMPARISON</h1>
+                            <p class="page-subtitle">Squad vs Squad</p>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body" id="team-comparison-content">
+                                <div class="loading-text">LOADING...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUMMARY PAGE -->
+                    <div class="page" id="page-summary">
+                        <div class="page-header">
+                            <h1 class="page-title">WEEKLY REPORT</h1>
+                            <p class="page-subtitle">Mission summary</p>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body" id="summary-content">
+                                <div class="loading-text">LOADING...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DRAWER PAGE -->
+                    <div class="page" id="page-drawer">
+                        <div class="page-header">
+                            <h1 class="page-title">BADGE VAULT</h1>
+                            <p class="page-subtitle">Drawer eligible agents</p>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body" id="drawer-content">
+                                <div class="loading-text">LOADING...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ANNOUNCEMENTS PAGE -->
+                    <div class="page" id="page-announcements">
+                        <div class="page-header">
+                            <h1 class="page-title">TRANSMISSIONS</h1>
+                            <p class="page-subtitle">Official announcements</p>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body" id="announcements-content">
+                                <div class="loading-text">LOADING...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- end pages-container -->
+            </main>
+        </div><!-- end dashboard-container -->
+    </div><!-- end dashboard-screen -->
+
+    <!-- IMPORTANT: Load JavaScript at the end -->
+    <script src="app.js"></script>
+</body>
+</html>
