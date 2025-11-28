@@ -3,7 +3,7 @@
 // ==================== CONFIGURATION ====================
 const CONFIG = {
     // IMPORTANT: Replace this with your actual Apps Script deployment URL
-    API_BASE_URL: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
+    API_BASE_URL: 'https://script.google.com/macros/s/AKfycby2u2Y1KEQazjmTnQBlYaX7Tap4GIiH0_iGs4VqgoVlkT0FO_1tTRLc399QcSl6mw89sw/exec',
     
     TEAM_COLORS: {
         'Indigo': '#5b61d4',
