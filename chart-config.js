@@ -1,6 +1,6 @@
-// ===== CHART-CONFIG.JS - Chart.js Default Options =====
+// ===== CHART-CONFIG.JS - Chart.js Options with Explanations =====
 
-function getChartOptions(title = '') {
+function getChartOptions(title = '', explanation = '') {
     return {
         responsive: true,
         maintainAspectRatio: true,
@@ -10,10 +10,26 @@ function getChartOptions(title = '') {
                 text: title,
                 color: '#d4af37',
                 font: {
-                    size: 16,
+                    size: 14,
                     weight: 'bold'
                 },
-                padding: 20
+                padding: {
+                    top: 10,
+                    bottom: 20
+                }
+            },
+            subtitle: {
+                display: !!explanation,
+                text: explanation,
+                color: '#999',
+                font: {
+                    size: 11,
+                    weight: 'normal',
+                    style: 'italic'
+                },
+                padding: {
+                    bottom: 10
+                }
             },
             legend: {
                 labels: {
@@ -31,7 +47,19 @@ function getChartOptions(title = '') {
                 borderWidth: 1,
                 padding: 12,
                 cornerRadius: 8,
-                displayColors: true
+                displayColors: true,
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            label += context.parsed.y;
+                        }
+                        return label;
+                    }
+                }
             }
         },
         scales: {
@@ -59,6 +87,34 @@ function getChartOptions(title = '') {
         interaction: {
             intersect: false,
             mode: 'index'
+        },
+        animation: {
+            duration: 1000,
+            easing: 'easeInOutQuart'
         }
     };
+}
+
+// Chart type specific configurations
+function getLineChartOptions(title, explanation) {
+    const options = getChartOptions(title, explanation);
+    options.elements = {
+        line: {
+            tension: 0.4,
+            borderWidth: 3
+        },
+        point: {
+            radius: 4,
+            hoverRadius: 6,
+            borderWidth: 2,
+            backgroundColor: '#0a0a0f'
+        }
+    };
+    return options;
+}
+
+function getBarChartOptions(title, explanation) {
+    const options = getChartOptions(title, explanation);
+    options.plugins.legend.display = false;
+    return options;
 }
