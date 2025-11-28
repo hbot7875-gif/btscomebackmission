@@ -309,12 +309,15 @@ function updateAgentInfo() {
     const color = getTeamColor(p.team);
     const initial = p.name.charAt(0).toUpperCase();
     const pfp = getTeamPFP(p.team);
+    const teamClass = 'team-' + getTeamClass(p.team);
 
-    // Update sidebar
+    // Update sidebar avatar
     const agentAvatar = document.getElementById('agent-avatar');
     if (agentAvatar) {
+        agentAvatar.className = `agent-avatar ${teamClass}`;
+        
         if (pfp) {
-            agentAvatar.innerHTML = `<img src="${pfp}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            agentAvatar.innerHTML = `<img src="${pfp}" alt="${p.team} team" onerror="this.style.display='none'; this.parentElement.innerHTML='<span>${initial}</span>';">`;
         } else {
             agentAvatar.innerHTML = `<span>${initial}</span>`;
             agentAvatar.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
@@ -332,6 +335,32 @@ function updateAgentInfo() {
 
     const agentId = document.getElementById('agent-id');
     if (agentId) agentId.textContent = `ID: ${STATE.agentNo}`;
+
+    // Update profile page avatar
+    const profileAvatar = document.getElementById('profile-avatar');
+    if (profileAvatar) {
+        profileAvatar.className = `profile-avatar ${teamClass}`;
+        
+        if (pfp) {
+            profileAvatar.innerHTML = `<img src="${pfp}" alt="${p.team} team" onerror="this.style.display='none'; this.parentElement.innerHTML='<span>${initial}</span>';">`;
+        } else {
+            profileAvatar.innerHTML = `<span>${initial}</span>`;
+            profileAvatar.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
+        }
+    }
+
+    const profileName = document.getElementById('profile-name');
+    if (profileName) profileName.textContent = p.name;
+
+    const profileTeam = document.getElementById('profile-team');
+    if (profileTeam) {
+        profileTeam.textContent = p.team;
+        profileTeam.style.color = color;
+    }
+
+    const profileId = document.getElementById('profile-id');
+    if (profileId) profileId.textContent = `ID: ${STATE.agentNo}`;
+}
 
     // Update profile page
     const profileAvatar = document.getElementById('profile-avatar');
@@ -536,24 +565,34 @@ async function loadHomePage() {
     }
 
     // Team standings
-    const teams = Object.keys(summary.teams);
-    const standingsHTML = teams.map(t => {
-        const data = summary.teams[t];
-        const pfp = getTeamPFP(t);
-        return `
-            <div class="stat-box" style="border-color: ${getTeamColor(t)};">
-                ${pfp ? `<img src="${pfp}" style="width:60px;height:60px;border-radius:50%;margin-bottom:8px;object-fit:cover;">` : `<div style="font-size: 24px; margin-bottom: 8px;">🎭</div>`}
-                <div style="color: ${getTeamColor(t)}; font-weight: bold; font-size: 16px;">${t}</div>
-                <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
-                    Level ${data.level}
-                </div>
-                <div style="color: var(--primary); font-weight: bold; margin-top: 8px;">
-                    ${data.teamXP} XP
-                </div>
-                ${data.isWinner ? '<div style="margin-top: 8px;">🏆 Winner</div>' : ''}
+    // Team standings with auto-resized PFPs
+const teams = Object.keys(summary.teams);
+const standingsHTML = teams.map(t => {
+    const data = summary.teams[t];
+    const pfp = getTeamPFP(t);
+    const teamClass = 'team-' + getTeamClass(t);
+    
+    return `
+        <div class="stat-box" style="border-color: ${getTeamColor(t)};">
+            ${pfp 
+                ? `<div class="team-pfp-container ${teamClass}">
+                       <img src="${pfp}" 
+                            alt="${t} team" 
+                            onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\"font-size:24px;\\">🎭</div>';">
+                   </div>` 
+                : `<div style="font-size: 24px; margin-bottom: 8px;">🎭</div>`
+            }
+            <div style="color: ${getTeamColor(t)}; font-weight: bold; font-size: 16px;">${t}</div>
+            <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+                Level ${data.level}
             </div>
-        `;
-    }).join('');
+            <div style="color: var(--primary); font-weight: bold; margin-top: 8px;">
+                ${data.teamXP} XP
+            </div>
+            ${data.isWinner ? '<div style="margin-top: 8px;">🏆 Winner</div>' : ''}
+        </div>
+    `;
+}).join('');
 
     const standingsEl = document.getElementById('home-team-standings');
     if (standingsEl) {
