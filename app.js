@@ -1,4 +1,4 @@
-// ===== APP.JS - DEBUG VERSION =====
+// ===== SPY BATTLE APP.JS - COMPLETE VERSION =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -29,9 +29,8 @@ const STATE = {
     charts: {}
 };
 
-// ==================== UTILS ====================
+// ==================== UTILITY FUNCTIONS ====================
 function showLoading(show = true) {
-    console.log('showLoading:', show);
     const overlay = document.getElementById('loading-overlay');
     if (overlay) {
         if (show) {
@@ -41,8 +40,6 @@ function showLoading(show = true) {
             overlay.classList.remove('active');
             overlay.style.display = 'none';
         }
-    } else {
-        console.warn('Loading overlay not found!');
     }
 }
 
@@ -50,13 +47,14 @@ function showAlert(message, type = 'info') {
     console.log('Alert:', type, message);
     const container = document.getElementById('alert-container');
     if (!container) {
-        alert(message); // Fallback to browser alert
+        alert(message);
         return;
     }
     
     const alertEl = document.createElement('div');
     alertEl.className = `alert alert-${type}`;
-    alertEl.innerHTML = `<span>⚠️</span><span>${message}</span>`;
+    alertEl.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()">✕</button>`;
+    alertEl.style.cssText = 'padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; background: var(--glass-bg); border: 1px solid var(--glass-border);';
     container.appendChild(alertEl);
     setTimeout(() => alertEl.remove(), 5000);
 }
@@ -96,29 +94,24 @@ async function apiCall(action, params = {}) {
         }
     });
 
-    console.log('🌐 API Call:', action, params);
-    console.log('🔗 Full URL:', url.toString());
+    console.log('🌐 API Call:', action);
 
     try {
         const res = await fetch(url.toString());
-        console.log('📡 Response status:', res.status);
         
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
         }
         
         const text = await res.text();
-        console.log('📄 Raw response:', text.substring(0, 500));
         
         let data;
         try {
             data = JSON.parse(text);
         } catch (parseError) {
-            console.error('❌ JSON parse error:', parseError);
-            throw new Error('Invalid JSON response from server');
+            console.error('JSON parse error:', parseError);
+            throw new Error('Invalid response from server');
         }
-
-        console.log('✅ API Response:', action, data);
 
         if (data.error) {
             throw new Error(data.error);
@@ -126,68 +119,54 @@ async function apiCall(action, params = {}) {
         
         return data;
     } catch (error) {
-        console.error('❌ API Error:', error);
+        console.error('API Error:', error);
         throw error;
     }
 }
 
-// ==================== LOGIN ====================
+// ==================== LOGIN FUNCTIONS ====================
 function initLogin() {
-    console.log('🚀 Initializing login...');
+    console.log('🚀 Initializing app...');
     
     // Check for saved session
     const saved = localStorage.getItem('spyBattleAgent');
-    console.log('💾 Saved agent:', saved);
-    
     if (saved) {
+        console.log('Found saved agent:', saved);
         STATE.agentNo = saved;
         showDashboard();
         return;
     }
 
-    // Get elements
+    // Setup login button
     const loginBtn = document.getElementById('login-btn');
-    const findBtn = document.getElementById('find-agent-btn');
-    const agentInput = document.getElementById('agent-input');
-    const instaInput = document.getElementById('instagram-input');
-
-    console.log('🔍 Elements found:', {
-        loginBtn: !!loginBtn,
-        findBtn: !!findBtn,
-        agentInput: !!agentInput,
-        instaInput: !!instaInput
-    });
-
-    // Add event listeners
     if (loginBtn) {
-        console.log('✅ Adding click listener to login button');
         loginBtn.addEventListener('click', function(e) {
-            console.log('🖱️ Login button clicked!');
             e.preventDefault();
             handleLogin();
         });
-    } else {
-        console.error('❌ Login button not found!');
     }
 
+    // Setup find button
+    const findBtn = document.getElementById('find-agent-btn');
     if (findBtn) {
         findBtn.addEventListener('click', function(e) {
-            console.log('🖱️ Find button clicked!');
             e.preventDefault();
             handleFindAgent();
         });
     }
 
+    // Setup enter key for inputs
+    const agentInput = document.getElementById('agent-input');
     if (agentInput) {
         agentInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                console.log('⌨️ Enter pressed in agent input');
                 e.preventDefault();
                 handleLogin();
             }
         });
     }
 
+    const instaInput = document.getElementById('instagram-input');
     if (instaInput) {
         instaInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -197,24 +176,21 @@ function initLogin() {
         });
     }
     
-    console.log('✅ Login initialization complete');
+    console.log('✅ Login initialized');
 }
 
 async function handleLogin() {
-    console.log('========== LOGIN STARTED ==========');
+    console.log('Login attempt...');
     
     const agentInput = document.getElementById('agent-input');
     if (!agentInput) {
-        console.error('❌ Agent input field not found!');
-        showAlert('Error: Input field not found', 'error');
+        showAlert('Error: Input not found', 'error');
         return;
     }
     
     const agentNo = agentInput.value.trim();
-    console.log('📝 Agent number entered:', agentNo);
 
     if (!agentNo) {
-        console.log('⚠️ Empty agent number');
         showFindResult('Please enter your Agent Number', 'error');
         return;
     }
@@ -222,61 +198,42 @@ async function handleLogin() {
     showLoading(true);
 
     try {
-        console.log('📡 Fetching all agents...');
         const allAgents = await apiCall('getAllAgents');
-        console.log('📋 All agents response:', allAgents);
 
         if (!allAgents || !allAgents.agents) {
-            console.error('❌ Invalid response - no agents array');
             showLoading(false);
             showFindResult('Server error: Invalid response', 'error');
             return;
         }
 
-        console.log('👥 Total agents:', allAgents.agents.length);
-        
         // Find matching agent
         const matchingAgent = allAgents.agents.find(a => {
-            const agentNoStr = String(a.agentNo || '').trim();
-            const inputStr = String(agentNo).trim();
-            console.log(`Comparing: "${agentNoStr}" with "${inputStr}"`);
-            return agentNoStr === inputStr;
+            return String(a.agentNo || '').trim() === String(agentNo).trim();
         });
-        
-        console.log('🔍 Matching agent:', matchingAgent);
 
         if (!matchingAgent) {
-            console.log('❌ Agent not found');
             showLoading(false);
             showFindResult('Agent Number not found. Please check and try again.', 'error');
             return;
         }
 
-        console.log('✅ Agent found! Saving to localStorage...');
+        // Save and proceed
         localStorage.setItem('spyBattleAgent', agentNo);
         STATE.agentNo = agentNo;
-
-        console.log('🏠 Loading dashboard...');
         await showDashboard();
 
     } catch (err) {
-        console.error('❌ Login error:', err);
+        console.error('Login error:', err);
         showLoading(false);
         showFindResult('Login failed: ' + (err.message || 'Unknown error'), 'error');
     }
 }
 
 async function handleFindAgent() {
-    console.log('========== FIND AGENT STARTED ==========');
-    
     const instaInput = document.getElementById('instagram-input');
-    if (!instaInput) {
-        showAlert('Error: Input field not found', 'error');
-        return;
-    }
+    if (!instaInput) return;
     
     const instagram = instaInput.value.trim();
-    console.log('📝 Instagram entered:', instagram);
 
     if (!instagram) {
         showFindResult('Please enter your Instagram username', 'error');
@@ -287,8 +244,6 @@ async function handleFindAgent() {
 
     try {
         const res = await apiCall('getAgentByInstagram', { instagram: instagram });
-        console.log('📋 Find result:', res);
-
         showLoading(false);
 
         if (res.result && res.result.includes('Your Agent Number is:')) {
@@ -300,38 +255,35 @@ async function handleFindAgent() {
             showFindResult(res.result || 'Instagram username not found', 'error');
         }
     } catch (err) {
-        console.error('❌ Find agent error:', err);
+        console.error('Find agent error:', err);
         showLoading(false);
         showFindResult('Search failed: ' + err.message, 'error');
     }
 }
 
 function showFindResult(msg, type) {
-    console.log('📢 Find result:', type, msg);
     const el = document.getElementById('find-result');
     if (el) {
         el.textContent = msg;
         el.className = `find-result show ${type}`;
         el.style.display = 'block';
-    } else {
-        console.warn('Find result element not found');
-        showAlert(msg, type);
+        el.style.padding = '12px';
+        el.style.marginTop = '12px';
+        el.style.borderRadius = '8px';
+        el.style.background = type === 'success' ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)';
+        el.style.border = type === 'success' ? '1px solid #00ff00' : '1px solid #ff0000';
+        el.style.color = type === 'success' ? '#00ff00' : '#ff6b6b';
     }
 }
 
-// ==================== DASHBOARD ====================
+// ==================== DASHBOARD FUNCTIONS ====================
 async function showDashboard() {
-    console.log('========== LOADING DASHBOARD ==========');
-    console.log('Agent No:', STATE.agentNo);
-    
+    console.log('Loading dashboard...');
     showLoading(true);
 
     try {
         // Get weeks
-        console.log('📅 Fetching weeks...');
         const weeksData = await apiCall('getAvailableWeeks');
-        console.log('📅 Weeks:', weeksData);
-
         STATE.allWeeks = weeksData.weeks || [];
         STATE.currentWeek = weeksData.current || STATE.allWeeks[0];
 
@@ -340,25 +292,15 @@ async function showDashboard() {
         }
 
         // Get agent data
-        console.log('👤 Fetching agent data...');
         const agentData = await apiCall('getAgentData', {
             agentNo: STATE.agentNo,
             week: STATE.currentWeek
         });
-        console.log('👤 Agent data:', agentData);
-
         STATE.agentData = agentData;
 
         // Switch screens
-        console.log('🔄 Switching to dashboard screen...');
-        
         const loginScreen = document.getElementById('login-screen');
         const dashboardScreen = document.getElementById('dashboard-screen');
-
-        console.log('Elements:', {
-            loginScreen: !!loginScreen,
-            dashboardScreen: !!dashboardScreen
-        });
 
         if (loginScreen) {
             loginScreen.style.display = 'none';
@@ -370,43 +312,22 @@ async function showDashboard() {
             dashboardScreen.classList.add('active');
         }
 
-        // Initialize dashboard
-        console.log('🎛️ Initializing dashboard...');
+        // Initialize
         initDashboard();
-        
-        // Load home page
-        console.log('🏠 Loading home page...');
         await loadPage('home');
         
         showLoading(false);
-        console.log('✅ Dashboard loaded successfully!');
+        console.log('✅ Dashboard loaded');
 
     } catch (err) {
-        console.error('❌ Dashboard error:', err);
+        console.error('Dashboard error:', err);
         showLoading(false);
-        showAlert('Failed to load dashboard: ' + err.message, 'danger');
-        
-        // Clear saved data and show login
-        localStorage.removeItem('spyBattleAgent');
-        STATE.agentNo = null;
-        
-        const loginScreen = document.getElementById('login-screen');
-        const dashboardScreen = document.getElementById('dashboard-screen');
-        
-        if (loginScreen) {
-            loginScreen.style.display = 'flex';
-            loginScreen.classList.add('active');
-        }
-        if (dashboardScreen) {
-            dashboardScreen.style.display = 'none';
-            dashboardScreen.classList.remove('active');
-        }
+        showAlert('Failed to load: ' + err.message, 'danger');
+        logout();
     }
 }
 
 function initDashboard() {
-    console.log('Initializing dashboard components...');
-    
     updateAgentInfo();
     populateWeekSelector();
     setupNavigation();
@@ -423,30 +344,24 @@ function initDashboard() {
 
 function updateAgentInfo() {
     const p = STATE.agentData?.profile;
-    if (!p) {
-        console.warn('No profile data');
-        return;
-    }
-
-    console.log('Updating agent info:', p);
+    if (!p) return;
 
     const color = getTeamColor(p.team);
     const initial = (p.name || 'A').charAt(0).toUpperCase();
     const pfp = getTeamPFP(p.team);
-    const teamClass = 'team-' + getTeamClass(p.team);
 
-    // Sidebar
+    // Sidebar avatar
     const agentAvatar = document.getElementById('agent-avatar');
     if (agentAvatar) {
-        agentAvatar.className = `agent-avatar ${teamClass}`;
         if (pfp) {
-            agentAvatar.innerHTML = `<img src="${pfp}" alt="${p.team}" onerror="this.parentElement.innerHTML='<span>${initial}</span>'">`;
+            agentAvatar.innerHTML = `<img src="${pfp}" alt="${p.team}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
         } else {
             agentAvatar.innerHTML = `<span>${initial}</span>`;
-            agentAvatar.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
+            agentAvatar.style.background = `linear-gradient(135deg, ${color}, ${color}aa)`;
         }
     }
 
+    // Sidebar info
     const agentName = document.getElementById('agent-name');
     if (agentName) agentName.textContent = p.name || 'Agent';
 
@@ -462,12 +377,11 @@ function updateAgentInfo() {
     // Profile page
     const profileAvatar = document.getElementById('profile-avatar');
     if (profileAvatar) {
-        profileAvatar.className = `profile-avatar ${teamClass}`;
         if (pfp) {
-            profileAvatar.innerHTML = `<img src="${pfp}" alt="${p.team}" onerror="this.parentElement.innerHTML='<span>${initial}</span>'">`;
+            profileAvatar.innerHTML = `<img src="${pfp}" alt="${p.team}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
         } else {
             profileAvatar.innerHTML = `<span>${initial}</span>`;
-            profileAvatar.style.background = `linear-gradient(135deg, ${color}, ${color}dd)`;
+            profileAvatar.style.background = `linear-gradient(135deg, ${color}, ${color}aa)`;
         }
     }
 
@@ -503,8 +417,7 @@ function populateWeekSelector() {
             });
             await loadPage(STATE.currentPage);
         } catch (err) {
-            console.error('Week change error:', err);
-            showAlert('Failed to load week data', 'danger');
+            showAlert('Failed to load week', 'danger');
         } finally {
             showLoading(false);
         }
@@ -555,7 +468,6 @@ function closeMobileMenu() {
 }
 
 function logout() {
-    console.log('Logging out...');
     localStorage.removeItem('spyBattleAgent');
     STATE.agentNo = null;
     STATE.agentData = null;
@@ -564,7 +476,7 @@ function logout() {
 
 // ==================== PAGE LOADER ====================
 async function loadPage(page) {
-    console.log('📄 Loading page:', page);
+    console.log('Loading page:', page);
     STATE.currentPage = page;
     
     // Hide all pages
@@ -595,20 +507,17 @@ async function loadPage(page) {
             case 'summary': await loadSummaryPage(); break;
             case 'drawer': await loadDrawerPage(); break;
             case 'announcements': await loadAnnouncementsPage(); break;
-            default: console.warn('Unknown page:', page);
         }
     } catch (err) {
-        console.error('Page load error:', err);
-        showAlert('Failed to load page: ' + err.message, 'danger');
+        console.error('Page error:', err);
+        showAlert('Failed to load page', 'danger');
     } finally {
         showLoading(false);
     }
 }
 
-// ==================== HOME PAGE ====================
+// ==================== PAGE: HOME ====================
 async function loadHomePage() {
-    console.log('Loading home page...');
-    
     const currentWeekDisplay = document.getElementById('current-week-display');
     if (currentWeekDisplay) {
         currentWeekDisplay.textContent = `Active Week: ${STATE.currentWeek}`;
@@ -632,43 +541,42 @@ async function loadHomePage() {
         // Top performers
         const rankingsList = rankings.rankings || [];
         const performersHTML = rankingsList.map((r, i) => `
-            <div class="stat-box">
-                <div class="rank-badge">${i + 1}</div>
-                <div style="margin-top: 12px; font-size: 14px; font-weight: bold;">${r.name || 'Unknown'}</div>
-                <div style="margin-top: 8px; color: ${getTeamColor(r.team)};">${r.team || 'Unknown'}</div>
-                <div style="color: var(--primary); font-weight: bold; margin-top: 8px;">${formatNumber(r.totalXP)} XP</div>
+            <div style="display:flex;align-items:center;padding:12px;background:var(--glass-bg);border-radius:8px;margin-bottom:8px;border-left:3px solid ${getTeamColor(r.team)}">
+                <div style="width:32px;height:32px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;margin-right:12px;">${i + 1}</div>
+                <div style="flex:1;">
+                    <div style="font-weight:bold;">${r.name || 'Unknown'}</div>
+                    <div style="font-size:12px;color:${getTeamColor(r.team)}">${r.team}</div>
+                </div>
+                <div style="font-weight:bold;color:var(--primary);">${formatNumber(r.totalXP)} XP</div>
             </div>
         `).join('');
 
         const topPerformersEl = document.getElementById('home-top-performers');
         if (topPerformersEl) {
-            topPerformersEl.innerHTML = performersHTML 
-                ? `<div class="stats-grid">${performersHTML}</div>`
-                : '<p>No rankings available</p>';
+            topPerformersEl.innerHTML = performersHTML || '<p>No data available</p>';
         }
 
         // Team standings
         const teams = Object.keys(summary.teams || {});
-        const standingsHTML = teams.map(t => {
-            const data = summary.teams[t];
-            const pfp = getTeamPFP(t);
-            
-            return `
-                <div class="stat-box" style="border-color: ${getTeamColor(t)};">
-                    ${pfp ? `<img src="${pfp}" alt="${t}" style="width: 48px; height: 48px; border-radius: 50%; margin-bottom: 8px;">` : ''}
-                    <div style="color: ${getTeamColor(t)}; font-weight: bold;">${t}</div>
-                    <div style="font-size: 12px; color: var(--text-secondary);">Level ${data.level || 0}</div>
-                    <div style="color: var(--primary); font-weight: bold; margin-top: 8px;">${formatNumber(data.teamXP)} XP</div>
-                    ${data.isWinner ? '<div style="margin-top: 8px;">🏆</div>' : ''}
-                </div>
-            `;
-        }).join('');
+        const standingsHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;">
+            ${teams.map(t => {
+                const data = summary.teams[t];
+                const pfp = getTeamPFP(t);
+                return `
+                    <div style="background:var(--glass-bg);border-radius:12px;padding:16px;text-align:center;border:1px solid ${getTeamColor(t)}40;">
+                        ${pfp ? `<img src="${pfp}" style="width:48px;height:48px;border-radius:50%;margin-bottom:8px;">` : ''}
+                        <div style="color:${getTeamColor(t)};font-weight:bold;">${t}</div>
+                        <div style="font-size:12px;opacity:0.7;">Level ${data.level || 0}</div>
+                        <div style="font-size:18px;font-weight:bold;color:var(--primary);margin-top:8px;">${formatNumber(data.teamXP)} XP</div>
+                        ${data.isWinner ? '<div style="margin-top:8px;">🏆</div>' : ''}
+                    </div>
+                `;
+            }).join('')}
+        </div>`;
 
         const standingsEl = document.getElementById('home-team-standings');
         if (standingsEl) {
-            standingsEl.innerHTML = standingsHTML 
-                ? `<div class="stats-grid">${standingsHTML}</div>`
-                : '<p>No team data available</p>';
+            standingsEl.innerHTML = standingsHTML;
         }
         
     } catch (err) {
@@ -682,15 +590,15 @@ function updateMissionStatus(elementId, passed) {
     if (!element) return;
     
     if (passed) {
-        element.textContent = '✅ Completed';
-        element.className = 'mission-status completed';
+        element.textContent = '✅ COMPLETED';
+        element.style.color = '#00ff88';
     } else {
-        element.textContent = '⏳ In Progress';
-        element.className = 'mission-status behind';
+        element.textContent = '⏳ IN PROGRESS';
+        element.style.color = '#ffd93d';
     }
 }
 
-// ==================== OTHER PAGES ====================
+// ==================== PAGE: PROFILE ====================
 async function loadProfilePage() {
     const p = STATE.agentData?.profile;
     const s = STATE.agentData?.stats;
@@ -699,122 +607,397 @@ async function loadProfilePage() {
     const statsContainer = document.getElementById('profile-stats');
     if (statsContainer) {
         statsContainer.innerHTML = `
-            <div class="stat-box"><div class="stat-value">${formatNumber(s.totalXP)}</div><div class="stat-label">Total XP</div></div>
-            <div class="stat-box"><div class="stat-value">#${s.rank || 'N/A'}</div><div class="stat-label">Rank</div></div>
-            <div class="stat-box"><div class="stat-value">${formatNumber(s.trackCount || 0)}</div><div class="stat-label">Tracks</div></div>
-            <div class="stat-box"><div class="stat-value">${formatNumber(s.albumCount || 0)}</div><div class="stat-label">Albums</div></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;">
+                <div style="background:var(--glass-bg);padding:20px;border-radius:12px;text-align:center;">
+                    <div style="font-size:28px;font-weight:bold;color:var(--primary);">${formatNumber(s.totalXP)}</div>
+                    <div style="font-size:12px;opacity:0.7;margin-top:4px;">Total XP</div>
+                </div>
+                <div style="background:var(--glass-bg);padding:20px;border-radius:12px;text-align:center;">
+                    <div style="font-size:28px;font-weight:bold;color:var(--primary);">#${s.rank || 'N/A'}</div>
+                    <div style="font-size:12px;opacity:0.7;margin-top:4px;">Rank</div>
+                </div>
+                <div style="background:var(--glass-bg);padding:20px;border-radius:12px;text-align:center;">
+                    <div style="font-size:28px;font-weight:bold;color:var(--primary);">${formatNumber(s.totalStreams || 0)}</div>
+                    <div style="font-size:12px;opacity:0.7;margin-top:4px;">Streams</div>
+                </div>
+            </div>
         `;
+    }
+
+    // Track contributions
+    const profileTracks = document.getElementById('profile-tracks');
+    if (profileTracks && s.tracks) {
+        profileTracks.innerHTML = Object.entries(s.tracks || {}).map(([track, count]) => `
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--glass-border);">
+                <span>${track}</span>
+                <span style="font-weight:bold;">${formatNumber(count)}</span>
+            </div>
+        `).join('') || '<p>No track data</p>';
+    }
+
+    // Album contributions
+    const profileAlbums = document.getElementById('profile-albums');
+    if (profileAlbums && s.albums) {
+        profileAlbums.innerHTML = Object.entries(s.albums || {}).map(([album, count]) => `
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--glass-border);">
+                <span>${album}</span>
+                <span style="font-weight:bold;">${formatNumber(count)}</span>
+            </div>
+        `).join('') || '<p>No album data</p>';
     }
 }
 
+// ==================== PAGE: RANKINGS ====================
 async function loadRankingsPage() {
     const data = await apiCall('getRankings', { week: STATE.currentWeek, limit: 100 });
     const container = document.getElementById('rankings-list');
     if (!container) return;
 
     const rankings = data.rankings || [];
-    container.innerHTML = rankings.length ? rankings.map((r, i) => `
-        <div class="ranking-item ${r.agentNo == STATE.agentNo ? 'highlight' : ''}" style="display: flex; align-items: center; padding: 12px; background: var(--glass-bg); border-radius: 8px; margin-bottom: 8px;">
-            <div style="width: 40px; font-weight: bold; color: var(--primary);">#${i + 1}</div>
-            <div style="flex: 1;"><div style="font-weight: bold;">${r.name}</div><div style="color: ${getTeamColor(r.team)}; font-size: 12px;">${r.team}</div></div>
-            <div style="font-weight: bold;">${formatNumber(r.totalXP)} XP</div>
-        </div>
-    `).join('') : '<p>No rankings available</p>';
+    
+    if (rankings.length === 0) {
+        container.innerHTML = '<p>No rankings available</p>';
+        return;
+    }
+
+    container.innerHTML = rankings.map((r, i) => {
+        const isMe = String(r.agentNo) === String(STATE.agentNo);
+        return `
+            <div style="display:flex;align-items:center;padding:12px;background:${isMe ? 'rgba(212,175,55,0.2)' : 'var(--glass-bg)'};border-radius:8px;margin-bottom:8px;border-left:3px solid ${getTeamColor(r.team)}">
+                <div style="width:40px;font-weight:bold;color:var(--primary);">#${i + 1}</div>
+                <div style="flex:1;">
+                    <div style="font-weight:bold;">${r.name}${isMe ? ' (You)' : ''}</div>
+                    <div style="font-size:12px;color:${getTeamColor(r.team)}">${r.team}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-weight:bold;">${formatNumber(r.totalXP)} XP</div>
+                    <div style="font-size:12px;opacity:0.7;">${formatNumber(r.totalStreams || 0)} streams</div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
+// ==================== PAGE: GOALS ====================
 async function loadGoalsPage() {
     const data = await apiCall('getGoalsProgress', { week: STATE.currentWeek });
     const team = STATE.agentData?.profile?.team;
     const container = document.getElementById('goals-content');
     if (!container) return;
 
-    let html = '<h3>Track Goals</h3>';
+    let html = '<h3 style="margin-bottom:16px;color:var(--primary);">🎵 Track Goals</h3>';
+    
     Object.entries(data.trackGoals || {}).forEach(([track, info]) => {
         const teamData = info.teams?.[team] || { current: 0 };
         const progress = Math.min(100, (teamData.current / info.goal) * 100);
-        html += `<div style="margin-bottom: 16px;"><div style="display: flex; justify-content: space-between;"><span>${track}</span><span>${teamData.current}/${info.goal}</span></div><div style="background: var(--glass-bg); border-radius: 4px; height: 8px; margin-top: 4px;"><div style="background: var(--primary); height: 100%; border-radius: 4px; width: ${progress}%;"></div></div></div>`;
+        const passed = teamData.current >= info.goal;
+        
+        html += `
+            <div style="margin-bottom:16px;padding:12px;background:var(--glass-bg);border-radius:8px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span>${track}</span>
+                    <span style="color:${passed ? '#00ff88' : 'var(--primary)'};">${formatNumber(teamData.current)}/${formatNumber(info.goal)} ${passed ? '✅' : ''}</span>
+                </div>
+                <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:8px;overflow:hidden;">
+                    <div style="background:${passed ? '#00ff88' : 'var(--primary)'};height:100%;width:${progress}%;transition:width 0.3s;"></div>
+                </div>
+            </div>
+        `;
     });
 
-    html += '<h3 style="margin-top: 24px;">Album Goals</h3>';
+    html += '<h3 style="margin:24px 0 16px;color:var(--primary);">💿 Album Goals</h3>';
+    
     Object.entries(data.albumGoals || {}).forEach(([album, info]) => {
         const teamData = info.teams?.[team] || { current: 0 };
         const progress = Math.min(100, (teamData.current / info.goal) * 100);
-        html += `<div style="margin-bottom: 16px;"><div style="display: flex; justify-content: space-between;"><span>${album}</span><span>${teamData.current}/${info.goal}</span></div><div style="background: var(--glass-bg); border-radius: 4px; height: 8px; margin-top: 4px;"><div style="background: var(--primary); height: 100%; border-radius: 4px; width: ${progress}%;"></div></div></div>`;
+        const passed = teamData.current >= info.goal;
+        
+        html += `
+            <div style="margin-bottom:16px;padding:12px;background:var(--glass-bg);border-radius:8px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span>${album}</span>
+                    <span style="color:${passed ? '#00ff88' : 'var(--primary)'};">${formatNumber(teamData.current)}/${formatNumber(info.goal)} ${passed ? '✅' : ''}</span>
+                </div>
+                <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:8px;overflow:hidden;">
+                    <div style="background:${passed ? '#00ff88' : 'var(--primary)'};height:100%;width:${progress}%;transition:width 0.3s;"></div>
+                </div>
+            </div>
+        `;
     });
 
     container.innerHTML = html;
 }
 
+// ==================== PAGE: ALBUM 2X ====================
 async function loadAlbum2xPage() {
-    const data = await apiCall('getAlbum2xProgress', { week: STATE.currentWeek });
     const container = document.getElementById('album2x-content');
     if (!container) return;
-    container.innerHTML = '<p>Album 2x data loaded</p>';
+
+    try {
+        const data = await apiCall('getAlbum2xProgress', { week: STATE.currentWeek });
+        
+        if (!data || !data.tracks) {
+            container.innerHTML = '<p>No 2x album data available</p>';
+            return;
+        }
+
+        const s = STATE.agentData?.stats;
+        const tracks = data.tracks || [];
+        
+        let passedCount = 0;
+        let html = '<div style="display:grid;gap:12px;">';
+        
+        tracks.forEach(track => {
+            const myCount = s?.album2x?.[track.name] || 0;
+            const passed = myCount >= 2;
+            if (passed) passedCount++;
+            
+            html += `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--glass-bg);border-radius:8px;border-left:3px solid ${passed ? '#00ff88' : '#ff6b6b'};">
+                    <span>${track.name}</span>
+                    <span style="color:${passed ? '#00ff88' : '#ff6b6b'};">${myCount}/2 ${passed ? '✅' : '❌'}</span>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        
+        const allPassed = passedCount === tracks.length;
+        container.innerHTML = `
+            <div style="text-align:center;padding:20px;background:var(--glass-bg);border-radius:12px;margin-bottom:20px;">
+                <div style="font-size:48px;margin-bottom:12px;">${allPassed ? '🎉' : '⏳'}</div>
+                <div style="font-size:24px;font-weight:bold;color:${allPassed ? '#00ff88' : 'var(--primary)'};">
+                    ${passedCount}/${tracks.length} Tracks Complete
+                </div>
+                <div style="margin-top:8px;opacity:0.7;">
+                    ${allPassed ? 'Mission Accomplished!' : 'Keep streaming!'}
+                </div>
+            </div>
+            ${html}
+        `;
+    } catch (err) {
+        container.innerHTML = '<p>Failed to load 2x data</p>';
+    }
 }
 
+// ==================== PAGE: TEAM LEVEL ====================
 async function loadTeamLevelPage() {
-    const data = await apiCall('getTeamLevels', { week: STATE.currentWeek });
     const container = document.getElementById('team-level-content');
     if (!container) return;
-    container.innerHTML = '<p>Team levels loaded</p>';
+
+    try {
+        const data = await apiCall('getTeamLevels', { week: STATE.currentWeek });
+        const teams = data.teams || {};
+        
+        container.innerHTML = `
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;">
+                ${Object.entries(teams).map(([team, info]) => `
+                    <div style="background:var(--glass-bg);border-radius:16px;padding:24px;text-align:center;border:2px solid ${getTeamColor(team)}40;">
+                        <img src="${getTeamPFP(team)}" style="width:64px;height:64px;border-radius:50%;margin-bottom:12px;" onerror="this.style.display='none'">
+                        <div style="color:${getTeamColor(team)};font-weight:bold;font-size:18px;">${team}</div>
+                        <div style="font-size:48px;font-weight:bold;margin:16px 0;">Level ${info.level || 0}</div>
+                        <div style="font-size:14px;opacity:0.7;">${formatNumber(info.xp || 0)} XP</div>
+                        <div style="margin-top:16px;background:rgba(255,255,255,0.1);border-radius:4px;height:8px;overflow:hidden;">
+                            <div style="background:${getTeamColor(team)};height:100%;width:${info.progress || 0}%;"></div>
+                        </div>
+                        <div style="font-size:12px;margin-top:8px;opacity:0.7;">${info.progress || 0}% to next level</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = '<p>Failed to load team levels</p>';
+    }
 }
 
+// ==================== PAGE: TEAM CHARTS ====================
 async function loadTeamChartsPage() {
     const container = document.getElementById('team-charts-content');
-    if (container) container.innerHTML = '<p>Charts coming soon</p>';
+    if (!container) return;
+    
+    try {
+        const data = await apiCall('getTeamChartData', { week: STATE.currentWeek });
+        
+        // Destroy existing chart
+        if (STATE.charts.teamXP) {
+            STATE.charts.teamXP.destroy();
+        }
+        
+        const ctx = document.getElementById('team-xp-chart');
+        if (!ctx) return;
+        
+        const teams = Object.keys(data.teams || {});
+        const xpData = teams.map(t => data.teams[t].totalXP || 0);
+        const colors = teams.map(t => getTeamColor(t));
+        
+        STATE.charts.teamXP = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: teams,
+                datasets: [{
+                    label: 'Total XP',
+                    data: xpData,
+                    backgroundColor: colors,
+                    borderColor: colors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    } catch (err) {
+        container.innerHTML = '<p>Failed to load chart data</p>';
+    }
 }
 
+// ==================== PAGE: TEAM COMPARISON ====================
 async function loadTeamComparisonPage() {
-    const data = await apiCall('getTeamComparison', { week: STATE.currentWeek });
     const container = document.getElementById('team-comparison-content');
     if (!container) return;
-    container.innerHTML = '<p>Team comparison loaded</p>';
+
+    try {
+        const data = await apiCall('getTeamComparison', { week: STATE.currentWeek });
+        const teams = data.teams || {};
+        
+        container.innerHTML = `
+            <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="border-bottom:2px solid var(--glass-border);">
+                            <th style="padding:12px;text-align:left;">Team</th>
+                            <th style="padding:12px;text-align:right;">Members</th>
+                            <th style="padding:12px;text-align:right;">Total XP</th>
+                            <th style="padding:12px;text-align:right;">Avg XP</th>
+                            <th style="padding:12px;text-align:right;">Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.entries(teams).map(([team, info]) => `
+                            <tr style="border-bottom:1px solid var(--glass-border);">
+                                <td style="padding:12px;color:${getTeamColor(team)};font-weight:bold;">${team}</td>
+                                <td style="padding:12px;text-align:right;">${info.members || 0}</td>
+                                <td style="padding:12px;text-align:right;">${formatNumber(info.totalXP || 0)}</td>
+                                <td style="padding:12px;text-align:right;">${formatNumber(info.avgXP || 0)}</td>
+                                <td style="padding:12px;text-align:right;">${info.level || 0}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = '<p>Failed to load comparison</p>';
+    }
 }
 
+// ==================== PAGE: SUMMARY ====================
 async function loadSummaryPage() {
-    const data = await apiCall('getWeeklySummary', { week: STATE.currentWeek });
     const container = document.getElementById('summary-content');
     if (!container) return;
-    container.innerHTML = '<p>Summary loaded</p>';
+
+    try {
+        const data = await apiCall('getWeeklySummary', { week: STATE.currentWeek });
+        const teams = data.teams || {};
+        const winner = Object.entries(teams).find(([_, t]) => t.isWinner);
+        
+        container.innerHTML = `
+            ${winner ? `
+                <div style="text-align:center;padding:32px;background:linear-gradient(135deg,${getTeamColor(winner[0])}22,transparent);border-radius:16px;margin-bottom:24px;border:2px solid ${getTeamColor(winner[0])};">
+                    <div style="font-size:64px;">🏆</div>
+                    <h2 style="color:${getTeamColor(winner[0])};margin:16px 0;">${winner[0]} WINS!</h2>
+                    <p style="font-size:24px;">${formatNumber(winner[1].teamXP)} Total XP</p>
+                </div>
+            ` : '<p>No winner declared yet</p>'}
+            
+            <h3 style="margin-bottom:16px;">All Teams</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;">
+                ${Object.entries(teams).map(([team, info]) => `
+                    <div style="background:var(--glass-bg);padding:20px;border-radius:12px;text-align:center;border-left:3px solid ${getTeamColor(team)};">
+                        <div style="color:${getTeamColor(team)};font-weight:bold;">${team}</div>
+                        <div style="font-size:24px;font-weight:bold;margin-top:8px;">${formatNumber(info.teamXP || 0)}</div>
+                        <div style="font-size:12px;opacity:0.7;">XP</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = '<p>Failed to load summary</p>';
+    }
 }
 
+// ==================== PAGE: DRAWER ====================
 async function loadDrawerPage() {
-    const data = await apiCall('getDrawerEligible', { week: STATE.currentWeek });
     const container = document.getElementById('drawer-content');
     if (!container) return;
-    container.innerHTML = '<p>Drawer data loaded</p>';
+
+    try {
+        const data = await apiCall('getDrawerEligible', { week: STATE.currentWeek });
+        const eligible = data.eligible || [];
+        
+        if (eligible.length === 0) {
+            container.innerHTML = '<p style="text-align:center;padding:40px;">No eligible agents for drawer this week</p>';
+            return;
+        }
+
+        container.innerHTML = `
+            <div style="text-align:center;padding:20px;background:var(--glass-bg);border-radius:12px;margin-bottom:20px;">
+                <div style="font-size:48px;">🎖️</div>
+                <div style="font-size:24px;font-weight:bold;margin-top:12px;">${eligible.length} Agents Eligible</div>
+            </div>
+            <div style="display:grid;gap:8px;">
+                ${eligible.map(agent => `
+                    <div style="display:flex;align-items:center;padding:12px;background:var(--glass-bg);border-radius:8px;border-left:3px solid ${getTeamColor(agent.team)};">
+                        <div style="flex:1;font-weight:bold;">${agent.name}</div>
+                        <div style="color:${getTeamColor(agent.team)};">${agent.team}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = '<p>Failed to load drawer data</p>';
+    }
 }
 
+// ==================== PAGE: ANNOUNCEMENTS ====================
 async function loadAnnouncementsPage() {
-    const data = await apiCall('getAnnouncements');
     const container = document.getElementById('announcements-content');
     if (!container) return;
-    container.innerHTML = '<p>Announcements loaded</p>';
+
+    try {
+        const data = await apiCall('getAnnouncements');
+        const announcements = data.announcements || [];
+        
+        if (announcements.length === 0) {
+            container.innerHTML = '<p style="text-align:center;padding:40px;">No announcements at this time</p>';
+            return;
+        }
+
+        container.innerHTML = announcements.map(a => `
+            <div style="padding:20px;background:var(--glass-bg);border-radius:12px;margin-bottom:16px;border-left:3px solid var(--primary);">
+                <div style="font-size:12px;color:var(--primary);margin-bottom:8px;">${a.date || ''}</div>
+                <h3 style="margin-bottom:12px;">${a.title || ''}</h3>
+                <p style="opacity:0.8;line-height:1.6;">${a.content || ''}</p>
+            </div>
+        `).join('');
+    } catch (err) {
+        container.innerHTML = '<p>Failed to load announcements</p>';
+    }
 }
 
 // ==================== INITIALIZATION ====================
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🎮 DOM loaded, starting app...');
-    console.log('📍 Current URL:', window.location.href);
-    
-    // Debug: List all important elements
-    const elements = {
-        'login-screen': document.getElementById('login-screen'),
-        'dashboard-screen': document.getElementById('dashboard-screen'),
-        'login-btn': document.getElementById('login-btn'),
-        'agent-input': document.getElementById('agent-input'),
-        'loading-overlay': document.getElementById('loading-overlay')
-    };
-    
-    console.log('🔍 Important elements:', Object.fromEntries(
-        Object.entries(elements).map(([k, v]) => [k, !!v])
-    ));
-    
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎮 App starting...');
     initLogin();
 });
 
-// Also try to init if DOM is already loaded
+// Backup init for cached pages
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    console.log('🎮 DOM already ready, initializing...');
     setTimeout(initLogin, 100);
 }
