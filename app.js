@@ -5,11 +5,11 @@ const CONFIG = {
     API_BASE_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
 
     TEAM_COLORS: {
-        'Indigo': '#6366f1',
-        'Echo': '#ec4899',
-        'Agust D': '#f97316',
-        'JITB': '#10b981'
-    },
+    'Indigo': '#4cc9f0',      // Cyan
+    'Echo': '#f72585',        // Hot Pink
+    'Agust D': '#ff9500',     // Amber
+    'JITB': '#7209b7'         // Purple
+}
 
     TEAM_PFPS: {
         'Indigo': 'https://i.ibb.co/V0124fWL/team-indigoo.png',
