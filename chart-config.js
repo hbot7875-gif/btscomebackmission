@@ -1,6 +1,6 @@
-// ===== CHART-CONFIG.JS - Chart.js Options with Explanations =====
+// ===== CHART CONFIG =====
 
-function getChartOptions(title = '', explanation = '') {
+function getChartOptions(title = '') {
     return {
         responsive: true,
         maintainAspectRatio: true,
@@ -8,113 +8,55 @@ function getChartOptions(title = '', explanation = '') {
             title: {
                 display: !!title,
                 text: title,
-                color: '#d4af37',
-                font: {
-                    size: 14,
-                    weight: 'bold'
-                },
-                padding: {
-                    top: 10,
-                    bottom: 20
-                }
-            },
-            subtitle: {
-                display: !!explanation,
-                text: explanation,
-                color: '#999',
-                font: {
-                    size: 11,
-                    weight: 'normal',
-                    style: 'italic'
-                },
-                padding: {
-                    bottom: 10
-                }
+                color: '#ffd700',
+                font: { size: 14, weight: 'bold' }
             },
             legend: {
                 labels: {
                     color: '#e0e0e0',
                     font: { size: 12 },
-                    padding: 15,
                     usePointStyle: true
                 }
             },
             tooltip: {
-                backgroundColor: 'rgba(10, 10, 15, 0.95)',
-                titleColor: '#d4af37',
+                backgroundColor: 'rgba(26, 26, 46, 0.95)',
+                titleColor: '#ffd700',
                 bodyColor: '#e0e0e0',
-                borderColor: '#d4af37',
+                borderColor: '#3a3a5c',
                 borderWidth: 1,
                 padding: 12,
-                cornerRadius: 8,
-                displayColors: true,
-                callbacks: {
-                    label: function(context) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            label += context.parsed.y;
-                        }
-                        return label;
-                    }
-                }
+                cornerRadius: 8
             }
         },
         scales: {
             y: {
                 beginAtZero: true,
-                ticks: {
-                    color: '#999',
-                    font: { size: 11 }
-                },
-                grid: {
-                    color: 'rgba(212, 175, 55, 0.1)',
-                    lineWidth: 1
-                }
+                ticks: { color: '#a0a0b0' },
+                grid: { color: 'rgba(255,215,0,0.1)' }
             },
             x: {
-                ticks: {
-                    color: '#999',
-                    font: { size: 11 }
-                },
-                grid: {
-                    display: false
-                }
+                ticks: { color: '#a0a0b0' },
+                grid: { display: false }
             }
         },
-        interaction: {
-            intersect: false,
-            mode: 'index'
-        },
         animation: {
-            duration: 1000,
-            easing: 'easeInOutQuart'
+            duration: 800,
+            easing: 'easeOutQuart'
         }
     };
 }
 
-// Chart type specific configurations
-function getLineChartOptions(title, explanation) {
-    const options = getChartOptions(title, explanation);
-    options.elements = {
-        line: {
-            tension: 0.4,
-            borderWidth: 3
-        },
-        point: {
-            radius: 4,
-            hoverRadius: 6,
-            borderWidth: 2,
-            backgroundColor: '#0a0a0f'
-        }
-    };
-    return options;
+function getBarChartOptions(title) {
+    const opts = getChartOptions(title);
+    opts.plugins.legend.display = false;
+    return opts;
 }
 
-function getBarChartOptions(title, explanation) {
-    const options = getChartOptions(title, explanation);
-    options.plugins.legend.display = false;
-    return options;
+function getLineChartOptions(title) {
+    const opts = getChartOptions(title);
+    opts.elements = {
+        line: { tension: 0.4, borderWidth: 2 },
+        point: { radius: 4, hoverRadius: 6 }
+    };
+    return opts;
 }
