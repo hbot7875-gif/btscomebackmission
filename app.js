@@ -1,1003 +1,580 @@
-// ===== SPY BATTLE APP.JS - COMPLETE VERSION =====
+// ===== SPY BATTLE - CLEAN VERSION =====
 
-// ==================== CONFIGURATION ====================
 const CONFIG = {
-    API_BASE_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
-
-    TEAM_COLORS: {
-        'Indigo': '#4cc9f0',
-        'Echo': '#f72585',
-        'Agust D': '#ff9500',
-        'JITB': '#7209b7'
-    },
-
-    TEAM_PFPS: {
-        'Indigo': 'https://i.ibb.co/V0124fWL/team-indigoo.png',
-        'Echo': 'https://i.ibb.co/xwYRSyx/Team-Echo.png',
-        'Agust D': 'https://i.ibb.co/BVc11nz9/Team-agustd.png',
-        'JITB': 'https://i.ibb.co/FbdLFwhv/Team-jitb.png'
+    API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
+    TEAMS: {
+        'Indigo': { color: '#4cc9f0', pfp: 'https://i.ibb.co/V0124fWL/team-indigoo.png' },
+        'Echo': { color: '#f72585', pfp: 'https://i.ibb.co/xwYRSyx/Team-Echo.png' },
+        'Agust D': { color: '#ff9500', pfp: 'https://i.ibb.co/BVc11nz9/Team-agustd.png' },
+        'JITB': { color: '#7209b7', pfp: 'https://i.ibb.co/FbdLFwhv/Team-jitb.png' }
     }
 };
 
-// ==================== STATE ====================
 const STATE = {
     agentNo: null,
-    currentWeek: null,
-    currentPage: 'home',
-    agentData: null,
-    allWeeks: [],
-    charts: {}
+    week: null,
+    weeks: [],
+    data: null,
+    page: 'home'
 };
 
-// ==================== UTILITY FUNCTIONS ====================
-function showLoading(show = true) {
-    const overlay = document.getElementById('loading-overlay');
-    if (overlay) {
-        if (show) {
-            overlay.classList.add('active');
-            overlay.style.display = 'flex';
-        } else {
-            overlay.classList.remove('active');
-            overlay.style.display = 'none';
-        }
-    }
-}
+// ===== HELPERS =====
+const $ = id => document.getElementById(id);
+const show = el => el && (el.style.display = 'flex');
+const hide = el => el && (el.style.display = 'none');
 
-function showAlert(message, type = 'info') {
-    console.log('Alert:', type, message);
-    const container = document.getElementById('alert-container');
-    if (!container) {
-        alert(message);
-        return;
-    }
-    
-    const alertEl = document.createElement('div');
-    alertEl.className = `alert alert-${type}`;
-    alertEl.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()">✕</button>`;
-    alertEl.style.cssText = 'padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; background: var(--glass-bg); border: 1px solid var(--glass-border);';
-    container.appendChild(alertEl);
-    setTimeout(() => alertEl.remove(), 5000);
-}
-
-function getTeamColor(team) {
-    return CONFIG.TEAM_COLORS[team] || '#d4af37';
-}
-
-function getTeamPFP(team) {
-    return CONFIG.TEAM_PFPS[team] || '';
-}
-
-function getTeamClass(team) {
-    if (!team) return '';
-    return team.toLowerCase().replace(/\s+/g, '-');
-}
-
-function formatNumber(num) {
-    return Number(num || 0).toLocaleString();
-}
-
-function updateLastUpdate() {
-    const el = document.getElementById('last-update');
+function loading(on) {
+    const el = $('loading-overlay');
     if (el) {
-        el.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        el.classList.toggle('active', on);
     }
 }
 
-// ==================== API CALL ====================
-async function apiCall(action, params = {}) {
-    const url = new URL(CONFIG.API_BASE_URL);
+function teamColor(team) {
+    return CONFIG.TEAMS[team]?.color || '#ffd700';
+}
+
+function teamPfp(team) {
+    return CONFIG.TEAMS[team]?.pfp || '';
+}
+
+function fmt(n) {
+    return Number(n || 0).toLocaleString();
+}
+
+function showResult(msg, isError) {
+    const el = $('find-result');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'show ' + (isError ? 'error' : 'success');
+    el.style.display = 'block';
+}
+
+// ===== API =====
+async function api(action, params = {}) {
+    const url = new URL(CONFIG.API_URL);
     url.searchParams.set('action', action);
-    
     Object.entries(params).forEach(([k, v]) => {
-        if (v !== null && v !== undefined) {
-            url.searchParams.set(k, v);
-        }
+        if (v != null) url.searchParams.set(k, v);
     });
-
-    console.log('🌐 API Call:', action);
-
+    
+    console.log('API:', action, params);
+    
+    const res = await fetch(url);
+    const text = await res.text();
+    
+    console.log('Response:', text.substring(0, 200));
+    
     try {
-        const res = await fetch(url.toString());
-        
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        
-        const text = await res.text();
-        
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (parseError) {
-            console.error('JSON parse error:', parseError);
-            throw new Error('Invalid response from server');
-        }
-
-        if (data.error) {
-            throw new Error(data.error);
-        }
-        
+        const data = JSON.parse(text);
+        if (data.error) throw new Error(data.error);
         return data;
-    } catch (error) {
-        console.error('API Error:', error);
-        throw error;
+    } catch (e) {
+        console.error('Parse error:', e);
+        throw new Error('Invalid response');
     }
 }
 
-// ==================== LOGIN FUNCTIONS ====================
+// ===== LOGIN =====
 function initLogin() {
-    console.log('🚀 Initializing app...');
+    console.log('Init login');
     
-    // Check for saved session
-    const saved = localStorage.getItem('spyBattleAgent');
+    const saved = localStorage.getItem('spyAgent');
     if (saved) {
-        console.log('Found saved agent:', saved);
         STATE.agentNo = saved;
-        showDashboard();
+        loadDashboard();
         return;
     }
-
-    // Setup login button
-    const loginBtn = document.getElementById('login-btn');
-    if (loginBtn) {
-        loginBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            handleLogin();
-        });
-    }
-
-    // Setup find button
-    const findBtn = document.getElementById('find-agent-btn');
-    if (findBtn) {
-        findBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            handleFindAgent();
-        });
-    }
-
-    // Setup enter key for inputs
-    const agentInput = document.getElementById('agent-input');
-    if (agentInput) {
-        agentInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleLogin();
-            }
-        });
-    }
-
-    const instaInput = document.getElementById('instagram-input');
-    if (instaInput) {
-        instaInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleFindAgent();
-            }
-        });
-    }
     
-    console.log('✅ Login initialized');
+    $('login-btn')?.addEventListener('click', doLogin);
+    $('find-agent-btn')?.addEventListener('click', doFind);
+    
+    $('agent-input')?.addEventListener('keypress', e => {
+        if (e.key === 'Enter') doLogin();
+    });
+    
+    $('instagram-input')?.addEventListener('keypress', e => {
+        if (e.key === 'Enter') doFind();
+    });
 }
 
-async function handleLogin() {
-    console.log('Login attempt...');
+async function doLogin() {
+    const input = $('agent-input');
+    const agentNo = input?.value.trim();
     
-    const agentInput = document.getElementById('agent-input');
-    if (!agentInput) {
-        showAlert('Error: Input not found', 'error');
-        return;
-    }
-    
-    const agentNo = agentInput.value.trim();
-
     if (!agentNo) {
-        showFindResult('Please enter your Agent Number', 'error');
+        showResult('Enter your agent number', true);
         return;
     }
-
-    showLoading(true);
-
-    try {
-        const allAgents = await apiCall('getAllAgents');
-
-        if (!allAgents || !allAgents.agents) {
-            showLoading(false);
-            showFindResult('Server error: Invalid response', 'error');
-            return;
-        }
-
-        // Find matching agent
-        const matchingAgent = allAgents.agents.find(a => {
-            return String(a.agentNo || '').trim() === String(agentNo).trim();
-        });
-
-        if (!matchingAgent) {
-            showLoading(false);
-            showFindResult('Agent Number not found. Please check and try again.', 'error');
-            return;
-        }
-
-        // Save and proceed
-        localStorage.setItem('spyBattleAgent', agentNo);
-        STATE.agentNo = agentNo;
-        await showDashboard();
-
-    } catch (err) {
-        console.error('Login error:', err);
-        showLoading(false);
-        showFindResult('Login failed: ' + (err.message || 'Unknown error'), 'error');
-    }
-}
-
-async function handleFindAgent() {
-    const instaInput = document.getElementById('instagram-input');
-    if (!instaInput) return;
     
-    const instagram = instaInput.value.trim();
+    loading(true);
+    
+    try {
+        const res = await api('getAllAgents');
+        const agents = res.agents || [];
+        
+        const found = agents.find(a => String(a.agentNo).trim() === agentNo);
+        
+        if (!found) {
+            loading(false);
+            showResult('Agent not found', true);
+            return;
+        }
+        
+        localStorage.setItem('spyAgent', agentNo);
+        STATE.agentNo = agentNo;
+        await loadDashboard();
+        
+    } catch (e) {
+        loading(false);
+        showResult('Login failed: ' + e.message, true);
+    }
+}
 
-    if (!instagram) {
-        showFindResult('Please enter your Instagram username', 'error');
+async function doFind() {
+    const input = $('instagram-input');
+    const insta = input?.value.trim();
+    
+    if (!insta) {
+        showResult('Enter Instagram username', true);
         return;
     }
-
-    showLoading(true);
-
+    
+    loading(true);
+    
     try {
-        const res = await apiCall('getAgentByInstagram', { instagram: instagram });
-        showLoading(false);
-
-        if (res.result && res.result.includes('Your Agent Number is:')) {
-            const agentNo = res.result.split(':')[1].trim();
-            const agentInput = document.getElementById('agent-input');
-            if (agentInput) agentInput.value = agentNo;
-            showFindResult(res.result, 'success');
+        const res = await api('getAgentByInstagram', { instagram: insta });
+        loading(false);
+        
+        if (res.result?.includes('Agent Number is:')) {
+            const num = res.result.split(':')[1].trim();
+            $('agent-input').value = num;
+            showResult(res.result, false);
         } else {
-            showFindResult(res.result || 'Instagram username not found', 'error');
+            showResult(res.result || 'Not found', true);
         }
-    } catch (err) {
-        console.error('Find agent error:', err);
-        showLoading(false);
-        showFindResult('Search failed: ' + err.message, 'error');
+    } catch (e) {
+        loading(false);
+        showResult('Search failed', true);
     }
 }
 
-function showFindResult(msg, type) {
-    const el = document.getElementById('find-result');
-    if (el) {
-        el.textContent = msg;
-        el.className = `find-result show ${type}`;
-        el.style.display = 'block';
-        el.style.padding = '12px';
-        el.style.marginTop = '12px';
-        el.style.borderRadius = '8px';
-        el.style.background = type === 'success' ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)';
-        el.style.border = type === 'success' ? '1px solid #00ff00' : '1px solid #ff0000';
-        el.style.color = type === 'success' ? '#00ff00' : '#ff6b6b';
-    }
-}
-
-// ==================== DASHBOARD FUNCTIONS ====================
-async function showDashboard() {
-    console.log('Loading dashboard...');
-    showLoading(true);
-
+// ===== DASHBOARD =====
+async function loadDashboard() {
+    console.log('Loading dashboard for:', STATE.agentNo);
+    loading(true);
+    
     try {
         // Get weeks
-        const weeksData = await apiCall('getAvailableWeeks');
-        STATE.allWeeks = weeksData.weeks || [];
-        STATE.currentWeek = weeksData.current || STATE.allWeeks[0];
-
-        if (!STATE.currentWeek) {
-            throw new Error('No weeks available');
-        }
-
-        // Get agent data
-        const agentData = await apiCall('getAgentData', {
-            agentNo: STATE.agentNo,
-            week: STATE.currentWeek
-        });
-        STATE.agentData = agentData;
-
-        // Switch screens
-        const loginScreen = document.getElementById('login-screen');
-        const dashboardScreen = document.getElementById('dashboard-screen');
-
-        if (loginScreen) {
-            loginScreen.style.display = 'none';
-            loginScreen.classList.remove('active');
-        }
-
-        if (dashboardScreen) {
-            dashboardScreen.style.display = 'block';
-            dashboardScreen.classList.add('active');
-        }
-
-        // Initialize
-        initDashboard();
-        await loadPage('home');
+        const weeksRes = await api('getAvailableWeeks');
+        STATE.weeks = weeksRes.weeks || [];
+        STATE.week = weeksRes.current || STATE.weeks[0];
         
-        showLoading(false);
-        console.log('✅ Dashboard loaded');
-
-    } catch (err) {
-        console.error('Dashboard error:', err);
-        showLoading(false);
-        showAlert('Failed to load: ' + err.message, 'danger');
+        if (!STATE.week) throw new Error('No weeks');
+        
+        // Get agent data
+        STATE.data = await api('getAgentData', {
+            agentNo: STATE.agentNo,
+            week: STATE.week
+        });
+        
+        // Switch screens
+        $('login-screen').classList.remove('active');
+        hide($('login-screen'));
+        
+        $('dashboard-screen').classList.add('active');
+        show($('dashboard-screen'));
+        
+        // Setup
+        setupDashboard();
+        await showPage('home');
+        
+        loading(false);
+        
+    } catch (e) {
+        console.error('Dashboard error:', e);
+        loading(false);
+        alert('Failed to load: ' + e.message);
         logout();
     }
 }
 
-function initDashboard() {
-    updateAgentInfo();
-    populateWeekSelector();
-    setupNavigation();
-    
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.onclick = logout;
-    }
-    
-    setupMobileMenu();
-    updateLastUpdate();
-    setInterval(updateLastUpdate, 60000);
-}
-
-function updateAgentInfo() {
-    const p = STATE.agentData?.profile;
-    if (!p) return;
-
-    const color = getTeamColor(p.team);
-    const initial = (p.name || 'A').charAt(0).toUpperCase();
-    const pfp = getTeamPFP(p.team);
-
-    // Sidebar avatar
-    const agentAvatar = document.getElementById('agent-avatar');
-    if (agentAvatar) {
-        if (pfp) {
-            agentAvatar.innerHTML = `<img src="${pfp}" alt="${p.team}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-        } else {
-            agentAvatar.innerHTML = `<span>${initial}</span>`;
-            agentAvatar.style.background = `linear-gradient(135deg, ${color}, ${color}aa)`;
-        }
-    }
-
-    // Sidebar info
-    const agentName = document.getElementById('agent-name');
-    if (agentName) agentName.textContent = p.name || 'Agent';
-
-    const agentTeam = document.getElementById('agent-team');
-    if (agentTeam) {
-        agentTeam.textContent = p.team || 'Unknown';
-        agentTeam.style.color = color;
-    }
-
-    const agentId = document.getElementById('agent-id');
-    if (agentId) agentId.textContent = `ID: ${STATE.agentNo}`;
-
-    // Profile page
-    const profileAvatar = document.getElementById('profile-avatar');
-    if (profileAvatar) {
-        if (pfp) {
-            profileAvatar.innerHTML = `<img src="${pfp}" alt="${p.team}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-        } else {
-            profileAvatar.innerHTML = `<span>${initial}</span>`;
-            profileAvatar.style.background = `linear-gradient(135deg, ${color}, ${color}aa)`;
-        }
-    }
-
-    const profileName = document.getElementById('profile-name');
-    if (profileName) profileName.textContent = p.name || 'Agent';
-
-    const profileTeam = document.getElementById('profile-team');
-    if (profileTeam) {
-        profileTeam.textContent = p.team || 'Unknown';
-        profileTeam.style.color = color;
-    }
-
-    const profileId = document.getElementById('profile-id');
-    if (profileId) profileId.textContent = `ID: ${STATE.agentNo}`;
-}
-
-function populateWeekSelector() {
-    const select = document.getElementById('week-select');
-    if (!select) return;
-
-    select.innerHTML = STATE.allWeeks.map(w =>
-        `<option value="${w}" ${w === STATE.currentWeek ? 'selected' : ''}>${w}</option>`
-    ).join('');
-
-    select.onchange = async () => {
-        STATE.currentWeek = select.value;
-        showLoading(true);
+function setupDashboard() {
+    // Agent info
+    const p = STATE.data?.profile;
+    if (p) {
+        const color = teamColor(p.team);
+        const pfp = teamPfp(p.team);
         
-        try {
-            STATE.agentData = await apiCall('getAgentData', {
-                agentNo: STATE.agentNo,
-                week: STATE.currentWeek
-            });
-            await loadPage(STATE.currentPage);
-        } catch (err) {
-            showAlert('Failed to load week', 'danger');
-        } finally {
-            showLoading(false);
+        // Sidebar
+        const avatar = $('agent-avatar');
+        if (avatar) {
+            if (pfp) {
+                avatar.innerHTML = `<img src="${pfp}" alt="${p.team}">`;
+            } else {
+                avatar.textContent = (p.name || 'A')[0];
+                avatar.style.background = color;
+            }
         }
-    };
-}
-
-function setupNavigation() {
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.onclick = (e) => {
+        
+        if ($('agent-name')) $('agent-name').textContent = p.name || 'Agent';
+        if ($('agent-team')) {
+            $('agent-team').textContent = p.team || 'Team';
+            $('agent-team').style.color = color;
+        }
+        if ($('agent-id')) $('agent-id').textContent = 'ID: ' + STATE.agentNo;
+        
+        // Profile page
+        const pAvatar = $('profile-avatar');
+        if (pAvatar) {
+            if (pfp) {
+                pAvatar.innerHTML = `<img src="${pfp}" alt="${p.team}">`;
+            } else {
+                pAvatar.textContent = (p.name || 'A')[0];
+                pAvatar.style.background = color;
+            }
+        }
+        
+        if ($('profile-name')) $('profile-name').textContent = p.name || 'Agent';
+        if ($('profile-team')) {
+            $('profile-team').textContent = p.team || 'Team';
+            $('profile-team').style.color = color;
+        }
+        if ($('profile-id')) $('profile-id').textContent = 'ID: ' + STATE.agentNo;
+    }
+    
+    // Week selector
+    const select = $('week-select');
+    if (select) {
+        select.innerHTML = STATE.weeks.map(w => 
+            `<option value="${w}" ${w === STATE.week ? 'selected' : ''}>${w}</option>`
+        ).join('');
+        
+        select.onchange = async () => {
+            STATE.week = select.value;
+            loading(true);
+            try {
+                STATE.data = await api('getAgentData', {
+                    agentNo: STATE.agentNo,
+                    week: STATE.week
+                });
+                await showPage(STATE.page);
+            } catch (e) {
+                alert('Failed to load week');
+            }
+            loading(false);
+        };
+    }
+    
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(link => {
+        link.onclick = e => {
             e.preventDefault();
             const page = link.dataset.page;
             if (page) {
-                loadPage(page);
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
                 link.classList.add('active');
-                closeMobileMenu();
+                showPage(page);
+                closeSidebar();
             }
         };
     });
-
-    document.querySelectorAll('.mission-card').forEach(card => {
-        card.onclick = () => {
-            const nav = card.dataset.nav;
-            if (nav) {
-                const navLink = document.querySelector(`.nav-link[data-page="${nav}"]`);
-                if (navLink) navLink.click();
-            }
-        };
+    
+    // Mobile menu
+    $('mobile-menu-btn')?.addEventListener('click', () => {
+        $('sidebar')?.classList.add('open');
     });
+    
+    $('sidebar-close')?.addEventListener('click', closeSidebar);
+    
+    // Logout
+    $('logout-btn')?.addEventListener('click', logout);
 }
 
-function setupMobileMenu() {
-    const menuBtn = document.getElementById('mobile-menu-btn');
-    const sidebar = document.getElementById('sidebar');
-    const closeBtn = document.getElementById('sidebar-close');
-
-    if (menuBtn && sidebar) {
-        menuBtn.onclick = () => sidebar.classList.add('open');
-    }
-    if (closeBtn) {
-        closeBtn.onclick = closeMobileMenu;
-    }
-}
-
-function closeMobileMenu() {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) sidebar.classList.remove('open');
+function closeSidebar() {
+    $('sidebar')?.classList.remove('open');
 }
 
 function logout() {
-    localStorage.removeItem('spyBattleAgent');
-    STATE.agentNo = null;
-    STATE.agentData = null;
+    localStorage.removeItem('spyAgent');
     location.reload();
 }
 
-// ==================== PAGE LOADER ====================
-async function loadPage(page) {
-    console.log('Loading page:', page);
-    STATE.currentPage = page;
+// ===== PAGES =====
+async function showPage(page) {
+    STATE.page = page;
     
-    // Hide all pages
     document.querySelectorAll('.page').forEach(p => {
         p.classList.remove('active');
         p.style.display = 'none';
     });
     
-    // Show target page
-    const targetPage = document.getElementById(`page-${page}`);
-    if (targetPage) {
-        targetPage.classList.add('active');
-        targetPage.style.display = 'block';
+    const el = $('page-' + page);
+    if (el) {
+        el.classList.add('active');
+        el.style.display = 'block';
     }
-
-    showLoading(true);
-
+    
+    loading(true);
+    
     try {
         switch(page) {
-            case 'home': await loadHomePage(); break;
-            case 'profile': await loadProfilePage(); break;
-            case 'rankings': await loadRankingsPage(); break;
-            case 'goals': await loadGoalsPage(); break;
-            case 'album2x': await loadAlbum2xPage(); break;
-            case 'team-level': await loadTeamLevelPage(); break;
-            case 'team-charts': await loadTeamChartsPage(); break;
-            case 'team-comparison': await loadTeamComparisonPage(); break;
-            case 'summary': await loadSummaryPage(); break;
-            case 'drawer': await loadDrawerPage(); break;
-            case 'announcements': await loadAnnouncementsPage(); break;
+            case 'home': await loadHome(); break;
+            case 'profile': await loadProfile(); break;
+            case 'rankings': await loadRankings(); break;
+            case 'goals': await loadGoals(); break;
+            case 'album2x': await loadAlbum2x(); break;
+            case 'team-level': await loadTeamLevel(); break;
+            case 'summary': await loadSummary(); break;
         }
-    } catch (err) {
-        console.error('Page error:', err);
-        showAlert('Failed to load page', 'danger');
-    } finally {
-        showLoading(false);
+    } catch (e) {
+        console.error('Page error:', e);
     }
-}
-
-// ==================== PAGE: HOME ====================
-async function loadHomePage() {
-    const currentWeekDisplay = document.getElementById('current-week-display');
-    if (currentWeekDisplay) {
-        currentWeekDisplay.textContent = `Active Week: ${STATE.currentWeek}`;
-    }
-
-    try {
-        const [summary, rankings, goalsData] = await Promise.all([
-            apiCall('getWeeklySummary', { week: STATE.currentWeek }),
-            apiCall('getRankings', { week: STATE.currentWeek, limit: 5 }),
-            apiCall('getGoalsProgress', { week: STATE.currentWeek })
-        ]);
-
-        const team = STATE.agentData?.profile?.team;
-        const teamInfo = summary.teams?.[team] || {};
-
-        // Update mission status
-        updateMissionStatus('home-track-status', teamInfo.trackGoalPassed);
-        updateMissionStatus('home-album-status', teamInfo.albumGoalPassed);
-        updateMissionStatus('home-2x-status', teamInfo.album2xPassed);
-
-        // Top performers
-        const rankingsList = rankings.rankings || [];
-        const performersHTML = rankingsList.map((r, i) => `
-            <div style="display:flex;align-items:center;padding:12px;background:var(--glass-bg);border-radius:8px;margin-bottom:8px;border-left:3px solid ${getTeamColor(r.team)}">
-                <div style="width:32px;height:32px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;margin-right:12px;">${i + 1}</div>
-                <div style="flex:1;">
-                    <div style="font-weight:bold;">${r.name || 'Unknown'}</div>
-                    <div style="font-size:12px;color:${getTeamColor(r.team)}">${r.team}</div>
-                </div>
-                <div style="font-weight:bold;color:var(--primary);">${formatNumber(r.totalXP)} XP</div>
-            </div>
-        `).join('');
-
-        const topPerformersEl = document.getElementById('home-top-performers');
-        if (topPerformersEl) {
-            topPerformersEl.innerHTML = performersHTML || '<p>No data available</p>';
-        }
-
-        // Team standings
-        const teams = Object.keys(summary.teams || {});
-        const standingsHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;">
-            ${teams.map(t => {
-                const data = summary.teams[t];
-                const pfp = getTeamPFP(t);
-                return `
-                    <div style="background:var(--glass-bg);border-radius:12px;padding:16px;text-align:center;border:1px solid ${getTeamColor(t)}40;">
-                        ${pfp ? `<img src="${pfp}" style="width:48px;height:48px;border-radius:50%;margin-bottom:8px;">` : ''}
-                        <div style="color:${getTeamColor(t)};font-weight:bold;">${t}</div>
-                        <div style="font-size:12px;opacity:0.7;">Level ${data.level || 0}</div>
-                        <div style="font-size:18px;font-weight:bold;color:var(--primary);margin-top:8px;">${formatNumber(data.teamXP)} XP</div>
-                        ${data.isWinner ? '<div style="margin-top:8px;">🏆</div>' : ''}
-                    </div>
-                `;
-            }).join('')}
-        </div>`;
-
-        const standingsEl = document.getElementById('home-team-standings');
-        if (standingsEl) {
-            standingsEl.innerHTML = standingsHTML;
-        }
-        
-    } catch (err) {
-        console.error('Home page error:', err);
-        throw err;
-    }
-}
-
-function updateMissionStatus(elementId, passed) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
     
-    if (passed) {
-        element.textContent = '✅ COMPLETED';
-        element.style.color = '#00ff88';
-    } else {
-        element.textContent = '⏳ IN PROGRESS';
-        element.style.color = '#ffd93d';
-    }
+    loading(false);
 }
 
-// ==================== PAGE: PROFILE ====================
-async function loadProfilePage() {
-    const p = STATE.agentData?.profile;
-    const s = STATE.agentData?.stats;
-    if (!p || !s) return;
-
-    const statsContainer = document.getElementById('profile-stats');
-    if (statsContainer) {
-        statsContainer.innerHTML = `
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;">
-                <div style="background:var(--glass-bg);padding:20px;border-radius:12px;text-align:center;">
-                    <div style="font-size:28px;font-weight:bold;color:var(--primary);">${formatNumber(s.totalXP)}</div>
-                    <div style="font-size:12px;opacity:0.7;margin-top:4px;">Total XP</div>
-                </div>
-                <div style="background:var(--glass-bg);padding:20px;border-radius:12px;text-align:center;">
-                    <div style="font-size:28px;font-weight:bold;color:var(--primary);">#${s.rank || 'N/A'}</div>
-                    <div style="font-size:12px;opacity:0.7;margin-top:4px;">Rank</div>
-                </div>
-                <div style="background:var(--glass-bg);padding:20px;border-radius:12px;text-align:center;">
-                    <div style="font-size:28px;font-weight:bold;color:var(--primary);">${formatNumber(s.totalStreams || 0)}</div>
-                    <div style="font-size:12px;opacity:0.7;margin-top:4px;">Streams</div>
-                </div>
-            </div>
-        `;
-    }
-
-    // Track contributions
-    const profileTracks = document.getElementById('profile-tracks');
-    if (profileTracks && s.tracks) {
-        profileTracks.innerHTML = Object.entries(s.tracks || {}).map(([track, count]) => `
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--glass-border);">
-                <span>${track}</span>
-                <span style="font-weight:bold;">${formatNumber(count)}</span>
-            </div>
-        `).join('') || '<p>No track data</p>';
-    }
-
-    // Album contributions
-    const profileAlbums = document.getElementById('profile-albums');
-    if (profileAlbums && s.albums) {
-        profileAlbums.innerHTML = Object.entries(s.albums || {}).map(([album, count]) => `
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--glass-border);">
-                <span>${album}</span>
-                <span style="font-weight:bold;">${formatNumber(count)}</span>
-            </div>
-        `).join('') || '<p>No album data</p>';
-    }
-}
-
-// ==================== PAGE: RANKINGS ====================
-async function loadRankingsPage() {
-    const data = await apiCall('getRankings', { week: STATE.currentWeek, limit: 100 });
-    const container = document.getElementById('rankings-list');
-    if (!container) return;
-
-    const rankings = data.rankings || [];
+async function loadHome() {
+    $('current-week-display').textContent = 'Week: ' + STATE.week;
     
-    if (rankings.length === 0) {
-        container.innerHTML = '<p>No rankings available</p>';
-        return;
-    }
+    const [summary, rankings] = await Promise.all([
+        api('getWeeklySummary', { week: STATE.week }),
+        api('getRankings', { week: STATE.week, limit: 5 })
+    ]);
+    
+    const team = STATE.data?.profile?.team;
+    const teamData = summary.teams?.[team] || {};
+    
+    // Status
+    $('home-track-status').innerHTML = teamData.trackGoalPassed 
+        ? '<span class="status-complete">✅ Complete</span>' 
+        : '<span class="status-pending">⏳ In Progress</span>';
+    
+    $('home-album-status').innerHTML = teamData.albumGoalPassed 
+        ? '<span class="status-complete">✅ Complete</span>' 
+        : '<span class="status-pending">⏳ In Progress</span>';
+    
+    $('home-2x-status').innerHTML = teamData.album2xPassed 
+        ? '<span class="status-complete">✅ Complete</span>' 
+        : '<span class="status-pending">⏳ In Progress</span>';
+    
+    // Top performers
+    const list = rankings.rankings || [];
+    $('home-top-performers').innerHTML = list.map((r, i) => `
+        <div class="rank-item">
+            <div class="rank-num">#${i + 1}</div>
+            <div class="rank-info">
+                <div class="rank-name">${r.name}</div>
+                <div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div>
+            </div>
+            <div class="rank-xp">${fmt(r.totalXP)} XP</div>
+        </div>
+    `).join('') || 'No data';
+    
+    // Team standings
+    const teams = Object.entries(summary.teams || {});
+    $('home-team-standings').innerHTML = `
+        <div class="stats-grid">
+            ${teams.map(([t, d]) => `
+                <div class="stat-box" style="border-left: 3px solid ${teamColor(t)}">
+                    <div style="color:${teamColor(t)};font-weight:600;margin-bottom:8px;">${t}</div>
+                    <div class="stat-value">${fmt(d.teamXP)}</div>
+                    <div class="stat-label">Level ${d.level || 0}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
 
-    container.innerHTML = rankings.map((r, i) => {
+async function loadProfile() {
+    const s = STATE.data?.stats;
+    if (!s) return;
+    
+    $('profile-stats').innerHTML = `
+        <div class="stat-box">
+            <div class="stat-value">${fmt(s.totalXP)}</div>
+            <div class="stat-label">Total XP</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">#${s.rank || 'N/A'}</div>
+            <div class="stat-label">Rank</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">${fmt(s.totalStreams)}</div>
+            <div class="stat-label">Streams</div>
+        </div>
+    `;
+    
+    // Tracks
+    $('profile-tracks').innerHTML = Object.entries(s.tracks || {}).map(([t, c]) => `
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span>${t}</span><span>${fmt(c)}</span>
+        </div>
+    `).join('') || 'No data';
+    
+    // Albums
+    $('profile-albums').innerHTML = Object.entries(s.albums || {}).map(([a, c]) => `
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <span>${a}</span><span>${fmt(c)}</span>
+        </div>
+    `).join('') || 'No data';
+}
+
+async function loadRankings() {
+    const data = await api('getRankings', { week: STATE.week, limit: 100 });
+    const list = data.rankings || [];
+    
+    $('rankings-list').innerHTML = list.map((r, i) => {
         const isMe = String(r.agentNo) === String(STATE.agentNo);
         return `
-            <div style="display:flex;align-items:center;padding:12px;background:${isMe ? 'rgba(212,175,55,0.2)' : 'var(--glass-bg)'};border-radius:8px;margin-bottom:8px;border-left:3px solid ${getTeamColor(r.team)}">
-                <div style="width:40px;font-weight:bold;color:var(--primary);">#${i + 1}</div>
-                <div style="flex:1;">
-                    <div style="font-weight:bold;">${r.name}${isMe ? ' (You)' : ''}</div>
-                    <div style="font-size:12px;color:${getTeamColor(r.team)}">${r.team}</div>
+            <div class="rank-item ${isMe ? 'highlight' : ''}">
+                <div class="rank-num">#${i + 1}</div>
+                <div class="rank-info">
+                    <div class="rank-name">${r.name}${isMe ? ' (You)' : ''}</div>
+                    <div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div>
                 </div>
-                <div style="text-align:right;">
-                    <div style="font-weight:bold;">${formatNumber(r.totalXP)} XP</div>
-                    <div style="font-size:12px;opacity:0.7;">${formatNumber(r.totalStreams || 0)} streams</div>
-                </div>
+                <div class="rank-xp">${fmt(r.totalXP)} XP</div>
             </div>
         `;
-    }).join('');
+    }).join('') || 'No rankings';
 }
 
-// ==================== PAGE: GOALS ====================
-async function loadGoalsPage() {
-    const data = await apiCall('getGoalsProgress', { week: STATE.currentWeek });
-    const team = STATE.agentData?.profile?.team;
-    const container = document.getElementById('goals-content');
-    if (!container) return;
-
-    let html = '<h3 style="margin-bottom:16px;color:var(--primary);">🎵 Track Goals</h3>';
+async function loadGoals() {
+    const data = await api('getGoalsProgress', { week: STATE.week });
+    const team = STATE.data?.profile?.team;
+    
+    let html = '<h3 style="margin-bottom:16px">🎵 Track Goals</h3>';
     
     Object.entries(data.trackGoals || {}).forEach(([track, info]) => {
-        const teamData = info.teams?.[team] || { current: 0 };
-        const progress = Math.min(100, (teamData.current / info.goal) * 100);
-        const passed = teamData.current >= info.goal;
+        const t = info.teams?.[team] || { current: 0 };
+        const pct = Math.min(100, (t.current / info.goal) * 100);
+        const done = t.current >= info.goal;
         
         html += `
-            <div style="margin-bottom:16px;padding:12px;background:var(--glass-bg);border-radius:8px;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <div style="margin-bottom:16px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
                     <span>${track}</span>
-                    <span style="color:${passed ? '#00ff88' : 'var(--primary)'};">${formatNumber(teamData.current)}/${formatNumber(info.goal)} ${passed ? '✅' : ''}</span>
+                    <span style="color:${done ? 'var(--success)' : 'inherit'}">${fmt(t.current)}/${fmt(info.goal)} ${done ? '✅' : ''}</span>
                 </div>
-                <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:8px;overflow:hidden;">
-                    <div style="background:${passed ? '#00ff88' : 'var(--primary)'};height:100%;width:${progress}%;transition:width 0.3s;"></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:${pct}%;background:${done ? 'var(--success)' : 'var(--primary)'}"></div>
                 </div>
             </div>
         `;
     });
-
-    html += '<h3 style="margin:24px 0 16px;color:var(--primary);">💿 Album Goals</h3>';
+    
+    html += '<h3 style="margin:24px 0 16px">💿 Album Goals</h3>';
     
     Object.entries(data.albumGoals || {}).forEach(([album, info]) => {
-        const teamData = info.teams?.[team] || { current: 0 };
-        const progress = Math.min(100, (teamData.current / info.goal) * 100);
-        const passed = teamData.current >= info.goal;
+        const t = info.teams?.[team] || { current: 0 };
+        const pct = Math.min(100, (t.current / info.goal) * 100);
+        const done = t.current >= info.goal;
         
         html += `
-            <div style="margin-bottom:16px;padding:12px;background:var(--glass-bg);border-radius:8px;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <div style="margin-bottom:16px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
                     <span>${album}</span>
-                    <span style="color:${passed ? '#00ff88' : 'var(--primary)'};">${formatNumber(teamData.current)}/${formatNumber(info.goal)} ${passed ? '✅' : ''}</span>
+                    <span style="color:${done ? 'var(--success)' : 'inherit'}">${fmt(t.current)}/${fmt(info.goal)} ${done ? '✅' : ''}</span>
                 </div>
-                <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:8px;overflow:hidden;">
-                    <div style="background:${passed ? '#00ff88' : 'var(--primary)'};height:100%;width:${progress}%;transition:width 0.3s;"></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:${pct}%;background:${done ? 'var(--success)' : 'var(--primary)'}"></div>
                 </div>
             </div>
         `;
     });
-
-    container.innerHTML = html;
+    
+    $('goals-content').innerHTML = html;
 }
 
-// ==================== PAGE: ALBUM 2X ====================
-async function loadAlbum2xPage() {
-    const container = document.getElementById('album2x-content');
-    if (!container) return;
-
+async function loadAlbum2x() {
     try {
-        const data = await apiCall('getAlbum2xProgress', { week: STATE.currentWeek });
-        
-        if (!data || !data.tracks) {
-            container.innerHTML = '<p>No 2x album data available</p>';
-            return;
-        }
-
-        const s = STATE.agentData?.stats;
+        const data = await api('getAlbum2xProgress', { week: STATE.week });
+        const s = STATE.data?.stats;
         const tracks = data.tracks || [];
         
-        let passedCount = 0;
-        let html = '<div style="display:grid;gap:12px;">';
+        let done = 0;
+        let html = '';
         
-        tracks.forEach(track => {
-            const myCount = s?.album2x?.[track.name] || 0;
-            const passed = myCount >= 2;
-            if (passed) passedCount++;
+        tracks.forEach(t => {
+            const count = s?.album2x?.[t.name] || 0;
+            const passed = count >= 2;
+            if (passed) done++;
             
             html += `
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--glass-bg);border-radius:8px;border-left:3px solid ${passed ? '#00ff88' : '#ff6b6b'};">
-                    <span>${track.name}</span>
-                    <span style="color:${passed ? '#00ff88' : '#ff6b6b'};">${myCount}/2 ${passed ? '✅' : '❌'}</span>
+                <div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg);border-radius:8px;margin-bottom:8px;border-left:3px solid ${passed ? 'var(--success)' : 'var(--danger)'}">
+                    <span>${t.name}</span>
+                    <span style="color:${passed ? 'var(--success)' : 'var(--danger)'}">${count}/2 ${passed ? '✅' : '❌'}</span>
                 </div>
             `;
         });
         
-        html += '</div>';
-        
-        const allPassed = passedCount === tracks.length;
-        container.innerHTML = `
-            <div style="text-align:center;padding:20px;background:var(--glass-bg);border-radius:12px;margin-bottom:20px;">
-                <div style="font-size:48px;margin-bottom:12px;">${allPassed ? '🎉' : '⏳'}</div>
-                <div style="font-size:24px;font-weight:bold;color:${allPassed ? '#00ff88' : 'var(--primary)'};">
-                    ${passedCount}/${tracks.length} Tracks Complete
-                </div>
-                <div style="margin-top:8px;opacity:0.7;">
-                    ${allPassed ? 'Mission Accomplished!' : 'Keep streaming!'}
-                </div>
+        $('album2x-content').innerHTML = `
+            <div style="text-align:center;padding:24px;background:var(--bg);border-radius:12px;margin-bottom:16px">
+                <div style="font-size:36px;margin-bottom:8px">${done === tracks.length ? '🎉' : '⏳'}</div>
+                <div style="font-size:20px;font-weight:700;color:${done === tracks.length ? 'var(--success)' : 'var(--primary)'}">${done}/${tracks.length} Complete</div>
             </div>
             ${html}
         `;
-    } catch (err) {
-        container.innerHTML = '<p>Failed to load 2x data</p>';
+    } catch (e) {
+        $('album2x-content').innerHTML = 'Failed to load';
     }
 }
 
-// ==================== PAGE: TEAM LEVEL ====================
-async function loadTeamLevelPage() {
-    const container = document.getElementById('team-level-content');
-    if (!container) return;
-
+async function loadTeamLevel() {
     try {
-        const data = await apiCall('getTeamLevels', { week: STATE.currentWeek });
+        const data = await api('getTeamLevels', { week: STATE.week });
         const teams = data.teams || {};
         
-        container.innerHTML = `
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;">
-                ${Object.entries(teams).map(([team, info]) => `
-                    <div style="background:var(--glass-bg);border-radius:16px;padding:24px;text-align:center;border:2px solid ${getTeamColor(team)}40;">
-                        <img src="${getTeamPFP(team)}" style="width:64px;height:64px;border-radius:50%;margin-bottom:12px;" onerror="this.style.display='none'">
-                        <div style="color:${getTeamColor(team)};font-weight:bold;font-size:18px;">${team}</div>
-                        <div style="font-size:48px;font-weight:bold;margin:16px 0;">Level ${info.level || 0}</div>
-                        <div style="font-size:14px;opacity:0.7;">${formatNumber(info.xp || 0)} XP</div>
-                        <div style="margin-top:16px;background:rgba(255,255,255,0.1);border-radius:4px;height:8px;overflow:hidden;">
-                            <div style="background:${getTeamColor(team)};height:100%;width:${info.progress || 0}%;"></div>
+        $('team-level-content').innerHTML = `
+            <div class="stats-grid">
+                ${Object.entries(teams).map(([t, info]) => `
+                    <div class="stat-box" style="border-top:3px solid ${teamColor(t)}">
+                        <div style="color:${teamColor(t)};font-weight:600;margin-bottom:12px">${t}</div>
+                        <div class="stat-value">Lv ${info.level || 0}</div>
+                        <div class="stat-label">${fmt(info.xp)} XP</div>
+                        <div class="progress-bar" style="margin-top:12px">
+                            <div class="progress-fill" style="width:${info.progress || 0}%;background:${teamColor(t)}"></div>
                         </div>
-                        <div style="font-size:12px;margin-top:8px;opacity:0.7;">${info.progress || 0}% to next level</div>
                     </div>
                 `).join('')}
             </div>
         `;
-    } catch (err) {
-        container.innerHTML = '<p>Failed to load team levels</p>';
+    } catch (e) {
+        $('team-level-content').innerHTML = 'Failed to load';
     }
 }
 
-// ==================== PAGE: TEAM CHARTS ====================
-async function loadTeamChartsPage() {
-    const container = document.getElementById('team-charts-content');
-    if (!container) return;
-    
+async function loadSummary() {
     try {
-        const data = await apiCall('getTeamChartData', { week: STATE.currentWeek });
-        
-        // Destroy existing chart
-        if (STATE.charts.teamXP) {
-            STATE.charts.teamXP.destroy();
-        }
-        
-        const ctx = document.getElementById('team-xp-chart');
-        if (!ctx) return;
-        
-        const teams = Object.keys(data.teams || {});
-        const xpData = teams.map(t => data.teams[t].totalXP || 0);
-        const colors = teams.map(t => getTeamColor(t));
-        
-        STATE.charts.teamXP = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: teams,
-                datasets: [{
-                    label: 'Total XP',
-                    data: xpData,
-                    backgroundColor: colors,
-                    borderColor: colors,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
-        });
-    } catch (err) {
-        container.innerHTML = '<p>Failed to load chart data</p>';
-    }
-}
-
-// ==================== PAGE: TEAM COMPARISON ====================
-async function loadTeamComparisonPage() {
-    const container = document.getElementById('team-comparison-content');
-    if (!container) return;
-
-    try {
-        const data = await apiCall('getTeamComparison', { week: STATE.currentWeek });
-        const teams = data.teams || {};
-        
-        container.innerHTML = `
-            <div style="overflow-x:auto;">
-                <table style="width:100%;border-collapse:collapse;">
-                    <thead>
-                        <tr style="border-bottom:2px solid var(--glass-border);">
-                            <th style="padding:12px;text-align:left;">Team</th>
-                            <th style="padding:12px;text-align:right;">Members</th>
-                            <th style="padding:12px;text-align:right;">Total XP</th>
-                            <th style="padding:12px;text-align:right;">Avg XP</th>
-                            <th style="padding:12px;text-align:right;">Level</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${Object.entries(teams).map(([team, info]) => `
-                            <tr style="border-bottom:1px solid var(--glass-border);">
-                                <td style="padding:12px;color:${getTeamColor(team)};font-weight:bold;">${team}</td>
-                                <td style="padding:12px;text-align:right;">${info.members || 0}</td>
-                                <td style="padding:12px;text-align:right;">${formatNumber(info.totalXP || 0)}</td>
-                                <td style="padding:12px;text-align:right;">${formatNumber(info.avgXP || 0)}</td>
-                                <td style="padding:12px;text-align:right;">${info.level || 0}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-    } catch (err) {
-        container.innerHTML = '<p>Failed to load comparison</p>';
-    }
-}
-
-// ==================== PAGE: SUMMARY ====================
-async function loadSummaryPage() {
-    const container = document.getElementById('summary-content');
-    if (!container) return;
-
-    try {
-        const data = await apiCall('getWeeklySummary', { week: STATE.currentWeek });
+        const data = await api('getWeeklySummary', { week: STATE.week });
         const teams = data.teams || {};
         const winner = Object.entries(teams).find(([_, t]) => t.isWinner);
         
-        container.innerHTML = `
+        $('summary-content').innerHTML = `
             ${winner ? `
-                <div style="text-align:center;padding:32px;background:linear-gradient(135deg,${getTeamColor(winner[0])}22,transparent);border-radius:16px;margin-bottom:24px;border:2px solid ${getTeamColor(winner[0])};">
-                    <div style="font-size:64px;">🏆</div>
-                    <h2 style="color:${getTeamColor(winner[0])};margin:16px 0;">${winner[0]} WINS!</h2>
-                    <p style="font-size:24px;">${formatNumber(winner[1].teamXP)} Total XP</p>
+                <div style="text-align:center;padding:32px;background:${teamColor(winner[0])}22;border-radius:12px;margin-bottom:24px;border:2px solid ${teamColor(winner[0])}">
+                    <div style="font-size:48px">🏆</div>
+                    <h2 style="color:${teamColor(winner[0])};margin:16px 0">${winner[0]} Wins!</h2>
+                    <p>${fmt(winner[1].teamXP)} XP</p>
                 </div>
-            ` : '<p>No winner declared yet</p>'}
-            
-            <h3 style="margin-bottom:16px;">All Teams</h3>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;">
-                ${Object.entries(teams).map(([team, info]) => `
-                    <div style="background:var(--glass-bg);padding:20px;border-radius:12px;text-align:center;border-left:3px solid ${getTeamColor(team)};">
-                        <div style="color:${getTeamColor(team)};font-weight:bold;">${team}</div>
-                        <div style="font-size:24px;font-weight:bold;margin-top:8px;">${formatNumber(info.teamXP || 0)}</div>
-                        <div style="font-size:12px;opacity:0.7;">XP</div>
+            ` : ''}
+            <div class="stats-grid">
+                ${Object.entries(teams).map(([t, info]) => `
+                    <div class="stat-box" style="border-left:3px solid ${teamColor(t)}">
+                        <div style="color:${teamColor(t)};font-weight:600">${t}</div>
+                        <div class="stat-value">${fmt(info.teamXP)}</div>
+                        <div class="stat-label">Total XP</div>
                     </div>
                 `).join('')}
             </div>
         `;
-    } catch (err) {
-        container.innerHTML = '<p>Failed to load summary</p>';
+    } catch (e) {
+        $('summary-content').innerHTML = 'Failed to load';
     }
 }
 
-// ==================== PAGE: DRAWER ====================
-async function loadDrawerPage() {
-    const container = document.getElementById('drawer-content');
-    if (!container) return;
-
-    try {
-        const data = await apiCall('getDrawerEligible', { week: STATE.currentWeek });
-        const eligible = data.eligible || [];
-        
-        if (eligible.length === 0) {
-            container.innerHTML = '<p style="text-align:center;padding:40px;">No eligible agents for drawer this week</p>';
-            return;
-        }
-
-        container.innerHTML = `
-            <div style="text-align:center;padding:20px;background:var(--glass-bg);border-radius:12px;margin-bottom:20px;">
-                <div style="font-size:48px;">🎖️</div>
-                <div style="font-size:24px;font-weight:bold;margin-top:12px;">${eligible.length} Agents Eligible</div>
-            </div>
-            <div style="display:grid;gap:8px;">
-                ${eligible.map(agent => `
-                    <div style="display:flex;align-items:center;padding:12px;background:var(--glass-bg);border-radius:8px;border-left:3px solid ${getTeamColor(agent.team)};">
-                        <div style="flex:1;font-weight:bold;">${agent.name}</div>
-                        <div style="color:${getTeamColor(agent.team)};">${agent.team}</div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    } catch (err) {
-        container.innerHTML = '<p>Failed to load drawer data</p>';
-    }
-}
-
-// ==================== PAGE: ANNOUNCEMENTS ====================
-async function loadAnnouncementsPage() {
-    const container = document.getElementById('announcements-content');
-    if (!container) return;
-
-    try {
-        const data = await apiCall('getAnnouncements');
-        const announcements = data.announcements || [];
-        
-        if (announcements.length === 0) {
-            container.innerHTML = '<p style="text-align:center;padding:40px;">No announcements at this time</p>';
-            return;
-        }
-
-        container.innerHTML = announcements.map(a => `
-            <div style="padding:20px;background:var(--glass-bg);border-radius:12px;margin-bottom:16px;border-left:3px solid var(--primary);">
-                <div style="font-size:12px;color:var(--primary);margin-bottom:8px;">${a.date || ''}</div>
-                <h3 style="margin-bottom:12px;">${a.title || ''}</h3>
-                <p style="opacity:0.8;line-height:1.6;">${a.content || ''}</p>
-            </div>
-        `).join('');
-    } catch (err) {
-        container.innerHTML = '<p>Failed to load announcements</p>';
-    }
-}
-
-// ==================== INITIALIZATION ====================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎮 App starting...');
+// ===== START =====
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('App starting...');
     initLogin();
 });
-
-// Backup init for cached pages
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    setTimeout(initLogin, 100);
-}
