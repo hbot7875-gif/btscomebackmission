@@ -5,33 +5,51 @@
     box-sizing: border-box;
 }
 
+/* ==================== SPY THEME - DARK & COVERT ==================== */
 :root {
-    --primary: #d4af37;
-    --primary-glow: rgba(212, 175, 55, 0.3);
-    --bg-dark: #0a0a0f;
-    --bg-card: rgba(20, 20, 30, 0.8);
-    --bg-secondary: rgba(30, 30, 45, 0.6);
-    --text-primary: #e0e0e0;
-    --text-secondary: #999;
-    --border: rgba(212, 175, 55, 0.3);
+    /* Main spy colors */
+    --primary: #00ff41;           /* Matrix green */
+    --primary-glow: rgba(0, 255, 65, 0.3);
+    --secondary: #ff0080;         /* Neon pink accent */
     
-    --team-indigo: #5b61d4;
-    --team-echo: #e74c3c;
-    --team-agustd: #f39c12;
-    --team-jitb: #9b59b6;
+    /* Dark backgrounds */
+    --bg-dark: #0a0e1a;
+    --bg-card: rgba(15, 20, 35, 0.85);
+    --bg-secondary: rgba(20, 25, 40, 0.7);
+    
+    /* Text colors */
+    --text-primary: #e8f0f2;
+    --text-secondary: #8a95a5;
+    
+    /* Borders */
+    --border: rgba(0, 255, 65, 0.2);
+    --border-danger: rgba(255, 0, 128, 0.3);
+    
+    /* Team colors - Spy themed */
+    --team-indigo: #4cc9f0;
+    --team-echo: #f72585;
+    --team-agustd: #ff9500;
+    --team-jitb: #7209b7;
+    
+    /* Status colors */
+    --success: #00ff41;
+    --warning: #ffd60a;
+    --danger: #ff0080;
+    --info: #4cc9f0;
     
     --sidebar-width: 280px;
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+    font-family: 'Courier New', 'Segoe UI', monospace;
+    background: linear-gradient(135deg, #0a0e1a 0%, #1a1f35 50%, #0f1520 100%);
     color: var(--text-primary);
     min-height: 100vh;
     overflow-x: hidden;
     position: relative;
 }
 
+/* Spy grid background */
 body::before {
     content: '';
     position: fixed;
@@ -40,10 +58,33 @@ body::before {
     width: 100%;
     height: 100%;
     background-image: 
-        radial-gradient(circle at 20% 50%, rgba(212, 175, 55, 0.03) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(91, 97, 212, 0.03) 0%, transparent 50%);
+        linear-gradient(0deg, transparent 24%, rgba(0, 255, 65, 0.03) 25%, rgba(0, 255, 65, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 65, 0.03) 75%, rgba(0, 255, 65, 0.03) 76%, transparent 77%, transparent),
+        linear-gradient(90deg, transparent 24%, rgba(0, 255, 65, 0.03) 25%, rgba(0, 255, 65, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 65, 0.03) 75%, rgba(0, 255, 65, 0.03) 76%, transparent 77%, transparent);
+    background-size: 50px 50px;
     pointer-events: none;
     z-index: 0;
+    opacity: 0.3;
+}
+
+/* Animated scanlines */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent 0%, rgba(0, 255, 65, 0.02) 50%, transparent 100%);
+    background-size: 100% 4px;
+    animation: scanlines 8s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+}
+
+@keyframes scanlines {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100%; }
 }
 
 .screen {
@@ -69,12 +110,27 @@ body::before {
     background: var(--bg-card);
     backdrop-filter: blur(20px);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 0;
     padding: 60px 40px;
     width: 100%;
     max-width: 500px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 40px var(--primary-glow);
     animation: fadeInUp 0.6s ease;
+    position: relative;
+}
+
+.login-container::before {
+    content: 'TOP SECRET';
+    position: absolute;
+    top: 20px;
+    right: -30px;
+    background: var(--danger);
+    color: #000;
+    padding: 5px 50px;
+    font-size: 12px;
+    font-weight: bold;
+    transform: rotate(45deg);
+    letter-spacing: 3px;
 }
 
 .bts-logo {
@@ -86,31 +142,68 @@ body::before {
     font-size: 80px;
     margin-bottom: 20px;
     filter: drop-shadow(0 0 30px var(--primary-glow));
-    animation: float 3s ease-in-out infinite;
+    animation: pulse 2s ease-in-out infinite;
 }
 
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
 }
 
 .glitch {
     font-size: 48px;
     font-weight: bold;
     color: var(--primary);
-    text-shadow: 
-        0 0 10px var(--primary-glow),
-        0 0 20px var(--primary-glow),
-        0 0 30px var(--primary-glow);
+    text-shadow: 0 0 10px var(--primary-glow), 0 0 20px var(--primary-glow);
     margin-bottom: 10px;
     position: relative;
+    letter-spacing: 5px;
+}
+
+.glitch::before,
+.glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.glitch::before {
+    animation: glitch-1 2s infinite;
+    color: var(--secondary);
+    z-index: -1;
+    opacity: 0.7;
+}
+
+.glitch::after {
+    animation: glitch-2 2s infinite;
+    color: var(--primary);
+    z-index: -2;
+    opacity: 0.7;
+}
+
+@keyframes glitch-1 {
+    0%, 100% { clip: rect(0, 900px, 0, 0); }
+    25% { clip: rect(20px, 900px, 40px, 0); }
+    50% { clip: rect(60px, 900px, 80px, 0); }
+    75% { clip: rect(30px, 900px, 50px, 0); }
+}
+
+@keyframes glitch-2 {
+    0%, 100% { clip: rect(0, 900px, 0, 0); }
+    25% { clip: rect(50px, 900px, 70px, 0); }
+    50% { clip: rect(10px, 900px, 30px, 0); }
+    75% { clip: rect(40px, 900px, 60px, 0); }
 }
 
 .subtitle {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 3px;
+    font-family: 'Courier New', monospace;
 }
 
 .login-form {
@@ -129,6 +222,7 @@ body::before {
     margin-bottom: 10px;
     font-weight: bold;
     letter-spacing: 2px;
+    font-family: 'Courier New', monospace;
 }
 
 .form-group input {
@@ -136,9 +230,10 @@ body::before {
     padding: 16px 20px;
     background: rgba(0, 0, 0, 0.5);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 0;
     color: var(--text-primary);
     font-size: 16px;
+    font-family: 'Courier New', monospace;
     transition: all 0.3s ease;
 }
 
@@ -146,44 +241,48 @@ body::before {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 20px var(--primary-glow);
+    background: rgba(0, 255, 65, 0.05);
 }
 
 .btn-primary, .btn-secondary {
     width: 100%;
     padding: 16px 24px;
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: 0;
+    font-size: 12px;
     font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: space-between;
     transition: all 0.3s ease;
     margin-top: 15px;
+    font-family: 'Courier New', monospace;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary) 0%, #f0d770 100%);
-    color: #0a0a0f;
+    background: var(--primary);
+    color: #000;
+    box-shadow: 0 0 20px var(--primary-glow);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px var(--primary-glow);
+    box-shadow: 0 0 30px var(--primary-glow), 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .btn-secondary {
-    background: var(--bg-secondary);
+    background: transparent;
     color: var(--primary);
     border: 1px solid var(--border);
 }
 
 .btn-secondary:hover {
-    background: rgba(212, 175, 55, 0.1);
+    background: rgba(0, 255, 65, 0.1);
     border-color: var(--primary);
+    box-shadow: 0 0 20px var(--primary-glow);
 }
 
 .divider {
@@ -208,15 +307,18 @@ body::before {
     padding: 0 20px;
     font-size: 12px;
     color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 .find-result {
     margin-top: 15px;
     padding: 15px;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 14px;
     text-align: center;
     display: none;
+    font-family: 'Courier New', monospace;
 }
 
 .find-result.show {
@@ -224,15 +326,15 @@ body::before {
 }
 
 .find-result.success {
-    background: rgba(46, 204, 113, 0.1);
-    border: 1px solid rgba(46, 204, 113, 0.3);
-    color: #2ecc71;
+    background: rgba(0, 255, 65, 0.1);
+    border: 1px solid var(--success);
+    color: var(--success);
 }
 
 .find-result.error {
-    background: rgba(231, 76, 60, 0.1);
-    border: 1px solid rgba(231, 76, 60, 0.3);
-    color: #e74c3c;
+    background: rgba(255, 0, 128, 0.1);
+    border: 1px solid var(--danger);
+    color: var(--danger);
 }
 
 .login-footer {
@@ -253,7 +355,7 @@ body::before {
 /* ==================== SIDEBAR ==================== */
 .sidebar {
     width: var(--sidebar-width);
-    background: var(--bg-card);
+    background: rgba(10, 14, 26, 0.95);
     backdrop-filter: blur(20px);
     border-right: 1px solid var(--border);
     padding: 20px;
@@ -264,6 +366,7 @@ body::before {
     overflow-y: auto;
     z-index: 1000;
     transition: transform 0.3s ease;
+    box-shadow: 0 0 30px rgba(0, 255, 65, 0.1);
 }
 
 .sidebar-header {
@@ -280,6 +383,7 @@ body::before {
     font-size: 20px;
     font-weight: bold;
     color: var(--primary);
+    text-shadow: 0 0 10px var(--primary-glow);
 }
 
 .logo-icon {
@@ -305,7 +409,7 @@ body::before {
 .agent-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 0;
     padding: 20px;
     margin-bottom: 30px;
     display: flex;
@@ -313,18 +417,75 @@ body::before {
     gap: 15px;
 }
 
-.agent-avatar {
+/* ==================== FIXED PFP AUTO-RESIZE ==================== */
+.agent-avatar,
+.profile-avatar {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary) 0%, #f0d770 100%);
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+    border: 2px solid var(--primary);
+    box-shadow: 0 0 20px var(--primary-glow);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+}
+
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-width: 3px;
+}
+
+.agent-avatar img,
+.profile-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 50% !important;
+    display: block !important;
+}
+
+.agent-avatar span,
+.profile-avatar span {
     font-size: 24px;
     font-weight: bold;
-    color: #0a0a0f;
-    flex-shrink: 0;
+    color: var(--primary);
+    text-shadow: 0 0 10px var(--primary-glow);
+    z-index: 1;
+}
+
+.profile-avatar span {
+    font-size: 40px;
+}
+
+/* Team PFP containers */
+.team-pfp-container {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border);
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+    margin: 0 auto 12px;
+}
+
+.team-pfp-container img,
+.stat-box img[alt*="team"] {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 50% !important;
+    display: block !important;
 }
 
 .agent-info {
@@ -344,7 +505,6 @@ body::before {
 
 .agent-team {
     font-size: 13px;
-    color: var(--text-secondary);
     margin-bottom: 4px;
 }
 
@@ -357,7 +517,7 @@ body::before {
 .week-selector {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 0;
     padding: 15px;
     margin-bottom: 30px;
 }
@@ -370,6 +530,7 @@ body::before {
     margin-bottom: 10px;
     font-weight: bold;
     letter-spacing: 1px;
+    font-family: 'Courier New', monospace;
 }
 
 .week-selector select {
@@ -377,16 +538,18 @@ body::before {
     padding: 10px;
     background: rgba(0, 0, 0, 0.5);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 0;
     color: var(--text-primary);
     font-size: 14px;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-family: 'Courier New', monospace;
 }
 
 .week-selector select:focus {
     outline: none;
     border-color: var(--primary);
+    box-shadow: 0 0 10px var(--primary-glow);
 }
 
 .nav-menu {
@@ -404,6 +567,7 @@ body::before {
     margin-bottom: 10px;
     font-weight: bold;
     letter-spacing: 2px;
+    font-family: 'Courier New', monospace;
 }
 
 .nav-link {
@@ -413,10 +577,11 @@ body::before {
     padding: 12px 16px;
     color: var(--text-primary);
     text-decoration: none;
-    border-radius: 8px;
+    border-radius: 0;
     margin-bottom: 5px;
     transition: all 0.3s ease;
     cursor: pointer;
+    font-family: 'Courier New', monospace;
 }
 
 .nav-link:hover {
@@ -427,7 +592,7 @@ body::before {
 }
 
 .nav-link.active {
-    background: rgba(212, 175, 55, 0.1);
+    background: rgba(0, 255, 65, 0.1);
     color: var(--primary);
     border-left: 3px solid var(--primary);
     padding-left: 13px;
@@ -452,28 +617,29 @@ body::before {
 .btn-logout {
     width: 100%;
     padding: 12px 16px;
-    background: var(--bg-secondary);
+    background: transparent;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-secondary);
+    border-radius: 0;
+    color: var(--danger);
     display: flex;
     align-items: center;
     gap: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
     margin-bottom: 15px;
+    font-family: 'Courier New', monospace;
 }
 
 .btn-logout:hover {
-    background: rgba(231, 76, 60, 0.1);
-    border-color: #e74c3c;
-    color: #e74c3c;
+    background: rgba(255, 0, 128, 0.1);
+    border-color: var(--danger);
 }
 
 .update-time {
     font-size: 10px;
     color: var(--text-secondary);
     text-align: center;
+    font-family: 'Courier New', monospace;
 }
 
 /* ==================== MAIN CONTENT ==================== */
@@ -494,14 +660,14 @@ body::before {
     border: 1px solid var(--border);
     color: var(--primary);
     padding: 12px 18px;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .mobile-menu-btn:hover {
-    background: rgba(212, 175, 55, 0.1);
+    background: rgba(0, 255, 65, 0.1);
 }
 
 /* ==================== LOADING ==================== */
@@ -511,7 +677,7 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(10, 10, 15, 0.9);
+    background: rgba(10, 10, 15, 0.95);
     backdrop-filter: blur(10px);
     display: none;
     align-items: center;
@@ -530,10 +696,11 @@ body::before {
 .radar {
     width: 100px;
     height: 100px;
-    border: 2px solid var(--border);
+    border: 2px solid var(--primary);
     border-radius: 50%;
     position: relative;
     margin: 0 auto 30px;
+    box-shadow: 0 0 30px var(--primary-glow), inset 0 0 30px var(--primary-glow);
 }
 
 .radar-sweep {
@@ -561,20 +728,16 @@ body::before {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0 0 20px var(--primary-glow);
+    box-shadow: 0 0 20px var(--primary);
     animation: pulse 1s ease-in-out infinite;
 }
 
-@keyframes pulse {
-    0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.2); }
-}
-
 .loader p {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--primary);
     text-transform: uppercase;
     letter-spacing: 3px;
+    font-family: 'Courier New', monospace;
 }
 
 .loading-text {
@@ -582,6 +745,7 @@ body::before {
     padding: 40px 20px;
     color: var(--text-secondary);
     font-size: 14px;
+    font-family: 'Courier New', monospace;
 }
 
 /* ==================== PAGES ==================== */
@@ -618,11 +782,29 @@ body::before {
     color: var(--primary);
     text-shadow: 0 0 20px var(--primary-glow);
     margin-bottom: 8px;
+    letter-spacing: 3px;
+    font-family: 'Courier New', monospace;
+    position: relative;
+}
+
+.page-title::after {
+    content: '▮';
+    animation: blink 1s step-end infinite;
+    margin-left: 5px;
+    opacity: 0.8;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
 }
 
 .page-subtitle {
     font-size: 14px;
     color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-family: 'Courier New', monospace;
 }
 
 /* ==================== ALERTS ==================== */
@@ -632,43 +814,44 @@ body::before {
 
 .alert {
     padding: 16px 20px;
-    border-radius: 8px;
+    border-radius: 0;
     margin-bottom: 15px;
     font-size: 14px;
     display: flex;
     align-items: center;
     gap: 12px;
+    font-family: 'Courier New', monospace;
 }
 
 .alert-warning {
-    background: rgba(241, 196, 15, 0.1);
-    border: 1px solid #f1c40f;
-    color: #f1c40f;
+    background: rgba(255, 214, 10, 0.1);
+    border-left: 3px solid var(--warning);
+    color: var(--warning);
 }
 
 .alert-info {
-    background: rgba(52, 152, 219, 0.1);
-    border: 1px solid #3498db;
-    color: #3498db;
+    background: rgba(76, 201, 240, 0.1);
+    border-left: 3px solid var(--info);
+    color: var(--info);
 }
 
 .alert-success {
-    background: rgba(46, 204, 113, 0.1);
-    border: 1px solid #2ecc71;
-    color: #2ecc71;
+    background: rgba(0, 255, 65, 0.1);
+    border-left: 3px solid var(--success);
+    color: var(--success);
 }
 
 .alert-danger {
-    background: rgba(231, 76, 60, 0.1);
-    border: 1px solid #e74c3c;
-    color: #e74c3c;
+    background: rgba(255, 0, 128, 0.1);
+    border-left: 3px solid var(--danger);
+    color: var(--danger);
 }
 
 /* ==================== HERO ==================== */
 .hero-section {
-    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(0, 255, 65, 0.05) 0%, rgba(0, 255, 65, 0.02) 100%);
     border: 2px solid var(--border);
-    border-radius: 16px;
+    border-radius: 0;
     padding: 50px 40px;
     margin-bottom: 40px;
     text-align: center;
@@ -677,19 +860,15 @@ body::before {
 }
 
 .hero-section::before {
-    content: '';
+    content: 'CLASSIFIED';
     position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
-    animation: rotate 20s linear infinite;
-}
-
-@keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    top: 20px;
+    right: 20px;
+    color: var(--danger);
+    font-size: 12px;
+    letter-spacing: 3px;
+    opacity: 0.3;
+    font-family: 'Courier New', monospace;
 }
 
 .hero-content {
@@ -702,6 +881,7 @@ body::before {
     font-weight: bold;
     color: var(--primary);
     margin-bottom: 15px;
+    text-shadow: 0 0 20px var(--primary-glow);
 }
 
 .hero-text {
@@ -710,6 +890,7 @@ body::before {
     line-height: 1.6;
     max-width: 700px;
     margin: 0 auto;
+    font-family: 'Courier New', monospace;
 }
 
 /* ==================== MISSION CARDS ==================== */
@@ -723,7 +904,7 @@ body::before {
 .mission-card {
     background: var(--bg-card);
     border: 2px solid var(--border);
-    border-radius: 12px;
+    border-radius: 0;
     padding: 30px;
     text-align: center;
     cursor: pointer;
@@ -733,18 +914,18 @@ body::before {
 }
 
 .mission-card::before {
-    content: '';
+    content: 'CLASSIFIED';
     position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.1), transparent);
-    transition: left 0.5s ease;
-}
-
-.mission-card:hover::before {
-    left: 100%;
+    top: 10px;
+    right: -30px;
+    background: var(--danger);
+    color: #000;
+    padding: 2px 40px;
+    font-size: 10px;
+    font-weight: bold;
+    transform: rotate(45deg);
+    opacity: 0.2;
+    letter-spacing: 2px;
 }
 
 .mission-card:hover {
@@ -764,38 +945,42 @@ body::before {
     font-weight: bold;
     color: var(--primary);
     margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 .mission-desc {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-secondary);
     margin-bottom: 15px;
+    font-family: 'Courier New', monospace;
+    line-height: 1.6;
+    max-height: 120px;
+    overflow-y: auto;
 }
 
 .mission-status {
     font-size: 13px;
     font-weight: bold;
     padding: 8px 16px;
-    border-radius: 20px;
+    border-radius: 0;
     display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .mission-status.completed {
-    background: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-    border: 1px solid #2ecc71;
-}
-
-.mission-status.on-track {
-    background: rgba(52, 152, 219, 0.2);
-    color: #3498db;
-    border: 1px solid #3498db;
+    background: rgba(0, 255, 65, 0.15);
+    color: var(--success);
+    border: 1px solid var(--success);
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
 }
 
 .mission-status.behind {
-    background: rgba(231, 76, 60, 0.2);
-    color: #e74c3c;
-    border: 1px solid #e74c3c;
+    background: rgba(255, 214, 10, 0.15);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+    box-shadow: 0 0 10px rgba(255, 214, 10, 0.3);
 }
 
 /* ==================== CARDS ==================== */
@@ -803,14 +988,15 @@ body::before {
     background: var(--bg-card);
     backdrop-filter: blur(10px);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 0;
     margin-bottom: 24px;
     transition: all 0.3s ease;
+    box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.03);
 }
 
 .card:hover {
     border-color: var(--primary);
-    box-shadow: 0 8px 32px var(--primary-glow);
+    box-shadow: 0 0 20px var(--primary-glow), inset 0 0 20px rgba(0, 255, 65, 0.05);
 }
 
 .card-header {
@@ -825,6 +1011,8 @@ body::before {
     font-size: 18px;
     font-weight: bold;
     color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 .card-actions {
@@ -836,14 +1024,16 @@ body::before {
     padding: 8px 16px;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 0;
     color: var(--text-primary);
     font-size: 14px;
+    font-family: 'Courier New', monospace;
 }
 
 .search-input:focus {
     outline: none;
     border-color: var(--primary);
+    box-shadow: 0 0 10px var(--primary-glow);
 }
 
 .card-body {
@@ -859,17 +1049,19 @@ body::before {
 }
 
 .stat-box {
-    background: var(--bg-secondary);
+    background: rgba(15, 20, 35, 0.6);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 0;
     padding: 20px;
     text-align: center;
     transition: all 0.3s ease;
+    box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.03);
 }
 
 .stat-box:hover {
     border-color: var(--primary);
     transform: translateY(-3px);
+    box-shadow: 0 0 20px var(--primary-glow), inset 0 0 20px rgba(0, 255, 65, 0.05);
 }
 
 .stat-label {
@@ -878,6 +1070,7 @@ body::before {
     color: var(--text-secondary);
     margin-bottom: 10px;
     letter-spacing: 1px;
+    font-family: 'Courier New', monospace;
 }
 
 .stat-value {
@@ -900,10 +1093,11 @@ body::before {
 .data-table {
     width: 100%;
     border-collapse: collapse;
+    background: rgba(10, 14, 26, 0.5);
 }
 
 .data-table thead {
-    background: var(--bg-secondary);
+    background: rgba(0, 255, 65, 0.1);
     border-bottom: 2px solid var(--primary);
 }
 
@@ -912,15 +1106,17 @@ body::before {
     text-align: left;
     font-weight: bold;
     color: var(--primary);
-    font-size: 13px;
+    font-size: 12px;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    font-family: 'Courier New', monospace;
 }
 
 .data-table td {
     padding: 16px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgba(0, 255, 65, 0.1);
     font-size: 14px;
+    font-family: 'Courier New', monospace;
 }
 
 .data-table tbody tr {
@@ -928,7 +1124,7 @@ body::before {
 }
 
 .data-table tbody tr:hover {
-    background: var(--bg-secondary);
+    background: rgba(0, 255, 65, 0.05);
 }
 
 .rank-badge {
@@ -937,41 +1133,44 @@ body::before {
     justify-content: center;
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, var(--primary) 0%, #f0d770 100%);
-    color: #0a0a0f;
+    background: var(--primary);
+    color: #000;
     border-radius: 50%;
     font-weight: bold;
     font-size: 18px;
+    box-shadow: 0 0 20px var(--primary-glow);
 }
 
 .team-badge {
     display: inline-block;
     padding: 4px 12px;
-    border-radius: 20px;
+    border-radius: 0;
     font-size: 12px;
     font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .team-badge.indigo {
-    background: rgba(91, 97, 212, 0.2);
+    background: rgba(76, 201, 240, 0.15);
     color: var(--team-indigo);
     border: 1px solid var(--team-indigo);
 }
 
 .team-badge.echo {
-    background: rgba(231, 76, 60, 0.2);
+    background: rgba(247, 37, 133, 0.15);
     color: var(--team-echo);
     border: 1px solid var(--team-echo);
 }
 
-.team-badge.agustd {
-    background: rgba(243, 156, 18, 0.2);
+.team-badge.agust-d {
+    background: rgba(255, 149, 0, 0.15);
     color: var(--team-agustd);
     border: 1px solid var(--team-agustd);
 }
 
 .team-badge.jitb {
-    background: rgba(155, 89, 182, 0.2);
+    background: rgba(114, 9, 183, 0.15);
     color: var(--team-jitb);
     border: 1px solid var(--team-jitb);
 }
@@ -979,48 +1178,34 @@ body::before {
 .status-badge {
     display: inline-block;
     padding: 4px 12px;
-    border-radius: 20px;
+    border-radius: 0;
     font-size: 12px;
     font-weight: bold;
+    text-transform: uppercase;
 }
 
 .status-badge.passed {
-    background: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-    border: 1px solid #2ecc71;
+    background: rgba(0, 255, 65, 0.15);
+    color: var(--success);
+    border: 1px solid var(--success);
 }
 
 .status-badge.failed {
-    background: rgba(231, 76, 60, 0.2);
-    color: #e74c3c;
-    border: 1px solid #e74c3c;
+    background: rgba(255, 0, 128, 0.15);
+    color: var(--danger);
+    border: 1px solid var(--danger);
 }
 
 /* ==================== PROFILE ==================== */
 .profile-hero {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 0;
     padding: 40px;
     margin-bottom: 30px;
     display: flex;
     align-items: center;
     gap: 30px;
-}
-
-.profile-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary) 0%, #f0d770 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40px;
-    font-weight: bold;
-    color: #0a0a0f;
-    flex-shrink: 0;
-    box-shadow: 0 10px 30px var(--primary-glow);
 }
 
 .profile-info {
@@ -1032,6 +1217,7 @@ body::before {
     font-weight: bold;
     color: var(--primary);
     margin-bottom: 10px;
+    text-shadow: 0 0 20px var(--primary-glow);
 }
 
 .profile-meta {
@@ -1055,34 +1241,17 @@ body::before {
 .progress-bar {
     height: 10px;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 5px;
+    border-radius: 0;
     overflow: hidden;
     margin-top: 10px;
 }
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary) 0%, #f0d770 100%);
-    border-radius: 5px;
+    background: var(--primary);
+    box-shadow: 0 0 10px var(--primary-glow);
     transition: width 0.5s ease;
     position: relative;
-    overflow: hidden;
-}
-
-.progress-fill::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
 }
 
 /* ==================== TEAM LEGEND ==================== */
@@ -1093,7 +1262,7 @@ body::before {
     margin-bottom: 20px;
     padding: 15px;
     background: var(--bg-secondary);
-    border-radius: 8px;
+    border-radius: 0;
 }
 
 .team-legend-item {
@@ -1111,9 +1280,10 @@ body::before {
 .team-legend-name {
     font-size: 14px;
     color: var(--text-primary);
+    font-family: 'Courier New', monospace;
 }
 
-/* ==================== GOALS CONTAINER ==================== */
+/* ==================== OTHER SECTIONS ==================== */
 .goals-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -1123,69 +1293,21 @@ body::before {
 .team-goals-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 0;
     padding: 24px;
     border-left: 5px solid var(--primary);
 }
 
-.team-goals-header {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 20px;
-}
-
-.goal-section {
-    margin-bottom: 30px;
-}
-
-.goal-section-title {
-    font-size: 14px;
-    font-weight: bold;
-    color: var(--primary);
-    margin-bottom: 15px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.goal-item {
-    margin-bottom: 15px;
-}
-
-.goal-info {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    margin-bottom: 5px;
-}
-
-.goal-name {
-    color: var(--text-primary);
-}
-
-.goal-progress {
-    color: var(--text-secondary);
-}
-
-/* ==================== WINNER CARD ==================== */
 .winner-card {
-    background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(0, 255, 65, 0.1) 0%, rgba(0, 255, 65, 0.05) 100%);
     border: 2px solid var(--primary);
-    border-radius: 16px;
+    border-radius: 0;
     padding: 40px;
     text-align: center;
     margin-bottom: 40px;
     position: relative;
     overflow: hidden;
-}
-
-.winner-card::before {
-    content: '🏆';
-    position: absolute;
-    font-size: 200px;
-    opacity: 0.05;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    box-shadow: 0 0 40px var(--primary-glow), inset 0 0 40px rgba(0, 255, 65, 0.1);
 }
 
 .winner-content {
@@ -1199,12 +1321,12 @@ body::before {
     color: var(--text-secondary);
     margin-bottom: 15px;
     letter-spacing: 3px;
+    font-family: 'Courier New', monospace;
 }
 
 .winner-team {
     font-size: 48px;
     font-weight: bold;
-    color: var(--primary);
     margin-bottom: 10px;
     text-shadow: 0 0 30px var(--primary-glow);
 }
@@ -1214,393 +1336,7 @@ body::before {
     color: var(--text-secondary);
 }
 
-/* ==================== SUMMARY GRID ==================== */
-.summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px;
-}
-
-.summary-team-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    transition: all 0.3s ease;
-}
-
-.summary-team-card:hover {
-    border-color: var(--primary);
-    transform: translateY(-5px);
-}
-
-.summary-team-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--border);
-}
-
-.summary-team-name {
-    font-size: 20px;
-    font-weight: bold;
-}
-
-.summary-team-level {
-    font-size: 14px;
-    color: var(--text-secondary);
-}
-
-.summary-missions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.summary-mission-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 14px;
-}
-
-.summary-mission-label {
-    color: var(--text-secondary);
-}
-
-.summary-mission-value {
-    font-weight: bold;
-}
-
-.summary-team-status {
-    padding: 12px;
-    border-radius: 8px;
-    text-align: center;
-    font-weight: bold;
-    font-size: 14px;
-    margin-top: 15px;
-}
-
-.summary-team-status.level-up {
-    background: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-    border: 1px solid #2ecc71;
-}
-
-.summary-team-status.hold {
-    background: rgba(231, 76, 60, 0.2);
-    color: #e74c3c;
-    border: 1px solid #e74c3c;
-}
-
-/* ==================== BADGES ==================== */
-.badges-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 20px;
-}
-
-.badge-item {
-    text-align: center;
-    padding: 20px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    transition: all 0.3s ease;
-}
-
-.badge-item:hover {
-    border-color: var(--primary);
-    transform: translateY(-5px);
-}
-
-.badge-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    margin: 0 auto 15px;
-    background: linear-gradient(135deg, var(--primary) 0%, #f0d770 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40px;
-    box-shadow: 0 10px 30px var(--primary-glow);
-}
-
-.badge-name {
-    font-size: 13px;
-    font-weight: bold;
-    color: var(--primary);
-    margin-bottom: 5px;
-}
-
-.badge-week {
-    font-size: 11px;
-    color: var(--text-secondary);
-}
-
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-}
-
-.empty-state-icon {
-    font-size: 60px;
-    margin-bottom: 20px;
-    opacity: 0.3;
-}
-
-.empty-state-text {
-    font-size: 16px;
-    color: var(--text-secondary);
-}
-
-/* ==================== ANNOUNCEMENTS ==================== */
-.announcement-item {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--primary);
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 15px;
-}
-
-.announcement-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-}
-
-.announcement-title {
-    font-size: 16px;
-    font-weight: bold;
-    color: var(--primary);
-}
-
-.announcement-priority {
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 11px;
-    text-transform: uppercase;
-    font-weight: bold;
-}
-
-.announcement-priority.high {
-    background: rgba(231, 76, 60, 0.2);
-    color: #e74c3c;
-}
-
-.announcement-priority.normal {
-    background: rgba(52, 152, 219, 0.2);
-    color: #3498db;
-}
-
-.announcement-message {
-    font-size: 14px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    margin-bottom: 10px;
-}
-
-.announcement-date {
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-/* ==================== CHARTS ==================== */
-.charts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 24px;
-}
-
-.team-selector {
-    margin-bottom: 30px;
-}
-
-.team-selector label {
-    display: block;
-    font-size: 14px;
-    font-weight: bold;
-    color: var(--primary);
-    margin-bottom: 15px;
-}
-
-.team-buttons {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-.team-button {
-    padding: 12px 24px;
-    background: var(--bg-secondary);
-    border: 2px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 14px;
-    font-weight: bold;
-}
-
-.team-button:hover {
-    border-color: var(--primary);
-}
-
-.team-button.active {
-    background: rgba(212, 175, 55, 0.2);
-    border-color: var(--primary);
-    color: var(--primary);
-}
-
-/* ==================== ALBUM 2X ==================== */
-.album2x-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 24px;
-}
-
-.team-2x-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-}
-
-.team-2x-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--border);
-}
-
-.team-2x-name {
-    font-size: 20px;
-    font-weight: bold;
-}
-
-.team-2x-stats {
-    display: flex;
-    gap: 20px;
-    font-size: 13px;
-}
-
-.team-2x-stat {
-    text-align: center;
-}
-
-.team-2x-stat-label {
-    color: var(--text-secondary);
-    margin-bottom: 5px;
-}
-
-.team-2x-stat-value {
-    font-size: 20px;
-    font-weight: bold;
-}
-
-.team-2x-members {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.team-2x-member {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px;
-    background: var(--bg-secondary);
-    border-radius: 6px;
-}
-
-.team-2x-member-name {
-    font-size: 14px;
-}
-
-/* ==================== TEAM LEVEL DATA ==================== */
-.team-level-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 24px;
-}
-
-.team-level-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    border-left: 5px solid var(--primary);
-}
-
-.team-level-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 25px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border);
-}
-
-.team-level-title {
-    font-size: 22px;
-    font-weight: bold;
-}
-
-.team-level-badge {
-    padding: 8px 16px;
-    background: rgba(212, 175, 55, 0.2);
-    border: 1px solid var(--primary);
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: bold;
-    color: var(--primary);
-}
-
-.team-level-section {
-    margin-bottom: 20px;
-}
-
-.team-level-section-title {
-    font-size: 14px;
-    font-weight: bold;
-    color: var(--primary);
-    margin-bottom: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.team-level-info {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.team-level-info-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-}
-
-.team-level-info-label {
-    color: var(--text-secondary);
-}
-
-.team-level-info-value {
-    font-weight: bold;
-    color: var(--text-primary);
-}
-
-/* ==================== RESPONSIVE ==================== */
+/* ==================== MOBILE RESPONSIVE ==================== */
 @media (max-width: 1024px) {
     .sidebar {
         transform: translateX(-100%);
@@ -1622,43 +1358,6 @@ body::before {
     .mobile-menu-btn {
         display: block;
     }
-    
-    .hero-section {
-        padding: 30px 20px;
-    }
-    
-    .mission-cards {
-        grid-template-columns: 1fr;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    }
-    
-    .charts-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .goals-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .album2x-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .team-level-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .summary-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .profile-hero {
-        flex-direction: column;
-        text-align: center;
-    }
 }
 
 @media (max-width: 600px) {
@@ -1666,20 +1365,16 @@ body::before {
         font-size: 28px;
     }
     
-    .hero-title {
-        font-size: 24px;
-    }
-    
     .login-container {
         padding: 40px 20px;
     }
     
-    .team-buttons {
-        flex-direction: column;
+    .mission-cards {
+        grid-template-columns: 1fr;
     }
     
-    .team-button {
-        width: 100%;
+    .stats-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -1695,444 +1390,15 @@ body::before {
 
 ::-webkit-scrollbar-thumb {
     background: var(--primary);
-    border-radius: 4px;
+    border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #f0d770;
-}
-/* ==================== UPDATED TEAM COLORS ==================== */
-:root {
-    --team-indigo: #6366f1;      /* Bluish */
-    --team-echo: #ec4899;        /* Pinkish */
-    --team-agustd: #f97316;      /* Orange */
-    --team-jitb: #10b981;        /* Green */
+    background: #00cc33;
 }
 
-.team-badge.indigo {
-    background: rgba(99, 102, 241, 0.2);
-    color: var(--team-indigo);
-    border: 1px solid var(--team-indigo);
-}
-
-.team-badge.echo {
-    background: rgba(236, 72, 153, 0.2);
-    color: var(--team-echo);
-    border: 1px solid var(--team-echo);
-}
-
-.team-badge.agust-d {
-    background: rgba(249, 115, 22, 0.2);
-    color: var(--team-agustd);
-    border: 1px solid var(--team-agustd);
-}
-
-.team-badge.jitb {
-    background: rgba(16, 185, 129, 0.2);
-    color: var(--team-jitb);
-    border: 1px solid var(--team-jitb);
-}
-
-/* ==================== AGENT AVATAR WITH IMAGE ==================== */
-.agent-avatar img,
-.profile-avatar img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-/* ==================== LOCKED SUMMARY STYLES ==================== */
-.locked-icon {
-    font-size: 80px;
-    margin-bottom: 20px;
-    animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.05); }
-}
-
-.calculating-box {
-    margin-top: 20px;
-    padding: 20px;
-    background: rgba(212, 175, 55, 0.1);
-    border-radius: 8px;
-    border: 1px dashed var(--primary);
-}
-
-/* ==================== MISSION CARD IMPROVEMENTS ==================== */
-.mission-card {
-    position: relative;
-    overflow: hidden;
-}
-
-.mission-card .mission-desc {
-    font-size: 13px;
-    line-height: 1.6;
-    max-height: 120px;
-    overflow-y: auto;
-}
-
-.mission-card .mission-desc::-webkit-scrollbar {
-    width: 4px;
-}
-
-.mission-card .mission-desc::-webkit-scrollbar-thumb {
-    background: var(--primary);
-    border-radius: 2px;
-}
-
-/* ==================== COMPLETED/NOT COMPLETED BADGES ==================== */
-.status-badge.passed {
-    background: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-    border: 1px solid #2ecc71;
-    padding: 6px 14px;
-    font-size: 13px;
-}
-
-.status-badge.failed {
-    background: rgba(231, 76, 60, 0.2);
-    color: #e74c3c;
-    border: 1px solid #e74c3c;
-    padding: 6px 14px;
-    font-size: 13px;
-}
-
-/* ==================== CHART EXPLANATIONS ==================== */
-.chart-explanation {
-    background: rgba(212, 175, 55, 0.05);
-    border-left: 3px solid var(--primary);
-    padding: 12px 16px;
-    margin-top: 16px;
-    border-radius: 4px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-}
-
-.chart-explanation strong {
-    color: var(--primary);
-    display: block;
-    margin-bottom: 4px;
-}
-
-/* ==================== BADGE IMAGE FRAMES ==================== */
-.badge-image {
-    position: relative;
-}
-
-.badge-image img {
-    border: 3px solid var(--primary);
-    box-shadow: 0 0 20px var(--primary-glow);
-}
-
-.badge-image::after {
-    content: '';
-    position: absolute;
-    top: -5px;
-    left: -5px;
-    right: -5px;
-    bottom: -5px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    background: linear-gradient(135deg, var(--primary), transparent) border-box;
-    -webkit-mask: 
-        linear-gradient(#fff 0 0) padding-box, 
-        linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    animation: rotate 3s linear infinite;
-}
-
-/* ==================== TEAM PFP IN STANDINGS ==================== */
-.team-pfp-img {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    margin-bottom: 12px;
-    object-fit: cover;
-    border: 2px solid var(--border);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-/* ==================== PROGRESS BAR WITH TEAM COLORS ==================== */
-.progress-fill {
-    position: relative;
-    overflow: hidden;
-}
-
-.progress-fill::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
-}
-
-/* ==================== MISSION STATUS COLORS ==================== */
-.mission-status.completed {
-    background: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-    border: 1px solid #2ecc71;
-}
-
-.mission-status.behind {
-    background: rgba(241, 196, 15, 0.2);
-    color: #f1c40f;
-    border: 1px solid #f1c40f;
-}
-
-/* ==================== IMPROVED TABLE READABILITY ==================== */
-.data-table tbody tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.data-table tbody tr:hover {
-    background: rgba(212, 175, 55, 0.05);
-    transform: translateX(2px);
-}
-
-/* ==================== MOBILE IMPROVEMENTS ==================== */
-@media (max-width: 768px) {
-    .mission-cards {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-    
-    .team-2x-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-    }
-    
-    .team-2x-stats {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .charts-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-}
 /* ==================== UTILITIES ==================== */
 .text-center { text-align: center; }
 .text-primary { color: var(--primary); }
 .text-secondary { color: var(--text-secondary); }
 .fw-bold { font-weight: bold; }
-.mb-0 { margin-bottom: 0; }
-.mb-1 { margin-bottom: 8px; }
-.mb-2 { margin-bottom: 16px; }
-.mb-3 { margin-bottom: 24px; }
-.mt-0 { margin-top: 0; }
-.mt-1 { margin-top: 8px; }
-.mt-2 { margin-top: 16px; }
-.mt-3 { margin-top: 24px; }
-
-.fade-in {
-    animation: fadeIn 0.5s ease;
-}
-
-.slide-up {
-    animation: fadeInUp 0.5s ease;
-}
-/* ==================== FIXED: AUTO-RESIZE TEAM PFP TO PERFECT CIRCLES ==================== */
-
-/* Base container for all team images */
-.team-pfp-container {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    overflow: hidden;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-secondary);
-    border: 2px solid var(--border);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    flex-shrink: 0;
-}
-
-/* Force ALL images inside to be circles */
-.team-pfp-container img,
-.stat-box img[alt*="team"],
-img[src*="team-"] {
-    width: 100% !important;
-    height: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
-    object-fit: cover !important;
-    object-position: center !important;
-    border-radius: 50% !important;
-    display: block !important;
-}
-
-/* Agent avatars in sidebar and profile */
-.agent-avatar,
-.profile-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    border: 2px solid var(--border);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    background: var(--bg-secondary);
-    flex-shrink: 0;
-}
-
-.profile-avatar {
-    width: 100px;
-    height: 100px;
-    border-width: 3px;
-}
-
-/* Force images inside avatars to fill circles */
-.agent-avatar img,
-.profile-avatar img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-    object-position: center !important;
-    border-radius: 50% !important;
-}
-
-/* Fallback text when no image */
-.agent-avatar span,
-.profile-avatar span {
-    font-size: 24px;
-    font-weight: bold;
-    color: #fff;
-    z-index: 1;
-}
-
-.profile-avatar span {
-    font-size: 40px;
-}
-
-/* Smooth loading transition */
-.agent-avatar img,
-.profile-avatar img,
-.team-pfp-img {
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    opacity: 0;
-    animation: fadeInImage 0.5s ease forwards;
-}
-
-@keyframes fadeInImage {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* Hover effect on team PFPs */
-.team-pfp-img:hover,
-.stat-box img:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
-}
-
-/* Loading placeholder */
-.agent-avatar.loading::before,
-.profile-avatar.loading::before {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, 
-        rgba(212, 175, 55, 0.1) 0%, 
-        rgba(212, 175, 55, 0.3) 50%, 
-        rgba(212, 175, 55, 0.1) 100%
-    );
-    animation: shimmerLoad 1.5s infinite;
-}
-
-@keyframes shimmerLoad {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-}
-
-/* Responsive sizing */
-@media (max-width: 768px) {
-    .agent-avatar,
-    .team-pfp-img,
-    .stat-box img {
-        width: 50px !important;
-        height: 50px !important;
-    }
-
-    .profile-avatar {
-        width: 80px;
-        height: 80px;
-    }
-}
-
-@media (max-width: 480px) {
-    .agent-avatar,
-    .team-pfp-img,
-    .stat-box img {
-        width: 45px !important;
-        height: 45px !important;
-    }
-
-    .profile-avatar {
-        width: 70px;
-        height: 70px;
-    }
-}
-
-/* Error state - broken image */
-.agent-avatar img[src=""],
-.agent-avatar img:not([src]),
-.profile-avatar img[src=""],
-.profile-avatar img:not([src]) {
-    display: none;
-}
-
-/* Team color borders for avatars */
-.agent-avatar.team-indigo,
-.profile-avatar.team-indigo {
-    border-color: var(--team-indigo);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-.agent-avatar.team-echo,
-.profile-avatar.team-echo {
-    border-color: var(--team-echo);
-    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-}
-
-.agent-avatar.team-agust-d,
-.profile-avatar.team-agust-d {
-    border-color: var(--team-agustd);
-    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-}
-
-.agent-avatar.team-jitb,
-.profile-avatar.team-jitb {
-    border-color: var(--team-jitb);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
