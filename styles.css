@@ -1951,3 +1951,181 @@ body::before {
 .slide-up {
     animation: fadeInUp 0.5s ease;
 }
+/* ==================== AUTO-RESIZE TEAM PFP TO PERFECT CIRCLES ==================== */
+
+/* Universal team PFP container styling */
+.agent-avatar,
+.profile-avatar,
+.team-pfp-container {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border: 2px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    background: var(--bg-secondary);
+}
+
+/* Profile page - larger avatar */
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-width: 3px;
+}
+
+/* Auto-resize all images inside avatars */
+.agent-avatar img,
+.profile-avatar img,
+.team-pfp-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures image covers circle perfectly */
+    object-position: center; /* Centers the image */
+    border-radius: 50%;
+}
+
+/* Team standings PFP */
+.team-pfp-img,
+.stat-box img {
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border: 2px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    display: block;
+    margin: 0 auto 12px;
+}
+
+/* Team comparison page - larger PFPs */
+.comparison-rankings .stat-box img {
+    width: 80px !important;
+    height: 80px !important;
+}
+
+/* Fallback text initial (when no image) */
+.agent-avatar span,
+.profile-avatar span {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0a0a0f;
+    z-index: 1;
+}
+
+.profile-avatar span {
+    font-size: 40px;
+}
+
+/* Smooth loading transition */
+.agent-avatar img,
+.profile-avatar img,
+.team-pfp-img {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    animation: fadeInImage 0.5s ease forwards;
+}
+
+@keyframes fadeInImage {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Hover effect on team PFPs */
+.team-pfp-img:hover,
+.stat-box img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+}
+
+/* Loading placeholder */
+.agent-avatar.loading::before,
+.profile-avatar.loading::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        rgba(212, 175, 55, 0.1) 0%, 
+        rgba(212, 175, 55, 0.3) 50%, 
+        rgba(212, 175, 55, 0.1) 100%
+    );
+    animation: shimmerLoad 1.5s infinite;
+}
+
+@keyframes shimmerLoad {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Responsive sizing */
+@media (max-width: 768px) {
+    .agent-avatar,
+    .team-pfp-img,
+    .stat-box img {
+        width: 50px !important;
+        height: 50px !important;
+    }
+
+    .profile-avatar {
+        width: 80px;
+        height: 80px;
+    }
+}
+
+@media (max-width: 480px) {
+    .agent-avatar,
+    .team-pfp-img,
+    .stat-box img {
+        width: 45px !important;
+        height: 45px !important;
+    }
+
+    .profile-avatar {
+        width: 70px;
+        height: 70px;
+    }
+}
+
+/* Error state - broken image */
+.agent-avatar img[src=""],
+.agent-avatar img:not([src]),
+.profile-avatar img[src=""],
+.profile-avatar img:not([src]) {
+    display: none;
+}
+
+/* Team color borders for avatars */
+.agent-avatar.team-indigo,
+.profile-avatar.team-indigo {
+    border-color: var(--team-indigo);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.agent-avatar.team-echo,
+.profile-avatar.team-echo {
+    border-color: var(--team-echo);
+    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.agent-avatar.team-agust-d,
+.profile-avatar.team-agust-d {
+    border-color: var(--team-agustd);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+.agent-avatar.team-jitb,
+.profile-avatar.team-jitb {
+    border-color: var(--team-jitb);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
