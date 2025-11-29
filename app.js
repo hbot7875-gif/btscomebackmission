@@ -61,7 +61,7 @@ const CONFIG = {
         "Indigo": "https://i.ibb.co/4g9KWg3/team-Indigo.png",
         "Echo": "https://i.ibb.co/7xdY9xCy/Team-Echo.png" ,
         "Agust D": "https://i.ibb.co/BVc11nz9/Team-agustd.png",
-        "JITB": "https://i.ibb.co/FbdLFwhv/Team-jitb.png"
+        "JITB": "https://i.ibb.co/MDFyXfJp/jitb1.png"
     }
 };
 
