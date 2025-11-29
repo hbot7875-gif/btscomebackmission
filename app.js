@@ -375,7 +375,7 @@ async function loadPage(page) {
     loading(false);
 }
 
-// ==================== HOME PAGE - NO TROPHY IF CALCULATING ====================
+// ==================== HOME PAGE - SIMPLIFIED ====================
 async function renderHome() {
     $('current-week').textContent = 'Week: ' + STATE.week;
     
@@ -386,81 +386,49 @@ async function renderHome() {
             api('getGoalsProgress', { week: STATE.week })
         ]);
         
-        console.log('📊 Summary:', summary);
-        console.log('🏆 Rankings:', rankings);
-        console.log('🎯 Goals:', goals);
-        
         const team = STATE.data?.profile?.team;
         const teamData = summary.teams?.[team] || {};
+        const myStats = STATE.data?.stats || {};
         
-        // Check if it's Sunday (results finalized)
-        const now = new Date();
-        const isSunday = now.getDay() === 0;
-        
-        // Track Goals - Just names and targets
+        // Track Goals List
         const trackGoals = goals.trackGoals || {};
-        let trackGoalsHtml = '';
+        let trackGoalsHtml = Object.keys(trackGoals).length > 0 ? `
+            <div style="text-align:left;margin-top:12px;font-size:12px;max-height:150px;overflow-y:auto;">
+                ${Object.entries(trackGoals).map(([track, info]) => `
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);">
+                        <span style="color:var(--text-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${track}</span>
+                        <span style="color:var(--purple-light);font-weight:600;">${fmt(info.goal)}</span>
+                    </div>
+                `).join('')}
+            </div>
+        ` : '<p style="font-size:12px;color:var(--text-dim);margin-top:12px;">No track goals</p>';
         
-        if (Object.keys(trackGoals).length > 0) {
-            trackGoalsHtml = `
-                <div style="text-align:left;margin-top:12px;font-size:12px;max-height:180px;overflow-y:auto;">
-                    ${Object.entries(trackGoals).map(([track, info]) => `
-                        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
-                            <span style="color:var(--text-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">${track}</span>
-                            <span style="color:var(--purple-light);font-weight:600;white-space:nowrap;">${fmt(info.goal)}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        } else {
-            trackGoalsHtml = '<p style="font-size:12px;color:var(--text-dim);margin-top:12px;">No track goals this week</p>';
-        }
-        
-        // Album Goals - Just names and targets
+        // Album Goals List
         const albumGoals = goals.albumGoals || {};
-        let albumGoalsHtml = '';
+        let albumGoalsHtml = Object.keys(albumGoals).length > 0 ? `
+            <div style="text-align:left;margin-top:12px;font-size:12px;max-height:150px;overflow-y:auto;">
+                ${Object.entries(albumGoals).map(([album, info]) => `
+                    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);">
+                        <span style="color:var(--text-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${album}</span>
+                        <span style="color:var(--purple-light);font-weight:600;">${fmt(info.goal)}</span>
+                    </div>
+                `).join('')}
+            </div>
+        ` : '<p style="font-size:12px;color:var(--text-dim);margin-top:12px;">No album goals</p>';
         
-        if (Object.keys(albumGoals).length > 0) {
-            albumGoalsHtml = `
-                <div style="text-align:left;margin-top:12px;font-size:12px;max-height:180px;overflow-y:auto;">
-                    ${Object.entries(albumGoals).map(([album, info]) => `
-                        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
-                            <span style="color:var(--text-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">${album}</span>
-                            <span style="color:var(--purple-light);font-weight:600;white-space:nowrap;">${fmt(info.goal)}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        } else {
-            albumGoalsHtml = '<p style="font-size:12px;color:var(--text-dim);margin-top:12px;">No album goals this week</p>';
-        }
-        
-        // Album 2X - Team album info
+        // Album 2X Info
         const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
         const albumName = CONFIG.TEAMS[team]?.album || team;
-        
-        let album2xHtml = '';
-        if (teamTracks.length > 0) {
-            album2xHtml = `
-                <div style="text-align:left;margin-top:12px;font-size:12px;">
-                    <div style="padding:8px;background:var(--bg-dark);border-radius:8px;margin-bottom:8px;">
-                        <div style="color:var(--purple-light);font-weight:600;margin-bottom:4px;">📀 ${albumName}</div>
-                        <div style="color:var(--text-dim);">Stream all ${teamTracks.length} tracks at least 2× each</div>
-                    </div>
-                    <div style="max-height:120px;overflow-y:auto;">
-                        ${teamTracks.map((t, i) => `
-                            <div style="padding:4px 0;color:var(--text-dim);border-bottom:1px solid var(--border);">
-                                <span style="color:var(--purple-main);margin-right:6px;">${i + 1}.</span>${t}
-                            </div>
-                        `).join('')}
-                    </div>
+        let album2xHtml = teamTracks.length > 0 ? `
+            <div style="text-align:left;margin-top:12px;font-size:12px;">
+                <div style="padding:8px;background:var(--bg-dark);border-radius:8px;">
+                    <div style="color:var(--purple-light);font-weight:600;">📀 ${albumName}</div>
+                    <div style="color:var(--text-dim);font-size:11px;">${teamTracks.length} tracks × 2 streams each</div>
                 </div>
-            `;
-        } else {
-            album2xHtml = '<p style="font-size:12px;color:var(--text-dim);margin-top:12px;">No 2x mission configured</p>';
-        }
+            </div>
+        ` : '';
         
-        // Update Mission Cards
+        // Mission Cards
         const missionCardsContainer = document.querySelector('.missions-grid');
         if (missionCardsContainer) {
             missionCardsContainer.innerHTML = `
@@ -484,13 +452,49 @@ async function renderHome() {
                 
                 <div class="mission-card" onclick="loadPage('album2x')">
                     <div class="mission-icon">✨</div>
-                    <h3>Album 2X Mission</h3>
+                    <h3>Album 2X</h3>
                     <div class="mission-status ${teamData.album2xPassed ? 'complete' : 'pending'}">
                         ${teamData.album2xPassed ? '✅ Complete' : '⏳ In Progress'}
                     </div>
                     ${album2xHtml}
                 </div>
             `;
+        }
+        
+        // Your Quick Stats
+        const statsHtml = `
+            <div class="card" style="margin-bottom:20px;">
+                <div class="card-header"><h3>📊 Your Stats</h3></div>
+                <div class="card-body">
+                    <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
+                        <div style="text-align:center;min-width:80px;">
+                            <div style="font-size:24px;font-weight:700;color:var(--purple-glow);">${fmt(myStats.totalXP || 0)}</div>
+                            <div style="font-size:11px;color:var(--text-dim);">XP</div>
+                        </div>
+                        <div style="text-align:center;min-width:80px;">
+                            <div style="font-size:24px;font-weight:700;color:var(--purple-glow);">#${STATE.data?.rank || 'N/A'}</div>
+                            <div style="font-size:11px;color:var(--text-dim);">Rank</div>
+                        </div>
+                        <div style="text-align:center;min-width:80px;">
+                            <div style="font-size:24px;font-weight:700;color:var(--purple-glow);">${fmt(myStats.trackScrobbles || 0)}</div>
+                            <div style="font-size:11px;color:var(--text-dim);">Tracks</div>
+                        </div>
+                        <div style="text-align:center;min-width:80px;">
+                            <div style="font-size:24px;font-weight:700;color:var(--purple-glow);">${fmt(myStats.albumScrobbles || 0)}</div>
+                            <div style="font-size:11px;color:var(--text-dim);">Albums</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Insert stats before top agents
+        const topAgentsCard = $('home-top-agents')?.parentElement?.parentElement;
+        if (topAgentsCard && !$('home-quick-stats')) {
+            const statsDiv = document.createElement('div');
+            statsDiv.id = 'home-quick-stats';
+            statsDiv.innerHTML = statsHtml;
+            topAgentsCard.parentElement.insertBefore(statsDiv, topAgentsCard);
         }
         
         // Top Agents
@@ -500,52 +504,528 @@ async function renderHome() {
                 <div class="rank-num">${r.rank || i + 1}</div>
                 <div class="rank-info">
                     <div class="rank-name">${r.name || 'Agent'}</div>
-                    <div class="rank-team" style="color:${teamColor(r.team)}">${r.team || 'Team'}</div>
+                    <div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div>
                 </div>
                 <div class="rank-xp">${fmt(r.totalXP)} XP</div>
             </div>
-        `).join('') : '<p style="text-align:center;color:var(--text-dim);">No data available</p>';
+        `).join('') : '<p style="text-align:center;color:var(--text-dim);">No data</p>';
         
-        // Team Standings - NO TROPHY unless Sunday
+        // Team XP Race (Simple Visual Bar)
         const teams = summary.teams || {};
         const teamNames = Object.keys(teams);
+        const maxXP = Math.max(...teamNames.map(t => teams[t].teamXP || 0), 1);
         
-        $('home-standings').innerHTML = teamNames.length ? `
-            <div style="text-align:center;margin-bottom:16px;">
-                <span style="font-size:12px;color:var(--text-dim);">
-                    ${isSunday ? '🏆 Final Results' : '⏳ Battle in Progress - Results on Sunday'}
+        $('home-standings').innerHTML = `
+            <div style="margin-bottom:8px;font-size:12px;color:var(--text-dim);text-align:center;">Current Battle Progress</div>
+            ${teamNames.sort((a, b) => (teams[b].teamXP || 0) - (teams[a].teamXP || 0)).map((t, i) => {
+                const td = teams[t];
+                const barWidth = ((td.teamXP || 0) / maxXP) * 100;
+                return `
+                    <div style="margin-bottom:12px;cursor:pointer;" onclick="loadPage('comparison')">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                            <span style="font-size:16px;">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '  '}</span>
+                            <span style="color:${teamColor(t)};font-weight:600;flex:1;">${t}</span>
+                            <span style="font-size:13px;color:var(--purple-glow);">${fmt(td.teamXP)} XP</span>
+                        </div>
+                        <div style="background:var(--bg-dark);border-radius:6px;height:10px;overflow:hidden;">
+                            <div style="background:${teamColor(t)};height:100%;width:${barWidth}%;transition:width 0.5s;border-radius:6px;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+            <div style="text-align:center;margin-top:16px;">
+                <span style="font-size:12px;color:var(--text-dim);cursor:pointer;" onclick="loadPage('comparison')">
+                    View Detailed Comparison →
                 </span>
             </div>
+        `;
+        
+    } catch (e) {
+        console.error('Home error:', e);
+    }
+}
+
+// ==================== TEAM LEVELS - HISTORICAL PROGRESSION ====================
+async function renderTeamLevel() {
+    const container = $('team-level-content');
+    if (!container) return;
+    
+    try {
+        // Get current summary
+        const summary = await api('getWeeklySummary', { week: STATE.week });
+        const teams = summary.teams || {};
+        
+        // Try to get historical data
+        let historicalData = {};
+        try {
+            for (const t of Object.keys(teams)) {
+                const chartData = await api('getTeamChartData', { team: t });
+                historicalData[t] = chartData;
+            }
+        } catch (e) {
+            console.log('Could not load historical data');
+        }
+        
+        // Get team members count
+        let teamMembers = {};
+        try {
+            for (const t of Object.keys(teams)) {
+                const membersData = await api('getTeamMembers', { team: t, week: STATE.week });
+                teamMembers[t] = membersData.members || [];
+            }
+        } catch (e) {}
+        
+        container.innerHTML = `
+            <!-- XP Growth Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📈 Team XP Growth Over Time</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="team-growth-chart" height="200"></canvas>
+                </div>
+            </div>
+            
+            <!-- Team Stats Cards -->
             <div class="stats-grid">
-                ${teamNames.sort((a, b) => (teams[b].teamXP || 0) - (teams[a].teamXP || 0)).map((t, i) => {
-                    const td = teams[t];
-                    // Only show trophy on Sunday AND if they're the winner
-                    const showTrophy = isSunday && td.isWinner;
+                ${Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0)).map(([t, info]) => {
+                    const members = teamMembers[t] || [];
+                    const avgXP = members.length > 0 ? Math.round((info.teamXP || 0) / members.length) : 0;
+                    const history = historicalData[t] || {};
+                    const weeklyGrowth = history.teamXP?.length > 1 
+                        ? (history.teamXP[history.teamXP.length - 1] - history.teamXP[history.teamXP.length - 2])
+                        : 0;
                     
                     return `
-                        <div class="stat-box" style="border-top:3px solid ${teamColor(t)};cursor:pointer;position:relative;" onclick="loadPage('team-level')">
-                            ${showTrophy ? '<div style="position:absolute;top:8px;right:8px;font-size:16px;">🏆</div>' : ''}
-                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" style="width:40px;height:40px;border-radius:50%;margin-bottom:8px;">` : ''}
-                            <div style="color:${teamColor(t)};font-weight:600;margin-bottom:4px;">${t}</div>
-                            <div class="stat-value">${fmt(td.teamXP)}</div>
-                            <div class="stat-label">Level ${td.level || 0}</div>
-                            <div style="display:flex;gap:6px;justify-content:center;margin-top:10px;font-size:11px;">
-                                <span title="Tracks">${td.trackGoalPassed ? '🎵✅' : '🎵❌'}</span>
-                                <span title="Albums">${td.albumGoalPassed ? '💿✅' : '💿❌'}</span>
-                                <span title="2X">${td.album2xPassed ? '✨✅' : '✨❌'}</span>
+                        <div class="card" style="border-top:3px solid ${teamColor(t)}">
+                            <div class="card-body">
+                                ${teamPfp(t) ? `<img src="${teamPfp(t)}" style="width:50px;height:50px;border-radius:50%;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto;">` : ''}
+                                <div style="text-align:center;margin-bottom:16px;">
+                                    <div style="color:${teamColor(t)};font-weight:700;font-size:18px;">${t}</div>
+                                    <div style="font-size:40px;font-weight:900;margin:8px 0;">Lv ${info.level || 1}</div>
+                                    <div style="color:var(--purple-glow);font-size:20px;font-weight:600;">${fmt(info.teamXP)} XP</div>
+                                </div>
+                                
+                                <div style="border-top:1px solid var(--border);padding-top:12px;">
+                                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;">
+                                        <span style="color:var(--text-dim);">Members</span>
+                                        <span style="font-weight:600;">${members.length}</span>
+                                    </div>
+                                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;">
+                                        <span style="color:var(--text-dim);">Avg XP/Member</span>
+                                        <span style="font-weight:600;">${fmt(avgXP)}</span>
+                                    </div>
+                                    <div style="display:flex;justify-content:space-between;font-size:13px;">
+                                        <span style="color:var(--text-dim);">Weekly Growth</span>
+                                        <span style="font-weight:600;color:${weeklyGrowth >= 0 ? 'var(--success)' : 'var(--danger)'};">
+                                            ${weeklyGrowth >= 0 ? '+' : ''}${fmt(weeklyGrowth)}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Level Progress -->
+                                <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+                                    <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">Level Progress</div>
+                                    <div style="display:flex;gap:4px;">
+                                        ${[1,2,3].map(m => `
+                                            <div style="flex:1;height:8px;background:${
+                                                (m === 1 && info.trackGoalPassed) || 
+                                                (m === 2 && info.albumGoalPassed) || 
+                                                (m === 3 && info.album2xPassed) 
+                                                    ? 'var(--success)' 
+                                                    : 'var(--bg-dark)'
+                                            };border-radius:4px;"></div>
+                                        `).join('')}
+                                    </div>
+                                    <div style="font-size:10px;color:var(--text-dim);margin-top:4px;text-align:center;">
+                                        ${(info.trackGoalPassed ? 1 : 0) + (info.albumGoalPassed ? 1 : 0) + (info.album2xPassed ? 1 : 0)}/3 missions
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     `;
                 }).join('')}
             </div>
-        ` : '<p>No team data</p>';
+            
+            <!-- Level Up Requirements -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>🎯 How to Level Up</h3>
+                </div>
+                <div class="card-body">
+                    <p style="color:var(--text-dim);margin-bottom:16px;">Complete all 3 weekly missions to level up your team:</p>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+                        <div style="padding:16px;background:var(--bg-dark);border-radius:12px;text-align:center;">
+                            <div style="font-size:24px;margin-bottom:8px;">🎵</div>
+                            <div style="font-weight:600;margin-bottom:4px;">Track Goals</div>
+                            <div style="font-size:12px;color:var(--text-dim);">Team must hit all track streaming targets</div>
+                        </div>
+                        <div style="padding:16px;background:var(--bg-dark);border-radius:12px;text-align:center;">
+                            <div style="font-size:24px;margin-bottom:8px;">💿</div>
+                            <div style="font-weight:600;margin-bottom:4px;">Album Goals</div>
+                            <div style="font-size:12px;color:var(--text-dim);">Team must hit all album streaming targets</div>
+                        </div>
+                        <div style="padding:16px;background:var(--bg-dark);border-radius:12px;text-align:center;">
+                            <div style="font-size:24px;margin-bottom:8px;">✨</div>
+                            <div style="font-weight:600;margin-bottom:4px;">Album 2X</div>
+                            <div style="font-size:12px;color:var(--text-dim);">Every member must stream team album 2× each track</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Render growth chart
+        renderTeamGrowthChart(historicalData, Object.keys(teams));
         
     } catch (e) {
-        console.error('Home error:', e);
-        $('home-top-agents').innerHTML = '<p style="color:var(--danger);">Failed to load data</p>';
+        console.error('Team level error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p style="color:var(--danger);">Failed to load</p></div></div>';
     }
 }
 
+function renderTeamGrowthChart(historicalData, teamNames) {
+    const ctx = $('team-growth-chart')?.getContext('2d');
+    if (!ctx) return;
+    
+    if (STATE.charts.teamGrowth) STATE.charts.teamGrowth.destroy();
+    
+    // Get all weeks
+    let allWeeks = [];
+    teamNames.forEach(t => {
+        const weeks = historicalData[t]?.weeks || [];
+        weeks.forEach(w => {
+            if (!allWeeks.includes(w)) allWeeks.push(w);
+        });
+    });
+    allWeeks.sort();
+    
+    if (allWeeks.length === 0) {
+        allWeeks = [STATE.week];
+    }
+    
+    const datasets = teamNames.map(t => {
+        const data = historicalData[t] || {};
+        return {
+            label: t,
+            data: allWeeks.map(w => {
+                const idx = (data.weeks || []).indexOf(w);
+                return idx !== -1 ? data.teamXP[idx] : 0;
+            }),
+            borderColor: teamColor(t),
+            backgroundColor: teamColor(t) + '33',
+            fill: false,
+            tension: 0.4
+        };
+    });
+    
+    STATE.charts.teamGrowth = new Chart(ctx, {
+        type: 'line',
+        data: { labels: allWeeks, datasets },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#e0e0f0' } }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#888' }, grid: { color: '#2a2a4a' } },
+                x: { ticks: { color: '#888' }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+// ==================== TEAM COMPARISON - DETAILED BATTLE ====================
+async function renderComparison() {
+    const container = $('comparison-content');
+    if (!container) return;
+    
+    try {
+        const [comparison, goals, album2xData] = await Promise.all([
+            api('getTeamComparison', { week: STATE.week }),
+            api('getGoalsProgress', { week: STATE.week }),
+            api('getAlbum2xStatus', { week: STATE.week })
+        ]);
+        
+        const teams = comparison.comparison || [];
+        teams.sort((a, b) => (b.teamXP || 0) - (a.teamXP || 0));
+        
+        // Get top contributors for each team
+        let topContributors = {};
+        for (const t of teams) {
+            try {
+                const members = await api('getTeamMembers', { team: t.team, week: STATE.week });
+                topContributors[t.team] = (members.members || [])
+                    .sort((a, b) => (b.totalXP || 0) - (a.totalXP || 0))
+                    .slice(0, 3);
+            } catch (e) {
+                topContributors[t.team] = [];
+            }
+        }
+        
+        const trackGoals = goals.trackGoals || {};
+        const albumGoals = goals.albumGoals || {};
+        const album2xTeams = album2xData.teams || {};
+        
+        container.innerHTML = `
+            <!-- XP Battle -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>⚔️ XP Battle</h3>
+                </div>
+                <div class="card-body">
+                    ${teams.map((t, i) => {
+                        const maxXP = teams[0]?.teamXP || 1;
+                        const barWidth = ((t.teamXP || 0) / maxXP) * 100;
+                        return `
+                            <div style="margin-bottom:16px;">
+                                <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+                                    <span style="font-size:20px;width:30px;">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i+1)}</span>
+                                    ${t.pfp ? `<img src="${t.pfp}" style="width:32px;height:32px;border-radius:50%;">` : ''}
+                                    <span style="color:${teamColor(t.team)};font-weight:600;flex:1;">${t.team}</span>
+                                    <span style="font-weight:700;color:var(--purple-glow);">${fmt(t.teamXP)} XP</span>
+                                </div>
+                                <div style="background:var(--bg-dark);border-radius:6px;height:16px;overflow:hidden;">
+                                    <div style="background:linear-gradient(90deg, ${teamColor(t.team)}, ${teamColor(t.team)}88);height:100%;width:${barWidth}%;transition:width 0.5s;border-radius:6px;"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            
+            <!-- Top Contributors Per Team -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>🌟 Top Contributors</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;">
+                        ${teams.map(t => `
+                            <div style="background:var(--bg-dark);border-radius:12px;padding:16px;border-top:3px solid ${teamColor(t.team)};">
+                                <div style="color:${teamColor(t.team)};font-weight:600;margin-bottom:12px;text-align:center;">${t.team}</div>
+                                ${(topContributors[t.team] || []).map((m, i) => `
+                                    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;${i < 2 ? 'border-bottom:1px solid var(--border);' : ''}">
+                                        <span style="font-size:14px;">${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</span>
+                                        <span style="flex:1;font-size:13px;">${m.name}</span>
+                                        <span style="font-size:12px;color:var(--purple-glow);">${fmt(m.totalXP)} XP</span>
+                                    </div>
+                                `).join('') || '<p style="font-size:12px;color:var(--text-dim);">No data</p>'}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Track Goals Progress -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>🎵 Track Goals Progress</h3>
+                </div>
+                <div class="card-body">
+                    ${Object.entries(trackGoals).map(([track, info]) => {
+                        const goal = info.goal || 1;
+                        return `
+                            <div style="margin-bottom:20px;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                    <span style="font-weight:600;">${track}</span>
+                                    <span style="color:var(--text-dim);">Goal: ${fmt(goal)}</span>
+                                </div>
+                                ${teams.map(t => {
+                                    const current = info.teams?.[t.team]?.current || 0;
+                                    const pct = Math.min(100, (current / goal) * 100);
+                                    const done = current >= goal;
+                                    return `
+                                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                                            <span style="width:80px;font-size:12px;color:${teamColor(t.team)};">${t.team}</span>
+                                            <div style="flex:1;background:var(--bg-dark);height:8px;border-radius:4px;overflow:hidden;">
+                                                <div style="background:${done ? 'var(--success)' : teamColor(t.team)};height:100%;width:${pct}%;"></div>
+                                            </div>
+                                            <span style="width:70px;font-size:11px;text-align:right;color:${done ? 'var(--success)' : 'var(--text-dim)'};">
+                                                ${fmt(current)} ${done ? '✅' : ''}
+                                            </span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            
+            <!-- Album Goals Progress -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>💿 Album Goals Progress</h3>
+                </div>
+                <div class="card-body">
+                    ${Object.entries(albumGoals).map(([album, info]) => {
+                        const goal = info.goal || 1;
+                        return `
+                            <div style="margin-bottom:20px;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                    <span style="font-weight:600;">${album}</span>
+                                    <span style="color:var(--text-dim);">Goal: ${fmt(goal)}</span>
+                                </div>
+                                ${teams.map(t => {
+                                    const current = info.teams?.[t.team]?.current || 0;
+                                    const pct = Math.min(100, (current / goal) * 100);
+                                    const done = current >= goal;
+                                    return `
+                                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                                            <span style="width:80px;font-size:12px;color:${teamColor(t.team)};">${t.team}</span>
+                                            <div style="flex:1;background:var(--bg-dark);height:8px;border-radius:4px;overflow:hidden;">
+                                                <div style="background:${done ? 'var(--success)' : teamColor(t.team)};height:100%;width:${pct}%;"></div>
+                                            </div>
+                                            <span style="width:70px;font-size:11px;text-align:right;color:${done ? 'var(--success)' : 'var(--text-dim)'};">
+                                                ${fmt(current)} ${done ? '✅' : ''}
+                                            </span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            
+            <!-- Album 2X Completion -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>✨ Album 2X Completion Rate</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+                        ${teams.map(t => {
+                            const teamStatus = album2xTeams[t.team] || {};
+                            const passed = teamStatus.passed || 0;
+                            const failed = teamStatus.failed || 0;
+                            const total = passed + failed;
+                            const pct = total > 0 ? Math.round((passed / total) * 100) : 0;
+                            
+                            return `
+                                <div style="background:var(--bg-dark);border-radius:12px;padding:20px;text-align:center;border-top:3px solid ${teamColor(t.team)};">
+                                    <div style="color:${teamColor(t.team)};font-weight:600;margin-bottom:12px;">${t.team}</div>
+                                    <div style="font-size:36px;font-weight:700;color:${pct === 100 ? 'var(--success)' : 'var(--purple-glow)'};">${pct}%</div>
+                                    <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">${passed}/${total} members</div>
+                                    <div style="background:var(--bg-card);height:8px;border-radius:4px;margin-top:12px;overflow:hidden;">
+                                        <div style="background:${pct === 100 ? 'var(--success)' : teamColor(t.team)};height:100%;width:${pct}%;"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+    } catch (e) {
+        console.error('Comparison error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p style="color:var(--danger);">Failed to load</p></div></div>';
+    }
+}
+
+// ==================== WEEKLY SUMMARY - FINAL RESULTS ====================
+async function renderSummary() {
+    const container = $('summary-content');
+    if (!container) return;
+    
+    const now = new Date();
+    const day = now.getDay(); // 0 = Sunday
+    
+    // Lock until Sunday
+    if (day !== 0) {
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const daysLeft = (7 - day) % 7 || 7;
+        
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-body" style="text-align:center;padding:60px 20px;">
+                    <div style="font-size:80px;margin-bottom:20px;">🔒</div>
+                    <h2 style="margin-bottom:12px;">Results Locked</h2>
+                    <p style="color:var(--text-dim);margin-bottom:24px;">
+                        Battle is in progress! Winner will be announced on <strong style="color:var(--purple-light);">Sunday 12:00 AM</strong>
+                    </p>
+                    
+                    <div style="background:var(--bg-dark);border-radius:16px;padding:24px;display:inline-block;">
+                        <div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">Time Remaining</div>
+                        <div style="font-size:36px;font-weight:700;color:var(--purple-glow);">${daysLeft} day${daysLeft > 1 ? 's' : ''}</div>
+                    </div>
+                    
+                    <p style="color:var(--purple-light);margin-top:24px;font-size:14px;">
+                        ⏳ Keep streaming to help your team win!
+                    </p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Sunday - Show results
+    try {
+        const [summary, winnersData] = await Promise.all([
+            api('getWeeklySummary', { week: STATE.week }),
+            api('getWeeklyWinners').catch(() => ({ winners: [] }))
+        ]);
+        
+        const teams = summary.teams || {};
+        const winner = summary.winner;
+        const winners = winnersData.winners || [];
+        
+        const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
+        
+        container.innerHTML = `
+            <!-- Winner Banner -->
+            ${winner ? `
+                <div class="card" style="background:linear-gradient(135deg, ${teamColor(winner)}22, var(--bg-card));border:2px solid ${teamColor(winner)};">
+                    <div class="card-body" style="text-align:center;padding:48px;">
+                        <div style="font-size:72px;margin-bottom:16px;">🏆</div>
+                        <div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;">This Week's Winner</div>
+                        <h2 style="font-size:32px;color:${teamColor(winner)};margin:12px 0;">${winner}</h2>
+                        <div style="font-size:24px;color:var(--purple-glow);">${fmt(teams[winner]?.teamXP)} XP</div>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <!-- Final Standings -->
+            <div class="card">
+                <div class="card-header"><h3>📊 Final Standings</h3></div>
+                <div class="card-body">
+                    ${sortedTeams.map(([t, info], i) => `
+                        <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg-dark);border-radius:12px;margin-bottom:12px;">
+                            <div style="font-size:24px;">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i+1)}</div>
+                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" style="width:40px;height:40px;border-radius:50%;">` : ''}
+                            <div style="flex:1;">
+                                <div style="color:${teamColor(t)};font-weight:600;">${t}</div>
+                                <div style="font-size:12px;color:var(--text-dim);">Level ${info.level || 1}</div>
+                            </div>
+                            <div style="font-size:18px;font-weight:700;color:var(--purple-glow);">${fmt(info.teamXP)} XP</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <!-- All Winners -->
+            ${winners.length > 0 ? `
+                <div class="card">
+                    <div class="card-header"><h3>🏆 Winner History</h3></div>
+                    <div class="card-body">
+                        ${winners.map(w => `
+                            <div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg-dark);border-radius:8px;margin-bottom:8px;border-left:3px solid ${teamColor(w.team)};">
+                                <span>${w.week}</span>
+                                <span style="color:${teamColor(w.team)};font-weight:600;">${w.team}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        `;
+        
+    } catch (e) {
+        console.error('Summary error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p style="color:var(--danger);">Failed to load</p></div></div>';
+    }
+}
 // ==================== TEAM LEVEL PAGE - DETAILED PROGRESSION ====================
 async function renderTeamLevel() {
     const container = $('team-level-content');
