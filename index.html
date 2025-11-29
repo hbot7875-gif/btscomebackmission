@@ -3,12 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BTS Spy Battle - Hyung Line Edition</title>
+    <title>BTS SPY BATTLE - HYUNG LINE EDITION</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js is essential for analytics pages -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
+    <!-- === Loading Overlay (Shown during API calls) === -->
+    <div id="loading" class="loading-overlay">
+        <div class="loader">
+            <div class="loader-ring"></div>
+            <div class="loader-ring"></div>
+            <div class="loader-ring"></div>
+            <p>ACCESSING DATABASE...</p>
+        </div>
+    </div>
+    
     <!-- Login Screen -->
     <div id="login-screen" class="screen active">
         <div class="login-container">
@@ -24,7 +35,7 @@
                 <div class="login-box">
                     <div class="input-group">
                         <label>AGENT IDENTIFICATION</label>
-                        <input type="text" id="agent-input" placeholder="Enter Agent Number...">
+                        <input type="text" id="agent-input" placeholder="Enter Agent Number..." autocomplete="off">
                         <button id="login-btn" class="btn-primary">
                             <span class="btn-glow"></span>
                             <span>ACCESS DASHBOARD</span>
@@ -35,7 +46,7 @@
 
                     <div class="input-group">
                         <label>INSTAGRAM LOOKUP</label>
-                        <input type="text" id="instagram-input" placeholder="Enter Instagram username...">
+                        <input type="text" id="instagram-input" placeholder="Enter Instagram username..." autocomplete="off">
                         <button id="find-btn" class="btn-secondary">FIND AGENT ID</button>
                     </div>
 
@@ -123,6 +134,7 @@
                     <span class="nav-icon">📢</span>
                     <span>Announcements</span>
                 </a>
+                <!-- Admin link will be dynamically added -->
             </nav>
 
             <div class="sidebar-footer">
@@ -140,16 +152,6 @@
                 <div class="header-logo">⟭⟬ SPY BATTLE</div>
             </header>
 
-            <!-- Loading Overlay -->
-            <div id="loading" class="loading-overlay">
-                <div class="loader">
-                    <div class="loader-ring"></div>
-                    <div class="loader-ring"></div>
-                    <div class="loader-ring"></div>
-                    <p>ACCESSING DATABASE...</p>
-                </div>
-            </div>
-
             <!-- Pages -->
             <div class="pages-wrapper">
                 
@@ -162,29 +164,12 @@
 
                     <div class="welcome-card">
                         <div class="welcome-icon">⟭⟬</div>
-                        <h2>Welcome Back, Agent</h2>
-                        <p>Complete all 3 missions to level up your team!</p>
+                        <h2>Welcome Back, <span id="agent-name-home">Agent</span></h2>
+                        <p>Complete all 3 primary missions to level up your team!</p>
                     </div>
 
-                    <div class="missions-grid">
-                        <div class="mission-card">
-                            <div class="mission-icon">🎵</div>
-                            <h3>Track Goals</h3>
-                            <p class="mission-desc">Team streaming targets</p>
-                            <div id="home-track-status" class="mission-status">Loading...</div>
-                        </div>
-                        <div class="mission-card">
-                            <div class="mission-icon">💿</div>
-                            <h3>Album Goals</h3>
-                            <p class="mission-desc">Album streaming targets</p>
-                            <div id="home-album-status" class="mission-status">Loading...</div>
-                        </div>
-                        <div class="mission-card">
-                            <div class="mission-icon">✨</div>
-                            <h3>Album 2X</h3>
-                            <p class="mission-desc">Stream album tracks 2× each</p>
-                            <div id="home-2x-status" class="mission-status">Loading...</div>
-                        </div>
+                    <div class="missions-grid" id="home-mission-grid">
+                        <!-- Mission cards dynamically populated -->
                     </div>
 
                     <div class="card">
@@ -284,11 +269,11 @@
                     </div>
                     <div class="charts-grid">
                         <div class="card">
-                            <div class="card-header"><h3>Team XP Comparison</h3></div>
+                            <div class="card-header"><h3>Team XP Comparison (Stream + Secret)</h3></div>
                             <div class="card-body"><canvas id="chart-team-xp"></canvas></div>
                         </div>
                         <div class="card">
-                            <div class="card-header"><h3>Team Levels</h3></div>
+                            <div class="card-header"><h3>Team Level Progression</h3></div>
                             <div class="card-body"><canvas id="chart-team-levels"></canvas></div>
                         </div>
                     </div>
@@ -343,10 +328,22 @@
                     </div>
                     <div id="announcements-content">Loading...</div>
                 </section>
+                
+                <!-- SECRET MISSIONS PAGE (Requires Admin Auth) -->
+                 <section id="page-secret-missions" class="page">
+                    <div class="page-header">
+                        <h1>Secret Mission Hub</h1>
+                        <p>Tasks assigned by Command.</p>
+                    </div>
+                    <div id="secret-missions-content">Loading...</div>
+                </section>
 
             </div>
         </main>
     </div>
+    
+    <!-- MODALS & OVERLAYS (Admin Modal, etc.) -->
+    <!-- Admin Modal will be injected here -->
 
     <script src="app.js"></script>
 </body>
