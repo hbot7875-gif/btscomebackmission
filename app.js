@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - MATCHED TO GAS BACKEND =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS =====
 
 const CONFIG = {
     API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
@@ -10,7 +10,6 @@ const CONFIG = {
         'JITB': { color: '#7209b7', album: 'Jack In The Box' }
     },
     
-    // From your GAS TEAM_ALBUM_TRACKS
     TEAM_ALBUM_TRACKS: {
         "Indigo": [
             "Yun (with Erykah Badu)",
@@ -75,7 +74,7 @@ const STATE = {
     charts: {}
 };
 
-// ===== HELPERS =====
+// ==================== HELPERS ====================
 const $ = id => document.getElementById(id);
 const teamColor = team => CONFIG.TEAMS[team]?.color || '#7b2cbf';
 const teamPfp = team => CONFIG.TEAM_PFPS[team] || '';
@@ -106,7 +105,7 @@ function updateTime() {
     }
 }
 
-// ===== API =====
+// ==================== API ====================
 async function api(action, params = {}) {
     const url = new URL(CONFIG.API_URL);
     url.searchParams.set('action', action);
@@ -131,7 +130,7 @@ async function api(action, params = {}) {
     }
 }
 
-// ===== LOGIN =====
+// ==================== LOGIN ====================
 function initApp() {
     console.log('🚀 Starting app...');
     
@@ -212,20 +211,18 @@ async function handleFind() {
     }
 }
 
-// ===== DASHBOARD =====
+// ==================== DASHBOARD ====================
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
     loading(true);
     
     try {
-        // Get available weeks
         const weeksRes = await api('getAvailableWeeks');
         STATE.weeks = weeksRes.weeks || [];
         STATE.week = weeksRes.current || STATE.weeks[0];
         
         if (!STATE.week) throw new Error('No weeks available');
         
-        // Get agent data - this returns the full structure from your GAS
         STATE.data = await api('getAgentData', {
             agentNo: STATE.agentNo,
             week: STATE.week
@@ -233,7 +230,6 @@ async function loadDashboard() {
         
         console.log('📦 Agent Data:', STATE.data);
         
-        // Switch screens
         $('login-screen').classList.remove('active');
         $('login-screen').style.display = 'none';
         $('dashboard-screen').classList.add('active');
@@ -259,7 +255,6 @@ function setupDashboard() {
         const pfp = teamPfp(p.team);
         const initial = (p.name || 'A')[0].toUpperCase();
         
-        // Sidebar
         const avatar = $('agent-avatar');
         if (avatar) {
             if (pfp) {
@@ -277,7 +272,6 @@ function setupDashboard() {
         }
         if ($('agent-id')) $('agent-id').textContent = 'ID: ' + STATE.agentNo;
         
-        // Profile page
         const pAvatar = $('profile-avatar');
         if (pAvatar) {
             if (pfp) {
@@ -295,7 +289,6 @@ function setupDashboard() {
         if ($('profile-id')) $('profile-id').textContent = 'Agent ID: ' + STATE.agentNo;
     }
     
-    // Week selector
     const select = $('week-select');
     if (select && STATE.weeks.length) {
         select.innerHTML = STATE.weeks.map(w => 
@@ -318,7 +311,6 @@ function setupDashboard() {
         };
     }
     
-    // Navigation
     document.querySelectorAll('.nav-link').forEach(link => {
         link.onclick = e => {
             e.preventDefault();
@@ -332,7 +324,6 @@ function setupDashboard() {
         };
     });
     
-    // Mobile
     $('menu-btn')?.addEventListener('click', () => $('sidebar')?.classList.add('open'));
     $('close-sidebar')?.addEventListener('click', closeSidebar);
     $('logout-btn')?.addEventListener('click', logout);
@@ -350,7 +341,7 @@ function logout() {
     location.reload();
 }
 
-// ===== PAGE ROUTER =====
+// ==================== PAGE ROUTER ====================
 async function loadPage(page) {
     console.log('📄 Loading:', page);
     STATE.page = page;
@@ -384,33 +375,124 @@ async function loadPage(page) {
     loading(false);
 }
 
-// ===== HOME PAGE =====
+// ==================== HOME PAGE ====================
 async function renderHome() {
     $('current-week').textContent = 'Week: ' + STATE.week;
     
     try {
-        const [summary, rankings] = await Promise.all([
+        const [summary, rankings, goals] = await Promise.all([
             api('getWeeklySummary', { week: STATE.week }),
-            api('getRankings', { week: STATE.week, limit: 5 })
+            api('getRankings', { week: STATE.week, limit: 5 }),
+            api('getGoalsProgress', { week: STATE.week })
         ]);
         
         console.log('📊 Summary:', summary);
         console.log('🏆 Rankings:', rankings);
+        console.log('🎯 Goals:', goals);
         
         const team = STATE.data?.profile?.team;
-        
-        // From getWeeklySummary response: teams[team].trackGoalPassed, etc.
         const teamData = summary.teams?.[team] || {};
         
-        // Mission status
-        setStatus('home-track-status', teamData.trackGoalPassed);
-        setStatus('home-album-status', teamData.albumGoalPassed);
-        setStatus('home-2x-status', teamData.album2xPassed);
+        // Track Goals - Just names and targets
+        const trackGoals = goals.trackGoals || {};
+        let trackGoalsHtml = '';
         
-        // Top agents from getRankings response: rankings[]
+        if (Object.keys(trackGoals).length > 0) {
+            trackGoalsHtml = `
+                <div style="text-align:left;margin-top:12px;font-size:12px;max-height:180px;overflow-y:auto;">
+                    ${Object.entries(trackGoals).map(([track, info]) => `
+                        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+                            <span style="color:var(--text-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">${track}</span>
+                            <span style="color:var(--purple-light);font-weight:600;white-space:nowrap;">${fmt(info.goal)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            trackGoalsHtml = '<p style="font-size:12px;color:var(--text-dim);margin-top:12px;">No track goals this week</p>';
+        }
+        
+        // Album Goals - Just names and targets
+        const albumGoals = goals.albumGoals || {};
+        let albumGoalsHtml = '';
+        
+        if (Object.keys(albumGoals).length > 0) {
+            albumGoalsHtml = `
+                <div style="text-align:left;margin-top:12px;font-size:12px;max-height:180px;overflow-y:auto;">
+                    ${Object.entries(albumGoals).map(([album, info]) => `
+                        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+                            <span style="color:var(--text-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">${album}</span>
+                            <span style="color:var(--purple-light);font-weight:600;white-space:nowrap;">${fmt(info.goal)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            albumGoalsHtml = '<p style="font-size:12px;color:var(--text-dim);margin-top:12px;">No album goals this week</p>';
+        }
+        
+        // Album 2X - Team album info
+        const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
+        const albumName = CONFIG.TEAMS[team]?.album || team;
+        
+        let album2xHtml = '';
+        if (teamTracks.length > 0) {
+            album2xHtml = `
+                <div style="text-align:left;margin-top:12px;font-size:12px;">
+                    <div style="padding:8px;background:var(--bg-dark);border-radius:8px;margin-bottom:8px;">
+                        <div style="color:var(--purple-light);font-weight:600;margin-bottom:4px;">📀 ${albumName}</div>
+                        <div style="color:var(--text-dim);">Stream all ${teamTracks.length} tracks at least 2× each</div>
+                    </div>
+                    <div style="max-height:120px;overflow-y:auto;">
+                        ${teamTracks.map((t, i) => `
+                            <div style="padding:4px 0;color:var(--text-dim);border-bottom:1px solid var(--border);">
+                                <span style="color:var(--purple-main);margin-right:6px;">${i + 1}.</span>${t}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        } else {
+            album2xHtml = '<p style="font-size:12px;color:var(--text-dim);margin-top:12px;">No 2x mission configured</p>';
+        }
+        
+        // Update Mission Cards
+        const missionCardsContainer = document.querySelector('.missions-grid');
+        if (missionCardsContainer) {
+            missionCardsContainer.innerHTML = `
+                <div class="mission-card" onclick="loadPage('goals')">
+                    <div class="mission-icon">🎵</div>
+                    <h3>Track Goals</h3>
+                    <div class="mission-status ${teamData.trackGoalPassed ? 'complete' : 'pending'}">
+                        ${teamData.trackGoalPassed ? '✅ Complete' : '⏳ In Progress'}
+                    </div>
+                    ${trackGoalsHtml}
+                </div>
+                
+                <div class="mission-card" onclick="loadPage('goals')">
+                    <div class="mission-icon">💿</div>
+                    <h3>Album Goals</h3>
+                    <div class="mission-status ${teamData.albumGoalPassed ? 'complete' : 'pending'}">
+                        ${teamData.albumGoalPassed ? '✅ Complete' : '⏳ In Progress'}
+                    </div>
+                    ${albumGoalsHtml}
+                </div>
+                
+                <div class="mission-card" onclick="loadPage('album2x')">
+                    <div class="mission-icon">✨</div>
+                    <h3>Album 2X Mission</h3>
+                    <div class="mission-status ${teamData.album2xPassed ? 'complete' : 'pending'}">
+                        ${teamData.album2xPassed ? '✅ Complete' : '⏳ In Progress'}
+                    </div>
+                    ${album2xHtml}
+                </div>
+            `;
+        }
+        
+        // Top Agents
         const rankList = rankings.rankings || [];
         $('home-top-agents').innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => `
-            <div class="rank-item">
+            <div class="rank-item" style="cursor:pointer;" onclick="loadPage('rankings')">
                 <div class="rank-num">${r.rank || i + 1}</div>
                 <div class="rank-info">
                     <div class="rank-name">${r.name || 'Agent'}</div>
@@ -420,20 +502,26 @@ async function renderHome() {
             </div>
         `).join('') : '<p style="text-align:center;color:var(--text-dim);">No data available</p>';
         
-        // Team standings from getWeeklySummary: teams{}
+        // Team Standings
         const teams = summary.teams || {};
         const teamNames = Object.keys(teams);
         
         $('home-standings').innerHTML = teamNames.length ? `
             <div class="stats-grid">
-                ${teamNames.map(t => {
+                ${teamNames.sort((a, b) => (teams[b].teamXP || 0) - (teams[a].teamXP || 0)).map((t, i) => {
                     const td = teams[t];
                     return `
-                        <div class="stat-box" style="border-top: 3px solid ${teamColor(t)}">
-                            <div style="color:${teamColor(t)};font-weight:600;margin-bottom:8px;">${t}</div>
+                        <div class="stat-box" style="border-top:3px solid ${teamColor(t)};cursor:pointer;position:relative;" onclick="loadPage('team-level')">
+                            ${td.isWinner ? '<div style="position:absolute;top:8px;right:8px;font-size:16px;">🏆</div>' : ''}
+                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" style="width:40px;height:40px;border-radius:50%;margin-bottom:8px;">` : ''}
+                            <div style="color:${teamColor(t)};font-weight:600;margin-bottom:4px;">${t}</div>
                             <div class="stat-value">${fmt(td.teamXP)}</div>
                             <div class="stat-label">Level ${td.level || 0}</div>
-                            ${td.isWinner ? '<div style="margin-top:8px;">🏆 Winner</div>' : ''}
+                            <div style="display:flex;gap:6px;justify-content:center;margin-top:10px;font-size:11px;">
+                                <span title="Tracks">${td.trackGoalPassed ? '🎵✅' : '🎵❌'}</span>
+                                <span title="Albums">${td.albumGoalPassed ? '💿✅' : '💿❌'}</span>
+                                <span title="2X">${td.album2xPassed ? '✨✅' : '✨❌'}</span>
+                            </div>
                         </div>
                     `;
                 }).join('')}
@@ -442,20 +530,12 @@ async function renderHome() {
         
     } catch (e) {
         console.error('Home error:', e);
-        $('home-top-agents').innerHTML = '<p style="color:var(--danger);">Failed to load</p>';
+        $('home-top-agents').innerHTML = '<p style="color:var(--danger);">Failed to load data</p>';
     }
 }
 
-function setStatus(id, passed) {
-    const el = $(id);
-    if (!el) return;
-    el.textContent = passed ? '✅ Complete' : '⏳ In Progress';
-    el.className = 'mission-status ' + (passed ? 'complete' : 'pending');
-}
-
-// ===== PROFILE PAGE =====
+// ==================== PROFILE PAGE ====================
 async function renderProfile() {
-    // Data from getAgentData response
     const stats = STATE.data?.stats || {};
     const profile = STATE.data?.profile || {};
     const rank = STATE.data?.rank;
@@ -494,7 +574,6 @@ async function renderProfile() {
         </div>
     `;
     
-    // Track contributions from getAgentData
     $('profile-tracks').innerHTML = Object.keys(trackContributions).length ? 
         Object.entries(trackContributions)
             .sort((a, b) => b[1] - a[1])
@@ -506,7 +585,6 @@ async function renderProfile() {
             `).join('') 
     : '<p style="color:var(--text-dim);text-align:center;">No track data yet</p>';
     
-    // Album contributions from getAgentData
     $('profile-albums').innerHTML = Object.keys(albumContributions).length ?
         Object.entries(albumContributions)
             .sort((a, b) => b[1] - a[1])
@@ -518,7 +596,6 @@ async function renderProfile() {
             `).join('')
     : '<p style="color:var(--text-dim);text-align:center;">No album data yet</p>';
     
-    // Badges
     try {
         const badgesData = await api('getBadges', { agentNo: STATE.agentNo });
         const badges = badgesData.badges || [];
@@ -540,7 +617,7 @@ async function renderProfile() {
     }
 }
 
-// ===== RANKINGS PAGE =====
+// ==================== RANKINGS PAGE ====================
 async function renderRankings() {
     try {
         const data = await api('getRankings', { week: STATE.week, limit: 100 });
@@ -570,10 +647,9 @@ async function renderRankings() {
     }
 }
 
-// ===== GOALS PAGE =====
+// ==================== GOALS PAGE ====================
 async function renderGoals() {
     try {
-        // getGoalsProgress returns: { trackGoals: {}, albumGoals: {} }
         const data = await api('getGoalsProgress', { week: STATE.week });
         const team = STATE.data?.profile?.team;
         
@@ -581,17 +657,17 @@ async function renderGoals() {
         
         let html = '';
         
-        // Track goals: trackGoals[track].goal, trackGoals[track].teams[team].current, etc.
+        // Track goals
         const trackGoals = data.trackGoals || {};
         if (Object.keys(trackGoals).length) {
             html += '<div class="card"><div class="card-header"><h3>🎵 Track Goals</h3></div><div class="card-body">';
             
             for (const [track, info] of Object.entries(trackGoals)) {
-                const teamData = info.teams?.[team] || {};
-                const current = teamData.current || 0;
+                const teamProgress = info.teams?.[team] || {};
+                const current = teamProgress.current || 0;
                 const goal = info.goal || 100;
-                const pct = teamData.percentage || 0;
-                const status = teamData.status || 'Behind';
+                const pct = teamProgress.percentage || 0;
+                const status = teamProgress.status || 'Behind';
                 const done = status === 'Completed';
                 
                 html += `
@@ -610,17 +686,17 @@ async function renderGoals() {
             html += '</div></div>';
         }
         
-        // Album goals: albumGoals[album].goal, albumGoals[album].teams[team].current, etc.
+        // Album goals
         const albumGoals = data.albumGoals || {};
         if (Object.keys(albumGoals).length) {
             html += '<div class="card"><div class="card-header"><h3>💿 Album Goals</h3></div><div class="card-body">';
             
             for (const [album, info] of Object.entries(albumGoals)) {
-                const teamData = info.teams?.[team] || {};
-                const current = teamData.current || 0;
+                const teamProgress = info.teams?.[team] || {};
+                const current = teamProgress.current || 0;
                 const goal = info.goal || 100;
-                const pct = teamData.percentage || 0;
-                const status = teamData.status || 'Behind';
+                const pct = teamProgress.percentage || 0;
+                const status = teamProgress.status || 'Behind';
                 const done = status === 'Completed';
                 
                 html += `
@@ -647,25 +723,19 @@ async function renderGoals() {
     }
 }
 
-// ===== ALBUM 2X PAGE =====
+// ==================== ALBUM 2X PAGE ====================
 async function renderAlbum2x() {
     const container = $('album2x-content');
     if (!container) return;
     
     const team = STATE.data?.profile?.team;
-    
-    // Use album2xStatus from getAgentData which contains:
-    // { passed: boolean, tracks: { trackName: count } }
     const album2xStatus = STATE.data?.album2xStatus || {};
     const userTracks = album2xStatus.tracks || {};
-    const passed = album2xStatus.passed;
-    
-    // Get team's album tracks from config
     const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
+    const albumName = CONFIG.TEAMS[team]?.album || team;
     
     console.log('💿 Album 2X - Team:', team);
     console.log('💿 Album 2X - User tracks:', userTracks);
-    console.log('💿 Album 2X - Team tracks:', teamTracks);
     
     if (teamTracks.length === 0) {
         container.innerHTML = `
@@ -680,7 +750,6 @@ async function renderAlbum2x() {
         return;
     }
     
-    // Calculate status for each track
     let completedCount = 0;
     const trackResults = teamTracks.map(track => {
         const count = userTracks[track] || 0;
@@ -693,7 +762,6 @@ async function renderAlbum2x() {
     const pct = Math.round((completedCount / trackResults.length) * 100);
     
     container.innerHTML = `
-        <!-- Summary Card -->
         <div class="card" style="border: 2px solid ${allComplete ? 'var(--success)' : 'var(--purple-main)'};">
             <div class="card-body" style="text-align:center;padding:30px;">
                 <div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div>
@@ -711,21 +779,11 @@ async function renderAlbum2x() {
             </div>
         </div>
         
-        <!-- Track List -->
         <div class="card">
-            <div class="card-header"><h3>💿 ${CONFIG.TEAMS[team]?.album || team} Album Tracks</h3></div>
+            <div class="card-header"><h3>💿 ${albumName} - Track Status</h3></div>
             <div class="card-body">
                 ${trackResults.map(t => `
-                    <div style="
-                        display:flex;
-                        justify-content:space-between;
-                        align-items:center;
-                        padding:14px 16px;
-                        background:var(--bg-dark);
-                        border-radius:10px;
-                        margin-bottom:10px;
-                        border-left:4px solid ${t.passed ? 'var(--success)' : 'var(--danger)'};
-                    ">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--bg-dark);border-radius:10px;margin-bottom:10px;border-left:4px solid ${t.passed ? 'var(--success)' : 'var(--danger)'};">
                         <span style="flex:1;">${t.name}</span>
                         <span style="color:${t.passed ? 'var(--success)' : 'var(--danger)'};">
                             ${t.count}/2 ${t.passed ? '✅' : '❌'}
@@ -735,14 +793,12 @@ async function renderAlbum2x() {
             </div>
         </div>
         
-        <!-- Team Status -->
         <div class="card">
             <div class="card-header"><h3>👥 Team Album 2X Status</h3></div>
             <div class="card-body" id="team-2x-status">Loading team status...</div>
         </div>
     `;
     
-    // Load team 2x status
     try {
         const team2xData = await api('getAlbum2xStatus', { week: STATE.week, team: team });
         const teamStatus = team2xData.teams?.[team] || {};
@@ -777,7 +833,7 @@ async function renderAlbum2x() {
     }
 }
 
-// ===== TEAM LEVEL PAGE =====
+// ==================== TEAM LEVEL PAGE ====================
 async function renderTeamLevel() {
     const container = $('team-level-content');
     if (!container) return;
@@ -827,25 +883,18 @@ async function renderTeamLevel() {
     }
 }
 
-// ===== TEAM CHARTS PAGE =====
+// ==================== TEAM CHARTS PAGE ====================
 async function renderTeamCharts() {
     try {
         const team = STATE.data?.profile?.team;
-        
-        // Get team chart data
         const chartData = await api('getTeamChartData', { team: team });
-        console.log('📈 Team chart data:', chartData);
-        
-        // Also get current summary for bar chart
         const summary = await api('getWeeklySummary', { week: STATE.week });
         const teams = summary.teams || {};
         const teamNames = Object.keys(teams);
         
-        // Destroy existing charts
         if (STATE.charts.teamXP) STATE.charts.teamXP.destroy();
         if (STATE.charts.teamLevels) STATE.charts.teamLevels.destroy();
         
-        // Team XP Bar Chart (all teams comparison)
         const ctx1 = $('chart-team-xp')?.getContext('2d');
         if (ctx1) {
             STATE.charts.teamXP = new Chart(ctx1, {
@@ -873,7 +922,6 @@ async function renderTeamCharts() {
             });
         }
         
-        // Your team's XP over weeks (line chart)
         const ctx2 = $('chart-team-levels')?.getContext('2d');
         if (ctx2 && chartData.weeks?.length) {
             STATE.charts.teamLevels = new Chart(ctx2, {
@@ -907,20 +955,16 @@ async function renderTeamCharts() {
     }
 }
 
-// ===== AGENT CHARTS PAGE =====
+// ==================== AGENT CHARTS PAGE ====================
 async function renderAgentCharts() {
     try {
         const chartData = await api('getAgentChartData', { agentNo: STATE.agentNo });
-        console.log('📈 Agent chart data:', chartData);
-        
         const trackContributions = STATE.data?.trackContributions || {};
         const albumContributions = STATE.data?.albumContributions || {};
         
-        // Destroy existing
         if (STATE.charts.agentTracks) STATE.charts.agentTracks.destroy();
         if (STATE.charts.agentAlbums) STATE.charts.agentAlbums.destroy();
         
-        // Track contributions bar chart
         const ctx1 = $('chart-agent-tracks')?.getContext('2d');
         if (ctx1 && Object.keys(trackContributions).length) {
             const sorted = Object.entries(trackContributions).sort((a, b) => b[1] - a[1]).slice(0, 10);
@@ -948,7 +992,6 @@ async function renderAgentCharts() {
             });
         }
         
-        // Album pie chart
         const ctx2 = $('chart-agent-albums')?.getContext('2d');
         if (ctx2 && Object.keys(albumContributions).length) {
             STATE.charts.agentAlbums = new Chart(ctx2, {
@@ -974,13 +1017,11 @@ async function renderAgentCharts() {
     }
 }
 
-// ===== COMPARISON PAGE =====
+// ==================== COMPARISON PAGE ====================
 async function renderComparison() {
     try {
         const data = await api('getTeamComparison', { week: STATE.week });
         const comparison = data.comparison || [];
-        
-        console.log('⚔️ Comparison data:', data);
         
         $('comparison-content').innerHTML = `
             <div class="card">
@@ -1027,12 +1068,11 @@ async function renderComparison() {
     }
 }
 
-// ===== SUMMARY PAGE =====
+// ==================== SUMMARY PAGE ====================
 async function renderSummary() {
     const now = new Date();
     const day = now.getDay();
     
-    // Lock on non-Sunday (0 = Sunday)
     if (day !== 0) {
         $('summary-content').innerHTML = `
             <div class="card">
@@ -1055,7 +1095,6 @@ async function renderSummary() {
         const teams = summary.teams || {};
         const winner = summary.winner;
         
-        // Get weekly winners history
         let winnersData = { winners: [] };
         try {
             winnersData = await api('getWeeklyWinners');
@@ -1108,17 +1147,15 @@ async function renderSummary() {
     }
 }
 
-// ===== DRAWER PAGE =====
+// ==================== DRAWER PAGE ====================
 async function renderDrawer() {
     const container = $('drawer-content');
     if (!container) return;
     
     try {
-        // getBadges returns: { agentNo, badges: [{type, name, imageUrl, weekEarned, description}] }
         const badgesData = await api('getBadges', { agentNo: STATE.agentNo });
         const badges = badgesData.badges || [];
         
-        // Get weekly winners for team wins
         let winnersHtml = '';
         try {
             const winnersData = await api('getWeeklyWinners');
@@ -1181,14 +1218,11 @@ async function renderDrawer() {
     }
 }
 
-// ===== ANNOUNCEMENTS PAGE =====
+// ==================== ANNOUNCEMENTS PAGE ====================
 async function renderAnnouncements() {
     try {
-        // getAnnouncements returns: { week, announcements: [{id, week, title, message, priority, created}] }
         const data = await api('getAnnouncements', { week: STATE.week });
         const list = data.announcements || [];
-        
-        console.log('📢 Announcements:', data);
         
         $('announcements-content').innerHTML = list.length ? list.map(a => `
             <div class="card" style="${a.priority === 'high' ? 'border-left:3px solid var(--danger);' : ''}">
@@ -1216,5 +1250,5 @@ async function renderAnnouncements() {
     }
 }
 
-// ===== START =====
+// ==================== START APP ====================
 document.addEventListener('DOMContentLoaded', initApp);
