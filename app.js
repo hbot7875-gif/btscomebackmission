@@ -259,45 +259,44 @@ function initApp() {
 
 // --- Corrected handleLogin Logic (Conceptual) ---
 async function handleLogin() {
-    // ... (Input checking and disabling button) ...
+    const agentInput = $('agent-input');
+    const agentNo = agentInput?.value.trim();
+    
+    if (!agentNo) {
+        showResult('Please enter your Agent Number', true);
+        agentInput?.focus();
+        return;
+    }
+    
+    const loginBtn = $('login-btn');
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Authenticating...';
+    }
+    
+    loading(true);
     
     try {
-        // 1. Verify Agent Existence (as you currently do)
         const res = await api('getAllAgents');
         const agents = res.agents || [];
         const found = agents.find(a => String(a.agentNo).trim() === agentNo);
         
         if (!found) {
-            // ... (Handle not found) ...
+            loading(false);
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
+            showResult('Agent not found. Check your number or use "Find My ID" below.', true);
             return;
         }
         
+        // Save agent
         localStorage.setItem('spyAgent', agentNo);
         STATE.agentNo = agentNo;
         
-        // --- START CRITICAL ADMIN LOGIC ---
-        if (String(agentNo) === String(CONFIG.ADMIN_AGENT_NO)) {
-            // If this agent is the admin, we must call verifyAdmin using the hardcoded password
-            console.log('Admin agent detected. Attempting authentication...');
-            
-            const adminRes = await api('verifyAdmin', {
-                agentNo: agentNo,
-                password: CONFIG.ADMIN_PASSWORD // Use the password defined in CONFIG
-            });
-            
-            if (adminRes.success) {
-                STATE.isAdmin = true;
-                STATE.adminSession = adminRes.sessionToken;
-                localStorage.setItem('adminSession', adminRes.sessionToken);
-                localStorage.setItem('adminExpiry', Date.now() + (adminRes.expiresIn * 1000));
-            } else {
-                throw new Error(adminRes.error || "Admin authentication failed.");
-            }
-        }
-        // --- END CRITICAL ADMIN LOGIC ---
-        
-        // Check if this agent is admin (This should now correctly reflect the stored state)
-        checkAdminStatus(); // This function checks localStorage/STATE
+        // Restore existing admin session (if any)
+        checkAdminStatus();
         
         await loadDashboard();
         
