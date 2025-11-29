@@ -1,16 +1,12 @@
 {
-  "version": 2,
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
+    "version": 2,
+    "cleanUrls": true,
+    "headers": [
         {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
+            "source": "/(.*)",
+            "headers": [
+                { "key": "Access-Control-Allow-Origin", "value": "*" }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
