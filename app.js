@@ -1,7 +1,8 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.0 (Chat + Fixes) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.1 (Stable) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
+    // YOUR GOOGLE SCRIPT URL
     API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
     
     // Admin Settings
@@ -19,7 +20,7 @@ const CONFIG = {
     },
     
     // Chat Settings
-    CHAT_CHANNEL: 'bts-spy-battle-hq', // This creates a channel at tlk.io/bts-spy-battle-hq
+    CHAT_CHANNEL: 'bts-spy-battle-hq', 
     
     TEAMS: {
         'Indigo': { color: '#4cc9f0', album: 'Indigo' },
@@ -179,15 +180,23 @@ async function api(action, params = {}) {
 // ==================== INITIALIZATION ====================
 function initApp() {
     console.log('🚀 Starting BTS Spy Battle app...');
+    
+    // Clear loading screen if it got stuck from a previous error
+    loading(false);
+
+    // Bind Login Buttons immediately
+    setupLoginListeners();
+
+    // Start loading data in background
     loadAllAgents();
+
+    // Auto-login if session exists
     const saved = localStorage.getItem('spyAgent');
     if (saved) {
         STATE.agentNo = saved;
         checkAdminStatus();
         loadDashboard();
-        return;
     }
-    setupLoginListeners();
 }
 
 function setupLoginListeners() {
@@ -195,14 +204,16 @@ function setupLoginListeners() {
     const findBtn = $('find-btn');
     const agentInput = $('agent-input');
     const instagramInput = $('instagram-input');
-    if (loginBtn) loginBtn.addEventListener('click', handleLogin);
-    if (findBtn) findBtn.addEventListener('click', handleFind);
+    
+    if (loginBtn) loginBtn.onclick = handleLogin; // Using onclick to avoid duplicate listeners
+    if (findBtn) findBtn.onclick = handleFind;
+    
     if (agentInput) {
-        agentInput.addEventListener('keypress', e => { if (e.key === 'Enter') handleLogin(); });
+        agentInput.onkeypress = e => { if (e.key === 'Enter') handleLogin(); };
         setTimeout(() => agentInput.focus(), 100);
     }
     if (instagramInput) {
-        instagramInput.addEventListener('keypress', e => { if (e.key === 'Enter') handleFind(); });
+        instagramInput.onkeypress = e => { if (e.key === 'Enter') handleFind(); };
     }
 }
 
@@ -647,8 +658,8 @@ async function loadPage(page) {
     STATE.page = page;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     
-    // Ensure  container exists dynamically if not present
-    if (page === '' && !$('page-chat')) {
+    // Ensure chat container exists dynamically if not present
+    if (page === 'chat' && !$('page-chat')) {
         const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
         if (mainContent) {
             const chatPage = document.createElement('section');
@@ -683,7 +694,7 @@ async function loadPage(page) {
     } finally { loading(false); }
 }
 
-// ==================== CHAT (SECRET COMMS) ====================
+// ==================== CHAT (LAUNCH PAD - WORKS WITH AD BLOCKERS) ====================
 async function renderChat() {
     const container = document.getElementById('chat-content');
     if (!container) return;
@@ -721,26 +732,6 @@ async function renderChat() {
             </div>
         </div>
     `;
-}
-    // Inject tlk.io script
-    if (!window.tlkioScriptLoaded) {
-        const script = document.createElement('script');
-        script.src = "https://tlk.io/embed.js";
-        script.type = "text/javascript";
-        script.async = true;
-        script.onload = () => {
-            window.tlkioScriptLoaded = true;
-            // Hide loader after a delay
-            setTimeout(() => {
-                const loader = container.querySelector('.chat-loading');
-                if(loader) loader.style.display = 'none';
-            }, 2000);
-        };
-        document.body.appendChild(script);
-    } else {
-        const loader = container.querySelector('.chat-loading');
-        if(loader) loader.style.display = 'none';
-    }
 }
 
 // ==================== HOME PAGE ====================
@@ -872,7 +863,6 @@ async function renderSummary() {
     const selectedWeek = STATE.week;
     const isCompleted = isWeekCompleted(selectedWeek);
     
-    // Strict Locking: If week is NOT completed (Today < End Date), lock it.
     if (!isCompleted) {
         const days = getDaysRemaining(selectedWeek);
         container.innerHTML = `
@@ -1152,4 +1142,4 @@ window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
 
-console.log('🎮 BTS Spy Battle v3.0 Loaded - Chat & Fixes');
+console.log('🎮 BTS Spy Battle v3.1 Loaded');
