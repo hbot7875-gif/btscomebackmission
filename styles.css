@@ -767,14 +767,14 @@ img {
     display: flex;
 }
 
-/* ==================== SIDEBAR ==================== */
+/* ==================== SIDEBAR (FIXED) ==================== */
 .sidebar {
     width: 260px;
-    height: 100vh;
+    height: 100vh; /* Full viewport height */
     background: var(--bg-card);
     border-right: 1px solid var(--border);
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Stack items vertically */
     position: fixed;
     left: 0;
     top: 0;
@@ -782,21 +782,37 @@ img {
     transition: transform var(--transition-normal);
 }
 
-@media (max-width: 1023px) {
-    .sidebar {
-        transform: translateX(-100%);
-    }
-    
-    .sidebar.open {
-        transform: translateX(0);
-        box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
-    }
+/* Wrapper for the navigation links */
+.nav-links {
+    flex: 1; /* Takes up all remaining space */
+    overflow-y: auto; /* Allows scrolling if list is too long */
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Critical for Firefox scrolling */
 }
 
+.nav-menu {
+    padding: 0 12px 12px;
+    /* Removed flex: 1 from here to let wrapper handle it */
+}
+
+/* Sidebar Footer (Pinned to bottom) */
+.sidebar-footer {
+    flex-shrink: 0; /* Prevent shrinking */
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-dark);
+    z-index: 2;
+}
+
+/* Mobile & Responsive behaviors remain the same... */
+@media (max-width: 1023px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); box-shadow: 0 0 50px rgba(0, 0, 0, 0.5); }
+}
 @media (min-width: 1024px) {
-    .sidebar {
-        transform: translateX(0);
-    }
+    .sidebar { transform: translateX(0); }
 }
 
 /* Sidebar Header */
