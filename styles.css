@@ -823,7 +823,163 @@ input, select, textarea {
     padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm);
     margin-top: var(--spacing-sm);
 }
+/* Quick additions for new HTML structure */
 
+.nav-section {
+    margin-bottom: 16px;
+}
+
+.nav-section-title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 8px 16px;
+    display: block;
+}
+
+.nav-badge {
+    font-size: 9px;
+    background: var(--danger);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: auto;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 99;
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+
+.loading-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.skeleton-item,
+.skeleton-card,
+.skeleton-stat {
+    background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-elevated) 50%, var(--bg-card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+}
+
+.skeleton-item { height: 48px; }
+.skeleton-card { height: 120px; }
+.skeleton-card.large { height: 200px; }
+.skeleton-stat { height: 80px; width: 100%; }
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toast {
+    background: var(--bg-elevated);
+    border: 1px solid var(--purple-main);
+    padding: 12px 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateX(120%);
+    transition: transform 0.3s ease;
+    max-width: 320px;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast-error { border-color: var(--danger); }
+.toast-success { border-color: var(--success); }
+
+/* Goals list in home page */
+.goals-list {
+    margin-top: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.goal-mini {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-dim);
+    font-size: 13px;
+}
+
+.goal-mini.done {
+    opacity: 0.7;
+}
+
+.goal-mini .goal-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.goal-mini .goal-progress {
+    color: var(--purple-glow);
+    font-weight: 600;
+}
+
+/* Comparison page team progress */
+.goal-comparison-block {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border-dim);
+}
+
+.goal-comparison-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.goal-track-name {
+    font-weight: 600;
+}
+
+.team-progress-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+}
+
+.team-name-small {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.progress-bar-small {
+    height: 8px;
+    background: var(--bg-dark);
+    border-radius: 4px;
+    overflow: hidden;
+}
 /* Admin nav link */
 .admin-nav-link {
     border: 1px dashed var(--danger);
