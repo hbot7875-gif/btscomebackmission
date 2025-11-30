@@ -4575,76 +4575,28 @@ textarea:focus-visible {
 <script>
 (function patchSpyBattle() {
 
-  // Wait for DOM if needed
   const run = () => {
 
-    // 1) Inject CSS patch (sidebar layout + logout visibility + overlay)
+    // 1) Inject CSS patch
     const css = `
-      .sidebar {
-        display:flex;
-        flex-direction:column;
-        min-height:100vh;
-        max-height:100dvh;
-      }
-      .sidebar .nav-links {
-        display:flex;
-        flex-direction:column;
-        flex:1 1 auto;
-        min-height:0;
-        overflow-y:auto;
-      }
+      .sidebar { display:flex; flex-direction:column; min-height:100vh; max-height:100dvh; }
+      .sidebar .nav-links { display:flex; flex-direction:column; flex:1 1 auto; min-height:0; overflow-y:auto; }
       .nav-menu { display:block; }
       .nav-section + .nav-section { margin-top:10px; }
-      .nav-link.admin-nav-link {
-        margin-top:auto;
-        border-top:1px solid rgba(255,255,255,0.1);
-      }
-      .sidebar-footer {
-        flex:0 0 auto;
-        padding-top:10px;
-        border-top:1px solid rgba(255,255,255,0.08);
-        background:linear-gradient(180deg, rgba(10,10,15,.8), rgba(10,10,15,1));
-      }
-      .sync-status {
-        display:flex;
-        align-items:center;
-        gap:8px;
-        color:#aab;
-        margin-bottom:8px;
-      }
-      .btn-logout {
-        width:100%;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        gap:8px;
-        padding:10px 12px;
-        border-radius:8px;
-        background:rgba(255,255,255,.06);
-        color:var(--text-main);
-        cursor:pointer;
-        border:0;
-      }
-      .btn-logout:hover {
-        background:rgba(255,255,255,.12);
-      }
-      .sidebar-overlay {
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,.5);
-        display:none;
-        z-index:9;
-      }
-      .sidebar.open ~ .sidebar-overlay {
-        display:block;
-      }
+      .nav-link.admin-nav-link { margin-top:auto; border-top:1px solid rgba(255,255,255,0.1); }
+      .sidebar-footer { flex:0 0 auto; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(10,10,15,.8), rgba(10,10,15,1)); }
+      .sync-status { display:flex; align-items:center; gap:8px; color:#aab; margin-bottom:8px; }
+      .btn-logout { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 12px; border-radius:8px; background:rgba(255,255,255,.06); color:var(--text-main); cursor:pointer; border:0; }
+      .btn-logout:hover { background:rgba(255,255,255,.12); }
+      .sidebar-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; z-index:9; }
+      .sidebar.open ~ .sidebar-overlay { display:block; }
     `;
     const style = document.createElement('style');
     style.setAttribute('data-patch', 'spy-battle-v3');
     style.textContent = css;
     document.head.appendChild(style);
 
-    // 2) Ensure .nav-links wrapper exists around .nav-menu
+    // 2) Ensure .nav-links wrapper exists
     const sidebar = document.getElementById('sidebar');
     if (sidebar) {
       const navMenu = sidebar.querySelector('.nav-menu');
@@ -4663,7 +4615,7 @@ textarea:focus-visible {
       }
     }
 
-    // 3) Ensure Chat link exists in sidebar
+    // 3) Ensure Chat link exists
     const ensureChatLink = () => {
       if (!sidebar) return;
 
@@ -4689,6 +4641,8 @@ textarea:focus-visible {
       a.className = 'nav-link';
       a.setAttribute('data-page', 'chat');
       a.setAttribute('role', 'menuitem');
+      // [FIX]: Mark as patched immediately to prevent double listeners later
+      a.setAttribute('data-patched', '1'); 
       a.innerHTML = '<span class="nav-icon">💬</span><span class="nav-text">Chat</span>';
 
       a.addEventListener('click', (e) => {
@@ -4707,7 +4661,6 @@ textarea:focus-visible {
     };
     ensureChatLink();
 
-
     // 4) Ensure Chat page section exists
     let pagesWrapper = document.querySelector('.pages-wrapper');
     let chatPage = document.getElementById('page-chat');
@@ -4725,23 +4678,21 @@ textarea:focus-visible {
           <div class="loading-skeleton"><div class="skeleton-card large"></div></div>
         </div>
       `;
-
       (pagesWrapper || document.querySelector('main') || document.body).appendChild(chatPage);
     }
 
-    // 5) Fix stray "a" in team-level skeleton (if present)
+    // 5) Fix stray text node in skeleton
     const teamLevelSkeleton = document.querySelector('#team-level-content .loading-skeleton');
     if (teamLevelSkeleton && teamLevelSkeleton.firstChild && teamLevelSkeleton.firstChild.nodeType === 3) {
       teamLevelSkeleton.firstChild.textContent = '';
     }
 
-    // 6) Ensure sidebar overlay closes the menu
+    // 6) Ensure sidebar overlay
     let overlay = document.getElementById('sidebar-overlay');
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.id = 'sidebar-overlay';
       overlay.className = 'sidebar-overlay';
-
       const dash = document.getElementById('dashboard-screen');
       if (dash) dash.appendChild(overlay);
       else document.body.appendChild(overlay);
@@ -4751,7 +4702,7 @@ textarea:focus-visible {
       document.getElementById('sidebar')?.classList.remove('open')
     );
 
-    // 7) Ensure Logout button exists and works
+    // 7) Ensure Logout button
     const ensureLogout = () => {
       const footer = document.querySelector('.sidebar .sidebar-footer');
       if (!footer) return;
@@ -4773,25 +4724,23 @@ textarea:focus-visible {
         btn.innerHTML = '<span class="logout-icon">🚪</span><span>Logout</span>';
 
         btn.addEventListener('click', () => {
-          if (typeof window.logout === 'function')
-            return window.logout();
-
+          if (typeof window.logout === 'function') return window.logout();
           if (confirm('Logout?')) {
             localStorage.clear();
             location.reload();
           }
         });
-
         footer.appendChild(btn);
       }
     };
     ensureLogout();
 
-    // 8) Hook chat embed when navigating to "chat"
+    // 8) Hook chat embed
     const ensureChatEmbed = () => {
       const container = document.getElementById('chat-content');
       if (!container) return;
-      if (container.querySelector('#tlkio')) return;
+      // If iframe exists, do nothing (prevents reload)
+      if (container.querySelector('iframe') || container.querySelector('#tlkio')) return;
 
       container.innerHTML = `
         <div class="card" style="height: calc(100vh - 140px); display: flex; flex-direction: column;">
@@ -4814,34 +4763,31 @@ textarea:focus-visible {
       }
     };
 
-    // Wrap window.loadPage to auto-load chat embed
+    // Wrap window.loadPage
     const originalLoadPage = window.loadPage;
     window.loadPage = async function(page) {
       let result;
       if (typeof originalLoadPage === 'function')
         result = await originalLoadPage(page);
 
-      if (page === 'chat')
-        ensureChatEmbed();
-
+      if (page === 'chat') ensureChatEmbed();
       return result;
     };
 
-    // If already on chat (dev reload)
+    // Check if chat is already active on load
     if (document.getElementById('page-chat')?.classList.contains('active'))
       ensureChatEmbed();
 
-    // route sidebar links
+    // 9) Route sidebar links (Skips elements with data-patched="1")
     document.querySelectorAll('.nav-link').forEach(link => {
-      if (link.dataset.patched) return;
-      link.dataset.patched = '1';
+      if (link.getAttribute('data-patched') === '1') return; // [FIX]: Use getAttribute for safety
+      link.setAttribute('data-patched', '1');
 
       link.addEventListener('click', (e) => {
         const page = link.getAttribute('data-page');
         if (!page) return;
 
         e.preventDefault();
-
         document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
         link.classList.add('active');
 
@@ -4852,7 +4798,6 @@ textarea:focus-visible {
         close();
       });
     });
-
   };
 
   if (document.readyState === 'loading') {
@@ -4863,4 +4808,3 @@ textarea:focus-visible {
 
 })();
 </script>
-
