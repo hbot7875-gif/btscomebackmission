@@ -685,29 +685,48 @@ async function loadPage(page) {
 
 // ==================== CHAT (SECRET COMMS) ====================
 async function renderChat() {
-    const container = $('chat-content');
+    const container = document.getElementById('chat-content');
     if (!container) return;
 
-    // Check if iframe already exists to avoid reloading
+    // If iframe exists, don't reload
     if (container.querySelector('iframe')) return;
 
     const team = STATE.data?.profile?.team || 'Unknown';
+    const name = sanitize(STATE.data?.profile?.name) || 'Agent';
     const color = teamColor(team);
 
     container.innerHTML = `
         <div class="card" style="height: 100%; display: flex; flex-direction: column; margin-bottom: 0;">
             <div class="card-header" style="border-bottom: 1px solid var(--border);">
                 <h3>💬 Secret Comms Channel</h3>
-                <div class="mission-hint">Encrypted Channel • Logged in as <span style="color:${color}">${sanitize(STATE.data?.profile?.name)}</span></div>
+                <div class="mission-hint">Encrypted Channel • Logged in as <span style="color:${color}">${name}</span></div>
             </div>
-            <div class="card-body" style="flex: 1; padding: 0; overflow: hidden; background: rgba(0,0,0,0.3);">
-                <div class="chat-loading">CONNECTING TO SECURE SERVER...</div>
-                <div id="tlkio" data-channel="${CONFIG.CHAT_CHANNEL}" data-theme="theme--night" style="width:100%;height:100%;"></div>
+            
+            <!-- INSTRUCTIONS BOX -->
+            <div style="background: rgba(59, 130, 246, 0.1); border-bottom: 1px solid #2a2a4a; padding: 10px 20px; font-size: 12px; color: #aab;">
+                <strong>HOW TO CHAT:</strong>
+                <ol style="margin-left: 15px; margin-top: 4px; line-height: 1.4;">
+                    <li>If the box below is <strong>Black</strong>, turn off Ad-Blocker or Tracking Protection for this site.</li>
+                    <li>Type a <strong>Nickname</strong> in the box and press "Join".</li>
+                    <li>Chat is anonymous. Be respectful to other Agents.</li>
+                </ol>
+            </div>
+
+            <div class="card-body" style="flex: 1; padding: 0; overflow: hidden; background: rgba(0,0,0,0.3); position: relative;">
+                
+                <!-- Loader -->
+                <div class="chat-loading" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+                    <span style="background: #000; padding: 10px; border-radius: 8px; border: 1px solid #333;">Connecting...</span>
+                </div>
+
+                <!-- Chat Iframe -->
+                <div id="tlkio" data-channel="${CONFIG.CHAT_CHANNEL}" data-theme="theme--night" style="width:100%; height:100%; position: relative; z-index: 10;"></div>
+            
             </div>
         </div>
     `;
 
-    // Inject tlk.io script if not already present
+    // Inject tlk.io script
     if (!window.tlkioScriptLoaded) {
         const script = document.createElement('script');
         script.src = "https://tlk.io/embed.js";
@@ -715,15 +734,16 @@ async function renderChat() {
         script.async = true;
         script.onload = () => {
             window.tlkioScriptLoaded = true;
-            const loader = container.querySelector('.chat-loading');
-            if(loader) setTimeout(() => loader.remove(), 2000);
+            // Hide loader after a delay
+            setTimeout(() => {
+                const loader = container.querySelector('.chat-loading');
+                if(loader) loader.style.display = 'none';
+            }, 2000);
         };
         document.body.appendChild(script);
     } else {
-        // If script already loaded, just remove loader
         const loader = container.querySelector('.chat-loading');
-        if(loader) loader.remove();
-        // Re-trigger embed if needed (tlk.io usually handles this automatically on id match)
+        if(loader) loader.style.display = 'none';
     }
 }
 
