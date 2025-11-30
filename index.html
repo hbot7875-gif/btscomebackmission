@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -260,80 +259,88 @@
                 </div>
             </div>
 
-            <!-- Navigation Menu -->
-            <nav class="nav-menu" role="menubar">
-                <div class="nav-section">
-                    <span class="nav-section-title">MAIN</span>
-                    <a href="#" class="nav-link active" data-page="home" role="menuitem">
-                        <span class="nav-icon">🏠</span>
-                        <span class="nav-text">Mission Control</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="profile" role="menuitem">
-                        <span class="nav-icon">👤</span>
-                        <span class="nav-text">Agent Profile</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="rankings" role="menuitem">
-                        <span class="nav-icon">🏆</span>
-                        <span class="nav-text">Rankings</span>
-                    </a>
-                </div>
-                
-                <div class="nav-section">
-                    <span class="nav-section-title">MISSIONS</span>
-                    <a href="#" class="nav-link" data-page="goals" role="menuitem">
-                        <span class="nav-icon">🎯</span>
-                        <span class="nav-text">Goals Progress</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="album2x" role="menuitem">
-                        <span class="nav-icon">💿</span>
-                        <span class="nav-text">Album 2X Mission</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="secret-missions" role="menuitem">
-                        <span class="nav-icon">🔒</span>
-                        <span class="nav-text">Secret Missions</span>
-                        <span class="nav-badge">NEW</span>
-                    </a>
-                </div>
-                
-                <div class="nav-section">
-                    <span class="nav-section-title">ANALYTICS</span>
-                    <a href="#" class="nav-link" data-page="team-level" role="menuitem">
-                        <span class="nav-icon">📊</span>
-                        <span class="nav-text">Team Levels</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="team-charts" role="menuitem">
-                        <span class="nav-icon">📈</span>
-                        <span class="nav-text">Team Charts</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="agent-charts" role="menuitem">
-                        <span class="nav-icon">📉</span>
-                        <span class="nav-text">My Charts</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="comparison" role="menuitem">
-                        <span class="nav-icon">⚔️</span>
-                        <span class="nav-text">Team Comparison</span>
-                    </a>
-                </div>
-                
-                <div class="nav-section">
-                    <span class="nav-section-title">MORE</span>
-                    <a href="#" class="nav-link" data-page="summary" role="menuitem">
-                        <span class="nav-icon">📋</span>
-                        <span class="nav-text">Weekly Summary</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="drawer" role="menuitem">
-                        <span class="nav-icon">🎖️</span>
-                        <span class="nav-text">My Drawer</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="announcements" role="menuitem">
-                        <span class="nav-icon">📢</span>
-                        <span class="nav-text">Announcements</span>
-                    </a>
-                </div>
-                
-                <!-- Admin Link Container (Dynamically populated) -->
-                <div class="nav-section nav-admin-section" id="nav-admin-container"></div>
-            </nav>
+            <!-- Wrap nav in .nav-links so JS can inject Admin link -->
+            <div class="nav-links">
+                <!-- Navigation Menu -->
+                <nav class="nav-menu" role="menubar">
+                    <div class="nav-section">
+                        <span class="nav-section-title">MAIN</span>
+                        <a href="#" class="nav-link active" data-page="home" role="menuitem">
+                            <span class="nav-icon">🏠</span>
+                            <span class="nav-text">Mission Control</span>
+                        </a>
+                        <a href="#" class="nav-link" data-page="profile" role="menuitem">
+                            <span class="nav-icon">👤</span>
+                            <span class="nav-text">Agent Profile</span>
+                        </a>
+                        <a href="#" class="nav-link" data-page="rankings" role="menuitem">
+                            <span class="nav-icon">🏆</span>
+                            <span class="nav-text">Rankings</span>
+                        </a>
+                    </div>
+                    
+                    <div class="nav-section">
+                        <span class="nav-section-title">MISSIONS</span>
+                        <a href="#" class="nav-link" data-page="goals" role="menuitem">
+                            <span class="nav-icon">🎯</span>
+                            <span class="nav-text">Goals Progress</span>
+                        </a>
+                        <a href="#" class="nav-link" data-page="album2x" role="menuitem">
+                            <span class="nav-icon">💿</span>
+                            <span class="nav-text">Album 2X Mission</span>
+                        </a>
+                        <a href="#" class="nav-link" data-page="secret-missions" role="menuitem">
+                            <span class="nav-icon">🔒</span>
+                            <span class="nav-text">Secret Missions</span>
+                            <span class="nav-badge">NEW</span>
+                        </a>
+                    </div>
+                    
+                    <div class="nav-section">
+                        <span class="nav-section-title">ANALYTICS</span>
+                        <a href="#" class="nav-link" data-page="team-level" role="menuitem">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-text">Team Levels</span>
+                        </a>
+                        <a href="#" class="nav-link" data-page="team-charts" role="menuitem">
+                            <span class="nav-icon">📈</span>
+                            <span class="nav-text">Team Charts</span>
+                        </a>
+                        <a href="#" class="nav-link" data-page="agent-charts" role="menuitem">
+                            <span class="nav-icon">📉</span>
+                            <span class="nav-text">My Charts</span>
+                        </a>
+                        <a href="#" class="nav-link" data-page="comparison" role="menuitem">
+                            <span class="nav-icon">⚔️</span>
+                            <span class="nav-text">Team Comparison</span>
+                        </a>
+                    </div>
+                    
+                    <div class="nav-section">
+                        <span class="nav-section-title">MORE</span>
+                        <a href="#" class="nav-link" data-page="summary" role="menuitem">
+                            <span class="nav-icon">📋</span>
+                            <span class="nav-text">Weekly Summary</span>
+                        </a>
+                        <a href="#" class="nav-link" data-page="drawer" role="menuitem">
+                            <span class="nav-icon">🎖️</span>
+                            <span class="nav-text">My Drawer</span>
+                        </a>
+                        <a href="#" class="nav-link" data-page="announcements" role="menuitem">
+                            <span class="nav-icon">📢</span>
+                            <span class="nav-text">Announcements</span>
+                        </a>
+                        <!-- NEW: Chat link to match app.js v3.0 -->
+                        <a href="#" class="nav-link" data-page="chat" role="menuitem">
+                            <span class="nav-icon">💬</span>
+                            <span class="nav-text">Chat</span>
+                        </a>
+                    </div>
+                    
+                    <!-- Admin Link Container (Dynamically populated) -->
+                    <div class="nav-section nav-admin-section" id="nav-admin-container"></div>
+                </nav>
+            </div>
 
             <!-- Sidebar Footer -->
             <div class="sidebar-footer">
@@ -575,7 +582,7 @@
                         <p class="page-subtitle">Complete missions to level up your team</p>
                     </div>
                     <div id="team-level-content">
-                        <div class="loading-skeleton">
+                        <div class="loading-skeleton">a
                             <div class="skeleton-card"></div>
                         </div>
                     </div>
@@ -686,6 +693,19 @@
                     </div>
                 </section>
 
+                <!-- ==================== CHAT PAGE (added to match app.js v3.0) ==================== -->
+                <section id="page-chat" class="page">
+                    <div class="page-header">
+                        <h1>Secret Comms Channel</h1>
+                        <p class="page-subtitle">Anonymous HQ chat for all agents</p>
+                    </div>
+                    <div id="chat-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card large"></div>
+                        </div>
+                    </div>
+                </section>
+
             </div>
         </main>
     </div>
@@ -708,4 +728,3 @@
     </script>
 </body>
 </html>
-
