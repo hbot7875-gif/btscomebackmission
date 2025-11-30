@@ -1101,13 +1101,18 @@ async function renderComparison() {
             api('getWeeklySummary', { week: weekToShow })
         ]);
         if (comparison.lastUpdated) STATE.lastUpdated = comparison.lastUpdated;
+        
         const teams = (comparison.comparison || []).sort((a, b) => (b.teamXP || 0) - (a.teamXP || 0));
         const maxXP = teams[0]?.teamXP || 1;
+        
         const trackGoals = goals.trackGoals || {};
+        const albumGoals = goals.albumGoals || {}; // Fixed: Defined albumGoals
         const teamNames = Object.keys(CONFIG.TEAMS);
         
+        // 1. Render Main Battle Standings (XP)
         container.innerHTML = `${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}<div class="card"><div class="card-header"><h3>⚔️ Battle Standings (${STATE.week})</h3></div><div class="card-body">${teams.map((t, i) => `<div class="comparison-item"><span class="comparison-rank">${i+1}</span><span class="comparison-name" style="color:${teamColor(t.team)}">${t.team}</span><div class="comparison-bar-container"><div class="progress-bar"><div class="progress-fill" style="width:${(t.teamXP/maxXP)*100}%;background:${teamColor(t.team)}"></div></div></div><span class="comparison-xp">${fmt(t.teamXP)}</span></div>`).join('')}</div></div>`;
         
+        // 2. Render Track Goals
         if (Object.keys(trackGoals).length) {
             container.innerHTML += `<div class="card"><div class="card-header"><h3>🎵 Track Goals</h3></div><div class="card-body comparison-goals-section">${Object.entries(trackGoals).map(([trackName, info]) => {
                 const goal = info.goal || 0;
@@ -1120,6 +1125,21 @@ async function renderComparison() {
                 }).join('')}</div></div>`;
             }).join('')}</div></div>`;
         }
+
+        // 3. Render Album Goals (FIXED: Added this section)
+        if (Object.keys(albumGoals).length) {
+            container.innerHTML += `<div class="card"><div class="card-header"><h3>💿 Album Goals</h3></div><div class="card-body comparison-goals-section">${Object.entries(albumGoals).map(([albumName, info]) => {
+                const goal = info.goal || 0;
+                return `<div class="goal-comparison-block"><div class="goal-comparison-header"><span class="goal-track-name">${sanitize(albumName)}</span><span class="goal-target">Goal: ${fmt(goal)}</span></div><div class="goal-team-progress">${teamNames.map(teamName => {
+                    const ap = info.teams?.[teamName] || {};
+                    const current = ap.current || 0;
+                    const pct = goal > 0 ? Math.min((current/goal)*100, 100) : 0;
+                    const done = current >= goal;
+                    return `<div class="team-progress-row ${done ? 'complete' : ''}"><span class="team-name-small" style="color:${teamColor(teamName)}">${teamName}</span><div class="progress-bar-small"><div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(teamName)}"></div></div><span class="progress-text">${fmt(current)}/${fmt(goal)}</span></div>`;
+                }).join('')}</div></div>`;
+            }).join('')}</div></div>`;
+        }
+
     } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; }
 }
 
