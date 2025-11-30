@@ -1,3 +1,12 @@
+Here is the updated `index.html`.
+
+**Changes made:**
+1.  **Removed** the `Chart.js` script from the `<head>` (no longer needed).
+2.  **Removed** "Team Charts" and "My Charts" from the **Sidebar Navigation**.
+3.  **Removed** the `page-team-charts` and `page-agent-charts` **Sections** from the main content.
+4.  **Kept/Refined** the `page-chat` section to ensure it's ready for the new JavaScript logic.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,9 +26,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
@@ -221,7 +227,7 @@
                         <div class="pulse-dot"></div>
                         <span>SECURE CONNECTION ESTABLISHED</span>
                     </div>
-                    <div class="version-info">v2.0 | Hyung Line Edition</div>
+                    <div class="version-info">v3.0 | Hyung Line Edition</div>
                 </div>
             </div>
         </div>
@@ -259,7 +265,6 @@
                 </div>
             </div>
 
-            <!-- Wrap nav in .nav-links so JS can inject Admin link -->
             <div class="nav-links">
                 <!-- Navigation Menu -->
                 <nav class="nav-menu" role="menubar">
@@ -302,14 +307,6 @@
                             <span class="nav-icon">📊</span>
                             <span class="nav-text">Team Levels</span>
                         </a>
-                        <a href="#" class="nav-link" data-page="team-charts" role="menuitem">
-                            <span class="nav-icon">📈</span>
-                            <span class="nav-text">Team Charts</span>
-                        </a>
-                        <a href="#" class="nav-link" data-page="agent-charts" role="menuitem">
-                            <span class="nav-icon">📉</span>
-                            <span class="nav-text">My Charts</span>
-                        </a>
                         <a href="#" class="nav-link" data-page="comparison" role="menuitem">
                             <span class="nav-icon">⚔️</span>
                             <span class="nav-text">Team Comparison</span>
@@ -318,6 +315,11 @@
                     
                     <div class="nav-section">
                         <span class="nav-section-title">MORE</span>
+                        <a href="#" class="nav-link" data-page="chat" role="menuitem">
+                            <span class="nav-icon">💬</span>
+                            <span class="nav-text">Secret Comms</span>
+                            <span class="nav-badge">LIVE</span>
+                        </a>
                         <a href="#" class="nav-link" data-page="summary" role="menuitem">
                             <span class="nav-icon">📋</span>
                             <span class="nav-text">Weekly Summary</span>
@@ -329,11 +331,6 @@
                         <a href="#" class="nav-link" data-page="announcements" role="menuitem">
                             <span class="nav-icon">📢</span>
                             <span class="nav-text">Announcements</span>
-                        </a>
-                        <!-- NEW: Chat link to match app.js v3.0 -->
-                        <a href="#" class="nav-link" data-page="chat" role="menuitem">
-                            <span class="nav-icon">💬</span>
-                            <span class="nav-text">Chat</span>
                         </a>
                     </div>
                     
@@ -402,7 +399,7 @@
                         <span class="section-badge">Complete all 3 to level up!</span>
                     </div>
                     <div class="missions-grid" id="home-mission-grid">
-                        <!-- Dynamically populated with Track Goals, Album Goals, Album 2X, Secret Missions -->
+                        <!-- Dynamically populated -->
                     </div>
 
                     <!-- Top Agents Section -->
@@ -582,56 +579,8 @@
                         <p class="page-subtitle">Complete missions to level up your team</p>
                     </div>
                     <div id="team-level-content">
-                        <div class="loading-skeleton">a
+                        <div class="loading-skeleton">
                             <div class="skeleton-card"></div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- ==================== TEAM CHARTS PAGE ==================== -->
-                <section id="page-team-charts" class="page">
-                    <div class="page-header">
-                        <h1>Team Analytics</h1>
-                        <p class="page-subtitle">Visual comparison of all teams</p>
-                    </div>
-                    <div id="team-charts-content">
-                        <div class="charts-grid">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3><span class="header-icon">📊</span> Team XP Comparison</h3>
-                                </div>
-                                <div class="card-body chart-container">
-                                    <canvas id="chart-team-xp"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- ==================== AGENT CHARTS PAGE ==================== -->
-                <section id="page-agent-charts" class="page">
-                    <div class="page-header">
-                        <h1>Your Analytics</h1>
-                        <p class="page-subtitle">Your personal streaming breakdown</p>
-                    </div>
-                    <div id="agent-charts-content">
-                        <div class="charts-grid">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3><span class="header-icon">🎵</span> Your Top Tracks</h3>
-                                </div>
-                                <div class="card-body chart-container">
-                                    <canvas id="chart-agent-tracks"></canvas>
-                                </div>
-                            </div>
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3><span class="header-icon">💿</span> Your Album Breakdown</h3>
-                                </div>
-                                <div class="card-body chart-container">
-                                    <canvas id="chart-agent-albums"></canvas>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </section>
@@ -693,12 +642,10 @@
                     </div>
                 </section>
 
-                <!-- ==================== CHAT PAGE (added to match app.js v3.0) ==================== -->
+                <!-- ==================== CHAT PAGE (SECRET COMMS) ==================== -->
                 <section id="page-chat" class="page">
-                    <div class="page-header">
-                        <h1>Secret Comms Channel</h1>
-                        <p class="page-subtitle">Anonymous HQ chat for all agents</p>
-                    </div>
+                    <!-- The header and content are managed by app.js renderChat() 
+                         but we keep the container here for structure -->
                     <div id="chat-content">
                         <div class="loading-skeleton">
                             <div class="skeleton-card large"></div>
