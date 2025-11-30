@@ -8,7 +8,7 @@ const CONFIG = {
     ADMIN_AGENT_NO: 'AGENT001',
     ADMIN_PASSWORD: 'BTSSPYADMIN2024',
     
-    // End Dates (YYYY-MM-DD) - Used to LOCK summary until this date passes
+    // End Dates (YYYY-MM-DD)
     WEEK_DATES: {
         'Test Week 1': '2025-11-29',
         'Test Week 2': '2025-12-06',
@@ -18,8 +18,8 @@ const CONFIG = {
         'Week 4': '2026-01-03'
     },
     
-    // Chat Settings (Anonymous, No Backend needed)
-    CHAT_CHANNEL: 'bts-spy-battle-hq', // Unique name for your chat room
+    // Chat Settings
+    CHAT_CHANNEL: 'bts-spy-battle-hq', // This creates a channel at tlk.io/bts-spy-battle-hq
     
     TEAMS: {
         'Indigo': { color: '#4cc9f0', album: 'Indigo' },
@@ -63,7 +63,6 @@ const STATE = {
     data: null,
     allAgents: [],
     page: 'home',
-    charts: {},
     isLoading: false,
     isAdmin: false,
     adminSession: null,
@@ -130,32 +129,22 @@ function updateTime() {
     }
 }
 
-// ==================== DATE/WEEK HELPERS ====================
 function getDaysRemaining(weekLabel) {
     const endDateStr = CONFIG.WEEK_DATES[weekLabel];
     if (!endDateStr) return 0;
-    
     const end = new Date(endDateStr);
     end.setHours(23, 59, 59, 999);
-    
     const now = new Date();
     const diffTime = end - now;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
     return diffDays > 0 ? diffDays : 0;
 }
 
-/**
- * Strictly checks if the week is over based on CONFIG dates.
- * If today < end date, the week is NOT completed.
- */
 function isWeekCompleted(selectedWeek) {
     const endDateStr = CONFIG.WEEK_DATES[selectedWeek];
-    if (!endDateStr) return false; // Assume active if no date found
-    
+    if (!endDateStr) return false;
     const end = new Date(endDateStr);
     end.setHours(23, 59, 59, 999);
-    
     const now = new Date();
     return now > end;
 }
@@ -177,7 +166,6 @@ async function api(action, params = {}) {
         let data;
         try { data = JSON.parse(text); } 
         catch (parseError) { throw new Error('Invalid response from server'); }
-        console.log('✅ Response:', action, data);
         if (data.lastUpdated) { STATE.lastUpdated = data.lastUpdated; updateTime(); }
         if (data.error) throw new Error(data.error);
         return data;
@@ -223,7 +211,6 @@ async function loadAllAgents() {
         const res = await api('getAllAgents');
         STATE.allAgents = res.agents || [];
     } catch (e) {
-        console.error('Failed to load agents:', e);
         STATE.allAgents = [];
     }
 }
@@ -659,9 +646,22 @@ function logout() {
 async function loadPage(page) {
     STATE.page = page;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    // Handle removing agent-charts HTML in case it exists in DOM
+    
+    // Ensure chat container exists dynamically if not present
+    if (page === 'chat' && !$('page-chat')) {
+        const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
+        if (mainContent) {
+            const chatPage = document.createElement('section');
+            chatPage.id = 'page-chat';
+            chatPage.className = 'page';
+            chatPage.innerHTML = `<div id="chat-content"></div>`;
+            mainContent.appendChild(chatPage);
+        }
+    }
+
     const el = $('page-' + page);
     if (el) el.classList.add('active');
+    
     loading(true);
     try {
         switch(page) {
@@ -671,7 +671,6 @@ async function loadPage(page) {
             case 'goals': await renderGoals(); break;
             case 'album2x': await renderAlbum2x(); break;
             case 'team-level': await renderTeamLevel(); break;
-            case 'team-charts': await renderTeamCharts(); break;
             case 'comparison': await renderComparison(); break;
             case 'summary': await renderSummary(); break;
             case 'drawer': await renderDrawer(); break;
@@ -682,6 +681,50 @@ async function loadPage(page) {
     } catch (e) {
         if (el) el.innerHTML = `<div class="error-page"><h3>Failed to load</h3><p>${sanitize(e.message)}</p><button onclick="loadPage('${page}')" class="btn-primary">Retry</button></div>`;
     } finally { loading(false); }
+}
+
+// ==================== CHAT (SECRET COMMS) ====================
+async function renderChat() {
+    const container = $('chat-content');
+    if (!container) return;
+
+    // Check if iframe already exists to avoid reloading
+    if (container.querySelector('iframe')) return;
+
+    const team = STATE.data?.profile?.team || 'Unknown';
+    const color = teamColor(team);
+
+    container.innerHTML = `
+        <div class="card" style="height: 100%; display: flex; flex-direction: column; margin-bottom: 0;">
+            <div class="card-header" style="border-bottom: 1px solid var(--border);">
+                <h3>💬 Secret Comms Channel</h3>
+                <div class="mission-hint">Encrypted Channel • Logged in as <span style="color:${color}">${sanitize(STATE.data?.profile?.name)}</span></div>
+            </div>
+            <div class="card-body" style="flex: 1; padding: 0; overflow: hidden; background: rgba(0,0,0,0.3);">
+                <div class="chat-loading">CONNECTING TO SECURE SERVER...</div>
+                <div id="tlkio" data-channel="${CONFIG.CHAT_CHANNEL}" data-theme="theme--night" style="width:100%;height:100%;"></div>
+            </div>
+        </div>
+    `;
+
+    // Inject tlk.io script if not already present
+    if (!window.tlkioScriptLoaded) {
+        const script = document.createElement('script');
+        script.src = "https://tlk.io/embed.js";
+        script.type = "text/javascript";
+        script.async = true;
+        script.onload = () => {
+            window.tlkioScriptLoaded = true;
+            const loader = container.querySelector('.chat-loading');
+            if(loader) setTimeout(() => loader.remove(), 2000);
+        };
+        document.body.appendChild(script);
+    } else {
+        // If script already loaded, just remove loader
+        const loader = container.querySelector('.chat-loading');
+        if(loader) loader.remove();
+        // Re-trigger embed if needed (tlk.io usually handles this automatically on id match)
+    }
 }
 
 // ==================== HOME PAGE ====================
@@ -769,6 +812,11 @@ async function renderHome() {
                 <div class="mission-card secret" onclick="loadPage('secret-missions')">
                     <div class="mission-icon">🔒</div><h3>Secret Missions</h3><div class="mission-status">🕵️ Classified</div><div class="mission-hint">Tap to view team missions</div>
                 </div>
+                <!-- CHAT SHORTCUT -->
+                <div class="mission-card" onclick="loadPage('chat')">
+                    <div class="mission-icon">💬</div><h3>Secret Comms</h3><div class="mission-subtitle">HQ Encrypted Channel</div>
+                    <div class="mission-hint">Tap to join chat</div>
+                </div>
             `;
         }
         
@@ -841,45 +889,6 @@ async function renderSummary() {
             <div class="card"><div class="card-header"><h3>📊 Final Standings</h3></div><div class="card-body">${sorted.map(([t, info], i) => `<div class="final-standing ${i===0?'winner':''}" style="border-left-color:${teamColor(t)}"><span class="standing-pos">${i+1}</span><div class="standing-details"><div style="color:${teamColor(t)};font-weight:600;">${t}</div></div><div class="standing-xp-final">${fmt(info.teamXP)} XP</div></div>`).join('')}</div></div>
         `;
     } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load summary</p></div></div>'; }
-}
-
-// ==================== CHAT PAGE (ANONYMOUS) ====================
-async function renderChat() {
-    const container = $('chat-content');
-    // We need to create this container dynamically if it doesn't exist in HTML
-    if (!container) {
-        const mainContent = document.querySelector('main');
-        if (mainContent) {
-            const chatPage = document.createElement('div');
-            chatPage.id = 'page-chat';
-            chatPage.className = 'page active';
-            chatPage.innerHTML = '<div id="chat-content" class="container"></div>';
-            mainContent.appendChild(chatPage);
-        }
-        return; // Will re-run next frame
-    }
-    
-    container.innerHTML = `
-        <div class="card" style="height: calc(100vh - 140px); display: flex; flex-direction: column;">
-            <div class="card-header">
-                <h3>🕵️ Secret Comms Channel</h3>
-                <div class="mission-hint">Connect with other agents. Stay anonymous or use your code name.</div>
-            </div>
-            <div class="card-body" style="flex: 1; padding: 0; overflow: hidden; background: #1a1a2e;">
-                <div id="tlkio" data-channel="${CONFIG.CHAT_CHANNEL}" style="width:100%;height:100%;"></div>
-            </div>
-        </div>
-    `;
-    
-    // Inject tlk.io script
-    if (!window.tlkioScriptLoaded) {
-        const script = document.createElement('script');
-        script.src = "https://tlk.io/embed.js";
-        script.type = "text/javascript";
-        script.async = true;
-        document.body.appendChild(script);
-        window.tlkioScriptLoaded = true;
-    }
 }
 
 // ==================== DRAWER PAGE ====================
@@ -1020,21 +1029,6 @@ async function renderTeamLevel() {
             <div class="team-level-grid">${sortedTeams.map(([t, info], index) => { const isMyTeam = t === myTeam; const missions = (info.trackGoalPassed ? 1 : 0) + (info.albumGoalPassed ? 1 : 0) + (info.album2xPassed ? 1 : 0); return `<div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="border-color:${teamColor(t)}">${isMyTeam ? '<div class="my-team-badge">Your Team</div>' : ''}${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${teamColor(t)}">` : ''}<div class="team-level-name" style="color:${teamColor(t)}">${t}</div><div class="team-level-num">${info.level || 1}</div><div class="team-level-label">LEVEL</div><div class="team-level-xp">${fmt(info.teamXP)} XP</div><div class="team-level-missions"><div class="mission-check" title="Track Goals">${info.trackGoalPassed ? '🎵✅' : '🎵❌'}</div><div class="mission-check" title="Album Goals">${info.albumGoalPassed ? '💿✅' : '💿❌'}</div><div class="mission-check" title="Album 2X">${info.album2xPassed ? '✨✅' : '✨❌'}</div></div><div class="team-level-status ${missions === 3 ? 'complete' : ''}">${missions}/3 missions</div></div>`; }).join('')}</div>
         `;
     } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; }
-}
-
-async function renderTeamCharts() {
-    const container = $('team-charts-content');
-    try {
-        const summary = await api('getWeeklySummary', { week: STATE.week });
-        const teams = summary.teams || {};
-        const teamNames = Object.keys(teams);
-        if (STATE.charts.teamXP) { STATE.charts.teamXP.destroy(); STATE.charts.teamXP = null; }
-        container.innerHTML = `<div class="card"><div class="card-header"><h3>📊 Team XP Comparison</h3></div><div class="card-body"><canvas id="chart-team-xp" height="300"></canvas></div></div>`;
-        const ctx = $('chart-team-xp')?.getContext('2d');
-        if (ctx && typeof Chart !== 'undefined') {
-            STATE.charts.teamXP = new Chart(ctx, { type: 'bar', data: { labels: teamNames, datasets: [{ label: 'XP', data: teamNames.map(t => teams[t].teamXP || 0), backgroundColor: teamNames.map(t => teamColor(t)), borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#888' }, grid: { color: '#333' } }, x: { ticks: { color: '#888' }, grid: { display: false } } } } });
-        }
-    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load charts</p></div></div>'; }
 }
 
 async function renderAnnouncements() {
