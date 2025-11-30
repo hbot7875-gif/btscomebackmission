@@ -4572,3 +4572,295 @@ textarea:focus-visible {
         color: black !important;
     }
 }
+<script>
+(function patchSpyBattle() {
+
+  // Wait for DOM if needed
+  const run = () => {
+
+    // 1) Inject CSS patch (sidebar layout + logout visibility + overlay)
+    const css = `
+      .sidebar {
+        display:flex;
+        flex-direction:column;
+        min-height:100vh;
+        max-height:100dvh;
+      }
+      .sidebar .nav-links {
+        display:flex;
+        flex-direction:column;
+        flex:1 1 auto;
+        min-height:0;
+        overflow-y:auto;
+      }
+      .nav-menu { display:block; }
+      .nav-section + .nav-section { margin-top:10px; }
+      .nav-link.admin-nav-link {
+        margin-top:auto;
+        border-top:1px solid rgba(255,255,255,0.1);
+      }
+      .sidebar-footer {
+        flex:0 0 auto;
+        padding-top:10px;
+        border-top:1px solid rgba(255,255,255,0.08);
+        background:linear-gradient(180deg, rgba(10,10,15,.8), rgba(10,10,15,1));
+      }
+      .sync-status {
+        display:flex;
+        align-items:center;
+        gap:8px;
+        color:#aab;
+        margin-bottom:8px;
+      }
+      .btn-logout {
+        width:100%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:8px;
+        padding:10px 12px;
+        border-radius:8px;
+        background:rgba(255,255,255,.06);
+        color:var(--text-main);
+        cursor:pointer;
+        border:0;
+      }
+      .btn-logout:hover {
+        background:rgba(255,255,255,.12);
+      }
+      .sidebar-overlay {
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.5);
+        display:none;
+        z-index:9;
+      }
+      .sidebar.open ~ .sidebar-overlay {
+        display:block;
+      }
+    `;
+    const style = document.createElement('style');
+    style.setAttribute('data-patch', 'spy-battle-v3');
+    style.textContent = css;
+    document.head.appendChild(style);
+
+    // 2) Ensure .nav-links wrapper exists around .nav-menu
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      const navMenu = sidebar.querySelector('.nav-menu');
+      let navLinks = sidebar.querySelector('.nav-links');
+
+      if (navMenu && !navLinks) {
+        navLinks = document.createElement('div');
+        navLinks.className = 'nav-links';
+        navMenu.parentNode.insertBefore(navLinks, navMenu);
+        navLinks.appendChild(navMenu);
+
+        const adminContainer = sidebar.querySelector('#nav-admin-container');
+        if (adminContainer && adminContainer.parentElement !== navMenu) {
+          navMenu.appendChild(adminContainer);
+        }
+      }
+    }
+
+    // 3) Ensure Chat link exists in sidebar
+    const ensureChatLink = () => {
+      if (!sidebar) return;
+
+      const exists = sidebar.querySelector('.nav-link[data-page="chat"]');
+      if (exists) return;
+
+      const navMenu = sidebar.querySelector('.nav-menu');
+      if (!navMenu) return;
+
+      // Find "MORE" section or create one
+      let moreSection = Array.from(navMenu.querySelectorAll('.nav-section'))
+        .find(s => (s.querySelector('.nav-section-title')?.textContent || '').toUpperCase().includes('MORE'));
+
+      if (!moreSection) {
+        moreSection = document.createElement('div');
+        moreSection.className = 'nav-section';
+        moreSection.innerHTML = '<span class="nav-section-title">MORE</span>';
+        navMenu.appendChild(moreSection);
+      }
+
+      const a = document.createElement('a');
+      a.href = '#';
+      a.className = 'nav-link';
+      a.setAttribute('data-page', 'chat');
+      a.setAttribute('role', 'menuitem');
+      a.innerHTML = '<span class="nav-icon">💬</span><span class="nav-text">Chat</span>';
+
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        a.classList.add('active');
+
+        if (typeof window.loadPage === 'function')
+          window.loadPage('chat');
+
+        const close = window.closeSidebar || (() => document.getElementById('sidebar')?.classList.remove('open'));
+        close();
+      });
+
+      moreSection.appendChild(a);
+    };
+    ensureChatLink();
+
+
+    // 4) Ensure Chat page section exists
+    let pagesWrapper = document.querySelector('.pages-wrapper');
+    let chatPage = document.getElementById('page-chat');
+
+    if (!chatPage) {
+      chatPage = document.createElement('section');
+      chatPage.id = 'page-chat';
+      chatPage.className = 'page';
+      chatPage.innerHTML = `
+        <div class="page-header">
+          <h1>Secret Comms Channel</h1>
+          <p class="page-subtitle">Anonymous HQ chat for all agents</p>
+        </div>
+        <div id="chat-content">
+          <div class="loading-skeleton"><div class="skeleton-card large"></div></div>
+        </div>
+      `;
+
+      (pagesWrapper || document.querySelector('main') || document.body).appendChild(chatPage);
+    }
+
+    // 5) Fix stray "a" in team-level skeleton (if present)
+    const teamLevelSkeleton = document.querySelector('#team-level-content .loading-skeleton');
+    if (teamLevelSkeleton && teamLevelSkeleton.firstChild && teamLevelSkeleton.firstChild.nodeType === 3) {
+      teamLevelSkeleton.firstChild.textContent = '';
+    }
+
+    // 6) Ensure sidebar overlay closes the menu
+    let overlay = document.getElementById('sidebar-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'sidebar-overlay';
+      overlay.className = 'sidebar-overlay';
+
+      const dash = document.getElementById('dashboard-screen');
+      if (dash) dash.appendChild(overlay);
+      else document.body.appendChild(overlay);
+    }
+
+    overlay.addEventListener('click', () =>
+      document.getElementById('sidebar')?.classList.remove('open')
+    );
+
+    // 7) Ensure Logout button exists and works
+    const ensureLogout = () => {
+      const footer = document.querySelector('.sidebar .sidebar-footer');
+      if (!footer) return;
+
+      let sync = footer.querySelector('.sync-status');
+      if (!sync) {
+        sync = document.createElement('div');
+        sync.className = 'sync-status';
+        sync.innerHTML = '<span class="sync-icon">🔄</span> Last Sync: <span id="last-update">--:--</span>';
+        footer.appendChild(sync);
+      }
+
+      let btn = footer.querySelector('#logout-btn');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'logout-btn';
+        btn.className = 'btn-logout';
+        btn.setAttribute('aria-label', 'Logout');
+        btn.innerHTML = '<span class="logout-icon">🚪</span><span>Logout</span>';
+
+        btn.addEventListener('click', () => {
+          if (typeof window.logout === 'function')
+            return window.logout();
+
+          if (confirm('Logout?')) {
+            localStorage.clear();
+            location.reload();
+          }
+        });
+
+        footer.appendChild(btn);
+      }
+    };
+    ensureLogout();
+
+    // 8) Hook chat embed when navigating to "chat"
+    const ensureChatEmbed = () => {
+      const container = document.getElementById('chat-content');
+      if (!container) return;
+      if (container.querySelector('#tlkio')) return;
+
+      container.innerHTML = `
+        <div class="card" style="height: calc(100vh - 140px); display: flex; flex-direction: column;">
+          <div class="card-header">
+            <h3>🕵️ Secret Comms Channel</h3>
+            <div class="mission-hint">Connect with other agents. Stay anonymous or use your code name.</div>
+          </div>
+          <div class="card-body" style="flex: 1; padding: 0; overflow: hidden; background: #1a1a2e;">
+            <div id="tlkio" data-channel="bts-spy-battle-hq" style="width:100%;height:100%;"></div>
+          </div>
+        </div>
+      `;
+
+      if (!window.tlkioScriptLoaded) {
+        const s = document.createElement('script');
+        s.src = 'https://tlk.io/embed.js';
+        s.async = true;
+        s.onload = () => (window.tlkioScriptLoaded = true);
+        document.body.appendChild(s);
+      }
+    };
+
+    // Wrap window.loadPage to auto-load chat embed
+    const originalLoadPage = window.loadPage;
+    window.loadPage = async function(page) {
+      let result;
+      if (typeof originalLoadPage === 'function')
+        result = await originalLoadPage(page);
+
+      if (page === 'chat')
+        ensureChatEmbed();
+
+      return result;
+    };
+
+    // If already on chat (dev reload)
+    if (document.getElementById('page-chat')?.classList.contains('active'))
+      ensureChatEmbed();
+
+    // route sidebar links
+    document.querySelectorAll('.nav-link').forEach(link => {
+      if (link.dataset.patched) return;
+      link.dataset.patched = '1';
+
+      link.addEventListener('click', (e) => {
+        const page = link.getAttribute('data-page');
+        if (!page) return;
+
+        e.preventDefault();
+
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+
+        if (typeof window.loadPage === 'function')
+          window.loadPage(page);
+
+        const close = window.closeSidebar || (() => document.getElementById('sidebar')?.classList.remove('open'));
+        close();
+      });
+    });
+
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run, { once: true });
+  } else {
+    run();
+  }
+
+})();
+</script>
+
