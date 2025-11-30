@@ -1,11 +1,12 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS WITH TEAM SECRET MISSIONS =====
+// ===== BTS SPY BATTLE - COMPLETE FIXED APP.JS =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
     API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
     
     // Admin Settings
-    ADMIN_AGENT_NO: 'AGENT001',  // Agent 001 is admin
+    ADMIN_AGENT_NO: 'AGENT001',
+    ADMIN_PASSWORD: 'spy2024admin', // For client-side demo; move to server in production
     
     TEAMS: {
         'Indigo': { color: '#4cc9f0', album: 'Indigo' },
@@ -68,50 +69,20 @@ const CONFIG = {
         "JITB": "https://i.ibb.co/FbdLFwh/Team-jitb.png"
     },
     
-    // Secret Mission Settings
     SECRET_MISSIONS: {
         xpPerMission: 5,
         maxMissionsPerTeam: 5,
         maxTeamBonus: 25
     },
     
-    // Mission Types
     MISSION_TYPES: {
-        'joint_op': {
-            name: 'Joint Operation',
-            icon: '🤝',
-            description: 'Agents from different teams collaborate'
-        },
-        'decode': {
-            name: 'Decode Mission',
-            icon: '🔐',
-            description: 'Solve cipher to reveal target'
-        },
-        'coordinate': {
-            name: 'Coordinate Strike',
-            icon: '⚡',
-            description: 'Multiple agents stream together'
-        },
-        'stealth': {
-            name: 'Stealth Mission',
-            icon: '🥷',
-            description: 'Covert streaming task'
-        },
-        'chain': {
-            name: 'Chain Reaction',
-            icon: '🔗',
-            description: 'Sequential team task'
-        },
-        'hidden': {
-            name: 'Hidden Target',
-            icon: '🎯',
-            description: 'Clue-based target discovery'
-        },
-        'alliance': {
-            name: 'Alliance Mission',
-            icon: '🌐',
-            description: 'All teams work together'
-        }
+        'joint_op': { name: 'Joint Operation', icon: '🤝', description: 'Agents from different teams collaborate' },
+        'decode': { name: 'Decode Mission', icon: '🔐', description: 'Solve cipher to reveal target' },
+        'coordinate': { name: 'Coordinate Strike', icon: '⚡', description: 'Multiple agents stream together' },
+        'stealth': { name: 'Stealth Mission', icon: '🥷', description: 'Covert streaming task' },
+        'chain': { name: 'Chain Reaction', icon: '🔗', description: 'Sequential team task' },
+        'hidden': { name: 'Hidden Target', icon: '🎯', description: 'Clue-based target discovery' },
+        'alliance': { name: 'Alliance Mission', icon: '🌐', description: 'All teams work together' }
     }
 };
 
@@ -119,13 +90,13 @@ const CONFIG = {
 const STATE = {
     agentNo: null,
     week: null,
+    displayWeek: null, // For Sunday results display
     weeks: [],
     data: null,
+    allAgents: [], // Cache all agents for Find feature
     page: 'home',
     charts: {},
     isLoading: false,
-    
-    // Admin state
     isAdmin: false,
     adminSession: null
 };
@@ -148,26 +119,38 @@ function fmt(n) {
 function sanitize(str) {
     if (!str) return '';
     return String(str).replace(/[<>\"'&]/g, char => ({
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-        '&': '&amp;'
+        '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;'
     })[char] || char);
+}
+
+function showToast(msg, type = 'info') {
+    // Remove existing toasts
+    document.querySelectorAll('.toast').forEach(t => t.remove());
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <span class="toast-icon">${type === 'error' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️'}</span>
+        <span class="toast-msg">${sanitize(msg)}</span>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
 }
 
 function showResult(msg, isError) {
     const el = $('find-result');
     if (!el) return;
     
-    el.innerHTML = `
-        <span style="margin-right:8px;">${isError ? '⚠️' : '✅'}</span>
-        ${msg}
-    `;
+    el.innerHTML = `<span style="margin-right:8px;">${isError ? '⚠️' : '✅'}</span>${msg}`;
     el.className = `result-box show ${isError ? 'error' : 'success'}`;
     
     if (!isError) {
-        setTimeout(() => el.classList.remove('show'), 5000);
+        setTimeout(() => el.classList.remove('show'), 8000);
     }
 }
 
@@ -175,10 +158,14 @@ function updateTime() {
     const el = $('last-update');
     if (el) {
         el.textContent = new Date().toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
+            hour: '2-digit', minute: '2-digit' 
         });
     }
+}
+
+// ==================== DATE/WEEK HELPERS ====================
+function isSunday() {
+    return new Date().getDay() === 0;
 }
 
 function getDaysUntilSunday() {
@@ -187,21 +174,43 @@ function getDaysUntilSunday() {
     return day === 0 ? 0 : 7 - day;
 }
 
-function isSunday() {
-    return new Date().getDay() === 0;
+/**
+ * Get the correct week to display based on current day
+ * Sunday: Show LAST week's results (completed week)
+ * Mon-Sat: Show CURRENT week's progress
+ */
+function getDisplayWeek(weeks, currentWeek) {
+    if (!weeks || weeks.length === 0) return currentWeek;
+    
+    if (isSunday()) {
+        // Find the previous week in the list
+        const currentIndex = weeks.indexOf(currentWeek);
+        if (currentIndex > 0) {
+            return weeks[currentIndex - 1]; // Return previous week
+        } else if (currentIndex === 0 && weeks.length > 1) {
+            // Current week is first in list, but there might be older weeks
+            // This depends on how weeks are sorted (newest first or oldest first)
+            return currentWeek; // Fallback to current if no previous
+        }
+    }
+    return currentWeek;
+}
+
+/**
+ * Check if we should show results mode (Sunday) or battle mode (Mon-Sat)
+ */
+function isResultsDay() {
+    return isSunday();
 }
 
 // ==================== API ====================
 async function api(action, params = {}) {
     const url = new URL(CONFIG.API_URL);
     url.searchParams.set('action', action);
+    
     Object.entries(params).forEach(([k, v]) => {
         if (v != null) {
-            if (typeof v === 'object') {
-                url.searchParams.set(k, JSON.stringify(v));
-            } else {
-                url.searchParams.set(k, v);
-            }
+            url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v);
         }
     });
     
@@ -215,7 +224,14 @@ async function api(action, params = {}) {
         clearTimeout(timeout);
         
         const text = await res.text();
-        const data = JSON.parse(text);
+        let data;
+        
+        try {
+            data = JSON.parse(text);
+        } catch (parseError) {
+            console.error('JSON Parse Error:', text.substring(0, 500));
+            throw new Error('Invalid response from server');
+        }
         
         console.log('✅ Response:', action, data);
         
@@ -234,6 +250,9 @@ async function api(action, params = {}) {
 function initApp() {
     console.log('🚀 Starting BTS Spy Battle app...');
     
+    // Load all agents for Find feature (background)
+    loadAllAgents();
+    
     const saved = localStorage.getItem('spyAgent');
     if (saved) {
         STATE.agentNo = saved;
@@ -243,24 +262,54 @@ function initApp() {
     }
     
     // Setup login event listeners
-    $('login-btn')?.addEventListener('click', handleLogin);
-    $('find-btn')?.addEventListener('click', handleFind);
-    
-    $('agent-input')?.addEventListener('keypress', e => {
-        if (e.key === 'Enter') handleLogin();
-    });
-    
-    $('instagram-input')?.addEventListener('keypress', e => {
-        if (e.key === 'Enter') handleFind();
-    });
-    
-    setTimeout(() => $('agent-input')?.focus(), 100);
+    setupLoginListeners();
 }
 
-// --- Corrected handleLogin Logic (Conceptual) ---
-async function handleLogin() {
+function setupLoginListeners() {
+    const loginBtn = $('login-btn');
+    const findBtn = $('find-btn');
     const agentInput = $('agent-input');
-    const agentNo = agentInput?.value.trim();
+    const instagramInput = $('instagram-input');
+    
+    if (loginBtn) {
+        loginBtn.addEventListener('click', handleLogin);
+    }
+    
+    if (findBtn) {
+        findBtn.addEventListener('click', handleFind);
+    }
+    
+    if (agentInput) {
+        agentInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter') handleLogin();
+        });
+        setTimeout(() => agentInput.focus(), 100);
+    }
+    
+    if (instagramInput) {
+        instagramInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter') handleFind();
+        });
+    }
+}
+
+async function loadAllAgents() {
+    try {
+        const res = await api('getAllAgents');
+        STATE.allAgents = res.agents || [];
+        console.log(`📋 Loaded ${STATE.allAgents.length} agents for lookup`);
+    } catch (e) {
+        console.error('Failed to load agents:', e);
+        STATE.allAgents = [];
+    }
+}
+
+// ==================== LOGIN HANDLER ====================
+async function handleLogin() {
+    if (STATE.isLoading) return;
+    
+    const agentInput = $('agent-input');
+    const agentNo = agentInput?.value.trim().toUpperCase();
     
     if (!agentNo) {
         showResult('Please enter your Agent Number', true);
@@ -269,75 +318,158 @@ async function handleLogin() {
     }
     
     const loginBtn = $('login-btn');
-    if (loginBtn) {
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Authenticating...';
-    }
-    
-    loading(true);
+    const originalText = loginBtn?.textContent;
     
     try {
-        const res = await api('getAllAgents');
-        const agents = res.agents || [];
-        const found = agents.find(a => String(a.agentNo).trim() === agentNo);
+        if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Authenticating...';
+        }
+        loading(true);
+        
+        // Ensure agents are loaded
+        if (STATE.allAgents.length === 0) {
+            await loadAllAgents();
+        }
+        
+        // Find agent (case-insensitive)
+        const found = STATE.allAgents.find(a => 
+            String(a.agentNo).trim().toUpperCase() === agentNo
+        );
         
         if (!found) {
-            loading(false);
-            if (loginBtn) {
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Login';
-            }
-            showResult('Agent not found. Check your number or use "Find My ID" below.', true);
+            showResult('Agent not found. Check your number or use "Find My Agent ID" below.', true);
             return;
         }
         
-        // Save agent
-        localStorage.setItem('spyAgent', agentNo);
-        STATE.agentNo = agentNo;
+        // Save and proceed
+        localStorage.setItem('spyAgent', found.agentNo); // Use original case
+        STATE.agentNo = found.agentNo;
         
-        // Restore existing admin session (if any)
         checkAdminStatus();
-        
         await loadDashboard();
         
     } catch (e) {
-        loading(false);
+        showResult('Login failed: ' + e.message, true);
+    } finally {
         if (loginBtn) {
             loginBtn.disabled = false;
-            loginBtn.textContent = 'Login';
+            loginBtn.textContent = originalText || 'Login';
         }
-        showResult('Login failed: ' + e.message, true);
+        loading(false);
     }
 }
 
-// ==================== ADMIN FUNCTIONS ====================
-function checkAdminStatus() {
-    // Check if current agent is admin
-    if (String(STATE.agentNo) === String(CONFIG.ADMIN_AGENT_NO)) {
-        // Check for existing session
-        const savedSession = localStorage.getItem('adminSession');
-        const savedExpiry = localStorage.getItem('adminExpiry');
-        
-        if (savedSession && savedExpiry && Date.now() < parseInt(savedExpiry)) {
-            STATE.isAdmin = true;
-            STATE.adminSession = savedSession;
-            console.log('🔓 Admin session restored');
+// ==================== FIND AGENT HANDLER (FIXED) ====================
+async function handleFind() {
+    if (STATE.isLoading) return;
+    
+    const instagramInput = $('instagram-input');
+    const instagram = instagramInput?.value.trim().toLowerCase().replace('@', '');
+    
+    if (!instagram) {
+        showResult('Please enter your Instagram handle', true);
+        instagramInput?.focus();
+        return;
+    }
+    
+    const findBtn = $('find-btn');
+    const originalText = findBtn?.textContent;
+    
+    try {
+        if (findBtn) {
+            findBtn.disabled = true;
+            findBtn.textContent = 'Searching...';
         }
+        loading(true);
+        
+        // Ensure agents are loaded
+        if (STATE.allAgents.length === 0) {
+            await loadAllAgents();
+        }
+        
+        // Search by Instagram (multiple possible field names)
+        const found = STATE.allAgents.find(a => {
+            const igHandle = String(a.instagram || a.Instagram || a.ig || a.IG || '').trim().toLowerCase().replace('@', '');
+            return igHandle === instagram;
+        });
+        
+        if (!found) {
+            // Also try matching by name if Instagram not found
+            const byName = STATE.allAgents.find(a => {
+                const name = String(a.name || a.Name || '').trim().toLowerCase();
+                return name === instagram || name.includes(instagram);
+            });
+            
+            if (byName) {
+                showResult(`Found by name! Your Agent ID is: <strong>${byName.agentNo}</strong> (Team ${byName.team})`, false);
+                
+                // Auto-fill the agent input
+                const agentInput = $('agent-input');
+                if (agentInput) {
+                    agentInput.value = byName.agentNo;
+                    agentInput.focus();
+                }
+            } else {
+                showResult(`No agent found with Instagram "@${instagram}". Please check spelling or contact admin.`, true);
+            }
+            return;
+        }
+        
+        showResult(`Found! Your Agent ID is: <strong>${found.agentNo}</strong> (Team ${found.team})`, false);
+        
+        // Auto-fill the agent input
+        const agentInput = $('agent-input');
+        if (agentInput) {
+            agentInput.value = found.agentNo;
+            agentInput.focus();
+        }
+        
+    } catch (e) {
+        showResult('Search failed: ' + e.message, true);
+    } finally {
+        if (findBtn) {
+            findBtn.disabled = false;
+            findBtn.textContent = originalText || 'Find My ID';
+        }
+        loading(false);
+    }
+}
+
+// ==================== ADMIN FUNCTIONS (FIXED) ====================
+function checkAdminStatus() {
+    if (String(STATE.agentNo).toUpperCase() !== String(CONFIG.ADMIN_AGENT_NO).toUpperCase()) {
+        STATE.isAdmin = false;
+        return;
+    }
+    
+    const savedSession = localStorage.getItem('adminSession');
+    const savedExpiry = localStorage.getItem('adminExpiry');
+    
+    if (savedSession && savedExpiry && Date.now() < parseInt(savedExpiry)) {
+        STATE.isAdmin = true;
+        STATE.adminSession = savedSession;
+        console.log('🔓 Admin session restored');
+    } else {
+        // Clear expired session
+        localStorage.removeItem('adminSession');
+        localStorage.removeItem('adminExpiry');
+        STATE.isAdmin = false;
     }
 }
 
 function isAdminAgent() {
-    return String(STATE.agentNo) === String(CONFIG.ADMIN_AGENT_NO);
+    return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
 }
 
 function showAdminLogin() {
     if (!isAdminAgent()) {
-        alert('Access denied. You are not authorized.');
+        showToast('Access denied. You are not authorized.', 'error');
         return;
     }
     
     // Remove existing modal
-    $('admin-modal')?.remove();
+    document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
     
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
@@ -357,7 +489,7 @@ function showAdminLogin() {
                     <div class="terminal-line">> Authorization required...</div>
                     <div class="form-group">
                         <label class="terminal-label">> PASSWORD:</label>
-                        <input type="password" id="admin-password" class="terminal-input" 
+                        <input type="password" id="admin-password" class="terminal-input form-input" 
                                placeholder="Enter admin password" autocomplete="off">
                     </div>
                     <div id="admin-error" class="admin-error"></div>
@@ -374,11 +506,16 @@ function showAdminLogin() {
     `;
     document.body.appendChild(modal);
     
-    setTimeout(() => $('admin-password')?.focus(), 100);
-    
-    $('admin-password')?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') verifyAdminPassword();
-    });
+    // Focus password input
+    setTimeout(() => {
+        const pwInput = $('admin-password');
+        if (pwInput) {
+            pwInput.focus();
+            pwInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') verifyAdminPassword();
+            });
+        }
+    }, 100);
 }
 
 function closeAdminModal() {
@@ -390,13 +527,14 @@ function closeAdminModal() {
 }
 
 async function verifyAdminPassword() {
-    const password = $('admin-password')?.value;
+    const passwordInput = $('admin-password');
+    const password = passwordInput?.value;
     const errorEl = $('admin-error');
     const verifyBtn = $('admin-verify-btn');
     
     if (!password) {
         if (errorEl) {
-            errorEl.textContent = '⚠️ Enter your password';
+            errorEl.textContent = '⚠️ Please enter your password';
             errorEl.classList.add('show');
         }
         return;
@@ -408,52 +546,77 @@ async function verifyAdminPassword() {
     }
     
     try {
-        const result = await api('verifyAdmin', {
-            agentNo: STATE.agentNo,
-            password: password
-        });
+        // Try server-side verification first
+        let verified = false;
         
-        if (result.success) {
-            STATE.isAdmin = true;
-            STATE.adminSession = result.sessionToken;
+        try {
+            const result = await api('verifyAdmin', {
+                agentNo: STATE.agentNo,
+                password: password
+            });
             
-            // Store session
-            localStorage.setItem('adminSession', result.sessionToken);
-            localStorage.setItem('adminExpiry', Date.now() + (result.expiresIn * 1000));
+            if (result.success) {
+                verified = true;
+                STATE.adminSession = result.sessionToken || generateSessionToken();
+            }
+        } catch (apiError) {
+            console.log('Server verification not available, using client-side fallback');
+            
+            // Client-side fallback (for demo/development)
+            if (password === CONFIG.ADMIN_PASSWORD) {
+                verified = true;
+                STATE.adminSession = generateSessionToken();
+            }
+        }
+        
+        if (verified) {
+            STATE.isAdmin = true;
+            
+            // Store session (expires in 24 hours)
+            localStorage.setItem('adminSession', STATE.adminSession);
+            localStorage.setItem('adminExpiry', String(Date.now() + (24 * 60 * 60 * 1000)));
             
             closeAdminModal();
             addAdminIndicator();
             showAdminPanel();
             
+            showToast('Admin access granted!', 'success');
             console.log('🔓 Admin access granted');
         } else {
             if (errorEl) {
-                errorEl.textContent = '❌ ' + (result.error || 'Invalid password');
+                errorEl.textContent = '❌ Invalid password';
                 errorEl.classList.add('show');
             }
-            $('admin-password').value = '';
-            $('admin-password')?.focus();
+            if (passwordInput) {
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
         }
     } catch (e) {
         if (errorEl) {
             errorEl.textContent = '❌ Verification failed: ' + e.message;
             errorEl.classList.add('show');
         }
-    }
-    
-    if (verifyBtn) {
-        verifyBtn.disabled = false;
-        verifyBtn.innerHTML = '<span>Authenticate</span><span>🔓</span>';
+    } finally {
+        if (verifyBtn) {
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = '<span>Authenticate</span><span>🔓</span>';
+        }
     }
 }
 
+function generateSessionToken() {
+    return 'admin_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+}
+
 function addAdminIndicator() {
+    // Remove existing indicator
     document.querySelector('.admin-indicator')?.remove();
     
     const indicator = document.createElement('div');
     indicator.className = 'admin-indicator';
     indicator.innerHTML = `
-        <span class="admin-badge" onclick="showAdminPanel()">
+        <span class="admin-badge" onclick="showAdminPanel()" title="Open Admin Panel">
             🔐 ADMIN
         </span>
         <button class="admin-exit" onclick="exitAdminMode()" title="Exit Admin Mode">×</button>
@@ -469,6 +632,7 @@ function exitAdminMode() {
         localStorage.removeItem('adminExpiry');
         document.querySelector('.admin-indicator')?.remove();
         document.querySelector('.admin-panel')?.remove();
+        showToast('Admin mode deactivated', 'info');
         console.log('🔒 Admin mode deactivated');
     }
 }
@@ -480,6 +644,7 @@ function showAdminPanel() {
         return;
     }
     
+    // Remove existing panel
     document.querySelector('.admin-panel')?.remove();
     
     const panel = document.createElement('div');
@@ -525,7 +690,11 @@ function showAdminPanel() {
 }
 
 function closeAdminPanel() {
-    document.querySelector('.admin-panel')?.remove();
+    const panel = document.querySelector('.admin-panel');
+    if (panel) {
+        panel.classList.add('closing');
+        setTimeout(() => panel.remove(), 300);
+    }
 }
 
 function switchAdminTab(tabName) {
@@ -572,33 +741,6 @@ function renderCreateMissionForm() {
                 </label>
             </div>
             
-            <!-- Assigned Agents -->
-            <div class="form-section">
-                <h4>🕵️ Assigned Agents (Optional)</h4>
-                <p class="form-hint">Specify agents for joint operations, or leave empty for team-wide missions.</p>
-                <div id="agent-rows" class="agent-rows">
-                    <div class="agent-input-group">
-                        <select class="agent-team-select form-select">
-                            <option value="">Team</option>
-                            ${Object.keys(CONFIG.TEAMS).map(t => `<option value="${t}">${t}</option>`).join('')}
-                        </select>
-                        <input type="text" class="agent-number-input form-input" placeholder="Agent #">
-                    </div>
-                </div>
-                <button type="button" onclick="addAgentRow()" class="btn-sm btn-secondary">
-                    + Add Agent
-                </button>
-                
-                <div class="form-group" style="margin-top:16px;">
-                    <label>Or require any agents from team:</label>
-                    <div class="any-agents-input">
-                        <span>Any</span>
-                        <input type="number" id="any-agents-count" min="0" max="20" value="0" class="form-input" style="width:60px;">
-                        <span>agents from selected team(s)</span>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Mission Details -->
             <div class="form-section">
                 <h4>📝 Mission Details</h4>
@@ -612,13 +754,6 @@ function renderCreateMissionForm() {
                     <label>Mission Briefing *</label>
                     <textarea id="mission-briefing" class="form-textarea" rows="3" 
                         placeholder="Describe the mission objective..."></textarea>
-                </div>
-                
-                <div class="form-group decode-fields" style="display:none;">
-                    <label>🔐 Encoded Clue (for decode missions)</label>
-                    <input type="text" id="encoded-clue" class="form-input" placeholder="e.g., YTNUOB">
-                    <label style="margin-top:12px;">Answer (hidden from agents)</label>
-                    <input type="text" id="decode-answer" class="form-input" placeholder="e.g., BOUNTY">
                 </div>
                 
                 <div class="form-group">
@@ -646,14 +781,6 @@ function renderCreateMissionForm() {
                 </div>
             </div>
             
-            <!-- Preview -->
-            <div class="form-section">
-                <h4>👁️ Preview</h4>
-                <div id="mission-preview" class="mission-preview">
-                    ${renderMissionPreview()}
-                </div>
-            </div>
-            
             <!-- Submit -->
             <div class="form-actions">
                 <button onclick="createTeamMission()" class="btn-primary btn-large">
@@ -672,90 +799,16 @@ function selectMissionType(type) {
     });
     document.querySelector(`.mission-type-option[data-type="${type}"]`)?.classList.add('selected');
     $('selected-mission-type').value = type;
-    
-    // Show/hide decode fields
-    const decodeFields = document.querySelector('.decode-fields');
-    if (decodeFields) {
-        decodeFields.style.display = type === 'decode' ? 'block' : 'none';
-    }
-    
-    updateMissionPreview();
 }
 
 function toggleAllTeams(checked) {
     document.querySelectorAll('input[name="target-teams"]').forEach(cb => {
         cb.checked = checked;
     });
-    updateMissionPreview();
-}
-
-function addAgentRow() {
-    const container = $('agent-rows');
-    const row = document.createElement('div');
-    row.className = 'agent-input-group';
-    row.innerHTML = `
-        <select class="agent-team-select form-select">
-            <option value="">Team</option>
-            ${Object.keys(CONFIG.TEAMS).map(t => `<option value="${t}">${t}</option>`).join('')}
-        </select>
-        <input type="text" class="agent-number-input form-input" placeholder="Agent #">
-        <button type="button" class="remove-agent-btn" onclick="this.parentElement.remove();updateMissionPreview();">×</button>
-    `;
-    container.appendChild(row);
 }
 
 function setupMissionFormListeners() {
-    const inputs = ['mission-title', 'mission-briefing', 'target-track', 'goal-target', 'goal-type', 'any-agents-count'];
-    inputs.forEach(id => {
-        $(id)?.addEventListener('input', updateMissionPreview);
-    });
-    
-    document.querySelectorAll('input[name="target-teams"]').forEach(cb => {
-        cb.addEventListener('change', updateMissionPreview);
-    });
-}
-
-function renderMissionPreview() {
-    const type = $('selected-mission-type')?.value || 'joint_op';
-    const missionInfo = CONFIG.MISSION_TYPES[type] || {};
-    const title = $('mission-title')?.value || 'Operation [Codename]';
-    const briefing = $('mission-briefing')?.value || 'Mission briefing...';
-    const targetTeams = Array.from(document.querySelectorAll('input[name="target-teams"]:checked')).map(cb => cb.value);
-    const goalTarget = $('goal-target')?.value || '100';
-    const targetTrack = $('target-track')?.value || '[Target]';
-    
-    return `
-        <div class="team-mission-card preview">
-            <div class="tmc-stamp">CLASSIFIED</div>
-            <div class="tmc-header">
-                <span class="tmc-icon">${missionInfo.icon || '🔒'}</span>
-                <span class="tmc-type-name">${missionInfo.name || 'Mission'}</span>
-            </div>
-            <div class="tmc-title">${sanitize(title)}</div>
-            <div class="tmc-teams">
-                ${targetTeams.length ? targetTeams.map(t => `
-                    <span class="tmc-team-badge" style="background:${teamColor(t)}22;color:${teamColor(t)};border:1px solid ${teamColor(t)}">
-                        ${t}
-                    </span>
-                `).join('') : '<span class="tmc-no-teams">Select teams...</span>'}
-            </div>
-            <div class="tmc-briefing">${sanitize(briefing)}</div>
-            <div class="tmc-objective">
-                <span class="objective-label">OBJECTIVE:</span>
-                <span>${sanitize(targetTrack)} → ${goalTarget} streams</span>
-            </div>
-            <div class="tmc-reward">
-                ⭐ +${CONFIG.SECRET_MISSIONS.xpPerMission} XP per team
-            </div>
-        </div>
-    `;
-}
-
-function updateMissionPreview() {
-    const preview = $('mission-preview');
-    if (preview) {
-        preview.innerHTML = renderMissionPreview();
-    }
+    // Add any needed listeners
 }
 
 async function createTeamMission() {
@@ -767,19 +820,6 @@ async function createTeamMission() {
     const goalType = $('goal-type')?.value;
     const goalTarget = parseInt($('goal-target')?.value) || 100;
     const deadline = $('mission-deadline')?.value;
-    const encodedClue = $('encoded-clue')?.value.trim();
-    const decodeAnswer = $('decode-answer')?.value.trim();
-    const anyAgentsCount = parseInt($('any-agents-count')?.value) || 0;
-    
-    // Get assigned agents
-    const assignedAgents = [];
-    document.querySelectorAll('.agent-input-group').forEach(row => {
-        const team = row.querySelector('.agent-team-select')?.value;
-        const agentNo = row.querySelector('.agent-number-input')?.value?.trim();
-        if (team && agentNo) {
-            assignedAgents.push({ team, agentNo });
-        }
-    });
     
     // Validation
     if (!title) {
@@ -799,21 +839,9 @@ async function createTeamMission() {
     
     try {
         const result = await api('createTeamMission', {
-            type,
-            title,
-            briefing,
-            targetTeams,
-            assignedAgents,
-            anyAgentsCount,
-            targetTrack,
-            goalType,
-            goalTarget,
-            deadline,
-            encodedClue,
-            decodeAnswer
+            type, title, briefing, targetTeams, targetTrack, goalType, goalTarget, deadline,
+            week: STATE.week
         });
-        
-        loading(false);
         
         if (result.success) {
             showCreateResult(`✅ Mission deployed! ID: ${result.missionId}`, false);
@@ -825,15 +853,14 @@ async function createTeamMission() {
             document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = false);
             $('all-teams').checked = false;
             
-            // Refresh
             loadActiveTeamMissions();
-            updateMissionPreview();
         } else {
             showCreateResult('❌ ' + (result.error || 'Failed to create mission'), true);
         }
     } catch (e) {
-        loading(false);
         showCreateResult('❌ Error: ' + e.message, true);
+    } finally {
+        loading(false);
     }
 }
 
@@ -847,7 +874,6 @@ function showCreateResult(msg, isError) {
     }
 }
 
-// ==================== ADMIN: LOAD MISSIONS ====================
 async function loadActiveTeamMissions() {
     const container = $('admin-tab-active');
     if (!container) return;
@@ -856,7 +882,6 @@ async function loadActiveTeamMissions() {
         const result = await api('getTeamMissions', { status: 'active', week: STATE.week });
         const missions = result.missions || [];
         
-        // Update tab badge
         const tab = document.querySelector('.admin-tab[data-tab="active"]');
         if (tab) tab.textContent = `Active (${missions.length})`;
         
@@ -870,52 +895,22 @@ async function loadActiveTeamMissions() {
             return;
         }
         
-        container.innerHTML = missions.map(m => renderAdminMissionCard(m)).join('');
-        
+        container.innerHTML = missions.map(m => `
+            <div class="admin-mission-card">
+                <div class="amc-header">
+                    <span>${CONFIG.MISSION_TYPES[m.type]?.icon || '📋'} ${m.title}</span>
+                    <span class="amc-id">${m.id}</span>
+                </div>
+                <div class="amc-teams">${m.targetTeams?.join(', ')}</div>
+                <div class="amc-actions">
+                    <button onclick="adminCompleteMission('${m.id}')" class="btn-sm btn-success">Complete</button>
+                    <button onclick="adminCancelMission('${m.id}')" class="btn-sm btn-danger">Cancel</button>
+                </div>
+            </div>
+        `).join('');
     } catch (e) {
         container.innerHTML = `<div class="error-state">Failed to load: ${e.message}</div>`;
     }
-}
-
-function renderAdminMissionCard(mission) {
-    const missionInfo = CONFIG.MISSION_TYPES[mission.type] || {};
-    
-    return `
-        <div class="admin-mission-card">
-            <div class="amc-header">
-                <span class="amc-type">${missionInfo.icon} ${missionInfo.name}</span>
-                <span class="amc-id">${mission.id}</span>
-            </div>
-            <div class="amc-title">${sanitize(mission.title)}</div>
-            <div class="amc-teams">
-                ${mission.targetTeams.map(t => `
-                    <span class="team-badge ${mission.completedTeams?.includes(t) ? 'completed' : ''}" 
-                          style="color:${teamColor(t)}">
-                        ${t} ${mission.completedTeams?.includes(t) ? '✅' : ''}
-                    </span>
-                `).join('')}
-            </div>
-            
-            <div class="amc-progress">
-                ${mission.targetTeams.map(t => {
-                    const progress = mission.progress?.[t] || 0;
-                    const pct = Math.min((progress / mission.goalTarget) * 100, 100);
-                    return `
-                        <div class="progress-row">
-                            <span style="color:${teamColor(t)}">${t}</span>
-                            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${teamColor(t)}"></div></div>
-                            <span>${progress}/${mission.goalTarget}</span>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-            
-            <div class="amc-actions">
-                <button onclick="adminCompleteMission('${mission.id}')" class="btn-sm btn-success">✅ Complete Team</button>
-                <button onclick="adminCancelMission('${mission.id}')" class="btn-sm btn-danger">❌ Cancel</button>
-            </div>
-        </div>
-    `;
 }
 
 async function adminCompleteMission(missionId) {
@@ -928,17 +923,16 @@ async function adminCompleteMission(missionId) {
     loading(true);
     try {
         const result = await api('completeTeamMission', { missionId, team });
-        loading(false);
-        
         if (result.success) {
-            alert(`✅ ${team} completed! +${result.xpAwarded} XP awarded`);
+            showToast(`${team} completed mission! +${result.xpAwarded || 5} XP`, 'success');
             loadActiveTeamMissions();
         } else {
             alert('Failed: ' + (result.error || 'Unknown error'));
         }
     } catch (e) {
-        loading(false);
         alert('Error: ' + e.message);
+    } finally {
+        loading(false);
     }
 }
 
@@ -948,11 +942,11 @@ async function adminCancelMission(missionId) {
     loading(true);
     try {
         await api('cancelTeamMission', { missionId });
-        loading(false);
         loadActiveTeamMissions();
     } catch (e) {
-        loading(false);
         alert('Error: ' + e.message);
+    } finally {
+        loading(false);
     }
 }
 
@@ -970,22 +964,14 @@ async function loadMissionHistory() {
         }
         
         container.innerHTML = `
-            <table class="admin-table">
-                <thead>
-                    <tr><th>ID</th><th>Title</th><th>Teams</th><th>Status</th><th>Date</th></tr>
-                </thead>
-                <tbody>
-                    ${missions.map(m => `
-                        <tr>
-                            <td><code>${m.id}</code></td>
-                            <td>${sanitize(m.title)}</td>
-                            <td>${m.targetTeams.join(', ')}</td>
-                            <td><span class="status-${m.status}">${m.status}</span></td>
-                            <td>${new Date(m.createdAt).toLocaleDateString()}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
+            <div class="history-list">
+                ${missions.map(m => `
+                    <div class="history-item ${m.status}">
+                        <span>${m.title}</span>
+                        <span class="status-badge">${m.status}</span>
+                    </div>
+                `).join('')}
+            </div>
         `;
     } catch (e) {
         container.innerHTML = `<div class="error-state">Failed: ${e.message}</div>`;
@@ -1002,7 +988,12 @@ async function loadDashboard() {
         STATE.weeks = weeksRes.weeks || [];
         STATE.week = weeksRes.current || STATE.weeks[0];
         
+        // Calculate display week (for Sunday results)
+        STATE.displayWeek = getDisplayWeek(STATE.weeks, STATE.week);
+        
         if (!STATE.week) throw new Error('No weeks available');
+        
+        console.log(`📅 Current week: ${STATE.week}, Display week: ${STATE.displayWeek}, Is Sunday: ${isSunday()}`);
         
         STATE.data = await api('getAgentData', {
             agentNo: STATE.agentNo,
@@ -1025,7 +1016,6 @@ async function loadDashboard() {
         
         setupDashboard();
         await loadPage('home');
-        loading(false);
         
         // Show admin indicator if admin
         if (STATE.isAdmin) {
@@ -1034,9 +1024,10 @@ async function loadDashboard() {
         
     } catch (e) {
         console.error('Dashboard error:', e);
-        loading(false);
-        alert('Failed to load: ' + e.message);
+        showToast('Failed to load: ' + e.message, 'error');
         logout();
+    } finally {
+        loading(false);
     }
 }
 
@@ -1092,18 +1083,22 @@ function setupDashboard() {
         ).join('');
         
         select.onchange = async () => {
-            STATE.week = select.value;
+            const previousWeek = STATE.week;
             loading(true);
             try {
                 STATE.data = await api('getAgentData', {
                     agentNo: STATE.agentNo,
-                    week: STATE.week
+                    week: select.value
                 });
+                STATE.week = select.value;
+                STATE.displayWeek = getDisplayWeek(STATE.weeks, STATE.week);
                 await loadPage(STATE.page);
             } catch (e) {
-                alert('Failed to load week');
+                select.value = previousWeek;
+                showToast('Failed to load week', 'error');
+            } finally {
+                loading(false);
             }
-            loading(false);
         };
     }
     
@@ -1194,29 +1189,42 @@ async function loadPage(page) {
             case 'drawer': await renderDrawer(); break;
             case 'announcements': await renderAnnouncements(); break;
             case 'secret-missions': await renderSecretMissions(); break;
+            default:
+                console.warn('Unknown page:', page);
         }
     } catch (e) {
         console.error('Page error:', e);
+        if (el) {
+            el.innerHTML = `
+                <div class="error-page">
+                    <div class="error-icon">⚠️</div>
+                    <h3>Failed to load ${page}</h3>
+                    <p>${sanitize(e.message)}</p>
+                    <button onclick="loadPage('${page}')" class="btn-primary">Retry</button>
+                </div>
+            `;
+        }
+    } finally {
+        loading(false);
     }
-    
-    loading(false);
 }
 
-// ==================== HOME PAGE ====================
+// ==================== HOME PAGE (FIXED - Shows Track Goals by Name) ====================
 async function renderHome() {
-    $('current-week').textContent = 'Week: ' + STATE.week;
+    const weekToShow = isResultsDay() ? STATE.displayWeek : STATE.week;
+    $('current-week').textContent = `Week: ${weekToShow}${isResultsDay() ? ' (Results)' : ''}`;
     
     try {
         const [summary, rankings, goals] = await Promise.all([
-            api('getWeeklySummary', { week: STATE.week }),
-            api('getRankings', { week: STATE.week, limit: 5 }),
-            api('getGoalsProgress', { week: STATE.week })
+            api('getWeeklySummary', { week: weekToShow }),
+            api('getRankings', { week: weekToShow, limit: 5 }),
+            api('getGoalsProgress', { week: weekToShow })
         ]);
         
         const team = STATE.data?.profile?.team;
         const teamData = summary.teams?.[team] || {};
         const myStats = STATE.data?.stats || {};
-        const sunday = isSunday();
+        const sunday = isResultsDay();
         const daysLeft = getDaysUntilSunday();
         
         // Quick Stats Card
@@ -1256,63 +1264,100 @@ async function renderHome() {
             `;
         }
         
-        // Mission Cards
+        // Get track and album goals for this team
         const trackGoals = goals.trackGoals || {};
         const albumGoals = goals.albumGoals || {};
-        const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
         
-        const trackComplete = Object.values(trackGoals).filter(g => g.teams?.[team]?.status === 'Completed').length;
-        const albumComplete = Object.values(albumGoals).filter(g => g.teams?.[team]?.status === 'Completed').length;
+        // Build track goals list (Track Name - Goal)
+        const trackGoalsList = Object.entries(trackGoals).map(([trackName, info]) => {
+            const tp = info.teams?.[team] || {};
+            const current = tp.current || 0;
+            const goal = info.goal || 0;
+            const done = tp.status === 'Completed' || current >= goal;
+            const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+            
+            return { name: trackName, current, goal, done, pct };
+        });
         
+        // Build album goals list (Album Name - Goal)
+        const albumGoalsList = Object.entries(albumGoals).map(([albumName, info]) => {
+            const ap = info.teams?.[team] || {};
+            const current = ap.current || 0;
+            const goal = info.goal || 0;
+            const done = ap.status === 'Completed' || current >= goal;
+            const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+            
+            return { name: albumName, current, goal, done, pct };
+        });
+        
+        // Album 2X progress
         const album2xStatus = STATE.data?.album2xStatus || {};
+        const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
         const userTracksFor2x = album2xStatus.tracks || {};
         const tracksCompleted2x = teamTracks.filter(t => (userTracksFor2x[t] || 0) >= 2).length;
+        const albumName2x = CONFIG.TEAMS[team]?.album || team;
 
+        // Mission Cards Section
         const missionCardsContainer = document.querySelector('.missions-grid');
         if (missionCardsContainer) {
             missionCardsContainer.innerHTML = `
-                <div class="mission-card" onclick="loadPage('goals')">
+                <!-- Track Goals Card -->
+                <div class="mission-card expanded" onclick="loadPage('goals')">
                     <div class="mission-icon">🎵</div>
                     <h3>Track Goals</h3>
                     <div class="mission-status ${teamData.trackGoalPassed ? 'complete' : ''}">
                         ${teamData.trackGoalPassed ? '✅ Complete' : '⏳ In Progress'}
                     </div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill ${teamData.trackGoalPassed ? 'complete' : ''}" style="width:${Object.keys(trackGoals).length ? (trackComplete/Object.keys(trackGoals).length*100) : 0}%"></div></div>
-                        <span>${trackComplete}/${Object.keys(trackGoals).length}</span>
+                    <div class="goals-list">
+                        ${trackGoalsList.length ? trackGoalsList.map(g => `
+                            <div class="goal-mini ${g.done ? 'done' : ''}">
+                                <span class="goal-name" title="${sanitize(g.name)}">${sanitize(g.name.length > 25 ? g.name.substring(0, 22) + '...' : g.name)}</span>
+                                <span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span>
+                            </div>
+                        `).join('') : '<p class="no-goals">No track goals set</p>'}
                     </div>
                 </div>
                 
-                <div class="mission-card" onclick="loadPage('goals')">
+                <!-- Album Goals Card -->
+                <div class="mission-card expanded" onclick="loadPage('goals')">
                     <div class="mission-icon">💿</div>
                     <h3>Album Goals</h3>
                     <div class="mission-status ${teamData.albumGoalPassed ? 'complete' : ''}">
                         ${teamData.albumGoalPassed ? '✅ Complete' : '⏳ In Progress'}
                     </div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill ${teamData.albumGoalPassed ? 'complete' : ''}" style="width:${Object.keys(albumGoals).length ? (albumComplete/Object.keys(albumGoals).length*100) : 0}%"></div></div>
-                        <span>${albumComplete}/${Object.keys(albumGoals).length}</span>
+                    <div class="goals-list">
+                        ${albumGoalsList.length ? albumGoalsList.map(g => `
+                            <div class="goal-mini ${g.done ? 'done' : ''}">
+                                <span class="goal-name" title="${sanitize(g.name)}">${sanitize(g.name.length > 25 ? g.name.substring(0, 22) + '...' : g.name)}</span>
+                                <span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span>
+                            </div>
+                        `).join('') : '<p class="no-goals">No album goals set</p>'}
                     </div>
                 </div>
                 
+                <!-- Album 2X Card -->
                 <div class="mission-card" onclick="loadPage('album2x')">
                     <div class="mission-icon">✨</div>
                     <h3>Album 2X</h3>
+                    <div class="mission-subtitle">${sanitize(albumName2x)}</div>
                     <div class="mission-status ${album2xStatus.passed ? 'complete' : ''}">
                         ${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}
                     </div>
                     <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div></div>
-                        <span>${tracksCompleted2x}/${teamTracks.length}</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" 
+                                 style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%">
+                            </div>
+                        </div>
+                        <span>${tracksCompleted2x}/${teamTracks.length} tracks</span>
                     </div>
                 </div>
                 
+                <!-- Secret Missions Card -->
                 <div class="mission-card secret" onclick="loadPage('secret-missions')">
                     <div class="mission-icon">🔒</div>
                     <h3>Secret Missions</h3>
-                    <div class="mission-status">
-                        🕵️ Classified
-                    </div>
+                    <div class="mission-status">🕵️ Classified</div>
                     <div class="mission-hint">Tap to view team missions</div>
                 </div>
             `;
@@ -1320,11 +1365,397 @@ async function renderHome() {
         
         // Top Agents
         const rankList = rankings.rankings || [];
-        $('home-top-agents').innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => {
+        const topAgentsEl = $('home-top-agents');
+        if (topAgentsEl) {
+            topAgentsEl.innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => {
+                const isMe = String(r.agentNo) === String(STATE.agentNo);
+                return `
+                    <div class="rank-item ${isMe ? 'highlight' : ''}" onclick="loadPage('rankings')">
+                        <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
+                        <div class="rank-info">
+                            <div class="rank-name">${sanitize(r.name)}${isMe ? ' (You)' : ''}</div>
+                            <div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div>
+                        </div>
+                        <div class="rank-xp">${fmt(r.totalXP)} XP</div>
+                    </div>
+                `;
+            }).join('') : '<p class="empty-text">No data</p>';
+        }
+        
+        // Team Standings
+        const teams = summary.teams || {};
+        const sortedTeams = Object.keys(teams).sort((a, b) => (teams[b].teamXP || 0) - (teams[a].teamXP || 0));
+        const maxXP = teams[sortedTeams[0]]?.teamXP || 1;
+        
+        const standingsEl = $('home-standings');
+        if (standingsEl) {
+            standingsEl.innerHTML = sortedTeams.length ? `
+                <div class="standings-header">
+                    <span class="standings-badge ${sunday ? 'final' : ''}">${sunday ? '🏆 Final Results' : '⏳ Live Battle'}</span>
+                </div>
+                ${sortedTeams.map((t, i) => {
+                    const td = teams[t];
+                    const isMyTeam = t === team;
+                    const showTrophy = sunday && i === 0;
+                    
+                    return `
+                        <div class="standing-item ${isMyTeam ? 'my-team' : ''}" onclick="loadPage('team-level')" style="--team-color:${teamColor(t)}">
+                            <div class="standing-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
+                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}
+                            <div class="standing-info">
+                                <div class="standing-name" style="color:${teamColor(t)}">${t}${isMyTeam ? ' ⭐' : ''}${showTrophy ? ' 🏆' : ''}</div>
+                                <div class="standing-xp">${fmt(td.teamXP)} XP</div>
+                            </div>
+                            <div class="standing-missions">
+                                ${td.trackGoalPassed ? '🎵✅' : '🎵❌'}
+                                ${td.albumGoalPassed ? '💿✅' : '💿❌'}
+                                ${td.album2xPassed ? '✨✅' : '✨❌'}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            ` : '<p class="empty-text">No data</p>';
+        }
+        
+    } catch (e) {
+        console.error('Home error:', e);
+        showToast('Failed to load home data', 'error');
+    }
+}
+
+// ==================== COMPARISON PAGE (FIXED - Shows Track Progress per Team) ====================
+async function renderComparison() {
+    const container = $('comparison-content');
+    if (!container) return;
+    
+    const weekToShow = isResultsDay() ? STATE.displayWeek : STATE.week;
+    
+    try {
+        const [comparison, goals, summary] = await Promise.all([
+            api('getTeamComparison', { week: weekToShow }),
+            api('getGoalsProgress', { week: weekToShow }),
+            api('getWeeklySummary', { week: weekToShow })
+        ]);
+        
+        const teams = (comparison.comparison || []).sort((a, b) => (b.teamXP || 0) - (a.teamXP || 0));
+        const maxXP = teams[0]?.teamXP || 1;
+        const trackGoals = goals.trackGoals || {};
+        const albumGoals = goals.albumGoals || {};
+        const teamNames = Object.keys(CONFIG.TEAMS);
+        
+        container.innerHTML = `
+            <!-- XP Standings -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>⚔️ Battle Standings</h3>
+                    <span class="week-badge">${weekToShow}</span>
+                </div>
+                <div class="card-body">
+                    ${teams.map((t, i) => `
+                        <div class="comparison-item">
+                            <span class="comparison-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+                            ${teamPfp(t.team) ? `<img src="${teamPfp(t.team)}" class="comparison-pfp">` : ''}
+                            <span class="comparison-name" style="color:${teamColor(t.team)}">${t.team}</span>
+                            <div class="comparison-bar-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width:${(t.teamXP/maxXP)*100}%;background:${teamColor(t.team)}"></div>
+                                </div>
+                            </div>
+                            <span class="comparison-xp">${fmt(t.teamXP)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <!-- Track Goals Progress by Team -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>🎵 Track Goals Progress</h3>
+                </div>
+                <div class="card-body comparison-goals-section">
+                    ${Object.keys(trackGoals).length ? Object.entries(trackGoals).map(([trackName, info]) => {
+                        const goal = info.goal || 0;
+                        
+                        return `
+                            <div class="goal-comparison-block">
+                                <div class="goal-comparison-header">
+                                    <span class="goal-track-name">🎵 ${sanitize(trackName)}</span>
+                                    <span class="goal-target">Goal: ${fmt(goal)}</span>
+                                </div>
+                                <div class="goal-team-progress">
+                                    ${teamNames.map(teamName => {
+                                        const tp = info.teams?.[teamName] || {};
+                                        const current = tp.current || 0;
+                                        const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+                                        const done = current >= goal;
+                                        
+                                        return `
+                                            <div class="team-progress-row ${done ? 'complete' : ''}">
+                                                <span class="team-name-small" style="color:${teamColor(teamName)}">${teamName}</span>
+                                                <div class="progress-bar-small">
+                                                    <div class="progress-fill ${done ? 'complete' : ''}" 
+                                                         style="width:${pct}%;background:${teamColor(teamName)}"></div>
+                                                </div>
+                                                <span class="progress-text">${fmt(current)}/${fmt(goal)} ${done ? '✅' : ''}</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('') : '<p class="empty-text">No track goals set</p>'}
+                </div>
+            </div>
+            
+            <!-- Album Goals Progress by Team -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>💿 Album Goals Progress</h3>
+                </div>
+                <div class="card-body comparison-goals-section">
+                    ${Object.keys(albumGoals).length ? Object.entries(albumGoals).map(([albumName, info]) => {
+                        const goal = info.goal || 0;
+                        
+                        return `
+                            <div class="goal-comparison-block">
+                                <div class="goal-comparison-header">
+                                    <span class="goal-track-name">💿 ${sanitize(albumName)}</span>
+                                    <span class="goal-target">Goal: ${fmt(goal)}</span>
+                                </div>
+                                <div class="goal-team-progress">
+                                    ${teamNames.map(teamName => {
+                                        const ap = info.teams?.[teamName] || {};
+                                        const current = ap.current || 0;
+                                        const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+                                        const done = current >= goal;
+                                        
+                                        return `
+                                            <div class="team-progress-row ${done ? 'complete' : ''}">
+                                                <span class="team-name-small" style="color:${teamColor(teamName)}">${teamName}</span>
+                                                <div class="progress-bar-small">
+                                                    <div class="progress-fill ${done ? 'complete' : ''}" 
+                                                         style="width:${pct}%;background:${teamColor(teamName)}"></div>
+                                                </div>
+                                                <span class="progress-text">${fmt(current)}/${fmt(goal)} ${done ? '✅' : ''}</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('') : '<p class="empty-text">No album goals set</p>'}
+                </div>
+            </div>
+            
+            <!-- Mission Status Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📊 Mission Status Overview</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Team</th>
+                                    <th>Level</th>
+                                    <th>XP</th>
+                                    <th>🎵 Tracks</th>
+                                    <th>💿 Albums</th>
+                                    <th>✨ 2X</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${teams.map(t => {
+                                    const summaryTeam = summary.teams?.[t.team] || {};
+                                    return `
+                                        <tr>
+                                            <td style="color:${teamColor(t.team)};font-weight:600;">${t.team}</td>
+                                            <td>${t.level || summaryTeam.level || 1}</td>
+                                            <td>${fmt(t.teamXP)}</td>
+                                            <td>${summaryTeam.trackGoalPassed || t.missions?.tracks ? '✅' : '❌'}</td>
+                                            <td>${summaryTeam.albumGoalPassed || t.missions?.albums ? '✅' : '❌'}</td>
+                                            <td>${summaryTeam.album2xPassed || t.missions?.album2x ? '✅' : '❌'}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        console.error('Comparison error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison data</p></div></div>';
+    }
+}
+
+// ==================== SUMMARY PAGE (FIXED - Sunday Shows Last Week) ====================
+async function renderSummary() {
+    const container = $('summary-content');
+    
+    // On Sunday, show last week's results; otherwise show countdown
+    const weekToShow = isResultsDay() ? STATE.displayWeek : STATE.week;
+    
+    if (!isResultsDay()) {
+        const days = getDaysUntilSunday();
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-body" style="text-align:center;padding:60px 20px;">
+                    <div style="font-size:64px;margin-bottom:20px;">🔒</div>
+                    <h2>Summary Locked</h2>
+                    <p style="color:var(--text-dim);margin:16px 0;">Final results revealed every Sunday!</p>
+                    <div class="countdown-box">
+                        <div class="countdown-value">${days}</div>
+                        <div class="countdown-label">day${days !== 1 ? 's' : ''} until results</div>
+                    </div>
+                    <p style="margin-top:20px;font-size:14px;color:var(--text-dim);">
+                        Current battle: <strong>${STATE.week}</strong>
+                    </p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    try {
+        const [summary, winners] = await Promise.all([
+            api('getWeeklySummary', { week: weekToShow }),
+            api('getWeeklyWinners').catch(() => ({ winners: [] }))
+        ]);
+        
+        const teams = summary.teams || {};
+        const winner = summary.winner;
+        const sorted = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
+        
+        // Determine winner (highest XP team)
+        const actualWinner = sorted[0]?.[0] || winner;
+        
+        container.innerHTML = `
+            <div class="summary-week-header">
+                <h2>📊 ${weekToShow} Results</h2>
+                <p class="results-date">Battle concluded - Final standings</p>
+            </div>
+            
+            ${actualWinner ? `
+                <div class="card winner-card" style="border-color:${teamColor(actualWinner)}">
+                    <div class="card-body" style="text-align:center;padding:40px;">
+                        <div style="font-size:64px;margin-bottom:16px;">🏆</div>
+                        ${teamPfp(actualWinner) ? `<img src="${teamPfp(actualWinner)}" style="width:100px;height:100px;border-radius:50%;border:4px solid ${teamColor(actualWinner)};margin-bottom:16px;">` : ''}
+                        <h2 style="color:${teamColor(actualWinner)};font-size:28px;">Team ${actualWinner} WINS!</h2>
+                        <p style="font-size:32px;color:var(--purple-glow);margin:16px 0;">${fmt(teams[actualWinner]?.teamXP)} XP</p>
+                        <div class="winner-missions">
+                            <span>${teams[actualWinner]?.trackGoalPassed ? '🎵✅' : '🎵❌'} Tracks</span>
+                            <span>${teams[actualWinner]?.albumGoalPassed ? '💿✅' : '💿❌'} Albums</span>
+                            <span>${teams[actualWinner]?.album2xPassed ? '✨✅' : '✨❌'} 2X</span>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <div class="card">
+                <div class="card-header"><h3>📊 Final Standings</h3></div>
+                <div class="card-body">
+                    ${sorted.map(([t, info], i) => `
+                        <div class="final-standing ${i === 0 ? 'winner' : ''}" style="border-left-color:${teamColor(t)}">
+                            <span class="standing-pos">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp-sm">` : ''}
+                            <div class="standing-details">
+                                <div style="color:${teamColor(t)};font-weight:600;">${t}${i === 0 ? ' 🏆' : ''}</div>
+                                <div style="font-size:12px;color:var(--text-dim);">Level ${info.level || 1}</div>
+                            </div>
+                            <div class="standing-missions-mini">
+                                ${info.trackGoalPassed ? '🎵' : ''}
+                                ${info.albumGoalPassed ? '💿' : ''}
+                                ${info.album2xPassed ? '✨' : ''}
+                            </div>
+                            <div class="standing-xp-final">${fmt(info.teamXP)} XP</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header"><h3>📈 Battle Stats</h3></div>
+                <div class="card-body">
+                    <div class="summary-stats-grid">
+                        <div class="summary-stat">
+                            <div class="stat-value">${Object.values(teams).reduce((sum, t) => sum + (t.teamXP || 0), 0).toLocaleString()}</div>
+                            <div class="stat-label">Total XP Earned</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="stat-value">${Object.values(teams).filter(t => t.trackGoalPassed).length}/${Object.keys(teams).length}</div>
+                            <div class="stat-label">Track Goals Passed</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="stat-value">${Object.values(teams).filter(t => t.albumGoalPassed).length}/${Object.keys(teams).length}</div>
+                            <div class="stat-label">Album Goals Passed</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="stat-value">${Object.values(teams).filter(t => t.album2xPassed).length}/${Object.keys(teams).length}</div>
+                            <div class="stat-label">2X Challenges Passed</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        console.error('Summary error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load summary</p></div></div>';
+    }
+}
+
+// ==================== OTHER PAGES (Unchanged but included for completeness) ====================
+
+async function renderProfile() {
+    const stats = STATE.data?.stats || {};
+    const profile = STATE.data?.profile || {};
+    const album2xStatus = STATE.data?.album2xStatus || {};
+    const trackContributions = STATE.data?.trackContributions || {};
+    const albumContributions = STATE.data?.albumContributions || {};
+    
+    $('profile-stats').innerHTML = `
+        <div class="stat-box"><div class="stat-value">${fmt(stats.totalXP)}</div><div class="stat-label">XP</div></div>
+        <div class="stat-box"><div class="stat-value">#${STATE.data?.rank || 'N/A'}</div><div class="stat-label">Rank</div></div>
+        <div class="stat-box"><div class="stat-value">#${STATE.data?.teamRank || 'N/A'}</div><div class="stat-label">Team Rank</div></div>
+        <div class="stat-box"><div class="stat-value">${fmt(stats.trackScrobbles)}</div><div class="stat-label">Tracks</div></div>
+        <div class="stat-box"><div class="stat-value">${fmt(stats.albumScrobbles)}</div><div class="stat-label">Albums</div></div>
+        <div class="stat-box"><div class="stat-value">${album2xStatus.passed ? '✅' : '❌'}</div><div class="stat-label">2X</div></div>
+    `;
+    
+    $('profile-tracks').innerHTML = Object.keys(trackContributions).length ? 
+        Object.entries(trackContributions).sort((a, b) => b[1] - a[1]).map(([t, c]) => `
+            <div class="contrib-item"><span>${sanitize(t)}</span><span>${fmt(c)}</span></div>
+        `).join('') : '<p class="empty-text">No track data</p>';
+    
+    $('profile-albums').innerHTML = Object.keys(albumContributions).length ?
+        Object.entries(albumContributions).sort((a, b) => b[1] - a[1]).map(([a, c]) => `
+            <div class="contrib-item"><span>${sanitize(a)}</span><span>${fmt(c)}</span></div>
+        `).join('') : '<p class="empty-text">No album data</p>';
+    
+    try {
+        const badgesData = await api('getBadges', { agentNo: STATE.agentNo });
+        $('profile-badges').innerHTML = (badgesData.badges || []).length ? 
+            `<div class="badges-grid">${badgesData.badges.map(b => `
+                <div class="badge-item">
+                    <div class="badge-icon">${b.imageUrl ? `<img src="${b.imageUrl}">` : '🎖️'}</div>
+                    <div class="badge-name">${sanitize(b.name)}</div>
+                </div>
+            `).join('')}</div>` : '<p class="empty-text">No badges yet</p>';
+    } catch (e) {
+        $('profile-badges').innerHTML = '<p class="empty-text">No badges</p>';
+    }
+}
+
+async function renderRankings() {
+    try {
+        const data = await api('getRankings', { week: STATE.week, limit: 100 });
+        $('rankings-list').innerHTML = (data.rankings || []).map((r, i) => {
             const isMe = String(r.agentNo) === String(STATE.agentNo);
             return `
-                <div class="rank-item ${isMe ? 'highlight' : ''}" onclick="loadPage('rankings')">
-                    <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
+                <div class="rank-item ${isMe ? 'highlight' : ''}">
+                                        <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
                     <div class="rank-info">
                         <div class="rank-name">${sanitize(r.name)}${isMe ? ' (You)' : ''}</div>
                         <div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div>
@@ -1332,59 +1763,481 @@ async function renderHome() {
                     <div class="rank-xp">${fmt(r.totalXP)} XP</div>
                 </div>
             `;
-        }).join('') : '<p class="empty-text">No data</p>';
-        
-        // Team Standings
-        const teams = summary.teams || {};
-        const sortedTeams = Object.keys(teams).sort((a, b) => (teams[b].teamXP || 0) - (teams[a].teamXP || 0));
-        const maxXP = teams[sortedTeams[0]]?.teamXP || 1;
-        
-        $('home-standings').innerHTML = sortedTeams.length ? `
-            <div class="standings-header">
-                <span class="standings-badge ${sunday ? 'final' : ''}">${sunday ? '🏆 Final' : '⏳ Live'}</span>
-            </div>
-            ${sortedTeams.map((t, i) => {
-                const td = teams[t];
-                const isMyTeam = t === team;
-                const barWidth = ((td.teamXP || 0) / maxXP) * 100;
-                const showTrophy = sunday && td.isWinner;
-                
-                return `
-                    <div class="standing-item ${isMyTeam ? 'my-team' : ''}" onclick="loadPage('team-level')" style="--team-color:${teamColor(t)}">
-                        <div class="standing-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
-                        ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}
-                        <div class="standing-info">
-                            <div class="standing-name" style="color:${teamColor(t)}">${t}${isMyTeam ? ' ⭐' : ''}${showTrophy ? ' 🏆' : ''}</div>
-                            <div class="standing-xp">${fmt(td.teamXP)} XP ${td.secretXP ? `<span class="secret-bonus">(+${td.secretXP} secret)</span>` : ''}</div>
-                        </div>
-                        <div class="standing-missions">
-                            ${td.trackGoalPassed ? '🎵✅' : '🎵❌'}
-                            ${td.albumGoalPassed ? '💿✅' : '💿❌'}
-                            ${td.album2xPassed ? '✨✅' : '✨❌'}
-                        </div>
-                    </div>
-                `;
-            }).join('')}
-        ` : '<p class="empty-text">No data</p>';
-        
+        }).join('') || '<p class="empty-text">No data</p>';
     } catch (e) {
-        console.error('Home error:', e);
+        $('rankings-list').innerHTML = '<p class="error-text">Failed to load rankings</p>';
     }
 }
 
-// ==================== SECRET MISSIONS PAGE ====================
+async function renderGoals() {
+    const container = $('goals-content');
+    const team = STATE.data?.profile?.team;
+    
+    try {
+        const data = await api('getGoalsProgress', { week: STATE.week });
+        
+        let html = '';
+        
+        // Track Goals
+        const trackGoals = data.trackGoals || {};
+        if (Object.keys(trackGoals).length) {
+            html += `
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🎵 Track Goals</h3>
+                        <span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span>
+                    </div>
+                    <div class="card-body">
+            `;
+            
+            for (const [track, info] of Object.entries(trackGoals)) {
+                const tp = info.teams?.[team] || {};
+                const current = tp.current || 0;
+                const goal = info.goal || 0;
+                const done = tp.status === 'Completed' || current >= goal;
+                const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+                
+                html += `
+                    <div class="goal-item ${done ? 'completed' : ''}">
+                        <div class="goal-header">
+                            <span class="goal-name">${sanitize(track)}</span>
+                            <span class="goal-status ${done ? 'complete' : ''}">${fmt(current)}/${fmt(goal)} ${done ? '✅' : ''}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div></div>';
+        }
+        
+        // Album Goals
+        const albumGoals = data.albumGoals || {};
+        if (Object.keys(albumGoals).length) {
+            html += `
+                <div class="card">
+                    <div class="card-header">
+                        <h3>💿 Album Goals</h3>
+                        <span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span>
+                    </div>
+                    <div class="card-body">
+            `;
+            
+            for (const [album, info] of Object.entries(albumGoals)) {
+                const ap = info.teams?.[team] || {};
+                const current = ap.current || 0;
+                const goal = info.goal || 0;
+                const done = ap.status === 'Completed' || current >= goal;
+                const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+                
+                html += `
+                    <div class="goal-item ${done ? 'completed' : ''}">
+                        <div class="goal-header">
+                            <span class="goal-name">${sanitize(album)}</span>
+                            <span class="goal-status ${done ? 'complete' : ''}">${fmt(current)}/${fmt(goal)} ${done ? '✅' : ''}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div></div>';
+        }
+        
+        container.innerHTML = html || '<div class="card"><div class="card-body"><p class="empty-text">No goals set for this week</p></div></div>';
+    } catch (e) {
+        console.error('Goals error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load goals</p></div></div>';
+    }
+}
+
+async function renderAlbum2x() {
+    const container = $('album2x-content');
+    const team = STATE.data?.profile?.team;
+    const album2xStatus = STATE.data?.album2xStatus || {};
+    const userTracks = album2xStatus.tracks || {};
+    const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
+    const albumName = CONFIG.TEAMS[team]?.album || team;
+    
+    let completedCount = 0;
+    const trackResults = teamTracks.map(track => {
+        const count = userTracks[track] || 0;
+        const passed = count >= 2;
+        if (passed) completedCount++;
+        return { name: track, count, passed };
+    });
+    
+    const allComplete = completedCount === trackResults.length && trackResults.length > 0;
+    const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
+    
+    container.innerHTML = `
+        <div class="card" style="border-color:${allComplete ? 'var(--success)' : teamColor(team)}">
+            <div class="card-body" style="text-align:center;padding:30px;">
+                <div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div>
+                ${teamPfp(team) ? `<img src="${teamPfp(team)}" style="width:80px;height:80px;border-radius:50%;border:3px solid ${teamColor(team)};margin:16px auto;">` : ''}
+                <h2 style="color:${teamColor(team)};margin-bottom:8px;">${sanitize(albumName)}</h2>
+                <p style="color:var(--text-dim);margin-bottom:20px;">Stream every track at least 2 times</p>
+                <div style="font-size:48px;font-weight:700;color:${allComplete ? 'var(--success)' : 'var(--purple-glow)'}">${completedCount}/${trackResults.length}</div>
+                <p style="color:var(--text-dim);">Tracks completed</p>
+                <div class="progress-bar" style="margin:20px auto;max-width:300px;height:12px;">
+                    <div class="progress-fill ${allComplete ? 'complete' : ''}" style="width:${pct}%;background:${allComplete ? 'var(--success)' : teamColor(team)}"></div>
+                </div>
+                <p style="color:${allComplete ? 'var(--success)' : teamColor(team)};font-weight:600;">${allComplete ? '🎊 Challenge Complete!' : `${pct}% Progress`}</p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3>📋 Track Checklist</h3>
+            </div>
+            <div class="card-body">
+                ${trackResults.map((t, i) => `
+                    <div class="track-item ${t.passed ? 'passed' : 'pending'}" style="border-left-color:${t.passed ? 'var(--success)' : 'var(--danger)'}">
+                        <span class="track-num">${i + 1}</span>
+                        <span class="track-name">${sanitize(t.name)}</span>
+                        <span class="track-status ${t.passed ? 'pass' : 'fail'}">
+                            ${t.count}/2 ${t.passed ? '✅' : '❌'}
+                        </span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+async function renderTeamLevel() {
+    const container = $('team-level-content');
+    const weekToShow = isResultsDay() ? STATE.displayWeek : STATE.week;
+    
+    try {
+        const summary = await api('getWeeklySummary', { week: weekToShow });
+        const teams = summary.teams || {};
+        const myTeam = STATE.data?.profile?.team;
+        
+        const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
+        
+        container.innerHTML = `
+            <div class="team-level-header">
+                <h2>Team Levels</h2>
+                <span class="week-badge">${weekToShow}${isResultsDay() ? ' (Final)' : ''}</span>
+            </div>
+            
+            <div class="team-level-grid">
+                ${sortedTeams.map(([t, info], index) => {
+                    const isMyTeam = t === myTeam;
+                    const missions = (info.trackGoalPassed ? 1 : 0) + (info.albumGoalPassed ? 1 : 0) + (info.album2xPassed ? 1 : 0);
+                    const isWinner = index === 0 && isResultsDay();
+                    
+                    return `
+                        <div class="team-level-card ${isMyTeam ? 'my-team' : ''} ${isWinner ? 'winner' : ''}" style="border-color:${teamColor(t)}">
+                            ${isMyTeam ? '<div class="my-team-badge">Your Team</div>' : ''}
+                            ${isWinner ? '<div class="winner-badge">🏆 Winner</div>' : ''}
+                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${teamColor(t)}">` : ''}
+                            <div class="team-level-name" style="color:${teamColor(t)}">${t}</div>
+                            <div class="team-level-num">${info.level || 1}</div>
+                            <div class="team-level-label">LEVEL</div>
+                            <div class="team-level-xp">${fmt(info.teamXP)} XP</div>
+                            <div class="team-level-missions">
+                                <div class="mission-check" title="Track Goals">${info.trackGoalPassed ? '🎵✅' : '🎵❌'}</div>
+                                <div class="mission-check" title="Album Goals">${info.albumGoalPassed ? '💿✅' : '💿❌'}</div>
+                                <div class="mission-check" title="Album 2X">${info.album2xPassed ? '✨✅' : '✨❌'}</div>
+                            </div>
+                            <div class="team-level-status ${missions === 3 ? 'complete' : ''}">${missions}/3 missions</div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    } catch (e) {
+        console.error('Team level error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>';
+    }
+}
+
+async function renderTeamCharts() {
+    const container = $('team-charts-content');
+    if (!container) return;
+    
+    try {
+        const summary = await api('getWeeklySummary', { week: STATE.week });
+        const teams = summary.teams || {};
+        const teamNames = Object.keys(teams);
+        
+        // Destroy existing chart
+        if (STATE.charts.teamXP) {
+            STATE.charts.teamXP.destroy();
+            STATE.charts.teamXP = null;
+        }
+        
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-header"><h3>📊 Team XP Comparison</h3></div>
+                <div class="card-body">
+                    <canvas id="chart-team-xp" height="300"></canvas>
+                </div>
+            </div>
+        `;
+        
+        const ctx = $('chart-team-xp')?.getContext('2d');
+        if (ctx && typeof Chart !== 'undefined') {
+            STATE.charts.teamXP = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: teamNames,
+                    datasets: [{
+                        label: 'XP',
+                        data: teamNames.map(t => teams[t].teamXP || 0),
+                        backgroundColor: teamNames.map(t => teamColor(t)),
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false } 
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { color: '#888' },
+                            grid: { color: '#333' }
+                        },
+                        x: { 
+                            ticks: { color: '#888' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        } else if (typeof Chart === 'undefined') {
+            container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Chart library not loaded</p></div></div>';
+        }
+    } catch (e) {
+        console.error('Team charts error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load charts</p></div></div>';
+    }
+}
+
+async function renderAgentCharts() {
+    const container = $('agent-charts-content');
+    if (!container) return;
+    
+    const trackContributions = STATE.data?.trackContributions || {};
+    const albumContributions = STATE.data?.albumContributions || {};
+    
+    // Destroy existing charts
+    if (STATE.charts.agentTracks) {
+        STATE.charts.agentTracks.destroy();
+        STATE.charts.agentTracks = null;
+    }
+    if (STATE.charts.agentAlbums) {
+        STATE.charts.agentAlbums.destroy();
+        STATE.charts.agentAlbums = null;
+    }
+    
+    const hasTrackData = Object.keys(trackContributions).length > 0;
+    const hasAlbumData = Object.keys(albumContributions).length > 0;
+    
+    container.innerHTML = `
+        <div class="card">
+            <div class="card-header"><h3>🎵 Your Top Tracks</h3></div>
+            <div class="card-body">
+                ${hasTrackData ? '<canvas id="chart-agent-tracks" height="300"></canvas>' : '<p class="empty-text">No track data yet</p>'}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header"><h3>💿 Your Album Breakdown</h3></div>
+            <div class="card-body">
+                ${hasAlbumData ? '<canvas id="chart-agent-albums" height="300"></canvas>' : '<p class="empty-text">No album data yet</p>'}
+            </div>
+        </div>
+    `;
+    
+    if (typeof Chart === 'undefined') return;
+    
+    // Track chart
+    const ctx1 = $('chart-agent-tracks')?.getContext('2d');
+    if (ctx1 && hasTrackData) {
+        const sorted = Object.entries(trackContributions).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        STATE.charts.agentTracks = new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: sorted.map(([k]) => k.length > 20 ? k.substring(0, 17) + '...' : k),
+                datasets: [{ 
+                    data: sorted.map(([, v]) => v), 
+                    backgroundColor: '#7b2cbf',
+                    borderRadius: 4
+                }]
+            },
+            options: { 
+                responsive: true, 
+                indexAxis: 'y', 
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#888' }, grid: { color: '#333' } },
+                    y: { ticks: { color: '#888' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+    
+    // Album chart
+    const ctx2 = $('chart-agent-albums')?.getContext('2d');
+    if (ctx2 && hasAlbumData) {
+        STATE.charts.agentAlbums = new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(albumContributions),
+                datasets: [{ 
+                    data: Object.values(albumContributions), 
+                    backgroundColor: ['#7b2cbf', '#9d4edd', '#c77dff', '#4cc9f0', '#f72585', '#ff9500'] 
+                }]
+            },
+            options: { 
+                responsive: true, 
+                plugins: { 
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { color: '#e0e0f0' } 
+                    } 
+                } 
+            }
+        });
+    }
+}
+
+async function renderDrawer() {
+    const container = $('drawer-content');
+    const profile = STATE.data?.profile || {};
+    const stats = STATE.data?.stats || {};
+    
+    try {
+        const [badges, winners] = await Promise.all([
+            api('getBadges', { agentNo: STATE.agentNo }),
+            api('getWeeklyWinners').catch(() => ({ winners: [] }))
+        ]);
+        
+        const myWins = (winners.winners || []).filter(w => w.team === profile.team);
+        
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-header"><h3>📋 Agent Profile</h3></div>
+                <div class="card-body">
+                    <div class="drawer-header">
+                        ${teamPfp(profile.team) ? `<img src="${teamPfp(profile.team)}" class="drawer-pfp" style="border-color:${teamColor(profile.team)}">` : ''}
+                        <div class="drawer-info">
+                            <div class="drawer-name">${sanitize(profile.name)}</div>
+                            <div class="drawer-team" style="color:${teamColor(profile.team)}">Team ${profile.team}</div>
+                            <div class="drawer-id">Agent #${STATE.agentNo}</div>
+                            ${profile.instagram ? `<div class="drawer-ig">@${sanitize(profile.instagram)}</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="drawer-stats">
+                        <div class="drawer-stat">
+                            <span class="value">${fmt(stats.totalXP)}</span>
+                            <span class="label">Total XP</span>
+                        </div>
+                        <div class="drawer-stat">
+                            <span class="value">#${STATE.data?.rank || 'N/A'}</span>
+                            <span class="label">Global Rank</span>
+                        </div>
+                        <div class="drawer-stat">
+                            <span class="value">${(badges.badges || []).length}</span>
+                            <span class="label">Badges</span>
+                        </div>
+                        <div class="drawer-stat">
+                            <span class="value">${myWins.length}</span>
+                            <span class="label">Team Wins</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header"><h3>🎖️ Badges Earned</h3></div>
+                <div class="card-body">
+                    ${(badges.badges || []).length ? `
+                        <div class="badges-showcase">
+                            ${badges.badges.map(b => `
+                                <div class="badge-showcase-item">
+                                    <div class="badge-icon-lg">${b.imageUrl ? `<img src="${b.imageUrl}">` : '🎖️'}</div>
+                                    <div class="badge-name">${sanitize(b.name)}</div>
+                                    ${b.description ? `<div class="badge-desc">${sanitize(b.description)}</div>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<p class="empty-text">No badges earned yet. Keep streaming!</p>'}
+                </div>
+            </div>
+            
+            ${myWins.length ? `
+                <div class="card">
+                    <div class="card-header"><h3>🏆 Team Victories</h3></div>
+                    <div class="card-body">
+                        ${myWins.map(w => `
+                            <div class="victory-item">
+                                <span class="victory-week">${w.week}</span>
+                                <span class="victory-xp" style="color:var(--success)">🏆 ${fmt(w.teamXP)} XP</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        `;
+    } catch (e) {
+        console.error('Drawer error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load profile data</p></div></div>';
+    }
+}
+
+async function renderAnnouncements() {
+    const container = $('announcements-content');
+    
+    try {
+        const data = await api('getAnnouncements', { week: STATE.week });
+        const list = data.announcements || [];
+        
+        container.innerHTML = list.length ? list.map(a => `
+            <div class="card announcement ${a.priority === 'high' ? 'urgent' : ''}">
+                <div class="card-body">
+                    <div class="announcement-header">
+                        <span class="announcement-date">${a.created ? new Date(a.created).toLocaleDateString() : ''}</span>
+                        ${a.priority === 'high' ? '<span class="urgent-badge">⚠️ IMPORTANT</span>' : ''}
+                    </div>
+                    <h3>${sanitize(a.title)}</h3>
+                    <p>${sanitize(a.message)}</p>
+                </div>
+            </div>
+        `).join('') : `
+            <div class="card">
+                <div class="card-body" style="text-align:center;padding:40px;">
+                    <div style="font-size:48px;margin-bottom:16px;">📢</div>
+                    <p style="color:var(--text-dim);">No announcements at this time</p>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        console.error('Announcements error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p></div></div>';
+    }
+}
+
 async function renderSecretMissions() {
     const container = $('secret-missions-content');
     if (!container) return;
     
     const myTeam = STATE.data?.profile?.team;
     
-    container.innerHTML = '<div class="loading-skeleton"></div>';
+    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>';
     
     try {
         const [missionsData, statsData] = await Promise.all([
-            api('getTeamSecretMissions', { team: myTeam, agentNo: STATE.agentNo, week: STATE.week }),
-            api('getTeamSecretStats', { week: STATE.week })
+            api('getTeamSecretMissions', { team: myTeam, agentNo: STATE.agentNo, week: STATE.week }).catch(() => ({ active: [], completed: [], myAssigned: [] })),
+            api('getTeamSecretStats', { week: STATE.week }).catch(() => ({ teams: {} }))
         ]);
         
         const activeMissions = missionsData.active || [];
@@ -1400,12 +2253,12 @@ async function renderSecretMissions() {
                     <div class="secret-header">
                         ${teamPfp(myTeam) ? `<img src="${teamPfp(myTeam)}" class="secret-team-pfp" style="border-color:${teamColor(myTeam)}">` : ''}
                         <div class="secret-header-info">
-                            <div class="secret-team-name" style="color:${teamColor(myTeam)}">${myTeam}</div>
+                            <div class="secret-team-name" style="color:${teamColor(myTeam)}">Team ${myTeam}</div>
                             <div class="secret-label">SECRET MISSION BONUS</div>
                         </div>
                         <div class="secret-xp-display">
                             <div class="secret-xp-value">+${myStats.secretXP || 0}</div>
-                            <div class="secret-xp-max">/ ${CONFIG.SECRET_MISSIONS.maxTeamBonus} max</div>
+                            <div class="secret-xp-max">/ ${CONFIG.SECRET_MISSIONS.maxTeamBonus} max XP</div>
                         </div>
                     </div>
                     
@@ -1430,11 +2283,11 @@ async function renderSecretMissions() {
             ${myAssigned.length ? `
                 <div class="card urgent-card">
                     <div class="card-header">
-                        <h3>🎯 Your Missions</h3>
+                        <h3>🎯 Your Assigned Missions</h3>
                         <span class="urgent-badge">Action Required</span>
                     </div>
                     <div class="card-body">
-                        ${myAssigned.map(m => renderMissionCard(m, myTeam, true)).join('')}
+                        ${myAssigned.map(m => renderSecretMissionCard(m, myTeam, true)).join('')}
                     </div>
                 </div>
             ` : ''}
@@ -1442,13 +2295,13 @@ async function renderSecretMissions() {
             <!-- Active Team Missions -->
             <div class="card">
                 <div class="card-header">
-                    <h3>🔒 Team Missions</h3>
+                    <h3>🔒 Active Team Missions</h3>
                 </div>
                 <div class="card-body">
-                    ${activeMissions.length ? activeMissions.map(m => renderMissionCard(m, myTeam, false)).join('') : `
+                    ${activeMissions.length ? activeMissions.map(m => renderSecretMissionCard(m, myTeam, false)).join('') : `
                         <div class="empty-missions">
                             <div class="empty-icon">📭</div>
-                            <p>No active missions</p>
+                            <p>No active secret missions</p>
                             <p class="empty-hint">Stand by for orders, Agent.</p>
                         </div>
                     `}
@@ -1458,7 +2311,7 @@ async function renderSecretMissions() {
             <!-- All Teams Intel -->
             <div class="card">
                 <div class="card-header">
-                    <h3>📊 Intel Report</h3>
+                    <h3>📊 Team Intelligence Report</h3>
                 </div>
                 <div class="card-body">
                     <div class="intel-grid">
@@ -1470,7 +2323,7 @@ async function renderSecretMissions() {
                                     ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="intel-pfp">` : ''}
                                     <div class="intel-name" style="color:${teamColor(t)}">${t}</div>
                                     <div class="intel-xp">+${tStats.secretXP || 0} XP</div>
-                                    <div class="intel-missions">${tStats.completed || 0}/${CONFIG.SECRET_MISSIONS.maxMissionsPerTeam}</div>
+                                    <div class="intel-missions">${tStats.completed || 0}/${CONFIG.SECRET_MISSIONS.maxMissionsPerTeam} missions</div>
                                 </div>
                             `;
                         }).join('')}
@@ -1478,19 +2331,19 @@ async function renderSecretMissions() {
                 </div>
             </div>
             
-            <!-- Completed -->
+            <!-- Completed Missions -->
             ${completedMissions.length ? `
                 <div class="card">
-                    <div class="card-header"><h3>✅ Completed</h3></div>
+                    <div class="card-header"><h3>✅ Completed Missions</h3></div>
                     <div class="card-body">
                         ${completedMissions.map(m => `
                             <div class="completed-mission">
                                 <span class="completed-icon">${CONFIG.MISSION_TYPES[m.type]?.icon || '✅'}</span>
                                 <div class="completed-info">
                                     <div class="completed-title">${sanitize(m.title)}</div>
-                                    <div class="completed-date">${new Date(m.createdAt).toLocaleDateString()}</div>
+                                    <div class="completed-date">${m.completedAt ? new Date(m.completedAt).toLocaleDateString() : ''}</div>
                                 </div>
-                                <span class="completed-xp">+${m.xpReward}</span>
+                                <span class="completed-xp">+${m.xpReward || CONFIG.SECRET_MISSIONS.xpPerMission} XP</span>
                             </div>
                         `).join('')}
                     </div>
@@ -1500,22 +2353,30 @@ async function renderSecretMissions() {
         
     } catch (e) {
         console.error('Secret missions error:', e);
-        container.innerHTML = `<div class="card"><div class="card-body error-state">Failed to load. <a href="#" onclick="loadPage('secret-missions')">Retry</a></div></div>`;
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-body error-state">
+                    <p>Failed to load secret missions.</p>
+                    <button onclick="loadPage('secret-missions')" class="btn-primary">Retry</button>
+                </div>
+            </div>
+        `;
     }
 }
 
-function renderMissionCard(mission, myTeam, isAssigned) {
-    const missionInfo = CONFIG.MISSION_TYPES[mission.type] || {};
+function renderSecretMissionCard(mission, myTeam, isAssigned) {
+    const missionInfo = CONFIG.MISSION_TYPES[mission.type] || { icon: '🔒', name: 'Mission' };
     const myProgress = mission.progress?.[myTeam] || 0;
-    const pct = Math.min((myProgress / mission.goalTarget) * 100, 100);
+    const goalTarget = mission.goalTarget || 100;
+    const pct = Math.min((myProgress / goalTarget) * 100, 100);
     const isComplete = mission.completedTeams?.includes(myTeam);
     
     return `
         <div class="secret-mission-card ${isAssigned ? 'assigned' : ''} ${isComplete ? 'complete' : ''}">
-            <div class="smc-stamp">${isAssigned ? 'YOUR MISSION' : 'CLASSIFIED'}</div>
+            <div class="smc-stamp">${isAssigned ? '🎯 YOUR MISSION' : '🔒 CLASSIFIED'}</div>
             
             <div class="smc-header">
-                <span class="smc-icon">${missionInfo.icon || '🔒'}</span>
+                <span class="smc-icon">${missionInfo.icon}</span>
                 <div class="smc-title-section">
                     <div class="smc-type">${missionInfo.name}</div>
                     <div class="smc-title">${sanitize(mission.title)}</div>
@@ -1524,553 +2385,54 @@ function renderMissionCard(mission, myTeam, isAssigned) {
             
             ${mission.assignedAgents?.length ? `
                 <div class="smc-agents">
-                    <div class="agents-label">Assigned:</div>
+                    <div class="agents-label">Assigned Agents:</div>
                     <div class="agents-list">
                         ${mission.assignedAgents.map(a => {
                             const isMe = String(a.agentNo) === String(STATE.agentNo);
-                            return `<span class="agent-tag ${isMe ? 'is-me' : ''}" style="color:${teamColor(a.team)}">${isMe ? '👤 YOU' : `#${a.agentNo}`} (${a.team})</span>`;
-                        }).join(' + ')}
+                            return `<span class="agent-tag ${isMe ? 'is-me' : ''}" style="color:${teamColor(a.team)}">${isMe ? '👤 YOU' : `#${a.agentNo}`}</span>`;
+                        }).join('')}
                     </div>
                 </div>
             ` : ''}
             
-            <div class="smc-briefing">${sanitize(mission.briefing)}</div>
-            
-            ${mission.type === 'decode' && mission.encodedClue ? `
-                <div class="smc-decode">
-                    <div class="decode-label">🔐 DECODE:</div>
-                    <div class="decode-clue">${sanitize(mission.encodedClue)}</div>
-                </div>
-            ` : ''}
+            <div class="smc-briefing">${sanitize(mission.briefing || '')}</div>
             
             ${mission.targetTrack ? `
                 <div class="smc-target">
                     <span class="target-label">TARGET:</span>
                     <span class="target-track">${sanitize(mission.targetTrack)}</span>
-                    <span class="target-goal">${mission.goalTarget} streams</span>
+                    <span class="target-goal">${goalTarget} streams</span>
                 </div>
             ` : ''}
             
             <div class="smc-progress">
                 <div class="progress-header">
-                    <span>Progress</span>
-                    <span>${myProgress}/${mission.goalTarget}</span>
+                    <span>Team Progress</span>
+                    <span>${myProgress}/${goalTarget}</span>
                 </div>
                 <div class="progress-bar">
                     <div class="progress-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(myTeam)}"></div>
                 </div>
-                ${isComplete ? `<div class="progress-complete">✅ +${mission.xpReward} XP earned!</div>` : `<div class="progress-remaining">${mission.goalTarget - myProgress} more needed</div>`}
+                ${isComplete ? 
+                    `<div class="progress-complete">✅ Mission Complete! +${mission.xpReward || CONFIG.SECRET_MISSIONS.xpPerMission} XP</div>` : 
+                    `<div class="progress-remaining">${goalTarget - myProgress} more streams needed</div>`
+                }
             </div>
             
-            ${mission.deadline ? `<div class="smc-deadline">⏰ ${new Date(mission.deadline).toLocaleString()}</div>` : ''}
+            ${mission.deadline ? `<div class="smc-deadline">⏰ Deadline: ${new Date(mission.deadline).toLocaleString()}</div>` : ''}
             
             <div class="smc-footer">
-                <span class="smc-reward">⭐ +${mission.xpReward} XP</span>
+                <span class="smc-reward">⭐ +${mission.xpReward || CONFIG.SECRET_MISSIONS.xpPerMission} XP</span>
                 <span class="smc-id">${mission.id}</span>
             </div>
         </div>
     `;
 }
 
-// ==================== PROFILE PAGE ====================
-async function renderProfile() {
-    const stats = STATE.data?.stats || {};
-    const profile = STATE.data?.profile || {};
-    const album2xStatus = STATE.data?.album2xStatus || {};
-    const trackContributions = STATE.data?.trackContributions || {};
-    const albumContributions = STATE.data?.albumContributions || {};
-    
-    $('profile-stats').innerHTML = `
-        <div class="stat-box"><div class="stat-value">${fmt(stats.totalXP)}</div><div class="stat-label">XP</div></div>
-        <div class="stat-box"><div class="stat-value">#${STATE.data?.rank || 'N/A'}</div><div class="stat-label">Rank</div></div>
-        <div class="stat-box"><div class="stat-value">#${STATE.data?.teamRank || 'N/A'}</div><div class="stat-label">Team Rank</div></div>
-        <div class="stat-box"><div class="stat-value">${fmt(stats.trackScrobbles)}</div><div class="stat-label">Tracks</div></div>
-        <div class="stat-box"><div class="stat-value">${fmt(stats.albumScrobbles)}</div><div class="stat-label">Albums</div></div>
-        <div class="stat-box"><div class="stat-value">${album2xStatus.passed ? '✅' : '❌'}</div><div class="stat-label">2X</div></div>
-    `;
-    
-    $('profile-tracks').innerHTML = Object.keys(trackContributions).length ? 
-        Object.entries(trackContributions).sort((a, b) => b[1] - a[1]).map(([t, c]) => `
-            <div class="contrib-item"><span>${sanitize(t)}</span><span>${fmt(c)}</span></div>
-        `).join('') : '<p class="empty-text">No data</p>';
-    
-    $('profile-albums').innerHTML = Object.keys(albumContributions).length ?
-        Object.entries(albumContributions).sort((a, b) => b[1] - a[1]).map(([a, c]) => `
-            <div class="contrib-item"><span>${sanitize(a)}</span><span>${fmt(c)}</span></div>
-        `).join('') : '<p class="empty-text">No data</p>';
-    
-    try {
-        const badgesData = await api('getBadges', { agentNo: STATE.agentNo });
-        $('profile-badges').innerHTML = (badgesData.badges || []).length ? 
-            `<div class="badges-grid">${badgesData.badges.map(b => `
-                <div class="badge-item">
-                    <div class="badge-icon">${b.imageUrl ? `<img src="${b.imageUrl}">` : '🎖️'}</div>
-                    <div class="badge-name">${sanitize(b.name)}</div>
-                </div>
-            `).join('')}</div>` : '<p class="empty-text">No badges yet</p>';
-    } catch (e) {
-        $('profile-badges').innerHTML = '<p class="empty-text">No badges</p>';
-    }
-}
-
-// ==================== RANKINGS PAGE ====================
-async function renderRankings() {
-    try {
-        const data = await api('getRankings', { week: STATE.week, limit: 100 });
-        $('rankings-list').innerHTML = (data.rankings || []).map((r, i) => {
-            const isMe = String(r.agentNo) === String(STATE.agentNo);
-            return `
-                <div class="rank-item ${isMe ? 'highlight' : ''}">
-                    <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
-                    <div class="rank-info">
-                        <div class="rank-name">${sanitize(r.name)}${isMe ? ' (You)' : ''}</div>
-                        <div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div>
-                    </div>
-                    <div class="rank-xp">${fmt(r.totalXP)} XP</div>
-                </div>
-            `;
-        }).join('') || '<p class="empty-text">No data</p>';
-    } catch (e) {
-        $('rankings-list').innerHTML = '<p class="error-text">Failed to load</p>';
-    }
-}
-
-// ==================== GOALS PAGE ====================
-async function renderGoals() {
-    const container = $('goals-content');
-    try {
-        const data = await api('getGoalsProgress', { week: STATE.week });
-        const team = STATE.data?.profile?.team;
-        
-        let html = '';
-        
-        // Track Goals
-        const trackGoals = data.trackGoals || {};
-        if (Object.keys(trackGoals).length) {
-            html += '<div class="card"><div class="card-header"><h3>🎵 Track Goals</h3></div><div class="card-body">';
-            for (const [track, info] of Object.entries(trackGoals)) {
-                const tp = info.teams?.[team] || {};
-                const done = tp.status === 'Completed';
-                html += `
-                    <div class="goal-item">
-                        <div class="goal-header">
-                            <span>${sanitize(track)}</span>
-                            <span class="${done ? 'complete' : ''}">${fmt(tp.current || 0)}/${fmt(info.goal)} ${done ? '✅' : ''}</span>
-                        </div>
-                        <div class="progress-bar"><div class="progress-fill ${done ? 'complete' : ''}" style="width:${Math.min(100, tp.percentage || 0)}%"></div></div>
-                    </div>
-                `;
-            }
-            html += '</div></div>';
-        }
-        
-        // Album Goals
-        const albumGoals = data.albumGoals || {};
-        if (Object.keys(albumGoals).length) {
-            html += '<div class="card"><div class="card-header"><h3>💿 Album Goals</h3></div><div class="card-body">';
-            for (const [album, info] of Object.entries(albumGoals)) {
-                const ap = info.teams?.[team] || {};
-                const done = ap.status === 'Completed';
-                html += `
-                    <div class="goal-item">
-                        <div class="goal-header">
-                            <span>${sanitize(album)}</span>
-                            <span class="${done ? 'complete' : ''}">${fmt(ap.current || 0)}/${fmt(info.goal)} ${done ? '✅' : ''}</span>
-                        </div>
-                        <div class="progress-bar"><div class="progress-fill ${done ? 'complete' : ''}" style="width:${Math.min(100, ap.percentage || 0)}%"></div></div>
-                    </div>
-                `;
-            }
-            html += '</div></div>';
-        }
-        
-        container.innerHTML = html || '<div class="card"><div class="card-body"><p class="empty-text">No goals</p></div></div>';
-    } catch (e) {
-        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load</p></div></div>';
-    }
-}
-
-// ==================== ALBUM 2X PAGE ====================
-async function renderAlbum2x() {
-    const container = $('album2x-content');
-    const team = STATE.data?.profile?.team;
-    const album2xStatus = STATE.data?.album2xStatus || {};
-    const userTracks = album2xStatus.tracks || {};
-    const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
-    const albumName = CONFIG.TEAMS[team]?.album || team;
-    
-    let completedCount = 0;
-    const trackResults = teamTracks.map(track => {
-        const count = userTracks[track] || 0;
-        const passed = count >= 2;
-        if (passed) completedCount++;
-        return { name: track, count, passed };
-    });
-    
-    const allComplete = completedCount === trackResults.length;
-    const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
-    
-    container.innerHTML = `
-        <div class="card" style="border-color:${allComplete ? 'var(--success)' : 'var(--purple-main)'}">
-            <div class="card-body" style="text-align:center;padding:30px;">
-                <div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div>
-                <div style="font-size:32px;font-weight:700;color:${allComplete ? 'var(--success)' : 'var(--purple-glow)'}">${completedCount}/${trackResults.length}</div>
-                <p style="color:var(--text-dim);">Tracks with 2+ streams</p>
-                <div class="progress-bar" style="margin:20px auto;max-width:300px;height:12px;">
-                    <div class="progress-fill ${allComplete ? 'complete' : ''}" style="width:${pct}%"></div>
-                </div>
-                <p style="color:${allComplete ? 'var(--success)' : 'var(--purple-light)'}">${allComplete ? '🎊 Complete!' : `${pct}%`}</p>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header"><h3>💿 ${sanitize(albumName)}</h3></div>
-            <div class="card-body">
-                ${trackResults.map((t, i) => `
-                    <div class="track-item" style="border-left-color:${t.passed ? 'var(--success)' : 'var(--danger)'}">
-                        <span class="track-num">${i + 1}</span>
-                        <span class="track-name">${sanitize(t.name)}</span>
-                        <span class="track-status ${t.passed ? 'pass' : 'fail'}">${t.count}/2 ${t.passed ? '✅' : '❌'}</span>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-}
-
-// ==================== TEAM LEVEL PAGE ====================
-async function renderTeamLevel() {
-    const container = $('team-level-content');
-    try {
-        const summary = await api('getWeeklySummary', { week: STATE.week });
-        const teams = summary.teams || {};
-        const myTeam = STATE.data?.profile?.team;
-        
-        container.innerHTML = `
-            <div class="team-level-grid">
-                ${Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0)).map(([t, info]) => {
-                    const isMyTeam = t === myTeam;
-                    const missions = (info.trackGoalPassed ? 1 : 0) + (info.albumGoalPassed ? 1 : 0) + (info.album2xPassed ? 1 : 0);
-                    
-                    return `
-                        <div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="border-color:${teamColor(t)}">
-                            ${isMyTeam ? '<div class="my-team-badge">Your Team</div>' : ''}
-                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${teamColor(t)}">` : ''}
-                            <div class="team-level-name" style="color:${teamColor(t)}">${t}</div>
-                            <div class="team-level-num">${info.level || 1}</div>
-                            <div class="team-level-label">LEVEL</div>
-                            <div class="team-level-xp">${fmt(info.teamXP)} XP</div>
-                            ${info.secretXP ? `<div class="team-level-secret">+${info.secretXP} secret</div>` : ''}
-                            <div class="team-level-missions">
-                                <div class="mission-check">${info.trackGoalPassed ? '🎵✅' : '🎵❌'}</div>
-                                <div class="mission-check">${info.albumGoalPassed ? '💿✅' : '💿❌'}</div>
-                                <div class="mission-check">${info.album2xPassed ? '✨✅' : '✨❌'}</div>
-                            </div>
-                            <div class="team-level-status ${missions === 3 ? 'complete' : ''}">${missions}/3 missions</div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-    } catch (e) {
-        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load</p></div></div>';
-    }
-}
-
-// ==================== COMPARISON PAGE ====================
-async function renderComparison() {
-    const container = $('comparison-content');
-    try {
-        const [comparison, goals] = await Promise.all([
-            api('getTeamComparison', { week: STATE.week }),
-            api('getGoalsProgress', { week: STATE.week })
-        ]);
-        
-        const teams = (comparison.comparison || []).sort((a, b) => (b.teamXP || 0) - (a.teamXP || 0));
-        const maxXP = teams[0]?.teamXP || 1;
-        
-        container.innerHTML = `
-            <div class="card">
-                <div class="card-header"><h3>⚔️ Battle Standings</h3></div>
-                <div class="card-body">
-                    ${teams.map((t, i) => `
-                        <div class="comparison-item">
-                            <span class="comparison-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
-                            ${teamPfp(t.team) ? `<img src="${teamPfp(t.team)}" class="comparison-pfp">` : ''}
-                            <span class="comparison-name" style="color:${teamColor(t.team)}">${t.team}</span>
-                            <div class="comparison-bar-container">
-                                <div class="progress-bar"><div class="progress-fill" style="width:${(t.teamXP/maxXP)*100}%;background:${teamColor(t.team)}"></div></div>
-                            </div>
-                            <span class="comparison-xp">${fmt(t.teamXP)}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header"><h3>📊 Mission Status</h3></div>
-                <div class="card-body">
-                    <table class="comparison-table">
-                        <thead><tr><th>Team</th><th>Lv</th><th>🎵</th><th>💿</th><th>✨</th></tr></thead>
-                        <tbody>
-                            ${teams.map(t => `
-                                <tr>
-                                    <td style="color:${teamColor(t.team)}">${t.team}</td>
-                                    <td>${t.level}</td>
-                                    <td>${t.missions?.tracks ? '✅' : '❌'}</td>
-                                    <td>${t.missions?.albums ? '✅' : '❌'}</td>
-                                    <td>${t.missions?.album2x ? '✅' : '❌'}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-    } catch (e) {
-        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load</p></div></div>';
-    }
-}
-
-// ==================== SUMMARY PAGE ====================
-async function renderSummary() {
-    const container = $('summary-content');
-    
-    if (!isSunday()) {
-        const days = getDaysUntilSunday();
-        container.innerHTML = `
-            <div class="card">
-                <div class="card-body" style="text-align:center;padding:60px 20px;">
-                    <div style="font-size:64px;margin-bottom:20px;">🔒</div>
-                    <h2>Summary Locked</h2>
-                    <p style="color:var(--text-dim);margin:16px 0;">Results available on Sunday</p>
-                    <div class="countdown-box">
-                        <div class="countdown-value">${days}</div>
-                        <div class="countdown-label">day${days !== 1 ? 's' : ''} left</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        return;
-    }
-    
-    try {
-        const [summary, winners] = await Promise.all([
-            api('getWeeklySummary', { week: STATE.week }),
-            api('getWeeklyWinners').catch(() => ({ winners: [] }))
-        ]);
-        
-        const teams = summary.teams || {};
-        const winner = summary.winner;
-        const sorted = Object.entries(teams).sort((a, b) => b[1].teamXP - a[1].teamXP);
-        
-        container.innerHTML = `
-            ${winner ? `
-                <div class="card winner-card" style="border-color:${teamColor(winner)}">
-                    <div class="card-body" style="text-align:center;padding:40px;">
-                        <div style="font-size:64px;margin-bottom:16px;">🏆</div>
-                        ${teamPfp(winner) ? `<img src="${teamPfp(winner)}" style="width:80px;height:80px;border-radius:50%;border:3px solid ${teamColor(winner)};margin-bottom:16px;">` : ''}
-                        <h2 style="color:${teamColor(winner)}">${winner} WINS!</h2>
-                        <p style="font-size:24px;color:var(--purple-glow)">${fmt(teams[winner]?.teamXP)} XP</p>
-                    </div>
-                </div>
-            ` : ''}
-            
-            <div class="card">
-                <div class="card-header"><h3>📊 Final Standings</h3></div>
-                <div class="card-body">
-                    ${sorted.map(([t, info], i) => `
-                        <div class="final-standing" style="border-left-color:${teamColor(t)}">
-                            <span class="standing-pos">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
-                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp-sm">` : ''}
-                            <div class="standing-details">
-                                <div style="color:${teamColor(t)};font-weight:600;">${t}</div>
-                                <div style="font-size:12px;color:var(--text-dim);">Level ${info.level}</div>
-                            </div>
-                            <div class="standing-xp-final">${fmt(info.teamXP)} XP</div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    } catch (e) {
-        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load</p></div></div>';
-    }
-}
-
-// ==================== DRAWER PAGE ====================
-async function renderDrawer() {
-    const container = $('drawer-content');
-    const profile = STATE.data?.profile || {};
-    const stats = STATE.data?.stats || {};
-    
-    try {
-        const [badges, winners] = await Promise.all([
-            api('getBadges', { agentNo: STATE.agentNo }),
-            api('getWeeklyWinners').catch(() => ({ winners: [] }))
-        ]);
-        
-        const myWins = (winners.winners || []).filter(w => w.team === profile.team);
-        
-        container.innerHTML = `
-            <div class="card">
-                <div class="card-header"><h3>📋 Agent Summary</h3></div>
-                <div class="card-body">
-                    <div class="drawer-header">
-                        ${teamPfp(profile.team) ? `<img src="${teamPfp(profile.team)}" class="drawer-pfp" style="border-color:${teamColor(profile.team)}">` : ''}
-                        <div class="drawer-info">
-                            <div class="drawer-name">${sanitize(profile.name)}</div>
-                            <div class="drawer-team" style="color:${teamColor(profile.team)}">Team ${profile.team}</div>
-                            <div class="drawer-id">Agent #${STATE.agentNo}</div>
-                        </div>
-                    </div>
-                    <div class="drawer-stats">
-                        <div class="drawer-stat"><span class="value">${fmt(stats.totalXP)}</span><span class="label">XP</span></div>
-                        <div class="drawer-stat"><span class="value">#${STATE.data?.rank || 'N/A'}</span><span class="label">Rank</span></div>
-                        <div class="drawer-stat"><span class="value">${(badges.badges || []).length}</span><span class="label">Badges</span></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header"><h3>🎖️ Badges</h3></div>
-                <div class="card-body">
-                    ${(badges.badges || []).length ? `
-                        <div class="badges-showcase">
-                            ${badges.badges.map(b => `
-                                <div class="badge-showcase-item">
-                                    <div class="badge-icon-lg">${b.imageUrl ? `<img src="${b.imageUrl}">` : '🎖️'}</div>
-                                    <div class="badge-name">${sanitize(b.name)}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : '<p class="empty-text">No badges yet</p>'}
-                </div>
-            </div>
-            
-            ${myWins.length ? `
-                <div class="card">
-                    <div class="card-header"><h3>🏆 Team Victories</h3></div>
-                    <div class="card-body">
-                        ${myWins.map(w => `
-                            <div class="victory-item">
-                                <span>${w.week}</span>
-                                <span style="color:var(--success)">🏆 ${fmt(w.teamXP)} XP</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
-        `;
-    } catch (e) {
-        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load</p></div></div>';
-    }
-}
-
-// ==================== ANNOUNCEMENTS PAGE ====================
-async function renderAnnouncements() {
-    const container = $('announcements-content');
-    try {
-        const data = await api('getAnnouncements', { week: STATE.week });
-        const list = data.announcements || [];
-        
-        container.innerHTML = list.length ? list.map(a => `
-            <div class="card announcement ${a.priority === 'high' ? 'urgent' : ''}">
-                <div class="card-body">
-                    <div class="announcement-header">
-                        <span class="announcement-date">${a.created ? new Date(a.created).toLocaleDateString() : ''}</span>
-                        ${a.priority === 'high' ? '<span class="urgent-badge">IMPORTANT</span>' : ''}
-                    </div>
-                    <h3>${sanitize(a.title)}</h3>
-                    <p>${sanitize(a.message)}</p>
-                </div>
-            </div>
-        `).join('') : `
-            <div class="card">
-                <div class="card-body" style="text-align:center;padding:40px;">
-                    <div style="font-size:48px;margin-bottom:16px;">📢</div>
-                    <p style="color:var(--text-dim);">No announcements</p>
-                </div>
-            </div>
-        `;
-    } catch (e) {
-        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load</p></div></div>';
-    }
-}
-
-// ==================== CHARTS ====================
-async function renderTeamCharts() {
-    try {
-        const summary = await api('getWeeklySummary', { week: STATE.week });
-        const teams = summary.teams || {};
-        const teamNames = Object.keys(teams);
-        
-        if (STATE.charts.teamXP) STATE.charts.teamXP.destroy();
-        
-        const ctx = $('chart-team-xp')?.getContext('2d');
-        if (ctx) {
-            STATE.charts.teamXP = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: teamNames,
-                    datasets: [{
-                        label: 'XP',
-                        data: teamNames.map(t => teams[t].teamXP || 0),
-                        backgroundColor: teamNames.map(t => teamColor(t))
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { color: '#888' } },
-                        x: { ticks: { color: '#888' } }
-                    }
-                }
-            });
-        }
-    } catch (e) {
-        console.error('Charts error:', e);
-    }
-}
-
-async function renderAgentCharts() {
-    const trackContributions = STATE.data?.trackContributions || {};
-    const albumContributions = STATE.data?.albumContributions || {};
-    
-    if (STATE.charts.agentTracks) STATE.charts.agentTracks.destroy();
-    if (STATE.charts.agentAlbums) STATE.charts.agentAlbums.destroy();
-    
-    const ctx1 = $('chart-agent-tracks')?.getContext('2d');
-    if (ctx1 && Object.keys(trackContributions).length) {
-        const sorted = Object.entries(trackContributions).sort((a, b) => b[1] - a[1]).slice(0, 10);
-        STATE.charts.agentTracks = new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: sorted.map(([k]) => k.length > 20 ? k.substring(0, 20) + '...' : k),
-                datasets: [{ data: sorted.map(([, v]) => v), backgroundColor: '#7b2cbf' }]
-            },
-            options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false } } }
-        });
-    }
-    
-    const ctx2 = $('chart-agent-albums')?.getContext('2d');
-    if (ctx2 && Object.keys(albumContributions).length) {
-        STATE.charts.agentAlbums = new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(albumContributions),
-                datasets: [{ data: Object.values(albumContributions), backgroundColor: ['#7b2cbf', '#9d4edd', '#c77dff', '#4cc9f0', '#f72585'] }]
-            },
-            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#e0e0f0' } } } }
-        });
-    }
-}
-
-// ==================== START ====================
+// ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
-// Global exports
+// Global exports for onclick handlers
 window.loadPage = loadPage;
 window.logout = logout;
 window.showAdminPanel = showAdminPanel;
@@ -2081,11 +2443,9 @@ window.verifyAdminPassword = verifyAdminPassword;
 window.exitAdminMode = exitAdminMode;
 window.selectMissionType = selectMissionType;
 window.toggleAllTeams = toggleAllTeams;
-window.addAgentRow = addAgentRow;
-window.updateMissionPreview = updateMissionPreview;
 window.createTeamMission = createTeamMission;
 window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
 
-console.log('🎮 BTS Spy Battle Loaded');
+console.log('🎮 BTS Spy Battle v2.0 Loaded');
