@@ -2,15 +2,127 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BTS COMEBACK MISSION - HYUNG LINE EDITION</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js is essential for analytics pages -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="description" content="BTS Spy Battle - Hyung Line Streaming Competition Dashboard">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>BTS SPY BATTLE - HYUNG LINE EDITION</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⟭⟬</text></svg>">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Inline Critical CSS for Loading Screen -->
+    <style>
+        /* Critical CSS for instant loading screen */
+        :root {
+            --bg-dark: #0a0a0f;
+            --purple-main: #7b2cbf;
+            --purple-glow: #9d4edd;
+            --text-main: #e0e0f0;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 10, 15, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .screen {
+            display: none;
+            min-height: 100vh;
+        }
+        
+        .screen.active {
+            display: flex;
+        }
+        
+        /* Loader Animation */
+        .loader {
+            text-align: center;
+        }
+        
+        .loader-ring {
+            width: 60px;
+            height: 60px;
+            border: 3px solid transparent;
+            border-top-color: var(--purple-glow);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loader-ring:nth-child(2) {
+            width: 48px;
+            height: 48px;
+            margin-top: -54px;
+            animation-delay: 0.15s;
+            border-top-color: var(--purple-main);
+        }
+        
+        .loader-ring:nth-child(3) {
+            width: 36px;
+            height: 36px;
+            margin-top: -42px;
+            animation-delay: 0.3s;
+            border-top-color: #c77dff;
+        }
+        
+        .loader p {
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            letter-spacing: 3px;
+            color: var(--purple-glow);
+            margin-top: 30px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+    </style>
 </head>
 <body>
-    <!-- === Loading Overlay (Shown during API calls) === -->
+    <!-- ==================== LOADING OVERLAY ==================== -->
     <div id="loading" class="loading-overlay">
         <div class="loader">
             <div class="loader-ring"></div>
@@ -20,59 +132,114 @@
         </div>
     </div>
     
-    <!-- Login Screen -->
+    <!-- ==================== LOGIN SCREEN ==================== -->
     <div id="login-screen" class="screen active">
         <div class="login-container">
+            <!-- Animated Background -->
             <div class="cyber-grid"></div>
+            <div class="floating-particles" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            
             <div class="login-content">
+                <!-- Logo Section -->
                 <div class="logo-section">
-                    <div class="bts-logo">⟭⟬</div>
+                    <div class="bts-logo" aria-label="BTS Logo">⟭⟬</div>
                     <h1 class="title">SPY BATTLE</h1>
                     <p class="subtitle">HYUNG LINE EDITION</p>
-                    <div class="scan-line"></div>
+                    <div class="scan-line" aria-hidden="true"></div>
                 </div>
 
+                <!-- Login Form -->
                 <div class="login-box">
-                    <div class="input-group">
-                        <label>AGENT IDENTIFICATION</label>
-                        <input type="text" id="agent-input" placeholder="Enter Agent Number..." autocomplete="off">
-                        <button id="login-btn" class="btn-primary">
-                            <span class="btn-glow"></span>
-                            <span>ACCESS DASHBOARD</span>
-                        </button>
+                    <form id="login-form" onsubmit="return false;">
+                        <div class="input-group">
+                            <label for="agent-input">
+                                <span class="label-icon">🔑</span>
+                                AGENT IDENTIFICATION
+                            </label>
+                            <div class="input-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="agent-input" 
+                                    placeholder="Enter Agent Number (e.g., AGENT001)" 
+                                    autocomplete="off"
+                                    autocapitalize="characters"
+                                    spellcheck="false"
+                                    aria-describedby="agent-hint"
+                                >
+                                <span class="input-icon">👤</span>
+                            </div>
+                            <small id="agent-hint" class="input-hint">Your unique agent ID from registration</small>
+                            <button type="submit" id="login-btn" class="btn-primary">
+                                <span class="btn-glow"></span>
+                                <span class="btn-text">ACCESS DASHBOARD</span>
+                                <span class="btn-icon">→</span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="divider">
+                        <span class="divider-line"></span>
+                        <span class="divider-text">FORGOT YOUR ID?</span>
+                        <span class="divider-line"></span>
                     </div>
 
-                    <div class="divider"><span>OR</span></div>
+                    <form id="find-form" onsubmit="return false;">
+                        <div class="input-group">
+                            <label for="instagram-input">
+                                <span class="label-icon">📱</span>
+                                INSTAGRAM LOOKUP
+                            </label>
+                            <div class="input-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="instagram-input" 
+                                    placeholder="Enter Instagram username..." 
+                                    autocomplete="off"
+                                    autocapitalize="none"
+                                    spellcheck="false"
+                                    aria-describedby="ig-hint"
+                                >
+                                <span class="input-icon">@</span>
+                            </div>
+                            <small id="ig-hint" class="input-hint">We'll find your Agent ID using your IG handle</small>
+                            <button type="submit" id="find-btn" class="btn-secondary">
+                                <span class="btn-text">FIND MY AGENT ID</span>
+                                <span class="btn-icon">🔍</span>
+                            </button>
+                        </div>
+                    </form>
 
-                    <div class="input-group">
-                        <label>INSTAGRAM LOOKUP</label>
-                        <input type="text" id="instagram-input" placeholder="Enter Instagram username..." autocomplete="off">
-                        <button id="find-btn" class="btn-secondary">FIND AGENT ID</button>
-                    </div>
-
-                    <div id="find-result" class="result-box"></div>
+                    <!-- Result Box -->
+                    <div id="find-result" class="result-box" role="alert" aria-live="polite"></div>
                 </div>
 
+                <!-- Footer -->
                 <div class="login-footer">
-                    <div class="pulse-dot"></div>
-                    <span>SECURE CONNECTION ESTABLISHED</span>
+                    <div class="connection-status">
+                        <div class="pulse-dot"></div>
+                        <span>SECURE CONNECTION ESTABLISHED</span>
+                    </div>
+                    <div class="version-info">v2.0 | Hyung Line Edition</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Dashboard Screen -->
+    <!-- ==================== DASHBOARD SCREEN ==================== -->
     <div id="dashboard-screen" class="screen">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar">
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="sidebar" role="navigation" aria-label="Main Navigation">
             <div class="sidebar-header">
-                <div class="logo-mini">⟭⟬</div>
-                <span>SPY BATTLE</span>
-                <button id="close-sidebar" class="close-btn">✕</button>
+                <div class="logo-mini" aria-hidden="true">⟭⟬</div>
+                <span class="logo-text">SPY BATTLE</span>
+                <button id="close-sidebar" class="close-btn" aria-label="Close menu">✕</button>
             </div>
 
+            <!-- Agent Info Card -->
             <div class="agent-card">
-                <div class="agent-avatar" id="agent-avatar"></div>
+                <div class="agent-avatar" id="agent-avatar" role="img" aria-label="Team avatar"></div>
                 <div class="agent-details">
                     <div class="agent-name" id="agent-name">Agent</div>
                     <div class="agent-team" id="agent-team">Team</div>
@@ -80,271 +247,463 @@
                 </div>
             </div>
 
+            <!-- Week Selector -->
             <div class="week-selector">
-                <label>📅 MISSION WEEK</label>
-                <select id="week-select"></select>
+                <label for="week-select">
+                    <span class="selector-icon">📅</span>
+                    MISSION WEEK
+                </label>
+                <div class="select-wrapper">
+                    <select id="week-select" aria-label="Select week"></select>
+                    <span class="select-arrow">▼</span>
+                </div>
             </div>
 
-            <nav class="nav-menu">
-                <a href="#" class="nav-link active" data-page="home">
-                    <span class="nav-icon">🏠</span>
-                    <span>Mission Control</span>
-                </a>
-                <a href="#" class="nav-link" data-page="profile">
-                    <span class="nav-icon">👤</span>
-                    <span>Agent Profile</span>
-                </a>
-                <a href="#" class="nav-link" data-page="rankings">
-                    <span class="nav-icon">🏆</span>
-                    <span>Rankings</span>
-                </a>
-                <a href="#" class="nav-link" data-page="goals">
-                    <span class="nav-icon">🎯</span>
-                    <span>Goals Progress</span>
-                </a>
-                <a href="#" class="nav-link" data-page="album2x">
-                    <span class="nav-icon">💿</span>
-                    <span>Album 2X Check</span>
-                </a>
-                <a href="#" class="nav-link" data-page="team-level">
-                    <span class="nav-icon">📊</span>
-                    <span>Team Levels</span>
-                </a>
-                <a href="#" class="nav-link" data-page="team-charts">
-                    <span class="nav-icon">📈</span>
-                    <span>Team Charts</span>
-                </a>
-                <a href="#" class="nav-link" data-page="agent-charts">
-                    <span class="nav-icon">📉</span>
-                    <span>Agent Charts</span>
-                </a>
-                <a href="#" class="nav-link" data-page="comparison">
-                    <span class="nav-icon">⚔️</span>
-                    <span>Team Comparison</span>
-                </a>
-                <a href="#" class="nav-link" data-page="summary">
-                    <span class="nav-icon">📋</span>
-                    <span>Weekly Summary</span>
-                </a>
-                <a href="#" class="nav-link" data-page="drawer">
-                    <span class="nav-icon">🎖️</span>
-                    <span>My Drawer</span>
-                </a>
-                <a href="#" class="nav-link" data-page="announcements">
-                    <span class="nav-icon">📢</span>
-                    <span>Announcements</span>
-                </a>
-                <!-- Admin link will be dynamically added -->
+            <!-- Navigation Menu -->
+            <nav class="nav-menu" role="menubar">
+                <div class="nav-section">
+                    <span class="nav-section-title">MAIN</span>
+                    <a href="#" class="nav-link active" data-page="home" role="menuitem">
+                        <span class="nav-icon">🏠</span>
+                        <span class="nav-text">Mission Control</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="profile" role="menuitem">
+                        <span class="nav-icon">👤</span>
+                        <span class="nav-text">Agent Profile</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="rankings" role="menuitem">
+                        <span class="nav-icon">🏆</span>
+                        <span class="nav-text">Rankings</span>
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <span class="nav-section-title">MISSIONS</span>
+                    <a href="#" class="nav-link" data-page="goals" role="menuitem">
+                        <span class="nav-icon">🎯</span>
+                        <span class="nav-text">Goals Progress</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="album2x" role="menuitem">
+                        <span class="nav-icon">💿</span>
+                        <span class="nav-text">Album 2X Mission</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="secret-missions" role="menuitem">
+                        <span class="nav-icon">🔒</span>
+                        <span class="nav-text">Secret Missions</span>
+                        <span class="nav-badge">NEW</span>
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <span class="nav-section-title">ANALYTICS</span>
+                    <a href="#" class="nav-link" data-page="team-level" role="menuitem">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text">Team Levels</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="team-charts" role="menuitem">
+                        <span class="nav-icon">📈</span>
+                        <span class="nav-text">Team Charts</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="agent-charts" role="menuitem">
+                        <span class="nav-icon">📉</span>
+                        <span class="nav-text">My Charts</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="comparison" role="menuitem">
+                        <span class="nav-icon">⚔️</span>
+                        <span class="nav-text">Team Comparison</span>
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <span class="nav-section-title">MORE</span>
+                    <a href="#" class="nav-link" data-page="summary" role="menuitem">
+                        <span class="nav-icon">📋</span>
+                        <span class="nav-text">Weekly Summary</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="drawer" role="menuitem">
+                        <span class="nav-icon">🎖️</span>
+                        <span class="nav-text">My Drawer</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="announcements" role="menuitem">
+                        <span class="nav-icon">📢</span>
+                        <span class="nav-text">Announcements</span>
+                    </a>
+                </div>
+                
+                <!-- Admin Link Container (Dynamically populated) -->
+                <div class="nav-section nav-admin-section" id="nav-admin-container"></div>
             </nav>
 
+            <!-- Sidebar Footer -->
             <div class="sidebar-footer">
-                <div class="last-update">
+                <div class="sync-status">
+                    <span class="sync-icon">🔄</span>
                     Last Sync: <span id="last-update">--:--</span>
                 </div>
-                <button id="logout-btn" class="btn-logout">🚪 Logout</button>
+                <button id="logout-btn" class="btn-logout" aria-label="Logout">
+                    <span class="logout-icon">🚪</span>
+                    <span>Logout</span>
+                </button>
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
+        <!-- Sidebar Overlay (Mobile) -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Main Content Area -->
+        <main class="main-content" role="main">
+            <!-- Mobile Header -->
             <header class="mobile-header">
-                <button id="menu-btn" class="menu-btn">☰</button>
-                <div class="header-logo">⟭⟬ SPY BATTLE</div>
+                <button id="menu-btn" class="menu-btn" aria-label="Open menu">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                <div class="header-logo">
+                    <span class="header-logo-icon">⟭⟬</span>
+                    <span class="header-logo-text">SPY BATTLE</span>
+                </div>
+                <div class="header-spacer"></div>
             </header>
 
-            <!-- Pages -->
+            <!-- Pages Container -->
             <div class="pages-wrapper">
                 
-                <!-- HOME PAGE -->
+                <!-- ==================== HOME PAGE ==================== -->
                 <section id="page-home" class="page active">
                     <div class="page-header">
-                        <h1>Mission Control</h1>
-                        <p id="current-week">Week: Loading...</p>
+                        <div class="page-title-section">
+                            <h1>Mission Control</h1>
+                            <p id="current-week" class="page-subtitle">Week: Loading...</p>
+                        </div>
+                        <div class="page-actions">
+                            <button class="refresh-btn" onclick="loadPage('home')" aria-label="Refresh">
+                                🔄
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="welcome-card">
-                        <div class="welcome-icon">⟭⟬</div>
-                        <h2>Welcome Back, <span id="agent-name-home">Agent</span></h2>
-                        <p>Complete all 3 primary missions to level up your team!</p>
+                    <!-- Quick Stats Section -->
+                    <div class="quick-stats-section">
+                        <!-- Dynamically populated -->
                     </div>
 
+                    <!-- Mission Cards Grid -->
+                    <div class="section-header">
+                        <h2>📋 Active Missions</h2>
+                        <span class="section-badge">Complete all 3 to level up!</span>
+                    </div>
                     <div class="missions-grid" id="home-mission-grid">
-                        <!-- Mission cards dynamically populated -->
+                        <!-- Dynamically populated with Track Goals, Album Goals, Album 2X, Secret Missions -->
                     </div>
 
+                    <!-- Top Agents Section -->
                     <div class="card">
                         <div class="card-header">
-                            <h3>🏆 Top Agents</h3>
+                            <h3>
+                                <span class="header-icon">🏆</span>
+                                Top Agents This Week
+                            </h3>
+                            <a href="#" class="card-link" onclick="loadPage('rankings'); return false;">View All →</a>
                         </div>
-                        <div class="card-body" id="home-top-agents">Loading...</div>
+                        <div class="card-body" id="home-top-agents">
+                            <div class="loading-skeleton">
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                            </div>
+                        </div>
                     </div>
 
+                    <!-- Team Standings Section -->
                     <div class="card">
                         <div class="card-header">
-                            <h3>🎭 Team Standings</h3>
+                            <h3>
+                                <span class="header-icon">🎭</span>
+                                Team Battle Standings
+                            </h3>
+                            <a href="#" class="card-link" onclick="loadPage('comparison'); return false;">Details →</a>
                         </div>
-                        <div class="card-body" id="home-standings">Loading...</div>
+                        <div class="card-body" id="home-standings">
+                            <div class="loading-skeleton">
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
-                <!-- PROFILE PAGE -->
+                <!-- ==================== PROFILE PAGE ==================== -->
                 <section id="page-profile" class="page">
                     <div class="page-header">
                         <h1>Agent Profile</h1>
                     </div>
 
                     <div class="profile-card">
-                        <div class="profile-avatar" id="profile-avatar"></div>
-                        <div class="profile-info">
-                            <h2 id="profile-name">Agent Name</h2>
-                            <p id="profile-team">Team</p>
-                            <p id="profile-id">Agent ID: ---</p>
+                        <div class="profile-header">
+                            <div class="profile-avatar" id="profile-avatar" role="img"></div>
+                            <div class="profile-info">
+                                <h2 id="profile-name">Agent Name</h2>
+                                <p id="profile-team" class="profile-team-name">Team</p>
+                                <p id="profile-id" class="profile-agent-id">Agent ID: ---</p>
+                            </div>
+                        </div>
+                        <div class="profile-rank-badge" id="profile-rank-badge">
+                            <!-- Rank badge dynamically added -->
                         </div>
                     </div>
 
-                    <div class="stats-grid" id="profile-stats">Loading...</div>
-
-                    <div class="card">
-                        <div class="card-header"><h3>🎵 Track Streams</h3></div>
-                        <div class="card-body" id="profile-tracks">Loading...</div>
+                    <div class="stats-grid" id="profile-stats">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-stat"></div>
+                            <div class="skeleton-stat"></div>
+                            <div class="skeleton-stat"></div>
+                        </div>
                     </div>
 
                     <div class="card">
-                        <div class="card-header"><h3>💿 Album Streams</h3></div>
-                        <div class="card-body" id="profile-albums">Loading...</div>
+                        <div class="card-header">
+                            <h3><span class="header-icon">🎵</span> Your Track Streams</h3>
+                        </div>
+                        <div class="card-body scrollable" id="profile-tracks">
+                            <div class="loading-skeleton"><div class="skeleton-item"></div></div>
+                        </div>
                     </div>
 
                     <div class="card">
-                        <div class="card-header"><h3>🎖️ Badges</h3></div>
-                        <div class="card-body" id="profile-badges">No badges yet</div>
+                        <div class="card-header">
+                            <h3><span class="header-icon">💿</span> Your Album Streams</h3>
+                        </div>
+                        <div class="card-body scrollable" id="profile-albums">
+                            <div class="loading-skeleton"><div class="skeleton-item"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><span class="header-icon">🎖️</span> Badges Earned</h3>
+                        </div>
+                        <div class="card-body" id="profile-badges">
+                            <p class="empty-text">No badges earned yet</p>
+                        </div>
                     </div>
                 </section>
 
-                <!-- RANKINGS PAGE -->
+                <!-- ==================== RANKINGS PAGE ==================== -->
                 <section id="page-rankings" class="page">
                     <div class="page-header">
-                        <h1>Rankings</h1>
+                        <h1>Agent Rankings</h1>
+                        <p class="page-subtitle">Top performers this week</p>
                     </div>
 
-                    <div class="filter-tabs" id="rankings-filter">
-                        <button class="filter-btn active" data-filter="all">All</button>
-                        <button class="filter-btn" data-filter="team">My Team</button>
-                        <button class="filter-btn" data-filter="xp">XP</button>
+                    <div class="filter-tabs" id="rankings-filter" role="tablist">
+                        <button class="filter-btn active" data-filter="all" role="tab" aria-selected="true">
+                            All Agents
+                        </button>
+                        <button class="filter-btn" data-filter="team" role="tab" aria-selected="false">
+                            My Team
+                        </button>
                     </div>
 
                     <div class="card">
-                        <div class="card-body" id="rankings-list">Loading...</div>
+                        <div class="card-body" id="rankings-list">
+                            <div class="loading-skeleton">
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
-                <!-- GOALS PAGE -->
+                <!-- ==================== GOALS PAGE ==================== -->
                 <section id="page-goals" class="page">
                     <div class="page-header">
                         <h1>Goals Progress</h1>
+                        <p class="page-subtitle">Track and album streaming goals for your team</p>
                     </div>
-                    <div id="goals-content">Loading...</div>
+                    <div id="goals-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
-                <!-- ALBUM 2X PAGE -->
+                <!-- ==================== ALBUM 2X PAGE ==================== -->
                 <section id="page-album2x" class="page">
                     <div class="page-header">
                         <h1>Album 2X Mission</h1>
-                        <p>Stream each track in your team album at least 2 times</p>
+                        <p class="page-subtitle">Stream every track in your team album at least 2 times</p>
                     </div>
-                    <div id="album2x-content">Loading...</div>
+                    <div id="album2x-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card large"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
-                <!-- TEAM LEVEL PAGE -->
+                <!-- ==================== SECRET MISSIONS PAGE ==================== -->
+                <section id="page-secret-missions" class="page">
+                    <div class="page-header">
+                        <div class="page-title-section">
+                            <h1>
+                                <span class="classified-stamp">🔒</span>
+                                Secret Missions
+                            </h1>
+                            <p class="page-subtitle">Classified operations for bonus XP</p>
+                        </div>
+                    </div>
+                    <div id="secret-missions-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== TEAM LEVEL PAGE ==================== -->
                 <section id="page-team-level" class="page">
                     <div class="page-header">
                         <h1>Team Levels</h1>
+                        <p class="page-subtitle">Complete missions to level up your team</p>
                     </div>
-                    <div id="team-level-content">Loading...</div>
+                    <div id="team-level-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
-                <!-- TEAM CHARTS PAGE -->
+                <!-- ==================== TEAM CHARTS PAGE ==================== -->
                 <section id="page-team-charts" class="page">
                     <div class="page-header">
                         <h1>Team Analytics</h1>
+                        <p class="page-subtitle">Visual comparison of all teams</p>
                     </div>
-                    <div class="charts-grid">
-                        <div class="card">
-                            <div class="card-header"><h3>Team XP Comparison (Stream + Secret)</h3></div>
-                            <div class="card-body"><canvas id="chart-team-xp"></canvas></div>
-                        </div>
-                        <div class="card">
-                            <div class="card-header"><h3>Team Level Progression</h3></div>
-                            <div class="card-body"><canvas id="chart-team-levels"></canvas></div>
+                    <div id="team-charts-content">
+                        <div class="charts-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3><span class="header-icon">📊</span> Team XP Comparison</h3>
+                                </div>
+                                <div class="card-body chart-container">
+                                    <canvas id="chart-team-xp"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- AGENT CHARTS PAGE -->
+                <!-- ==================== AGENT CHARTS PAGE ==================== -->
                 <section id="page-agent-charts" class="page">
                     <div class="page-header">
                         <h1>Your Analytics</h1>
+                        <p class="page-subtitle">Your personal streaming breakdown</p>
                     </div>
-                    <div class="charts-grid">
-                        <div class="card">
-                            <div class="card-header"><h3>Your Track Breakdown</h3></div>
-                            <div class="card-body"><canvas id="chart-agent-tracks"></canvas></div>
-                        </div>
-                        <div class="card">
-                            <div class="card-header"><h3>Your Album Breakdown</h3></div>
-                            <div class="card-body"><canvas id="chart-agent-albums"></canvas></div>
+                    <div id="agent-charts-content">
+                        <div class="charts-grid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3><span class="header-icon">🎵</span> Your Top Tracks</h3>
+                                </div>
+                                <div class="card-body chart-container">
+                                    <canvas id="chart-agent-tracks"></canvas>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3><span class="header-icon">💿</span> Your Album Breakdown</h3>
+                                </div>
+                                <div class="card-body chart-container">
+                                    <canvas id="chart-agent-albums"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- COMPARISON PAGE -->
+                <!-- ==================== COMPARISON PAGE ==================== -->
                 <section id="page-comparison" class="page">
                     <div class="page-header">
                         <h1>Team Comparison</h1>
+                        <p class="page-subtitle">Battle standings and goal progress by team</p>
                     </div>
-                    <div id="comparison-content">Loading...</div>
+                    <div id="comparison-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card large"></div>
+                            <div class="skeleton-card large"></div>
+                        </div>
+                    </div>
                 </section>
 
-                <!-- SUMMARY PAGE -->
+                <!-- ==================== SUMMARY PAGE ==================== -->
                 <section id="page-summary" class="page">
                     <div class="page-header">
                         <h1>Weekly Summary</h1>
+                        <p class="page-subtitle">Results revealed every Sunday!</p>
                     </div>
-                    <div id="summary-content">Loading...</div>
+                    <div id="summary-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card large"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
-                <!-- DRAWER PAGE -->
+                <!-- ==================== DRAWER PAGE ==================== -->
                 <section id="page-drawer" class="page">
                     <div class="page-header">
                         <h1>My Drawer</h1>
-                        <p>Badges & Achievements</p>
+                        <p class="page-subtitle">Your badges, achievements & history</p>
                     </div>
-                    <div id="drawer-content">Loading...</div>
+                    <div id="drawer-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
-                <!-- ANNOUNCEMENTS PAGE -->
+                <!-- ==================== ANNOUNCEMENTS PAGE ==================== -->
                 <section id="page-announcements" class="page">
                     <div class="page-header">
                         <h1>Announcements</h1>
+                        <p class="page-subtitle">Important updates from Command</p>
                     </div>
-                    <div id="announcements-content">Loading...</div>
-                </section>
-                
-                <!-- SECRET MISSIONS PAGE (Requires Admin Auth) -->
-                 <section id="page-secret-missions" class="page">
-                    <div class="page-header">
-                        <h1>Secret Mission Hub</h1>
-                        <p>Tasks assigned by Command.</p>
+                    <div id="announcements-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
                     </div>
-                    <div id="secret-missions-content">Loading...</div>
                 </section>
 
             </div>
         </main>
     </div>
-    
-    <!-- MODALS & OVERLAYS (Admin Modal, etc.) -->
-    <!-- Admin Modal will be injected here -->
 
+    <!-- ==================== TOAST CONTAINER ==================== -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- ==================== APP SCRIPT ==================== -->
     <script src="app.js"></script>
+    
+    <!-- Service Worker Registration (Optional PWA support) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {
+                    // Service worker not available
+                });
+            });
+        }
+    </script>
 </body>
 </html>
