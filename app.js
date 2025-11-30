@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v2.5 =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.0 (Chat + Fixes) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -8,7 +8,7 @@ const CONFIG = {
     ADMIN_AGENT_NO: 'AGENT001',
     ADMIN_PASSWORD: 'BTSSPYADMIN2024',
     
-    // End Dates for Accurate Timer (YYYY-MM-DD)
+    // End Dates (YYYY-MM-DD) - Used to LOCK summary until this date passes
     WEEK_DATES: {
         'Test Week 1': '2025-11-29',
         'Test Week 2': '2025-12-06',
@@ -17,6 +17,9 @@ const CONFIG = {
         'Week 3': '2025-12-27',
         'Week 4': '2026-01-03'
     },
+    
+    // Chat Settings (Anonymous, No Backend needed)
+    CHAT_CHANNEL: 'bts-spy-battle-hq', // Unique name for your chat room
     
     TEAMS: {
         'Indigo': { color: '#4cc9f0', album: 'Indigo' },
@@ -128,21 +131,12 @@ function updateTime() {
 }
 
 // ==================== DATE/WEEK HELPERS ====================
-function isSunday() {
-    return new Date().getDay() === 0;
-}
-
 function getDaysRemaining(weekLabel) {
     const endDateStr = CONFIG.WEEK_DATES[weekLabel];
-    if (!endDateStr) {
-        // Fallback if date not found
-        const now = new Date();
-        const day = now.getDay();
-        return day === 0 ? 0 : 7 - day;
-    }
+    if (!endDateStr) return 0;
     
     const end = new Date(endDateStr);
-    end.setHours(23, 59, 59, 999); // End of the day
+    end.setHours(23, 59, 59, 999);
     
     const now = new Date();
     const diffTime = end - now;
@@ -151,27 +145,19 @@ function getDaysRemaining(weekLabel) {
     return diffDays > 0 ? diffDays : 0;
 }
 
+/**
+ * Strictly checks if the week is over based on CONFIG dates.
+ * If today < end date, the week is NOT completed.
+ */
 function isWeekCompleted(selectedWeek) {
-    if (!STATE.weeks || STATE.weeks.length === 0) return false;
+    const endDateStr = CONFIG.WEEK_DATES[selectedWeek];
+    if (!endDateStr) return false; // Assume active if no date found
     
-    // Sort weeks to determine order
-    const sortedWeeks = [...STATE.weeks].sort((a, b) => {
-        if (a.includes('Test') && b.includes('Test')) {
-            const numA = parseInt(a.match(/\d+/)?.[0] || 0);
-            const numB = parseInt(b.match(/\d+/)?.[0] || 0);
-            return numA - numB;
-        }
-        if (a.includes('Test')) return -1;
-        if (b.includes('Test')) return 1;
-        const numA = parseInt(a.match(/\d+/)?.[0] || 0);
-        const numB = parseInt(b.match(/\d+/)?.[0] || 0);
-        return numA - numB;
-    });
+    const end = new Date(endDateStr);
+    end.setHours(23, 59, 59, 999);
     
-    const latestWeek = sortedWeeks[sortedWeeks.length - 1];
-    
-    // If selected week is NOT the latest week, it is considered completed
-    return selectedWeek !== latestWeek;
+    const now = new Date();
+    return now > end;
 }
 
 // ==================== API ====================
@@ -368,7 +354,6 @@ async function verifyAdminPassword() {
 
 function addAdminIndicator() {
     document.querySelector('.admin-indicator')?.remove();
-    // Fallback logic to find sidebar if nav-links isn't ready
     let nav = document.querySelector('.nav-links');
     if (!nav) nav = document.getElementById('sidebar');
     if (!nav) return;
@@ -674,6 +659,7 @@ function logout() {
 async function loadPage(page) {
     STATE.page = page;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    // Handle removing agent-charts HTML in case it exists in DOM
     const el = $('page-' + page);
     if (el) el.classList.add('active');
     loading(true);
@@ -686,12 +672,12 @@ async function loadPage(page) {
             case 'album2x': await renderAlbum2x(); break;
             case 'team-level': await renderTeamLevel(); break;
             case 'team-charts': await renderTeamCharts(); break;
-            case 'agent-charts': await renderAgentCharts(); break;
             case 'comparison': await renderComparison(); break;
             case 'summary': await renderSummary(); break;
             case 'drawer': await renderDrawer(); break;
             case 'announcements': await renderAnnouncements(); break;
             case 'secret-missions': await renderSecretMissions(); break;
+            case 'chat': await renderChat(); break;
         }
     } catch (e) {
         if (el) el.innerHTML = `<div class="error-page"><h3>Failed to load</h3><p>${sanitize(e.message)}</p><button onclick="loadPage('${page}')" class="btn-primary">Retry</button></div>`;
@@ -821,9 +807,9 @@ async function renderSummary() {
     const container = $('summary-content');
     const selectedWeek = STATE.week;
     const isCompleted = isWeekCompleted(selectedWeek);
-    const sunday = isSunday();
     
-    if (!isCompleted && !sunday) {
+    // Strict Locking: If week is NOT completed (Today < End Date), lock it.
+    if (!isCompleted) {
         const days = getDaysRemaining(selectedWeek);
         container.innerHTML = `
             <div class="card">
@@ -855,6 +841,45 @@ async function renderSummary() {
             <div class="card"><div class="card-header"><h3>📊 Final Standings</h3></div><div class="card-body">${sorted.map(([t, info], i) => `<div class="final-standing ${i===0?'winner':''}" style="border-left-color:${teamColor(t)}"><span class="standing-pos">${i+1}</span><div class="standing-details"><div style="color:${teamColor(t)};font-weight:600;">${t}</div></div><div class="standing-xp-final">${fmt(info.teamXP)} XP</div></div>`).join('')}</div></div>
         `;
     } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load summary</p></div></div>'; }
+}
+
+// ==================== CHAT PAGE (ANONYMOUS) ====================
+async function renderChat() {
+    const container = $('chat-content');
+    // We need to create this container dynamically if it doesn't exist in HTML
+    if (!container) {
+        const mainContent = document.querySelector('main');
+        if (mainContent) {
+            const chatPage = document.createElement('div');
+            chatPage.id = 'page-chat';
+            chatPage.className = 'page active';
+            chatPage.innerHTML = '<div id="chat-content" class="container"></div>';
+            mainContent.appendChild(chatPage);
+        }
+        return; // Will re-run next frame
+    }
+    
+    container.innerHTML = `
+        <div class="card" style="height: calc(100vh - 140px); display: flex; flex-direction: column;">
+            <div class="card-header">
+                <h3>🕵️ Secret Comms Channel</h3>
+                <div class="mission-hint">Connect with other agents. Stay anonymous or use your code name.</div>
+            </div>
+            <div class="card-body" style="flex: 1; padding: 0; overflow: hidden; background: #1a1a2e;">
+                <div id="tlkio" data-channel="${CONFIG.CHAT_CHANNEL}" style="width:100%;height:100%;"></div>
+            </div>
+        </div>
+    `;
+    
+    // Inject tlk.io script
+    if (!window.tlkioScriptLoaded) {
+        const script = document.createElement('script');
+        script.src = "https://tlk.io/embed.js";
+        script.type = "text/javascript";
+        script.async = true;
+        document.body.appendChild(script);
+        window.tlkioScriptLoaded = true;
+    }
 }
 
 // ==================== DRAWER PAGE ====================
@@ -1012,28 +1037,6 @@ async function renderTeamCharts() {
     } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load charts</p></div></div>'; }
 }
 
-async function renderAgentCharts() {
-    const container = $('agent-charts-content');
-    const trackContributions = STATE.data?.trackContributions || {};
-    const albumContributions = STATE.data?.albumContributions || {};
-    if (STATE.charts.agentTracks) { STATE.charts.agentTracks.destroy(); STATE.charts.agentTracks = null; }
-    if (STATE.charts.agentAlbums) { STATE.charts.agentAlbums.destroy(); STATE.charts.agentAlbums = null; }
-    const hasTrackData = Object.keys(trackContributions).length > 0;
-    const hasAlbumData = Object.keys(albumContributions).length > 0;
-    container.innerHTML = `<div class="card"><div class="card-header"><h3>🎵 Your Top Tracks</h3></div><div class="card-body">${hasTrackData ? '<canvas id="chart-agent-tracks" height="300"></canvas>' : '<p class="empty-text">No track data yet</p>'}</div></div><div class="card"><div class="card-header"><h3>💿 Your Album Breakdown</h3></div><div class="card-body">${hasAlbumData ? '<canvas id="chart-agent-albums" height="300"></canvas>' : '<p class="empty-text">No album data yet</p>'}</div></div>`;
-    if (typeof Chart !== 'undefined') {
-        const ctx1 = $('chart-agent-tracks')?.getContext('2d');
-        if (ctx1 && hasTrackData) {
-            const sorted = Object.entries(trackContributions).sort((a, b) => b[1] - a[1]).slice(0, 10);
-            STATE.charts.agentTracks = new Chart(ctx1, { type: 'bar', data: { labels: sorted.map(([k]) => k.length > 20 ? k.substring(0, 17) + '...' : k), datasets: [{ data: sorted.map(([, v]) => v), backgroundColor: '#7b2cbf', borderRadius: 4 }] }, options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#888' }, grid: { color: '#333' } }, y: { ticks: { color: '#888' }, grid: { display: false } } } } });
-        }
-        const ctx2 = $('chart-agent-albums')?.getContext('2d');
-        if (ctx2 && hasAlbumData) {
-            STATE.charts.agentAlbums = new Chart(ctx2, { type: 'doughnut', data: { labels: Object.keys(albumContributions), datasets: [{ data: Object.values(albumContributions), backgroundColor: ['#7b2cbf', '#9d4edd', '#c77dff', '#4cc9f0', '#f72585', '#ff9500'] }] }, options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#e0e0f0' } } } } });
-        }
-    }
-}
-
 async function renderAnnouncements() {
     const container = $('announcements-content');
     try {
@@ -1101,7 +1104,6 @@ async function renderComparison() {
         const teams = (comparison.comparison || []).sort((a, b) => (b.teamXP || 0) - (a.teamXP || 0));
         const maxXP = teams[0]?.teamXP || 1;
         const trackGoals = goals.trackGoals || {};
-        const albumGoals = goals.albumGoals || {};
         const teamNames = Object.keys(CONFIG.TEAMS);
         
         container.innerHTML = `${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}<div class="card"><div class="card-header"><h3>⚔️ Battle Standings (${STATE.week})</h3></div><div class="card-body">${teams.map((t, i) => `<div class="comparison-item"><span class="comparison-rank">${i+1}</span><span class="comparison-name" style="color:${teamColor(t.team)}">${t.team}</span><div class="comparison-bar-container"><div class="progress-bar"><div class="progress-fill" style="width:${(t.teamXP/maxXP)*100}%;background:${teamColor(t.team)}"></div></div></div><span class="comparison-xp">${fmt(t.teamXP)}</span></div>`).join('')}</div></div>`;
@@ -1140,4 +1142,4 @@ window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
 
-console.log('🎮 BTS Spy Battle v2.5 Loaded - Final Fixes');
+console.log('🎮 BTS Spy Battle v3.0 Loaded - Chat & Fixes');
