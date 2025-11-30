@@ -2886,31 +2886,6 @@ img {
     border-color: var(--purple-main);
     color: white;
 }
-
-/* ==================== CHARTS ==================== */
-.charts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-}
-
-.chart-container {
-    position: relative;
-    width: 100%;
-    min-height: 300px;
-}
-
-.chart-container canvas {
-    width: 100% !important;
-    height: 100% !important;
-}
-
-@media (max-width: 768px) {
-    .chart-container {
-        min-height: 250px;
-    }
-}
-
 /* ==================== EMPTY & ERROR STATES ==================== */
 .empty-text,
 .error-text {
@@ -4212,9 +4187,6 @@ img {
         width: 100%;
     }
     
-    .charts-grid {
-        grid-template-columns: 1fr;
-    }
     
     .title {
         font-size: 24px;
