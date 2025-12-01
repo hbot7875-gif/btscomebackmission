@@ -41,10 +41,17 @@ const CONFIG = {
     },
     
     TEAMS: {
-        'Indigo': { color: '#4cc9f0', album: 'Indigo' },
-        'Echo': { color: '#f72585', album: 'Echo' },
-        'Agust D': { color: '#ff9500', album: 'Agust D' },
-        'JITB': { color: '#7209b7', album: 'Jack In The Box' }
+        // Indigo: Changed to Cyan (Brighter Blue)
+        'Indigo': { color: '#00E5FF', album: 'Indigo' }, 
+        
+        // Echo: Changed to Hot Pink (More vibrancy)
+        'Echo': { color: '#FF007F', album: 'Echo' },     
+        
+        // Agust D: Changed to Amber/Gold (Better than dark orange)
+        'Agust D': { color: '#FFB700', album: 'Agust D' }, 
+        
+        // JITB: Changed to Neon Violet (The biggest fix - much lighter!)
+        'JITB': { color: '#D946EF', album: 'Jack In The Box' } 
     },
     
     TEAM_ALBUM_TRACKS: {
