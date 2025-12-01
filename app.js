@@ -37,10 +37,10 @@ const CONFIG = {
     },
     
     TEAM_PFPS: {
-        "Indigo": "https://i.ibb.co/4g9KWg3/team-Indigo.png",
-        "Echo": "https://i.ibb.co/7xdY9xC/Team-Echo.png",
-        "Agust D": "https://i.ibb.co/BVc11nz/Team-agustd.png",
-        "JITB": "https://i.ibb.co/FbdLFwh/Team-jitb.png"
+        "Indigo": "https://github.com/hbot7875-gif/btscomebackmission/blob/1064f7b9db0284d842bc89498a0ee7efb719ba03/team%20pfps/team-indigo.png.png?raw=true",
+        "Echo": "https://github.com/hbot7875-gif/btscomebackmission/blob/1064f7b9db0284d842bc89498a0ee7efb719ba03/team%20pfps/team-echo.png.png?raw=true",
+        "Agust D": "https://github.com/hbot7875-gif/btscomebackmission/blob/1064f7b9db0284d842bc89498a0ee7efb719ba03/team%20pfps/team-agustd.png.png?raw=true",
+        "JITB": "https://github.com/hbot7875-gif/btscomebackmission/blob/1064f7b9db0284d842bc89498a0ee7efb719ba03/team%20pfps/team-jitb.png.png?raw=true"
     },
     
     SECRET_MISSIONS: { xpPerMission: 5, maxMissionsPerTeam: 5, maxTeamBonus: 25 },
