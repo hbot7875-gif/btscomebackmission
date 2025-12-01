@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.3 (Badges & Assets Fixed) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.4 (Syntax Fixed & Pro Colors) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -23,40 +23,36 @@ const CONFIG = {
     CHAT_CHANNEL: 'bts-spy-battle-hq', 
 
     // ===== BADGE CONFIGURATION =====
-    // The folder where your images are
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
-    
-    // How many images do you have?
     TOTAL_BADGE_IMAGES: 49, 
     
-    // Auto-Generator for names like "BTS (1).jpg"
     get BADGE_POOL() {
         const pool = [];
         for (let i = 1; i <= this.TOTAL_BADGE_IMAGES; i++) {
-            // URL encoded: %20 is a space. 
-            // This matches "BTS (1).jpg", "BTS (2).jpg", etc.
             pool.push(`${this.BADGE_REPO_URL}BTS%20(${i}).jpg`);
         }
         return pool;
     },
     
-const TEAMS = {
-    // Indigo: Washed Denim Blue
-    // Adjusted to be brighter and slightly desaturated to look like high-end denim
-    'Indigo': { color: '#64B5F6', album: 'Indigo' },
-
-    // Echo: Holographic Silver
-    // Changed from dull grey to a "Cool White" with a slight blue tint to match the vinyl glow
-    'Echo': { color: '#E1F5FE', album: 'Echo' },
-    
-    // Agust D: Magma Orange
-    // A sharper, more aggressive orange that stands out against dark backgrounds without looking like a pumpkin
-    'Agust D': { color: '#FF6E40', album: 'Agust D' },
-    
-    // JITB: Electric Fuschia
-    // Adjusted from deep magenta to a hot pink accent that pops against the black/green box art
-    'JITB': { color: '#FF4081', album: 'Jack In The Box' }
-},
+    // ===== TEAM COLORS (High Contrast / Dark Mode Optimized) =====
+    TEAMS: {
+        'Indigo': { 
+            color: '#64B5F6', // Soft Neon Blue (Readable on Black)
+            album: 'Indigo' 
+        },
+        'Echo': { 
+            color: '#E1F5FE', // Holographic White/Silver
+            album: 'Echo' 
+        },
+        'Agust D': { 
+            color: '#FF6E40', // Magma/Blaze Orange (Aggressive Pop)
+            album: 'Agust D' 
+        },
+        'JITB': { 
+            color: '#FF4081', // Electric Pink (Matches JITB Box Art)
+            album: 'Jack In The Box' 
+        }
+    },
     
     TEAM_ALBUM_TRACKS: {
         "Indigo": ["Yun (with Erykah Badu)", "Still Life (with Anderson .Paak)", "All Day (with Tablo)", "Forg_tful (with Kim Sawol)", "Closer (with Paul Blanco, Mahalia)", "Change pt.2", "Lonely", "Hectic (with Colde)", "Wild Flower (with youjeen)", "No.2 (with parkjiyoon)"],
@@ -101,6 +97,7 @@ const STATE = {
 
 // ==================== HELPERS ====================
 const $ = id => document.getElementById(id);
+// Helper to add a glow effect to text
 const teamColor = team => CONFIG.TEAMS[team]?.color || '#7b2cbf';
 const teamPfp = team => CONFIG.TEAM_PFPS[team] || '';
 
@@ -1320,4 +1317,4 @@ window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
 
-console.log('🎮 BTS Spy Battle v3.3 Loaded (Badges Active)');
+console.log('🎮 BTS Spy Battle v3.4 Loaded (Syntax & Colors Fixed)');
