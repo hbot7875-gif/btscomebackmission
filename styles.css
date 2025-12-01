@@ -4680,3 +4680,53 @@ textarea:focus-visible {
     font-size: 9px;
     color: var(--text-dim);
 }
+/* ===== PRO TEAM CARD STYLES ===== */
+
+.team-level-card {
+    /* 1. Glass Effect: Adds a very subtle tint inside the card */
+    background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+    
+    /* 2. The Glow: Uses the border color to create a light shadow */
+    box-shadow: 0 0 15px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.2);
+    
+    /* 3. Thicker Border for visibility */
+    border-width: 2px !important;
+    border-style: solid;
+    
+    /* 4. Smooth Transition for hover effects */
+    transition: all 0.3s ease;
+}
+
+/* Make the card glow when you hover over it */
+.team-level-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    background: rgba(255,255,255,0.05);
+}
+
+/* Fix the Team Name Text to be brighter */
+.team-level-name {
+    font-size: 1.4rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(0,0,0,0.8); /* Black shadow behind text to make it pop */
+}
+
+/* Make the XP text stand out */
+.team-level-xp {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #fff; /* Keep XP white for readability */
+    text-shadow: 0 0 10px var(--purple-glow);
+}
+
+/* Fix the mission icons X and Checks */
+.mission-check {
+    font-size: 1.2rem;
+    background: rgba(0,0,0,0.3);
+    padding: 5px 10px;
+    border-radius: 10px;
+    margin: 0 2px;
+}
