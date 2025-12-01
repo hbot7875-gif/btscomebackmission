@@ -1201,12 +1201,56 @@ async function renderTeamLevel() {
         const teams = summary.teams || {};
         const myTeam = STATE.data?.profile?.team;
         if (summary.lastUpdated) STATE.lastUpdated = summary.lastUpdated;
+        
         const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
+        
         container.innerHTML = `
-            <div class="team-level-header"><h2>Team Levels</h2><span class="week-badge">${STATE.week}</span></div>${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
-            <div class="team-level-grid">${sortedTeams.map(([t, info], index) => { const isMyTeam = t === myTeam; const missions = (info.trackGoalPassed ? 1 : 0) + (info.albumGoalPassed ? 1 : 0) + (info.album2xPassed ? 1 : 0); return `<div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="border-color:${teamColor(t)}">${isMyTeam ? '<div class="my-team-badge">Your Team</div>' : ''}${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${teamColor(t)}">` : ''}<div class="team-level-name" style="color:${teamColor(t)}">${t}</div><div class="team-level-num">${info.level || 1}</div><div class="team-level-label">LEVEL</div><div class="team-level-xp">${fmt(info.teamXP)} XP</div><div class="team-level-missions"><div class="mission-check" title="Track Goals">${info.trackGoalPassed ? '🎵✅' : '🎵❌'}</div><div class="mission-check" title="Album Goals">${info.albumGoalPassed ? '💿✅' : '💿❌'}</div><div class="mission-check" title="Album 2X">${info.album2xPassed ? '✨✅' : '✨❌'}</div></div><div class="team-level-status ${missions === 3 ? 'complete' : ''}">${missions}/3 missions</div></div>`; }).join('')}</div>
+            <div class="team-level-header"><h2>Team Levels</h2><span class="week-badge">${STATE.week}</span></div>
+            ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
+            
+            <div class="team-level-grid">
+                ${sortedTeams.map(([t, info], index) => { 
+                    const isMyTeam = t === myTeam;
+                    const tColor = teamColor(t);
+                    const missions = (info.trackGoalPassed ? 1 : 0) + (info.albumGoalPassed ? 1 : 0) + (info.album2xPassed ? 1 : 0);
+                    
+                    return `
+                    <div class="team-level-card ${isMyTeam ? 'my-team' : ''}" 
+                         style="border-color:${tColor}; box-shadow: 0 0 15px ${tColor}20;">
+                        
+                        ${isMyTeam ? `<div class="my-team-badge" style="background:${tColor}; color:#000;">Your Team</div>` : ''}
+                        
+                        ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${tColor}; box-shadow: 0 0 10px ${tColor}60;">` : ''}
+                        
+                        <div class="team-level-name" style="color:${tColor}; text-shadow: 0 0 10px ${tColor}80;">
+                            ${t.toUpperCase()}
+                        </div>
+                        
+                        <div class="team-level-num" style="text-shadow: 0 0 15px ${tColor};">${info.level || 1}</div>
+                        <div class="team-level-label" style="color:${tColor}aa;">LEVEL</div>
+                        
+                        <div class="team-level-xp" style="color:#fff; text-shadow: 0 0 10px ${tColor};">
+                            ${fmt(info.teamXP)} XP
+                        </div>
+                        
+                        <div class="team-level-missions">
+                            <div class="mission-check" style="color: ${info.trackGoalPassed ? tColor : '#333'}; text-shadow: ${info.trackGoalPassed ? `0 0 5px ${tColor}` : 'none'}" title="Track Goals">🎵</div>
+                            <div class="mission-check" style="color: ${info.albumGoalPassed ? tColor : '#333'}; text-shadow: ${info.albumGoalPassed ? `0 0 5px ${tColor}` : 'none'}" title="Album Goals">💿</div>
+                            <div class="mission-check" style="color: ${info.album2xPassed ? tColor : '#333'}; text-shadow: ${info.album2xPassed ? `0 0 5px ${tColor}` : 'none'}" title="Album 2X">✨</div>
+                        </div>
+                        
+                        <div class="team-level-status" 
+                             style="background: ${tColor}22; color: ${tColor}; border: 1px solid ${tColor}44;">
+                             ${missions}/3 missions
+                        </div>
+                    </div>`; 
+                }).join('')}
+            </div>
         `;
-    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; }
+    } catch (e) { 
+        console.error(e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; 
+    }
 }
 
 async function renderAnnouncements() {
