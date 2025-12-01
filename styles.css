@@ -4603,34 +4603,16 @@ textarea:focus-visible {
     letter-spacing: 2px;
     animation: pulse 1.5s infinite;
 }
-/* ===== FIX TEAM PFPS ===== */
-
-/* Target every type of PFP in the app */
-.quick-pfp, 
-.standing-pfp, 
-.intel-pfp, 
-.team-level-pfp, 
-.drawer-pfp, 
-.secret-team-pfp,
-.winner-card img {
-    width: 50px !important;       /* Fixed width */
-    height: 50px !important;      /* Fixed height */
-    min-width: 50px !important;   /* Stop them from squishing */
-    min-height: 50px !important;
+/* Find this section */
+.standing-pfp, .quick-pfp, .team-level-pfp {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover; /* Makes sure image fills the circle */
     
-    border-radius: 50% !important; /* Perfect Circle */
-    object-fit: cover !important;  /* Zoom in to fill the circle (crucial!) */
-    object-position: center !important;
+    /* 👇 CHANGE THIS LINE from '#fff' to 'transparent' */
+    background-color: transparent !important; 
     
-    background-color: #fff;       /* White background for transparent logos */
-    border: 2px solid rgba(255,255,255,0.1); /* Subtle border */
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-
-/* Make the Intelligence Report ones (from your screenshot) slightly larger */
-.intel-pfp {
-    width: 60px !important;
-    height: 60px !important;
-    min-width: 60px !important;
-    margin-bottom: 10px;
+    /* 👇 Optional: Keep a thin border so we can see the circle shape */
+    border: 1px solid rgba(255,255,255,0.3); 
 }
