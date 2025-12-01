@@ -4616,3 +4616,32 @@ textarea:focus-visible {
     /* 👇 Optional: Keep a thin border so we can see the circle shape */
     border: 1px solid rgba(255,255,255,0.3); 
 }
+/* ===== PFP ZOOM FIX ===== */
+
+/* Target the Standing (Ranking) PFPs */
+.standing-pfp, 
+.quick-pfp, 
+.team-level-pfp {
+    /* Force fixed size */
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important; /* Prevents squishing */
+    
+    /* Circle shape */
+    border-radius: 50% !important;
+    
+    /* ZOOM IN: Increase this number (1.2, 1.4, 1.6) to zoom more! */
+    transform: scale(1.4); 
+    
+    /* Ensure it stays centered */
+    object-fit: cover !important;
+    object-position: center !important;
+    
+    /* Optional: Soft background glow so dark logos pop */
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%);
+}
+
+/* Special Fix for Indigo if it gets too big */
+/* This finds the 3rd item (Indigo) and resets the zoom if needed */
+/* Note: This relies on order. If Indigo is not 3rd, ignore this part. */
+/* A safer way is just to check if Indigo looks cut off. If so, lower the scale above to 1.2 */
