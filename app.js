@@ -40,19 +40,23 @@ const CONFIG = {
         return pool;
     },
     
-    TEAMS: {
-        // Indigo: Soft Denim Blue (Matches the art vibe)
-        'Indigo': { color: '#5DADE2', album: 'Indigo' },
-        
-        // Echo: Platinum Silver (Matches the Vinyl Record - very clean on black)
-        'Echo': { color: '#E0E0E0', album: 'Echo' },
-        
-        // Agust D: Blaze Orange (Matches the Fire/Explosions)
-        'Agust D': { color: '#FF6B00', album: 'Agust D' },
-        
-        // JITB: Neon Magenta (Matches the chaotic pink/purple box art)
-        'JITB': { color: '#DE38C6', album: 'Jack In The Box' }
-    },
+const TEAMS = {
+    // Indigo: Washed Denim Blue
+    // Adjusted to be brighter and slightly desaturated to look like high-end denim
+    'Indigo': { color: '#64B5F6', album: 'Indigo' },
+
+    // Echo: Holographic Silver
+    // Changed from dull grey to a "Cool White" with a slight blue tint to match the vinyl glow
+    'Echo': { color: '#E1F5FE', album: 'Echo' },
+    
+    // Agust D: Magma Orange
+    // A sharper, more aggressive orange that stands out against dark backgrounds without looking like a pumpkin
+    'Agust D': { color: '#FF6E40', album: 'Agust D' },
+    
+    // JITB: Electric Fuschia
+    // Adjusted from deep magenta to a hot pink accent that pops against the black/green box art
+    'JITB': { color: '#FF4081', album: 'Jack In The Box' }
+};
     
     TEAM_ALBUM_TRACKS: {
         "Indigo": ["Yun (with Erykah Badu)", "Still Life (with Anderson .Paak)", "All Day (with Tablo)", "Forg_tful (with Kim Sawol)", "Closer (with Paul Blanco, Mahalia)", "Change pt.2", "Lonely", "Hectic (with Colde)", "Wild Flower (with youjeen)", "No.2 (with parkjiyoon)"],
