@@ -21,6 +21,25 @@ const CONFIG = {
     
     // Chat Settings
     CHAT_CHANNEL: 'bts-spy-battle-hq', 
+
+    // 👇 1. PASTE THIS NEW BADGE SECTION HERE 👇
+    
+    // The folder where your images are
+    BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
+    
+    // How many images do you have?
+    TOTAL_BADGE_IMAGES: 49, 
+    
+    // Auto-Generator for names like "BTS (1).jpg"
+    get BADGE_POOL() {
+        const pool = [];
+        for (let i = 1; i <= this.TOTAL_BADGE_IMAGES; i++) {
+            // URL encoded: %20 is a space. 
+            // This matches "BTS (1).jpg", "BTS (2).jpg", etc.
+            pool.push(`${this.BADGE_REPO_URL}BTS%20(${i}).jpg`);
+        }
+        return pool;
+    },
     
     TEAMS: {
         'Indigo': { color: '#4cc9f0', album: 'Indigo' },
@@ -369,6 +388,41 @@ function addAdminIndicator() {
         link.onclick = (e) => { e.preventDefault(); STATE.isAdmin ? showAdminPanel() : showAdminLogin(); closeSidebar(); };
         nav.appendChild(link);
     }
+}
+
+function showAdminPanel() {
+    if (!STATE.isAdmin) { showAdminLogin(); return; }
+    document.querySelector('.admin-panel')?.remove();
+    
+    const panel = document.createElement('div');
+    panel.className = 'admin-panel';
+    panel.innerHTML = `
+        <div class="admin-panel-header">
+            <h3>🎛️ Mission Control</h3>
+            <button class="panel-close" onclick="closeAdminPanel()">×</button>
+        </div>
+        <div class="admin-panel-tabs">
+            <button class="admin-tab active" data-tab="create">Create Mission</button>
+            <button class="admin-tab" data-tab="active">Active</button>
+            <button class="admin-tab" data-tab="assets">🎨 Assets</button> <!-- NEW TAB -->
+        </div>
+        <div class="admin-panel-content">
+            <div id="admin-tab-create" class="admin-tab-content active">${renderCreateMissionForm()}</div>
+            <div id="admin-tab-active" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
+            <div id="admin-tab-assets" class="admin-tab-content"></div> <!-- NEW CONTENT AREA -->
+        </div>
+    `;
+    document.body.appendChild(panel);
+    
+    // Add click listeners
+    panel.querySelectorAll('.admin-tab').forEach(tab => { 
+        tab.onclick = () => {
+            switchAdminTab(tab.dataset.tab);
+            if (tab.dataset.tab === 'assets') renderAdminAssets(); // Load assets when clicked
+        };
+    });
+    
+    loadActiveTeamMissions();
 }
 
 function exitAdminMode() {
@@ -860,6 +914,40 @@ async function renderHome() {
     } catch (e) { console.error(e); showToast('Failed to load home', 'error'); }
 }
 
+function renderAdminAssets() {
+    const container = $('admin-tab-assets');
+    if (!container) return;
+    
+    let html = `<div class="asset-section" style="padding:20px;">`;
+    
+    // Show the Pool
+    html += `<h4>🎲 Level Up Random Pool (${CONFIG.TOTAL_BADGE_IMAGES} images)</h4>`;
+    html += `<p style="color:#aaa; font-size:12px; margin-bottom:15px;">These load from your "lvl1badges" folder. If an image is broken, check the filename.</p>`;
+    
+    if (CONFIG.BADGE_POOL && CONFIG.BADGE_POOL.length) {
+        html += `<div class="badges-showcase" style="justify-content: flex-start; flex-wrap: wrap; gap: 10px;">`;
+        
+        CONFIG.BADGE_POOL.forEach((img, index) => {
+            // Show filename for debugging
+            const filename = `BTS (${index + 1})`;
+            
+            html += `
+                <div class="badge-showcase-item" style="width:80px;">
+                    <div class="badge-circle" style="width:60px; height:60px; border-color:#ffd700;">
+                        <img src="${img}" onerror="this.style.display='none';this.parentNode.style.background='red';">
+                    </div>
+                    <div class="badge-name" style="font-size:10px; margin-top:5px;">${filename}</div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    } else {
+        html += `<p>No random pool configured.</p>`;
+    }
+    
+    html += `</div>`;
+    container.innerHTML = html;
+}
 // ==================== SUMMARY PAGE ====================
 async function renderSummary() {
     const container = $('summary-content');
