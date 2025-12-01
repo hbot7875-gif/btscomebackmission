@@ -56,7 +56,7 @@ const TEAMS = {
     // JITB: Electric Fuschia
     // Adjusted from deep magenta to a hot pink accent that pops against the black/green box art
     'JITB': { color: '#FF4081', album: 'Jack In The Box' }
-};
+},
     
     TEAM_ALBUM_TRACKS: {
         "Indigo": ["Yun (with Erykah Badu)", "Still Life (with Anderson .Paak)", "All Day (with Tablo)", "Forg_tful (with Kim Sawol)", "Closer (with Paul Blanco, Mahalia)", "Change pt.2", "Lonely", "Hectic (with Colde)", "Wild Flower (with youjeen)", "No.2 (with parkjiyoon)"],
