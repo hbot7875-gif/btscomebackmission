@@ -41,17 +41,17 @@ const CONFIG = {
     },
     
     TEAMS: {
-        // Indigo: Changed to Cyan (Brighter Blue)
-        'Indigo': { color: '#00E5FF', album: 'Indigo' }, 
+        // Indigo: Soft Denim Blue (Matches the art vibe)
+        'Indigo': { color: '#5DADE2', album: 'Indigo' },
         
-        // Echo: Changed to Hot Pink (More vibrancy)
-        'Echo': { color: '#FF007F', album: 'Echo' },     
+        // Echo: Platinum Silver (Matches the Vinyl Record - very clean on black)
+        'Echo': { color: '#E0E0E0', album: 'Echo' },
         
-        // Agust D: Changed to Amber/Gold (Better than dark orange)
-        'Agust D': { color: '#FFB700', album: 'Agust D' }, 
+        // Agust D: Blaze Orange (Matches the Fire/Explosions)
+        'Agust D': { color: '#FF6B00', album: 'Agust D' },
         
-        // JITB: Changed to Neon Violet (The biggest fix - much lighter!)
-        'JITB': { color: '#D946EF', album: 'Jack In The Box' } 
+        // JITB: Neon Magenta (Matches the chaotic pink/purple box art)
+        'JITB': { color: '#DE38C6', album: 'Jack In The Box' }
     },
     
     TEAM_ALBUM_TRACKS: {
