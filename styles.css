@@ -4603,45 +4603,35 @@ textarea:focus-visible {
     letter-spacing: 2px;
     animation: pulse 1.5s infinite;
 }
-/* Find this section */
-.standing-pfp, .quick-pfp, .team-level-pfp {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover; /* Makes sure image fills the circle */
-    
-    /* 👇 CHANGE THIS LINE from '#fff' to 'transparent' */
-    background-color: transparent !important; 
-    
-    /* 👇 Optional: Keep a thin border so we can see the circle shape */
-    border: 1px solid rgba(255,255,255,0.3); 
-}
-/* ===== PFP ZOOM FIX ===== */
-
-/* Target the Standing (Ranking) PFPs */
+/* ===== FINAL CLEAN PFP STYLE ===== */
 .standing-pfp, 
 .quick-pfp, 
-.team-level-pfp {
-    /* Force fixed size */
+.team-level-pfp,
+.intel-pfp,
+.drawer-pfp {
+    /* Standard Size */
     width: 50px !important;
     height: 50px !important;
-    min-width: 50px !important; /* Prevents squishing */
+    min-width: 50px !important;
     
-    /* Circle shape */
+    /* Circle Shape */
     border-radius: 50% !important;
     
-    /* ZOOM IN: Increase this number (1.2, 1.4, 1.6) to zoom more! */
-    transform: scale(1.4); 
-    
-    /* Ensure it stays centered */
+    /* Clean Fit - No Zoom Needed anymore! */
     object-fit: cover !important;
-    object-position: center !important;
+    transform: none !important; /* ❌ Resets any previous scaling */
+    background: transparent !important; /* ❌ Resets any backgrounds */
     
-    /* Optional: Soft background glow so dark logos pop */
-    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%);
+    /* Optional: Thin border to define the circle */
+    border: 2px solid rgba(255,255,255,0.2);
+    margin-right: 10px;
 }
 
-/* Special Fix for Indigo if it gets too big */
-/* This finds the 3rd item (Indigo) and resets the zoom if needed */
-/* Note: This relies on order. If Indigo is not 3rd, ignore this part. */
-/* A safer way is just to check if Indigo looks cut off. If so, lower the scale above to 1.2 */
+/* Make the Intelligence Report icons slightly bigger */
+.intel-pfp {
+    width: 60px !important;
+    height: 60px !important;
+    min-width: 60px !important;
+    margin-bottom: 10px;
+    margin-right: 0;
+}
