@@ -666,3 +666,190 @@
     </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BTS Spy Battle HQ</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- ==================== LOADING SCREEN ==================== -->
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Deciphering Intel...</div>
+    </div>
+
+    <!-- ==================== LOGIN SCREEN ==================== -->
+    <div id="login-screen" class="login-container active">
+        <div class="login-box">
+            <div class="login-logo">💜</div>
+            <h1>BTS SPY BATTLE</h1>
+            <p class="login-subtitle">Secure Access Required</p>
+            
+            <div class="input-group">
+                <input type="text" id="agent-input" placeholder="ENTER AGENT ID" autocomplete="off">
+                <button id="login-btn" class="btn-primary">AUTHENTICATE</button>
+            </div>
+
+            <div class="divider"><span>OR</span></div>
+
+            <div class="find-id-section">
+                <p>Lost your badge?</p>
+                <input type="text" id="instagram-input" placeholder="@your_instagram">
+                <button id="find-btn" class="btn-secondary">FIND MY ID</button>
+                <div id="find-result" class="result-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== DASHBOARD SCREEN ==================== -->
+    <div id="dashboard-screen" class="dashboard-container" style="display: none;">
+        
+        <!-- TOP BAR -->
+        <header class="top-bar">
+            <button id="menu-btn" class="icon-btn">☰</button>
+            <div class="top-title">MISSION CONTROL</div>
+            <div class="top-right">
+                <div class="agent-mini" onclick="loadPage('profile')">
+                    <div id="agent-avatar" class="avatar-circle"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- SIDEBAR NAVIGATION -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <button id="close-sidebar" class="close-btn">×</button>
+                <div class="profile-summary">
+                    <div id="profile-avatar" class="avatar-large"></div>
+                    <div id="profile-name" class="profile-name">Agent</div>
+                    <div id="profile-team" class="profile-team">Team</div>
+                    <div id="profile-id" class="profile-id">ID: ---</div>
+                </div>
+            </div>
+            
+            <div class="nav-links">
+                <a href="#" class="nav-link active" data-page="home"><span class="nav-icon">🏠</span>Home</a>
+                <a href="#" class="nav-link" data-page="announcements"><span class="nav-icon">📢</span>Intel / News</a>
+                <a href="#" class="nav-link" data-page="rankings"><span class="nav-icon">🏆</span>Rankings</a>
+                <a href="#" class="nav-link" data-page="goals"><span class="nav-icon">🎯</span>Goals</a>
+                <a href="#" class="nav-link" data-page="album2x"><span class="nav-icon">✨</span>Album 2X</a>
+                <a href="#" class="nav-link" data-page="team-level"><span class="nav-icon">⚔️</span>Team Levels</a>
+                <a href="#" class="nav-link" data-page="comparison"><span class="nav-icon">⚖️</span>Comparison</a>
+                <a href="#" class="nav-link" data-page="secret-missions"><span class="nav-icon">🕵️</span>Secret Missions</a>
+                <a href="#" class="nav-link" data-page="summary"><span class="nav-icon">📊</span>Week Summary</a>
+                
+                <!-- 👇 THIS IS THE DRAWER LINK FOR BADGES 👇 -->
+                <a href="#" class="nav-link" data-page="drawer"><span class="nav-icon">🎒</span>My Drawer</a>
+                
+                <a href="#" class="nav-link" data-page="chat"><span class="nav-icon">💬</span>Secret Comms</a>
+                
+                <!-- LOGOUT -->
+                <div style="margin-top: auto;">
+                    <a href="#" id="logout-btn" class="nav-link logout"><span class="nav-icon">🚪</span>Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="pages-wrapper">
+            
+            <!-- Week Selector (Visible on Home) -->
+            <div class="week-controls">
+                <select id="week-select" class="week-select"></select>
+                <div id="last-update" class="last-update">Updating...</div>
+            </div>
+
+            <!-- PAGE: HOME -->
+            <section id="page-home" class="page active">
+                <div class="section-header">
+                    <h2 id="current-week">Current Mission</h2>
+                </div>
+                <div class="quick-stats-section"></div>
+                <div id="home-standings" class="standings-preview"></div>
+                <div class="missions-grid"></div>
+                <div class="card">
+                    <div class="card-header"><h3>🏆 Top Agents</h3></div>
+                    <div class="card-body" id="home-top-agents"></div>
+                </div>
+            </section>
+
+            <!-- PAGE: DRAWER (Where Badges Live) -->
+            <!-- 👇 THIS CONTAINER IS CRITICAL FOR BADGES 👇 -->
+            <section id="page-drawer" class="page">
+                <div id="drawer-content">
+                    <!-- App.js injects the badges here -->
+                </div>
+            </section>
+
+            <!-- PAGE: PROFILE -->
+            <section id="page-profile" class="page">
+                <div class="card">
+                    <div class="card-header"><h3>📊 My Statistics</h3></div>
+                    <div class="card-body stats-grid" id="profile-stats"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>🎵 Track Streams</h3></div>
+                    <div class="card-body contrib-list" id="profile-tracks"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>💿 Album Streams</h3></div>
+                    <div class="card-body contrib-list" id="profile-albums"></div>
+                </div>
+            </section>
+
+            <!-- PAGE: RANKINGS -->
+            <section id="page-rankings" class="page">
+                <div id="rankings-list"></div>
+            </section>
+
+            <!-- PAGE: GOALS -->
+            <section id="page-goals" class="page">
+                <div id="goals-content"></div>
+            </section>
+
+            <!-- PAGE: ALBUM 2X -->
+            <section id="page-album2x" class="page">
+                <div id="album2x-content"></div>
+            </section>
+
+            <!-- PAGE: TEAM LEVEL -->
+            <section id="page-team-level" class="page">
+                <div id="team-level-content"></div>
+            </section>
+
+            <!-- PAGE: COMPARISON -->
+            <section id="page-comparison" class="page">
+                <div id="comparison-content"></div>
+            </section>
+
+            <!-- PAGE: ANNOUNCEMENTS -->
+            <section id="page-announcements" class="page">
+                <div id="announcements-content"></div>
+            </section>
+
+            <!-- PAGE: SECRET MISSIONS -->
+            <section id="page-secret-missions" class="page">
+                <div id="secret-missions-content"></div>
+            </section>
+
+            <!-- PAGE: SUMMARY -->
+            <section id="page-summary" class="page">
+                <div id="summary-content"></div>
+            </section>
+
+            <!-- PAGE: CHAT -->
+            <section id="page-chat" class="page">
+                <div id="chat-content"></div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script src="app.js"></script>
+</body>
+</html>
