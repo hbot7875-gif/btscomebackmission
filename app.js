@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.1 (Stable) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.2 (Fixed Admin Assets) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -22,9 +22,8 @@ const CONFIG = {
     // Chat Settings
     CHAT_CHANNEL: 'bts-spy-battle-hq', 
 
-    // 👇 1. PASTE THIS NEW BADGE SECTION HERE 👇
-    
-    // The folder where your images are
+    // ===== BADGE CONFIGURATION =====
+    // The folder where your images are (Must end with a slash /)
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
     
     // How many images do you have?
@@ -57,11 +56,8 @@ const CONFIG = {
     
     TEAM_PFPS: {
         "Indigo": "https://github.com/hbot7875-gif/btscomebackmission/blob/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamindigo.jpg?raw=true",
-        
         "Echo": "https://github.com/hbot7875-gif/btscomebackmission/blob/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamecho.jpg?raw=true",
-        
         "Agust D": "https://github.com/hbot7875-gif/btscomebackmission/blob/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamagustd.jpg?raw=true",
-        
         "JITB": "https://github.com/hbot7875-gif/btscomebackmission/blob/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamjitb.jpg?raw=true"
     },
     
@@ -202,14 +198,8 @@ async function api(action, params = {}) {
 // ==================== INITIALIZATION ====================
 function initApp() {
     console.log('🚀 Starting BTS Spy Battle app...');
-    
-    // Clear loading screen if it got stuck from a previous error
     loading(false);
-
-    // Bind Login Buttons immediately
     setupLoginListeners();
-
-    // Start loading data in background
     loadAllAgents();
 
     // Auto-login if session exists
@@ -227,7 +217,7 @@ function setupLoginListeners() {
     const agentInput = $('agent-input');
     const instagramInput = $('instagram-input');
     
-    if (loginBtn) loginBtn.onclick = handleLogin; // Using onclick to avoid duplicate listeners
+    if (loginBtn) loginBtn.onclick = handleLogin;
     if (findBtn) findBtn.onclick = handleFind;
     
     if (agentInput) {
@@ -390,41 +380,6 @@ function addAdminIndicator() {
     }
 }
 
-function showAdminPanel() {
-    if (!STATE.isAdmin) { showAdminLogin(); return; }
-    document.querySelector('.admin-panel')?.remove();
-    
-    const panel = document.createElement('div');
-    panel.className = 'admin-panel';
-    panel.innerHTML = `
-        <div class="admin-panel-header">
-            <h3>🎛️ Mission Control</h3>
-            <button class="panel-close" onclick="closeAdminPanel()">×</button>
-        </div>
-        <div class="admin-panel-tabs">
-            <button class="admin-tab active" data-tab="create">Create Mission</button>
-            <button class="admin-tab" data-tab="active">Active</button>
-            <button class="admin-tab" data-tab="assets">🎨 Assets</button> <!-- NEW TAB -->
-        </div>
-        <div class="admin-panel-content">
-            <div id="admin-tab-create" class="admin-tab-content active">${renderCreateMissionForm()}</div>
-            <div id="admin-tab-active" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
-            <div id="admin-tab-assets" class="admin-tab-content"></div> <!-- NEW CONTENT AREA -->
-        </div>
-    `;
-    document.body.appendChild(panel);
-    
-    // Add click listeners
-    panel.querySelectorAll('.admin-tab').forEach(tab => { 
-        tab.onclick = () => {
-            switchAdminTab(tab.dataset.tab);
-            if (tab.dataset.tab === 'assets') renderAdminAssets(); // Load assets when clicked
-        };
-    });
-    
-    loadActiveTeamMissions();
-}
-
 function exitAdminMode() {
     if (confirm('Exit admin mode?')) {
         STATE.isAdmin = false;
@@ -437,25 +392,44 @@ function exitAdminMode() {
     }
 }
 
-// ==================== ADMIN PANEL ====================
+// ==================== ADMIN PANEL & ASSETS ====================
 function showAdminPanel() {
     if (!STATE.isAdmin) { showAdminLogin(); return; }
+    
     document.querySelector('.admin-panel')?.remove();
+    
     const panel = document.createElement('div');
     panel.className = 'admin-panel';
     panel.innerHTML = `
-        <div class="admin-panel-header"><h3>🎛️ Mission Control</h3><button class="panel-close" onclick="closeAdminPanel()">×</button></div>
-        <div class="admin-panel-tabs"><button class="admin-tab active" data-tab="create">Create Mission</button><button class="admin-tab" data-tab="active">Active (0)</button><button class="admin-tab" data-tab="history">History</button></div>
+        <div class="admin-panel-header">
+            <h3>🎛️ Mission Control</h3>
+            <button class="panel-close" onclick="closeAdminPanel()">×</button>
+        </div>
+        <div class="admin-panel-tabs">
+            <button class="admin-tab active" data-tab="create">Create Mission</button>
+            <button class="admin-tab" data-tab="active">Active</button>
+            <button class="admin-tab" data-tab="assets">🎨 Assets</button>
+            <button class="admin-tab" data-tab="history">History</button>
+        </div>
         <div class="admin-panel-content">
             <div id="admin-tab-create" class="admin-tab-content active">${renderCreateMissionForm()}</div>
             <div id="admin-tab-active" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
+            <div id="admin-tab-assets" class="admin-tab-content"></div>
             <div id="admin-tab-history" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
         </div>
     `;
     document.body.appendChild(panel);
-    panel.querySelectorAll('.admin-tab').forEach(tab => { tab.onclick = () => switchAdminTab(tab.dataset.tab); });
+    
+    // Add click listeners
+    panel.querySelectorAll('.admin-tab').forEach(tab => { 
+        tab.onclick = () => {
+            switchAdminTab(tab.dataset.tab);
+            if (tab.dataset.tab === 'assets') renderAdminAssets();
+            if (tab.dataset.tab === 'history') loadMissionHistory();
+        };
+    });
+    
     loadActiveTeamMissions();
-    loadMissionHistory();
 }
 
 function closeAdminPanel() {
@@ -466,8 +440,54 @@ function closeAdminPanel() {
 function switchAdminTab(tabName) {
     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
-    document.querySelector(`.admin-tab[data-tab="${tabName}"]`)?.classList.add('active');
-    $(`admin-tab-${tabName}`)?.classList.add('active');
+    
+    const selectedTab = document.querySelector(`.admin-tab[data-tab="${tabName}"]`);
+    const selectedContent = document.getElementById(`admin-tab-${tabName}`);
+    
+    if (selectedTab) selectedTab.classList.add('active');
+    if (selectedContent) selectedContent.classList.add('active');
+}
+
+function renderAdminAssets() {
+    const container = document.getElementById('admin-tab-assets');
+    if (!container) return;
+    
+    let html = `<div class="asset-section" style="padding:20px;">`;
+    
+    // Debug Info
+    html += `<h4>🎲 Level Up Random Pool</h4>`;
+    html += `<p style="color:#aaa; font-size:12px; margin-bottom:15px;">
+        <strong>Repo:</strong> ${CONFIG.BADGE_REPO_URL}<br>
+        <strong>Total Configured:</strong> ${CONFIG.TOTAL_BADGE_IMAGES}<br>
+        If images are broken, check if your GitHub filenames match exactly: "BTS (1).jpg", "BTS (2).jpg", etc. (Case sensitive, spaces matter).
+    </p>`;
+    
+    if (CONFIG.BADGE_POOL && CONFIG.BADGE_POOL.length) {
+        html += `<div class="badges-showcase" style="justify-content: flex-start; flex-wrap: wrap; gap: 10px;">`;
+        
+        CONFIG.BADGE_POOL.forEach((imgUrl, index) => {
+            const filename = `BTS (${index + 1}).jpg`;
+            
+            html += `
+                <div class="badge-showcase-item" style="width:100px; margin: 5px;">
+                    <div class="badge-circle" style="width:80px; height:80px; border-color:#ffd700; background: #000; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        <img src="${imgUrl}" 
+                             style="width:100%; height:100%; object-fit:cover;"
+                             onload="this.style.opacity=1"
+                             onerror="this.style.display='none'; this.parentNode.innerHTML='❌ Broken'; this.parentNode.style.fontSize='10px'; this.parentNode.style.color='red';">
+                    </div>
+                    <div class="badge-name" style="font-size:10px; margin-top:5px; word-break:break-all;">${filename}</div>
+                    <a href="${imgUrl}" target="_blank" style="font-size:9px; color:#4cc9f0;">Open Link</a>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    } else {
+        html += `<p>No random pool configured.</p>`;
+    }
+    
+    html += `</div>`;
+    container.innerHTML = html;
 }
 
 function renderCreateMissionForm() {
@@ -751,7 +771,7 @@ async function loadPage(page) {
     } finally { loading(false); }
 }
 
-// ==================== CHAT (LAUNCH PAD - WORKS WITH AD BLOCKERS) ====================
+// ==================== CHAT (LAUNCH PAD) ====================
 async function renderChat() {
     const container = document.getElementById('chat-content');
     if (!container) return;
@@ -914,40 +934,6 @@ async function renderHome() {
     } catch (e) { console.error(e); showToast('Failed to load home', 'error'); }
 }
 
-function renderAdminAssets() {
-    const container = $('admin-tab-assets');
-    if (!container) return;
-    
-    let html = `<div class="asset-section" style="padding:20px;">`;
-    
-    // Show the Pool
-    html += `<h4>🎲 Level Up Random Pool (${CONFIG.TOTAL_BADGE_IMAGES} images)</h4>`;
-    html += `<p style="color:#aaa; font-size:12px; margin-bottom:15px;">These load from your "lvl1badges" folder. If an image is broken, check the filename.</p>`;
-    
-    if (CONFIG.BADGE_POOL && CONFIG.BADGE_POOL.length) {
-        html += `<div class="badges-showcase" style="justify-content: flex-start; flex-wrap: wrap; gap: 10px;">`;
-        
-        CONFIG.BADGE_POOL.forEach((img, index) => {
-            // Show filename for debugging
-            const filename = `BTS (${index + 1})`;
-            
-            html += `
-                <div class="badge-showcase-item" style="width:80px;">
-                    <div class="badge-circle" style="width:60px; height:60px; border-color:#ffd700;">
-                        <img src="${img}" onerror="this.style.display='none';this.parentNode.style.background='red';">
-                    </div>
-                    <div class="badge-name" style="font-size:10px; margin-top:5px;">${filename}</div>
-                </div>
-            `;
-        });
-        html += `</div>`;
-    } else {
-        html += `<p>No random pool configured.</p>`;
-    }
-    
-    html += `</div>`;
-    container.innerHTML = html;
-}
 // ==================== SUMMARY PAGE ====================
 async function renderSummary() {
     const container = $('summary-content');
@@ -1197,13 +1183,11 @@ async function renderComparison() {
         const maxXP = teams[0]?.teamXP || 1;
         
         const trackGoals = goals.trackGoals || {};
-        const albumGoals = goals.albumGoals || {}; // Fixed: Defined albumGoals
+        const albumGoals = goals.albumGoals || {};
         const teamNames = Object.keys(CONFIG.TEAMS);
         
-        // 1. Render Main Battle Standings (XP)
         container.innerHTML = `${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}<div class="card"><div class="card-header"><h3>⚔️ Battle Standings (${STATE.week})</h3></div><div class="card-body">${teams.map((t, i) => `<div class="comparison-item"><span class="comparison-rank">${i+1}</span><span class="comparison-name" style="color:${teamColor(t.team)}">${t.team}</span><div class="comparison-bar-container"><div class="progress-bar"><div class="progress-fill" style="width:${(t.teamXP/maxXP)*100}%;background:${teamColor(t.team)}"></div></div></div><span class="comparison-xp">${fmt(t.teamXP)}</span></div>`).join('')}</div></div>`;
         
-        // 2. Render Track Goals
         if (Object.keys(trackGoals).length) {
             container.innerHTML += `<div class="card"><div class="card-header"><h3>🎵 Track Goals</h3></div><div class="card-body comparison-goals-section">${Object.entries(trackGoals).map(([trackName, info]) => {
                 const goal = info.goal || 0;
@@ -1217,7 +1201,6 @@ async function renderComparison() {
             }).join('')}</div></div>`;
         }
 
-        // 3. Render Album Goals (FIXED: Added this section)
         if (Object.keys(albumGoals).length) {
             container.innerHTML += `<div class="card"><div class="card-header"><h3>💿 Album Goals</h3></div><div class="card-body comparison-goals-section">${Object.entries(albumGoals).map(([albumName, info]) => {
                 const goal = info.goal || 0;
@@ -1253,4 +1236,4 @@ window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
 
-console.log('🎮 BTS Spy Battle v3.1 Loaded');
+console.log('🎮 BTS Spy Battle v3.2 Loaded (Assets Fixed)');
