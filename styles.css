@@ -4730,3 +4730,8 @@ textarea:focus-visible {
     border-radius: 10px;
     margin: 0 2px;
 }
+.team-name {
+    color: var(--team-color); /* The hex code from above */
+    /* Adds a soft glow behind the text */
+    text-shadow: 0 0 10px var(--team-color); 
+}
