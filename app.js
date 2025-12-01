@@ -35,33 +35,34 @@ const CONFIG = {
     },
     
     TEAMS: {
-        // Indigo: "Sunlight Amber"
-        // Matches the warm yellow/beige walls of the room in the album art.
-        // Looks golden and premium on a black background.
+        // Indigo: "Warm Sand"
+        // Samples the beige wall color from the album art. 
+        // It blends seamlessly with the sunny room vibe.
         'Indigo': { 
-            color: '#FFD54F', 
+            color: '#FFE082', 
             album: 'Indigo' 
         },
 
-        // Echo: "Holographic Silver"
-        // The album is black/white vinyl. This Ice Blue/Silver makes it look
-        // like glowing static or a hologram, keeping it clean but distinct.
+        // Echo: "Optical White"
+        // Since the art is a high-contrast B&W illusion, 
+        // pure bright white/silver blends best and looks like glowing light.
         'Echo': { 
-            color: '#84FFFF', 
+            color: '#FAFAFA', 
             album: 'Echo' 
         },
         
-        // Agust D: "Safety Orange"
-        // The album is Black & White. This high-vis orange (from the text in your screenshot)
-        // provides the aggressive, street-style contrast needed for the D-Day vibe.
+        // Agust D: "Glitch Steel"
+        // FIXED: No more orange/red.
+        // This is a cool, blue-toned grey that matches the "newspaper/glitch" 
+        // aesthetic of the B&W cover perfectly. It looks metallic and premium.
         'Agust D': { 
-            color: '#FF6E40', 
+            color: '#B0BEC5', 
             album: 'Agust D' 
         },
         
-        // JITB: "Shocking Pink"
-        // Pulled directly from the neon pink text in your screenshot.
-        // Pops perfectly against the colorful/dark box art.
+        // JITB: "Electric Magenta"
+        // Pulls the pink accent from the box art, but keeps it bright enough
+        // to be readable on the dark background.
         'JITB': { 
             color: '#FF4081', 
             album: 'Jack In The Box' 
