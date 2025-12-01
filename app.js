@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.2 (Fixed Admin Assets) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.3 (Badges & Assets Fixed) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -23,7 +23,7 @@ const CONFIG = {
     CHAT_CHANNEL: 'bts-spy-battle-hq', 
 
     // ===== BADGE CONFIGURATION =====
-    // The folder where your images are (Must end with a slash /)
+    // The folder where your images are
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
     
     // How many images do you have?
@@ -974,25 +974,97 @@ async function renderSummary() {
     } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load summary</p></div></div>'; }
 }
 
-// ==================== DRAWER PAGE ====================
+// ==================== DRAWER PAGE (UPDATED) ====================
 async function renderDrawer() {
     const container = $('drawer-content');
+    if (!container) return;
+
     const profile = STATE.data?.profile || {};
     const stats = STATE.data?.stats || {};
+    const currentXP = stats.totalXP || 0;
+
+    // 1. CALCULATE LEVEL BADGES
+    function getLevelBadges(agentNo, totalXP) {
+        const pool = CONFIG.BADGE_POOL;
+        if (!pool || pool.length === 0) return [];
+        
+        const xp = parseInt(totalXP) || 0;
+        const currentLevel = Math.floor(xp / 100);
+        const badges = [];
+        
+        for (let level = 1; level <= currentLevel; level++) {
+            let seed = 0;
+            const str = String(agentNo).toUpperCase();
+            for (let i = 0; i < str.length; i++) seed += str.charCodeAt(i);
+            seed += (level * 137);
+            
+            const index = seed % pool.length;
+            const imageUrl = pool[index];
+            
+            badges.push({
+                name: `Level ${level}`,
+                description: `Unlocked at ${level * 100} XP`,
+                imageUrl: imageUrl,
+                isLevelBadge: true
+            });
+        }
+        return badges.reverse();
+    }
+
+    const levelBadges = getLevelBadges(STATE.agentNo, currentXP);
+
+    // 2. FIXED BADGES (Optional)
+    const fixedBadges = [];
+    // If you add CONFIG.BADGES later, they will merge here.
+    
+    const allBadges = [...fixedBadges, ...levelBadges];
     const isAdmin = String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
-    try {
-        const [badges, winners] = await Promise.all([
-            api('getBadges', { agentNo: STATE.agentNo }),
-            api('getWeeklyWinners').catch(() => ({ winners: [] }))
-        ]);
-        const myWins = (winners.winners || []).filter(w => w.team === profile.team);
-        container.innerHTML = `
-            <div class="card"><div class="card-header"><h3>📋 Agent Profile</h3></div><div class="card-body"><div class="drawer-header">${teamPfp(profile.team) ? `<img src="${teamPfp(profile.team)}" class="drawer-pfp" style="border-color:${teamColor(profile.team)}">` : ''}<div class="drawer-info"><div class="drawer-name">${sanitize(profile.name)}</div><div class="drawer-team" style="color:${teamColor(profile.team)}">Team ${profile.team}</div><div class="drawer-id">Agent #${STATE.agentNo}</div></div></div>
-            ${isAdmin ? `<button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">🔐 Access Mission Control</button>` : ''}
-            <div class="drawer-stats"><div class="drawer-stat"><span class="value">${fmt(stats.totalXP)}</span><span class="label">Total XP</span></div><div class="drawer-stat"><span class="value">#${STATE.data?.rank || 'N/A'}</span><span class="label">Global Rank</span></div><div class="drawer-stat"><span class="value">${(badges.badges || []).length}</span><span class="label">Badges</span></div><div class="drawer-stat"><span class="value">${myWins.length}</span><span class="label">Wins</span></div></div></div></div>
-            <div class="card"><div class="card-header"><h3>🎖️ Badges</h3></div><div class="card-body">${(badges.badges || []).length ? `<div class="badges-showcase">${badges.badges.map(b => `<div class="badge-showcase-item"><div class="badge-icon-lg">${b.imageUrl ? `<img src="${b.imageUrl}">` : '🎖️'}</div><div class="badge-name">${sanitize(b.name)}</div></div>`).join('')}</div>` : '<p class="empty-text">No badges yet.</p>'}</div></div>
-        `;
-    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load profile</p></div></div>'; }
+    
+    container.innerHTML = `
+        <div class="card">
+            <div class="card-body">
+                <div class="drawer-header">
+                    ${teamPfp(profile.team) ? `<img src="${teamPfp(profile.team)}" class="drawer-pfp" style="border-color:${teamColor(profile.team)}">` : ''}
+                    <div class="drawer-info">
+                        <div class="drawer-name">${sanitize(profile.name)}</div>
+                        <div class="drawer-team" style="color:${teamColor(profile.team)}">Team ${profile.team}</div>
+                        <div class="drawer-id">Agent #${STATE.agentNo}</div>
+                    </div>
+                </div>
+                ${isAdmin ? `<button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">🔐 Access Mission Control</button>` : ''}
+                <div class="drawer-stats">
+                    <div class="drawer-stat"><span class="value">${fmt(currentXP)}</span><span class="label">Total XP</span></div>
+                    <div class="drawer-stat"><span class="value">${allBadges.length}</span><span class="label">Badges</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>🎖️ Collection (${allBadges.length})</h3>
+                <div style="font-size:11px; color:var(--text-dim)">Next Reward: ${(Math.floor(currentXP/100) + 1) * 100} XP</div>
+            </div>
+            <div class="card-body">
+                ${allBadges.length ? 
+                    `<div class="badges-showcase">
+                        ${allBadges.map(b => `
+                            <div class="badge-showcase-item">
+                                <div class="badge-circle" style="${b.isLevelBadge ? 'border-color:#ffd700;' : ''}">
+                                    <img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='❓';">
+                                </div>
+                                <div class="badge-name">${sanitize(b.name)}</div>
+                                <div class="badge-desc">${sanitize(b.description)}</div>
+                            </div>
+                        `).join('')}
+                    </div>` 
+                    : `<div class="empty-state" style="text-align:center; padding:20px; color:#777;">
+                        <div style="font-size:40px; margin-bottom:10px;">🔒</div>
+                        Earn 100 XP to unlock your first random card!
+                       </div>`
+                }
+            </div>
+        </div>
+    `;
 }
 
 // ==================== OTHER PAGES ====================
@@ -1019,6 +1091,7 @@ async function renderProfile() {
         Object.entries(albumContributions).sort((a, b) => b[1] - a[1]).map(([a, c]) => `<div class="contrib-item"><span>${sanitize(a)}</span><span>${fmt(c)}</span></div>`).join('') : '<p class="empty-text">No album data</p>';
     
     try {
+        // Backup API call for fixed badges
         const badgesData = await api('getBadges', { agentNo: STATE.agentNo });
         $('profile-badges').innerHTML = (badgesData.badges || []).length ? 
             `<div class="badges-grid">${badgesData.badges.map(b => `<div class="badge-item"><div class="badge-icon">${b.imageUrl ? `<img src="${b.imageUrl}">` : '🎖️'}</div><div class="badge-name">${sanitize(b.name)}</div></div>`).join('')}</div>` : '<p class="empty-text">No badges yet</p>';
@@ -1236,4 +1309,4 @@ window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
 
-console.log('🎮 BTS Spy Battle v3.2 Loaded (Assets Fixed)');
+console.log('🎮 BTS Spy Battle v3.3 Loaded (Badges Active)');
