@@ -34,22 +34,36 @@ const CONFIG = {
         return pool;
     },
     
-    // ===== TEAM COLORS (High Contrast / Dark Mode Optimized) =====
     TEAMS: {
+        // Indigo: "Sunlight Amber"
+        // Matches the warm yellow/beige walls of the room in the album art.
+        // Looks golden and premium on a black background.
         'Indigo': { 
-            color: '#64B5F6', // Soft Neon Blue (Readable on Black)
+            color: '#FFD54F', 
             album: 'Indigo' 
         },
+
+        // Echo: "Holographic Silver"
+        // The album is black/white vinyl. This Ice Blue/Silver makes it look
+        // like glowing static or a hologram, keeping it clean but distinct.
         'Echo': { 
-            color: '#E1F5FE', // Holographic White/Silver
+            color: '#84FFFF', 
             album: 'Echo' 
         },
+        
+        // Agust D: "Safety Orange"
+        // The album is Black & White. This high-vis orange (from the text in your screenshot)
+        // provides the aggressive, street-style contrast needed for the D-Day vibe.
         'Agust D': { 
-            color: '#FF6E40', // Magma/Blaze Orange (Aggressive Pop)
+            color: '#FF6E40', 
             album: 'Agust D' 
         },
+        
+        // JITB: "Shocking Pink"
+        // Pulled directly from the neon pink text in your screenshot.
+        // Pops perfectly against the colorful/dark box art.
         'JITB': { 
-            color: '#FF4081', // Electric Pink (Matches JITB Box Art)
+            color: '#FF4081', 
             album: 'Jack In The Box' 
         }
     },
