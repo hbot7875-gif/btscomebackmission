@@ -7,7 +7,7 @@ const CONFIG = {
     
     // Admin Settings
     ADMIN_AGENT_NO: 'AGENT001',
-    ADMIN_PASSWORD: 'BTSSPYADMIN2024',
+ 
     
     // End Dates (YYYY-MM-DD)
     WEEK_DATES: {
