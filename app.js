@@ -686,6 +686,14 @@ async function loadDashboard() {
         await loadPage('home');
         
         if (STATE.isAdmin) addAdminIndicator();
+
+        // ▼▼▼ THIS IS THE MISSING PART ▼▼▼
+        setTimeout(() => {
+            if (typeof NOTIFICATIONS !== 'undefined') {
+                NOTIFICATIONS.checkUpdates();
+            }
+        }, 1500); 
+        // ▲▲▲ END OF NEW CODE ▲▲▲
         
     } catch (e) {
         console.error('Dashboard error:', e);
@@ -693,7 +701,6 @@ async function loadDashboard() {
         logout();
     } finally { loading(false); }
 }
-
 function setupDashboard() {
     const p = STATE.data?.profile;
     if (p) {
