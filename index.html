@@ -207,19 +207,26 @@
         </div>
     </div>
 
-<div class="sidebar-header">
-    <div class="logo-container"> <!-- Main wrapper for icon + text -->
-        <div class="logo-icon-bars"> <!-- Container for the vertical bars -->
-            <span class="bar"></span>
-            <span class="bar"></span>
-        </div>
-        <div class="logo-text-group"> <!-- Container for the two lines of text -->
-            <span>BTS COMEBACK</span>
-            <span class="dim">MISSION</span>
-        </div>
-    </div>
-    <button id="close-sidebar" class="close-btn" aria-label="Close menu">✕</button>
-</div>
+    <!-- ==================== DASHBOARD SCREEN ==================== -->
+    <div id="dashboard-screen" class="screen">
+        
+        <!-- ==================== SIDEBAR ==================== -->
+        <aside class="sidebar" id="sidebar">
+            
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <div class="logo-icon-bars">
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                    </div>
+                    <div class="logo-text-group">
+                        <span>BTS COMEBACK</span>
+                        <span class="dim">MISSION</span>
+                    </div>
+                </div>
+                <button id="close-sidebar" class="close-btn" aria-label="Close menu">✕</button>
+            </div>
+
             <!-- Agent Info Card -->
             <div class="agent-card">
                 <div class="agent-avatar" id="agent-avatar" role="img" aria-label="Team avatar"></div>
@@ -289,7 +296,6 @@
                         <a href="#" class="nav-link" data-page="summary" role="menuitem">
                             <span class="nav-icon">📋</span><span class="nav-text">Weekly Summary</span>
                         </a>
-                        <!-- 👇 YOUR NEW DRAWER LINK 👇 -->
                         <a href="#" class="nav-link" data-page="drawer" role="menuitem">
                             <span class="nav-icon">🎒</span><span class="nav-text">My Drawer</span>
                         </a>
@@ -377,7 +383,6 @@
                 </section>
 
                 <!-- ==================== DRAWER PAGE (BADGES) ==================== -->
-                <!-- 👇 THIS IS THE CONTAINER YOUR APP.JS NEEDS 👇 -->
                 <section id="page-drawer" class="page">
                     <div class="page-header">
                         <h1>My Drawer</h1>
@@ -481,6 +486,7 @@
             </div>
         </main>
     </div>
+    <!-- End of Dashboard Screen -->
 
     <!-- ==================== APP SCRIPT ==================== -->
     <script src="app.js"></script>
