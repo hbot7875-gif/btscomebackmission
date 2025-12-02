@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.4 (Syntax Fixed & Pro Colors) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.5 (Guides Added & Syntax Fixed) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -35,38 +35,10 @@ const CONFIG = {
     },
     
     TEAMS: {
-        // Indigo: "Warm Sand"
-        // Samples the beige wall color from the album art. 
-        // It blends seamlessly with the sunny room vibe.
-        'Indigo': { 
-            color: '#FFE082', 
-            album: 'Indigo' 
-        },
-
-        // Echo: "Optical White"
-        // Since the art is a high-contrast B&W illusion, 
-        // pure bright white/silver blends best and looks like glowing light.
-        'Echo': { 
-            color: '#FAFAFA', 
-            album: 'Echo' 
-        },
-        
-        // Agust D: "Glitch Steel"
-        // FIXED: No more orange/red.
-        // This is a cool, blue-toned grey that matches the "newspaper/glitch" 
-        // aesthetic of the B&W cover perfectly. It looks metallic and premium.
-        'Agust D': { 
-            color: '#B0BEC5', 
-            album: 'Agust D' 
-        },
-        
-        // JITB: "Electric Magenta"
-        // Pulls the pink accent from the box art, but keeps it bright enough
-        // to be readable on the dark background.
-        'JITB': { 
-            color: '#FF4081', 
-            album: 'Jack In The Box' 
-        }
+        'Indigo': { color: '#FFE082', album: 'Indigo' },   // Warm Sand
+        'Echo': { color: '#FAFAFA', album: 'Echo' },       // Optical White
+        'Agust D': { color: '#B0BEC5', album: 'Agust D' }, // Glitch Steel
+        'JITB': { color: '#FF4081', album: 'Jack In The Box' } // Electric Magenta
     },
     
     TEAM_ALBUM_TRACKS: {
@@ -112,7 +84,6 @@ const STATE = {
 
 // ==================== HELPERS ====================
 const $ = id => document.getElementById(id);
-// Helper to add a glow effect to text
 const teamColor = team => CONFIG.TEAMS[team]?.color || '#7b2cbf';
 const teamPfp = team => CONFIG.TEAM_PFPS[team] || '';
 
@@ -190,10 +161,8 @@ function isWeekCompleted(selectedWeek) {
     const now = new Date();
     return now > end;
 }
-// ==================== HELPERS ====================
-// ... existing code ...
 
-// NEW: Comforting/Instructional Messages for each page
+// ==================== GUIDES / INSTRUCTIONS ====================
 const PAGE_GUIDES = {
     'home': {
         icon: '👋',
@@ -227,18 +196,16 @@ const PAGE_GUIDES = {
     }
 };
 
-// NEW: Function to generate the HTML for these guides
 function renderGuide(pageName) {
     const guide = PAGE_GUIDES[pageName];
     if (!guide) return '';
-    
     return `
-        <div class="card guide-card" style="background: rgba(255,255,255,0.03); border-left: 3px solid var(--purple-glow); margin-bottom: 20px;">
+        <div class="card guide-card" style="background: rgba(255,255,255,0.03); border-left: 3px solid #7b2cbf; margin-bottom: 20px;">
             <div class="card-body" style="display: flex; gap: 15px; align-items: flex-start; padding: 15px;">
                 <div style="font-size: 24px;">${guide.icon}</div>
                 <div>
-                    <h4 style="margin: 0 0 5px 0; color: var(--text-bright); font-size: 14px;">${guide.title}</h4>
-                    <p style="margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.4;">${guide.text}</p>
+                    <h4 style="margin: 0 0 5px 0; color: #fff; font-size: 14px;">${guide.title}</h4>
+                    <p style="margin: 0; color: #aaa; font-size: 13px; line-height: 1.4;">${guide.text}</p>
                 </div>
             </div>
         </div>
@@ -892,7 +859,10 @@ async function renderChat() {
 async function renderHome() {
     const selectedWeek = STATE.week;
     $('current-week').textContent = `Week: ${selectedWeek}`;
+    
+    // ADDED: Guide text variable
     const guideHtml = renderGuide('home'); 
+    
     try {
         const [summary, rankings, goals] = await Promise.all([
             api('getWeeklySummary', { week: selectedWeek }),
@@ -909,7 +879,8 @@ async function renderHome() {
         
         const quickStatsEl = document.querySelector('.quick-stats-section');
         if (quickStatsEl) {
-            quickStatsEl.innerHTML = `
+            // FIXED: Concatenating guideHtml with the stats card
+            quickStatsEl.innerHTML = guideHtml + `
                 <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
                     <div class="card-body">
                         <div class="quick-header">
@@ -1137,7 +1108,7 @@ async function renderDrawer() {
                     </div>` 
                     : `<div class="empty-state" style="text-align:center; padding:20px; color:#777;">
                         <div style="font-size:40px; margin-bottom:10px;">🔒</div>
-                        Earn 100 XP to unlock your first random card!
+                        Earn 100 XP to unlock your first random badge!
                        </div>`
                 }
             </div>
@@ -1180,15 +1151,16 @@ async function renderRankings() {
     try {
         const data = await api('getRankings', { week: STATE.week, limit: 100 });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
+        // FIXED: Removed erroneous line overwriting the rankings
         const rankingsHtml = (data.rankings || []).map((r, i) => `
-        $('rankings-list').innerHTML = renderGuide('rankings') + `<div class="rankings-header">
             <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}">
                 <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
                 <div class="rank-info"><div class="rank-name">${sanitize(r.name)}${String(r.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div></div>
                 <div class="rank-xp">${fmt(r.totalXP)} XP</div>
             </div>
         `).join('') || '<p class="empty-text">No data yet</p>';
-        $('rankings-list').innerHTML = `<div class="rankings-header"><span class="week-badge">${STATE.week}</span></div>${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}${rankingsHtml}`;
+        // FIXED: Added renderGuide('rankings') to the start
+        $('rankings-list').innerHTML = renderGuide('rankings') + `<div class="rankings-header"><span class="week-badge">${STATE.week}</span></div>${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}${rankingsHtml}`;
     } catch (e) { $('rankings-list').innerHTML = '<p class="error-text">Failed to load rankings</p>'; }
 }
 
@@ -1198,8 +1170,10 @@ async function renderGoals() {
     try {
         const data = await api('getGoalsProgress', { week: STATE.week });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
-        let html = `<div class="goals-header"><span class="week-badge">${STATE.week}</span></div><div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated || 'recently')}</div>`;
-        let html = renderGuide('goals') + `<div class="goals-header">
+        
+        // FIXED: Added renderGuide('goals') to html initialization
+        let html = renderGuide('goals') + `<div class="goals-header"><span class="week-badge">${STATE.week}</span></div><div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated || 'recently')}</div>`;
+        
         const trackGoals = data.trackGoals || {};
         if (Object.keys(trackGoals).length) {
             html += `<div class="card"><div class="card-header"><h3>🎵 Track Goals</h3><span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span></div><div class="card-body">`;
@@ -1244,8 +1218,9 @@ async function renderAlbum2x() {
     });
     const allComplete = completedCount === trackResults.length && trackResults.length > 0;
     const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
-    container.innerHTML = renderGuide('album2x')
-    container.innerHTML = `
+    
+    // FIXED: Concatenated renderGuide with the rest of the HTML
+    container.innerHTML = renderGuide('album2x') + `
         <div class="card" style="border-color:${allComplete ? 'var(--success)' : teamColor(team)}"><div class="card-body" style="text-align:center;padding:30px;"><div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div><h2 style="color:${teamColor(team)};margin-bottom:8px;">${sanitize(albumName)}</h2><p style="color:var(--text-dim);margin-bottom:20px;">Stream every track at least 2 times</p><div style="font-size:48px;font-weight:700;color:${allComplete ? 'var(--success)' : 'var(--purple-glow)'}">${completedCount}/${trackResults.length}</div><p style="color:var(--text-dim);">Tracks completed</p><div class="progress-bar" style="margin:20px auto;max-width:300px;height:12px;"><div class="progress-fill ${allComplete ? 'complete' : ''}" style="width:${pct}%;background:${allComplete ? 'var(--success)' : teamColor(team)}"></div></div></div></div>
         <div class="card"><div class="card-header"><h3>📋 Track Checklist</h3></div><div class="card-body">${trackResults.map((t, i) => `<div class="track-item ${t.passed ? 'passed' : 'pending'}" style="border-left-color:${t.passed ? 'var(--success)' : 'var(--danger)'}"><span class="track-num">${i + 1}</span><span class="track-name">${sanitize(t.name)}</span><span class="track-status ${t.passed ? 'pass' : 'fail'}">${t.count}/2 ${t.passed ? '✅' : '❌'}</span></div>`).join('')}</div></div>
     `;
@@ -1258,11 +1233,12 @@ async function renderTeamLevel() {
         const teams = summary.teams || {};
         const myTeam = STATE.data?.profile?.team;
         if (summary.lastUpdated) STATE.lastUpdated = summary.lastUpdated;
-        container.innerHTML = renderGuide('team-level')
+        
         // Sort teams by XP (Highest first)
         const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
         
-        container.innerHTML = `
+        // FIXED: Concatenated renderGuide with the rest of the HTML
+        container.innerHTML = renderGuide('team-level') + `
             <div class="team-level-header"><h2>Team Levels</h2><span class="week-badge">${STATE.week}</span></div>
             ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
             
@@ -1320,13 +1296,15 @@ async function renderSecretMissions() {
             api('getTeamSecretMissions', { team: myTeam, agentNo: STATE.agentNo, week: STATE.week }).catch(() => ({ active: [], completed: [], myAssigned: [] })),
             api('getTeamSecretStats', { week: STATE.week }).catch(() => ({ teams: {} }))
         ]);
-        container.innerHTML = renderGuide('secret-missions')
+        
+        // FIXED: Concatenated renderGuide with the rest of the HTML
         const activeMissions = missionsData.active || [];
         const completedMissions = missionsData.completed || [];
         const myAssigned = missionsData.myAssigned || [];
         const stats = statsData.teams || {};
         const myStats = stats[myTeam] || {};
-        container.innerHTML = `
+        
+        container.innerHTML = renderGuide('secret-missions') + `
             <div class="card secret-header-card" style="border-color:${teamColor(myTeam)}"><div class="card-body"><div class="secret-header">${teamPfp(myTeam) ? `<img src="${teamPfp(myTeam)}" class="secret-team-pfp" style="border-color:${teamColor(myTeam)}">` : ''}<div class="secret-header-info"><div class="secret-team-name" style="color:${teamColor(myTeam)}">Team ${myTeam}</div><div class="secret-label">SECRET MISSION BONUS</div></div><div class="secret-xp-display"><div class="secret-xp-value">+${myStats.secretXP || 0}</div><div class="secret-xp-max">/ ${CONFIG.SECRET_MISSIONS.maxTeamBonus} max XP</div></div></div><div class="secret-stats-row"><div class="secret-stat"><span class="stat-value">${myStats.completed || 0}</span><span class="stat-label">Completed</span></div><div class="secret-stat"><span class="stat-value">${activeMissions.length}</span><span class="stat-label">Active</span></div><div class="secret-stat"><span class="stat-value">${CONFIG.SECRET_MISSIONS.maxMissionsPerTeam}</span><span class="stat-label">Max/Week</span></div></div></div></div>
             ${myAssigned.length ? `<div class="card urgent-card"><div class="card-header"><h3>🎯 Your Assigned Missions</h3><span class="urgent-badge">Action Required</span></div><div class="card-body">${myAssigned.map(m => renderSecretMissionCard(m, myTeam, true)).join('')}</div></div>` : ''}
             <div class="card"><div class="card-header"><h3>🔒 Active Team Missions</h3></div><div class="card-body">${activeMissions.length ? activeMissions.map(m => renderSecretMissionCard(m, myTeam, false)).join('') : `<div class="empty-missions"><div class="empty-icon">📭</div><p>No active secret missions</p></div>`}</div></div>
