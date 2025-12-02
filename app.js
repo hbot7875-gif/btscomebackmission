@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.6 (Team Ranking Link Added) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.7 (Team Rank List Added) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -971,7 +971,6 @@ async function renderHome() {
         const sortedTeams = Object.keys(summary.teams || {}).sort((a, b) => (summary.teams[b].teamXP || 0) - (summary.teams[a].teamXP || 0));
         const standingsEl = $('home-standings');
         if (standingsEl) {
-            // ▼▼▼ FIX: ADDED BUTTON TO ACCESS THE 'comparison' PAGE FOR DETAILED TEAM RANKINGS ▼▼▼
             standingsEl.innerHTML = sortedTeams.length ? `
                 <div class="standings-header"><span class="standings-badge ${isCompleted ? 'final' : ''}">${isCompleted ? '🏆 Final Standings' : '⏳ Live Battle'}</span></div>
                 ${sortedTeams.map((t, i) => {
@@ -986,7 +985,6 @@ async function renderHome() {
                     <button class="btn-secondary" onclick="loadPage('comparison')">View Battle Details →</button>
                 </div>
             ` : '<p class="empty-text">No data yet</p>';
-            // ▲▲▲ END OF FIX ▲▲▲
         }
     } catch (e) { console.error(e); showToast('Failed to load home', 'error'); }
 }
@@ -1155,20 +1153,113 @@ async function renderProfile() {
     } catch (e) { $('profile-badges').innerHTML = '<p class="empty-text">No badges</p>'; }
 }
 
+
+// ▼▼▼ ENTIRE RANKINGS SECTION REBUILT TO SUPPORT TABS ▼▼▼
+
+// This is the new main function for the rankings page
 async function renderRankings() {
+    const container = $('rankings-list');
+    if (!container) return;
+
+    const myTeam = STATE.data?.profile?.team || 'Team';
+    const tColor = teamColor(myTeam);
+
+    // Set up the page structure with tabs
+    container.innerHTML = `
+        ${renderGuide('rankings')}
+        <div class="ranking-tabs">
+            <button id="rank-tab-overall" class="ranking-tab active">🏆 Overall</button>
+            <button id="rank-tab-team" class="ranking-tab" style="--team-color: ${tColor};">${myTeam}</button>
+        </div>
+        <div id="rankings-content-container">
+             <div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
+        </div>
+    `;
+    
+    // Add event listeners for the new tabs
+    $('rank-tab-overall').onclick = () => switchRankingTab('overall');
+    $('rank-tab-team').onclick = () => switchRankingTab('team');
+
+    // Load the default view (Overall rankings)
+    await renderOverallRankings();
+}
+
+async function switchRankingTab(tab) {
+    const overallTab = $('rank-tab-overall');
+    const teamTab = $('rank-tab-team');
+    const contentContainer = $('rankings-content-container');
+
+    if (!overallTab || !teamTab || !contentContainer) return;
+    
+    contentContainer.innerHTML = `<div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>`;
+    loading(true);
+
+    if (tab === 'overall') {
+        overallTab.classList.add('active');
+        teamTab.classList.remove('active');
+        await renderOverallRankings();
+    } else {
+        overallTab.classList.remove('active');
+        teamTab.classList.add('active');
+        await renderMyTeamRankings();
+    }
+    loading(false);
+}
+
+// Renders the "Overall" rankings list
+async function renderOverallRankings() {
+    const container = $('rankings-content-container');
+    if (!container) return;
     try {
         const data = await api('getRankings', { week: STATE.week, limit: 100 });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
+        
         const rankingsHtml = (data.rankings || []).map((r, i) => `
             <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}">
                 <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
                 <div class="rank-info"><div class="rank-name">${sanitize(r.name)}${String(r.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div></div>
                 <div class="rank-xp">${fmt(r.totalXP)} XP</div>
             </div>
-        `).join('') || '<p class="empty-text">No data yet</p>';
-        $('rankings-list').innerHTML = renderGuide('rankings') + `<div class="rankings-header"><span class="week-badge">${STATE.week}</span></div>${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}${rankingsHtml}`;
-    } catch (e) { $('rankings-list').innerHTML = '<p class="error-text">Failed to load rankings</p>'; }
+        `).join('') || '<p class="empty-text">No ranking data yet</p>';
+        
+        container.innerHTML = `<div class="rankings-header"><span class="week-badge">${STATE.week}</span></div>${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}${rankingsHtml}`;
+    } catch (e) { 
+        container.innerHTML = '<p class="error-text">Failed to load overall rankings: ' + e.message + '</p>'; 
+    }
 }
+
+// Renders the "My Team" rankings list
+async function renderMyTeamRankings() {
+    const container = $('rankings-content-container');
+    if (!container) return;
+    const myTeam = STATE.data?.profile?.team;
+
+    if (!myTeam) {
+        container.innerHTML = '<p class="error-text">Could not identify your team.</p>';
+        return;
+    }
+    
+    try {
+        // This is a NEW API call you need to add to your backend
+        const data = await api('getTeamRankings', { week: STATE.week, team: myTeam });
+        if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
+        
+        const rankingsHtml = (data.rankings || []).map((r, i) => `
+            <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" style="border-left-color: ${teamColor(myTeam)}">
+                <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
+                <div class="rank-info"><div class="rank-name">${sanitize(r.name)}${String(r.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team} Agent</div></div>
+                <div class="rank-xp">${fmt(r.totalXP)} XP</div>
+            </div>
+        `).join('') || '<p class="empty-text">No team ranking data yet</p>';
+        
+        container.innerHTML = `<div class="rankings-header"><span class="week-badge" style="background-color: ${teamColor(myTeam)}">${myTeam} Leaderboard</span></div>${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}${rankingsHtml}`;
+    } catch (e) {
+        container.innerHTML = '<p class="error-text">Failed to load team rankings. Make sure the `getTeamRankings` action is set up in your backend script. Error: ' + e.message + '</p>'; 
+    }
+}
+
+// ▲▲▲ END OF REBUILT RANKINGS SECTION ▲▲▲
+
 
 async function renderGoals() {
     const container = $('goals-content');
@@ -1505,7 +1596,7 @@ window.loadPage = async function(page) {
     }
     
     // Call original function
-    await originalLoadPage(page);
+    if(originalLoadPage) await originalLoadPage(page);
 };
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', initApp);
@@ -1526,4 +1617,4 @@ window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
 
-console.log('🎮 BTS Spy Battle v3.6 Loaded (Team Ranking Link Added)');
+console.log('🎮 BTS Spy Battle v3.7 Loaded (Team Rank List Added)');
