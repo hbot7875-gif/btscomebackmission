@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0a0a0f">
-    <meta name="description" content="BTS COMEBACK MISSION - Hyung Line Streaming Competition Dashboard">
+    <meta name="description" content="BTS SPY BATTLE - Hyung Line Streaming Competition Dashboard">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <title>BTS COMEBACK MISSION - HYUNG LINE EDITION</title>
+    <title>BTS SPY BATTLE - HYUNG LINE EDITION</title>
     
-    <!-- Favicon (Fixed URL Encoding) -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⟭⟬%3C/text%3E%3C/svg%3E">
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🕵️%3C/text%3E%3C/svg%3E">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,226 +20,6 @@
     
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
-    
-    <!-- Inline Critical CSS -->
-    <style>
-        :root {
-            --bg-dark: #0a0a0f;
-            --purple-main: #7b2cbf;
-            --purple-glow: #9d4edd;
-            --text-main: #e0e0f0;
-            --team-color: #7b2cbf; /* Default fallback */
-        }
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Rajdhani', sans-serif;
-            background: var(--bg-dark);
-            color: var(--text-main);
-            min-height: 100vh;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
-        
-        /* Loading Overlay */
-        .loading-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(10, 10, 15, 0.95);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s, visibility 0.3s;
-        }
-        
-        .loading-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        
-        .screen {
-            display: none;
-            min-height: 100vh;
-        }
-        
-        .screen.active {
-            display: flex;
-        }
-        
-        /* Loader Animation */
-        .loader { text-align: center; }
-        
-        .loader-ring {
-            width: 60px; height: 60px;
-            border: 3px solid transparent;
-            border-top-color: var(--purple-glow);
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            animation: spin 1s linear infinite;
-        }
-        
-        .loader-ring:nth-child(2) {
-            width: 48px; height: 48px;
-            margin-top: -54px;
-            animation-delay: 0.15s;
-            border-top-color: var(--purple-main);
-        }
-        
-        .loader-ring:nth-child(3) {
-            width: 36px; height: 36px;
-            margin-top: -42px;
-            animation-delay: 0.3s;
-            border-top-color: #c77dff;
-        }
-        
-        .loader p {
-            font-family: 'Orbitron', monospace;
-            font-size: 12px;
-            letter-spacing: 3px;
-            color: var(--purple-glow);
-            margin-top: 30px;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-        
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-        
-        /* Ranking Tabs */
-        .ranking-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            padding: 5px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 12px;
-        }
-        
-        .ranking-tab {
-            flex: 1;
-            padding: 12px 20px;
-            background: transparent;
-            border: 1px solid transparent;
-            border-radius: 8px;
-            color: var(--text-dim, #888);
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .ranking-tab:hover {
-            background: rgba(255,255,255,0.05);
-            color: var(--text-main, #fff);
-        }
-        
-        .ranking-tab.active {
-            background: var(--purple-main, #7b2cbf);
-            border-color: var(--purple-glow, #9d4edd);
-            color: #fff;
-            box-shadow: 0 0 15px rgba(123, 44, 191, 0.3);
-        }
-        
-        .ranking-tab[style*="--team-color"].active {
-            background: var(--team-color);
-            border-color: var(--team-color);
-        }
-        
-        /* Notification Dot */
-        .notification-dot {
-            width: 8px;
-            height: 8px;
-            background: #ff4757;
-            border-radius: 50%;
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        
-        .notification-dot.active {
-            opacity: 1;
-            animation: dot-pulse 2s infinite;
-        }
-        
-        @keyframes dot-pulse {
-            0%, 100% { transform: translateY(-50%) scale(1); }
-            50% { transform: translateY(-50%) scale(1.3); }
-        }
-        
-        .nav-link {
-            position: relative;
-        }
-        
-        /* Intel Modal */
-        .intel-modal {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 320px;
-            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
-            border: 1px solid var(--purple-glow, #9d4edd);
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 20px rgba(157, 78, 221, 0.2);
-            z-index: 10000;
-            overflow: hidden;
-            transform: translateX(400px);
-            opacity: 0;
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            display: block; /* Visible in DOM, hidden via transform */
-        }
-        
-        .intel-modal.show {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        
-        .intel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 15px;
-            background: rgba(123, 44, 191, 0.2);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            font-family: 'Orbitron', monospace;
-            font-size: 11px;
-            letter-spacing: 1px;
-            color: var(--purple-glow, #9d4edd);
-        }
-        
-        .intel-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .intel-item:hover {
-            background: rgba(255,255,255,0.05);
-        }
-        
-        .intel-item:last-child {
-            border-bottom: none;
-        }
-        
-        .intel-icon {
-            font-size: 20px;
-        }
-        
-        .intel-close {
-            cursor: pointer;
-            padding: 4px;
-        }
-    </style>
 </head>
 <body>
     <!-- ==================== LOADING OVERLAY ==================== -->
@@ -264,8 +44,8 @@
             <div class="login-content">
                 <!-- Logo Section -->
                 <div class="logo-section">
-                    <div class="bts-logo" aria-label="BTS Logo">⟭⟬</div>
-                    <h1 class="title">BTS COMEBACK MISSION</h1>
+                    <div class="bts-logo" aria-label="BTS Logo">🕵️</div>
+                    <h1 class="title">BTS SPY BATTLE</h1>
                     <p class="subtitle">HYUNG LINE EDITION</p>
                     <div class="scan-line" aria-hidden="true"></div>
                 </div>
@@ -336,7 +116,7 @@
                         <div class="pulse-dot"></div>
                         <span>SECURE CONNECTION ESTABLISHED</span>
                     </div>
-                    <div class="version-info">v3.7 | Hyung Line Edition</div>
+                    <div class="version-info">v3.8 | Hyung Line Edition</div>
                 </div>
             </div>
         </div>
@@ -348,25 +128,13 @@
         <!-- ==================== SIDEBAR ==================== -->
         <aside class="sidebar" id="sidebar">
             
-            <!-- FIXED SIDEBAR HEADER -->
+            <!-- SIDEBAR HEADER -->
             <div class="sidebar-header">
-                <div class="logo-container" style="display: flex; align-items: center; gap: 10px;">
-                    <!-- PRIMARY: SVG Logo -->
-                    <div class="logo-symbol">
-                        <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="display:block;">
-                            <text x="50%" y="55%" 
-                                  dominant-baseline="middle" 
-                                  text-anchor="middle" 
-                                  font-size="50" 
-                                  font-weight="bold"
-                                  fill="#9d4edd">⟭⟬</text>
-                        </svg>
-                    </div>
-                    
-                    <!-- TITLE TEXT -->
+                <div class="logo-container">
+                    <div class="logo-symbol">🕵️</div>
                     <div class="logo-text-group">
-                        <span style="color: #fff; font-weight: 600; font-size: 14px;">BTS COMEBACK</span>
-                        <span class="dim" style="color: #888; font-size: 12px; display: block;">MISSION</span>
+                        <span class="logo-title">BTS SPY BATTLE</span>
+                        <span class="logo-subtitle">MISSION HQ</span>
                     </div>
                 </div>
                 <button id="close-sidebar" class="close-btn" aria-label="Close menu">✕</button>
@@ -395,91 +163,87 @@
             </div>
 
             <!-- Navigation Menu -->
-            <div class="nav-links">
-                <nav class="nav-menu" role="menubar">
-                    
-                    <!-- MAIN SECTION -->
-                    <div class="nav-section">
-                        <span class="nav-section-title">MAIN</span>
-                        <a href="#" class="nav-link active" data-page="home" role="menuitem">
-                            <span class="nav-icon">🏠</span>
-                            <span class="nav-text">Mission Control</span>
-                        </a>
-                        <a href="#" class="nav-link" data-page="profile" role="menuitem">
-                            <span class="nav-icon">👤</span>
-                            <span class="nav-text">Agent Profile</span>
-                        </a>
-                        <a href="#" class="nav-link" data-page="rankings" role="menuitem">
-                            <span class="nav-icon">🏆</span>
-                            <span class="nav-text">Rankings</span>
-                        </a>
-                        <a href="#" class="nav-link" data-page="drawer" role="menuitem">
-                            <span class="nav-icon">🎒</span>
-                            <span class="nav-text">My Drawer</span>
-                            <span class="notification-dot" id="dot-drawer"></span>
-                        </a>
-                    </div>
-                    
-                    <!-- MISSIONS SECTION -->
-                    <div class="nav-section">
-                        <span class="nav-section-title">MISSIONS</span>
-                        <a href="#" class="nav-link" data-page="goals" role="menuitem">
-                            <span class="nav-icon">🎯</span>
-                            <span class="nav-text">Goals Progress</span>
-                        </a>
-                        <a href="#" class="nav-link" data-page="album2x" role="menuitem">
-                            <span class="nav-icon">💿</span>
-                            <span class="nav-text">Album 2X Mission</span>
-                        </a>
-                        <a href="#" class="nav-link" data-page="secret-missions" role="menuitem">
-                            <span class="nav-icon">🔒</span>
-                            <span class="nav-text">Secret Missions</span>
-                            <span class="notification-dot" id="dot-mission"></span>
-                        </a>
-                    </div>
-                    
-                    <!-- ANALYTICS SECTION -->
-                    <div class="nav-section">
-                        <span class="nav-section-title">ANALYTICS</span>
-                        <a href="#" class="nav-link" data-page="team-level" role="menuitem">
-                            <span class="nav-icon">📊</span>
-                            <span class="nav-text">Team Levels</span>
-                        </a>
-                        <a href="#" class="nav-link" data-page="comparison" role="menuitem">
-                            <span class="nav-icon">⚔️</span>
-                            <span class="nav-text">Team Comparison</span>
-                        </a>
-                    </div>
-                    
-                    <!-- MORE SECTION -->
-                    <div class="nav-section">
-                        <span class="nav-section-title">MORE</span>
-                        <a href="#" class="nav-link" data-page="chat" role="menuitem">
-                            <span class="nav-icon">💬</span>
-                            <span class="nav-text">Secret Comms</span>
-                        </a>
-                        <a href="#" class="nav-link" data-page="summary" role="menuitem">
-                            <span class="nav-icon">📋</span>
-                            <span class="nav-text">Weekly Summary</span>
-                            <span class="notification-dot" id="dot-summary"></span>
-                        </a>
-                        <a href="#" class="nav-link" data-page="announcements" role="menuitem">
-                            <span class="nav-icon">📢</span>
-                            <span class="nav-text">Announcements</span>
-                            <span class="notification-dot" id="dot-announce"></span>
-                        </a>
-                    </div>
-                    
-                    <!-- Admin Link Container (Dynamically added by JS) -->
-                    <div class="nav-section nav-admin-section" id="nav-admin-container"></div>
-                </nav>
-            </div>
+            <nav class="nav-links" role="menubar">
+                
+                <!-- MAIN SECTION -->
+                <div class="nav-section">
+                    <span class="nav-section-title">MAIN</span>
+                    <a href="#" class="nav-link active" data-page="home" role="menuitem">
+                        <span class="nav-icon">🏠</span>
+                        <span class="nav-text">Mission Control</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="profile" role="menuitem">
+                        <span class="nav-icon">👤</span>
+                        <span class="nav-text">Agent Profile</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="rankings" role="menuitem">
+                        <span class="nav-icon">🏆</span>
+                        <span class="nav-text">Rankings</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="drawer" role="menuitem">
+                        <span class="nav-icon">🎒</span>
+                        <span class="nav-text">My Drawer</span>
+                        <span class="notification-dot" id="dot-drawer"></span>
+                    </a>
+                </div>
+                
+                <!-- MISSIONS SECTION -->
+                <div class="nav-section">
+                    <span class="nav-section-title">MISSIONS</span>
+                    <a href="#" class="nav-link" data-page="goals" role="menuitem">
+                        <span class="nav-icon">🎯</span>
+                        <span class="nav-text">Goals Progress</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="album2x" role="menuitem">
+                        <span class="nav-icon">💿</span>
+                        <span class="nav-text">Album 2X Mission</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="secret-missions" role="menuitem">
+                        <span class="nav-icon">🔒</span>
+                        <span class="nav-text">Secret Missions</span>
+                        <span class="notification-dot" id="dot-mission"></span>
+                    </a>
+                </div>
+                
+                <!-- ANALYTICS SECTION -->
+                <div class="nav-section">
+                    <span class="nav-section-title">ANALYTICS</span>
+                    <a href="#" class="nav-link" data-page="team-level" role="menuitem">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text">Team Levels</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="comparison" role="menuitem">
+                        <span class="nav-icon">⚔️</span>
+                        <span class="nav-text">Team Comparison</span>
+                    </a>
+                </div>
+                
+                <!-- MORE SECTION -->
+                <div class="nav-section">
+                    <span class="nav-section-title">MORE</span>
+                    <a href="#" class="nav-link" data-page="chat" role="menuitem">
+                        <span class="nav-icon">💬</span>
+                        <span class="nav-text">Secret Comms</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="summary" role="menuitem">
+                        <span class="nav-icon">📋</span>
+                        <span class="nav-text">Weekly Summary</span>
+                        <span class="notification-dot" id="dot-summary"></span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="announcements" role="menuitem">
+                        <span class="nav-icon">📢</span>
+                        <span class="nav-text">Announcements</span>
+                        <span class="notification-dot" id="dot-announce"></span>
+                    </a>
+                </div>
+                
+            </nav>
 
             <!-- Sidebar Footer -->
             <div class="sidebar-footer">
                 <div class="sync-status">
                     <span class="sync-icon">🔄</span>
-                    Last Sync: <span id="last-update">--:--</span>
+                    <span id="last-update">--:--</span>
                 </div>
                 <button id="logout-btn" class="btn-logout" aria-label="Logout">
                     <span class="logout-icon">🚪</span>
@@ -502,16 +266,8 @@
                     <span class="hamburger-line"></span>
                 </button>
                 <div class="header-logo">
-                    <!-- SVG version for mobile -->
-                    <svg width="24" height="24" viewBox="0 0 100 100" class="header-logo-icon" xmlns="http://www.w3.org/2000/svg">
-                        <text x="50%" y="55%" 
-                              dominant-baseline="middle" 
-                              text-anchor="middle" 
-                              font-size="60" 
-                              font-weight="bold"
-                              fill="#9d4edd">⟭⟬</text>
-                    </svg>
-                    <span class="header-logo-text">BTS COMEBACK MISSION</span>
+                    <span class="header-logo-icon">🕵️</span>
+                    <span class="header-logo-text">BTS SPY BATTLE</span>
                 </div>
                 <div class="header-spacer"></div>
             </header>
@@ -531,9 +287,10 @@
                         </div>
                     </div>
 
-                    <!-- Quick Stats & Missions -->
+                    <!-- Quick Stats & Guide -->
                     <div class="quick-stats-section"></div>
                     
+                    <!-- Active Missions Grid -->
                     <div class="section-header">
                         <h2>📋 Active Missions</h2>
                     </div>
@@ -556,15 +313,6 @@
                         </div>
                         <div class="card-body" id="home-standings"></div>
                     </div>
-                </section>
-
-                <!-- ==================== DRAWER PAGE (BADGES) ==================== -->
-                <section id="page-drawer" class="page">
-                    <div class="page-header">
-                        <h1>My Drawer</h1>
-                        <p class="page-subtitle">Your badges, achievements & history</p>
-                    </div>
-                    <div id="drawer-content"></div>
                 </section>
 
                 <!-- ==================== PROFILE PAGE ==================== -->
@@ -613,6 +361,15 @@
                             <div class="skeleton-card"></div>
                         </div>
                     </div>
+                </section>
+
+                <!-- ==================== DRAWER PAGE (BADGES) ==================== -->
+                <section id="page-drawer" class="page">
+                    <div class="page-header">
+                        <h1>My Drawer</h1>
+                        <p class="page-subtitle">Your badges, achievements & history</p>
+                    </div>
+                    <div id="drawer-content"></div>
                 </section>
 
                 <!-- ==================== GOALS PAGE ==================== -->
@@ -664,15 +421,6 @@
 
             </div>
         </main>
-    </div>
-
-    <!-- ==================== INTEL MODAL (ADDED) ==================== -->
-    <div id="intel-modal" class="intel-modal">
-        <div class="intel-header">
-            <span>INCOMING TRANSMISSION</span>
-            <span class="intel-close">✕</span>
-        </div>
-        <div id="intel-content"></div>
     </div>
 
     <!-- ==================== APP SCRIPT ==================== -->
