@@ -167,12 +167,12 @@ const PAGE_GUIDES = {
     'home': {
         icon: '👋',
         title: 'Welcome to HQ!',
-        text: "Don't stress about the numbers! Every single song you listen to helps your team. Just relax, stream your favorite tracks, and watch your XP grow naturally."
+        text: "Comeback is real and we’re not losing. Just stream like your life depends on it (it kinda does)."
     },
     'goals': {
         icon: '🎯',
         title: 'Team Targets',
-        text: "These are the songs your team is focusing on this week. You don't have to stream them all! Just picking one or two to listen to helps the bar move forward."
+        text: "These are the tracks we are focusing on this week. Don’t loop one track — it looks like bot activity.Mix it up!"
     },
     'album2x': {
         icon: '🎧',
@@ -192,7 +192,7 @@ const PAGE_GUIDES = {
     'rankings': {
         icon: '🏆',
         title: 'Friendly Competition',
-        text: "Remember, we are all one big team! Rankings are just for fun. Whether you are #1 or #100, your streams count exactly the same."
+        text: "Remember, we are all one big team! Rankings are just for fun. Whether you are #1 or #100, every stream counts."
     }
 };
 
