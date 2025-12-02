@@ -469,38 +469,7 @@
                             <span class="notification-dot" id="dot-announce"></span>
                         </a>
                     </div>
-                    function addAdminNavLink() {
-    // 1. Look for your specific container in the HTML
-    let container = document.getElementById('nav-admin-container');
-    
-    // 2. Fallback: If you accidentally deleted the div, find the main list
-    if (!container) container = document.querySelector('.nav-links');
-    if (!container) return;
-    
-    // 3. Prevent creating two buttons
-    if (document.querySelector('.admin-nav-link')) return;
-
-    // 4. Create the button
-    const link = document.createElement('a');
-    link.href = '#';
-    link.className = 'nav-link admin-nav-link';
-    
-    // Add a special style just for the admin button
-    link.style.color = '#ff4757'; // Red/Pink to stand out
-    link.style.borderTop = '1px solid rgba(255,255,255,0.1)';
-    link.style.marginTop = '10px';
-
-    link.innerHTML = '<span class="nav-icon">🎛️</span><span class="nav-text">Admin Panel</span>';
-    
-    link.onclick = (e) => { 
-        e.preventDefault(); 
-        STATE.isAdmin ? showAdminPanel() : showAdminLogin(); 
-        closeSidebar(); 
-    };
-    
-    // 5. Inject it into your empty HTML container
-    container.appendChild(link);
-}
+                    
                     <!-- Admin Link Container (Dynamically added by JS) -->
                     <div class="nav-section nav-admin-section" id="nav-admin-container"></div>
                 </nav>
