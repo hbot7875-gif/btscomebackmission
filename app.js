@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.7 (Team Rank List Added) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.8 (Strategic Update) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -7,7 +7,8 @@ const CONFIG = {
     
     // Admin Settings
     ADMIN_AGENT_NO: 'AGENT001',
- 
+    // Password handled by server or local fallback
+    ADMIN_PASSWORD: 'BTSSPYADMIN2024', 
     
     // End Dates (YYYY-MM-DD)
     WEEK_DATES: {
@@ -29,16 +30,24 @@ const CONFIG = {
     get BADGE_POOL() {
         const pool = [];
         for (let i = 1; i <= this.TOTAL_BADGE_IMAGES; i++) {
+            // Matches "BTS (1).jpg", "BTS (2).jpg"
             pool.push(`${this.BADGE_REPO_URL}BTS%20(${i}).jpg`);
         }
         return pool;
     },
     
     TEAMS: {
-        'Indigo': { color: '#FFE082', album: 'Indigo' },   // Warm Sand
-        'Echo': { color: '#FAFAFA', album: 'Echo' },       // Optical White
-        'Agust D': { color: '#B0BEC5', album: 'Agust D' }, // Glitch Steel
-        'JITB': { color: '#FF4081', album: 'Jack In The Box' } // Electric Magenta
+        // Indigo: Soft Denim Blue (Matches the art vibe)
+        'Indigo': { color: '#5DADE2', album: 'Indigo' },
+        
+        // Echo: Platinum Silver (Matches the Vinyl Record - very clean on black)
+        'Echo': { color: '#E0E0E0', album: 'Echo' },
+        
+        // Agust D: Blaze Orange (Matches the Fire/Explosions)
+        'Agust D': { color: '#FF6B00', album: 'Agust D' },
+        
+        // JITB: Neon Magenta (Matches the chaotic pink/purple box art)
+        'JITB': { color: '#DE38C6', album: 'Jack In The Box' }
     },
     
     TEAM_ALBUM_TRACKS: {
@@ -58,13 +67,40 @@ const CONFIG = {
     SECRET_MISSIONS: { xpPerMission: 5, maxMissionsPerTeam: 5, maxTeamBonus: 25 },
     
     MISSION_TYPES: {
-        'joint_op': { name: 'Joint Operation', icon: '🤝', description: 'Agents from different teams collaborate' },
-        'decode': { name: 'Decode Mission', icon: '🔐', description: 'Solve cipher to reveal target' },
-        'coordinate': { name: 'Coordinate Strike', icon: '⚡', description: 'Multiple agents stream together' },
-        'stealth': { name: 'Stealth Mission', icon: '🥷', description: 'Covert streaming task' },
-        'chain': { name: 'Chain Reaction', icon: '🔗', description: 'Sequential team task' },
-        'hidden': { name: 'Hidden Target', icon: '🎯', description: 'Clue-based target discovery' },
-        'alliance': { name: 'Alliance Mission', icon: '🌐', description: 'All teams work together' }
+        // STRATEGY 1: PLATFORM SWITCHING
+        'switch_app': { 
+            name: 'Switch App', 
+            icon: '🔄', 
+            description: 'Stop Spotify. Switch to YouTube/Apple Music for 1 hour.' 
+        },
+
+        // STRATEGY 2: HUMAN BEHAVIOR
+        'filler_mode': { 
+            name: 'Filler Mode', 
+            icon: '🧬', 
+            description: 'Stream 1 BTS Song + 2 Non-Kpop songs to look human.' 
+        },
+
+        // STRATEGY 3: WARM UP / 1 BILLION
+        'old_songs': { 
+            name: 'Old Songs', 
+            icon: '🕰️', 
+            description: 'Stream tracks older than 2 years (Road to 1B).' 
+        },
+
+        // STRATEGY 4: COORDINATED ATTACK
+        'stream_party': { 
+            name: 'Stream Party', 
+            icon: '🎉', 
+            description: 'Everyone streams the exact same playlist NOW.' 
+        },
+
+        // STRATEGY 5: THE "ANYTHING ELSE" OPTION
+        'custom': { 
+            name: 'Custom Task', 
+            icon: '⭐', 
+            description: 'Special instruction from Admin. Read briefing carefully.' 
+        }
     }
 };
 
@@ -546,7 +582,7 @@ function renderCreateMissionForm() {
                         </div>
                     `).join('')}
                 </div>
-                <input type="hidden" id="selected-mission-type" value="joint_op">
+                <input type="hidden" id="selected-mission-type" value="switch_app">
             </div>
             <div class="form-section">
                 <h4>🎯 Target Teams</h4>
@@ -1617,4 +1653,4 @@ window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
 
-console.log('🎮 BTS Spy Battle v3.7 Loaded (Team Rank List Added)');
+console.log('🎮 BTS Spy Battle v3.8 Loaded (Strategic Update)');
