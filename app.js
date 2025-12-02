@@ -190,6 +190,60 @@ function isWeekCompleted(selectedWeek) {
     const now = new Date();
     return now > end;
 }
+// ==================== HELPERS ====================
+// ... existing code ...
+
+// NEW: Comforting/Instructional Messages for each page
+const PAGE_GUIDES = {
+    'home': {
+        icon: '👋',
+        title: 'Welcome to HQ!',
+        text: "Don't stress about the numbers! Every single song you listen to helps your team. Just relax, stream your favorite tracks, and watch your XP grow naturally."
+    },
+    'goals': {
+        icon: '🎯',
+        title: 'Team Targets',
+        text: "These are the songs your team is focusing on this week. You don't have to stream them all! Just picking one or two to listen to helps the bar move forward."
+    },
+    'album2x': {
+        icon: '🎧',
+        title: 'The 2X Challenge',
+        text: "A simple mission: Try to listen to every song on this album at least 2 times this week. It's a great way to rediscover B-sides!"
+    },
+    'secret-missions': {
+        icon: '🕵️',
+        title: 'Classified Tasks',
+        text: "These grant bonus XP! If you see a mission here, it means your team needs extra help on a specific song. If it's empty, you're doing great!"
+    },
+    'team-level': {
+        icon: '🚀',
+        title: 'Leveling Up',
+        text: "This shows how strong your team is. Complete the Track, Album, and 2X missions to earn all 3 badges and raise your team's level!"
+    },
+    'rankings': {
+        icon: '🏆',
+        title: 'Friendly Competition',
+        text: "Remember, we are all one big team! Rankings are just for fun. Whether you are #1 or #100, your streams count exactly the same."
+    }
+};
+
+// NEW: Function to generate the HTML for these guides
+function renderGuide(pageName) {
+    const guide = PAGE_GUIDES[pageName];
+    if (!guide) return '';
+    
+    return `
+        <div class="card guide-card" style="background: rgba(255,255,255,0.03); border-left: 3px solid var(--purple-glow); margin-bottom: 20px;">
+            <div class="card-body" style="display: flex; gap: 15px; align-items: flex-start; padding: 15px;">
+                <div style="font-size: 24px;">${guide.icon}</div>
+                <div>
+                    <h4 style="margin: 0 0 5px 0; color: var(--text-bright); font-size: 14px;">${guide.title}</h4>
+                    <p style="margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.4;">${guide.text}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
 // ==================== API ====================
 async function api(action, params = {}) {
@@ -838,6 +892,7 @@ async function renderChat() {
 async function renderHome() {
     const selectedWeek = STATE.week;
     $('current-week').textContent = `Week: ${selectedWeek}`;
+    const guideHtml = renderGuide('home'); 
     try {
         const [summary, rankings, goals] = await Promise.all([
             api('getWeeklySummary', { week: selectedWeek }),
@@ -1126,6 +1181,7 @@ async function renderRankings() {
         const data = await api('getRankings', { week: STATE.week, limit: 100 });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
         const rankingsHtml = (data.rankings || []).map((r, i) => `
+        $('rankings-list').innerHTML = renderGuide('rankings') + `<div class="rankings-header">
             <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}">
                 <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
                 <div class="rank-info"><div class="rank-name">${sanitize(r.name)}${String(r.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div></div>
@@ -1143,7 +1199,7 @@ async function renderGoals() {
         const data = await api('getGoalsProgress', { week: STATE.week });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
         let html = `<div class="goals-header"><span class="week-badge">${STATE.week}</span></div><div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated || 'recently')}</div>`;
-        
+        let html = renderGuide('goals') + `<div class="goals-header">
         const trackGoals = data.trackGoals || {};
         if (Object.keys(trackGoals).length) {
             html += `<div class="card"><div class="card-header"><h3>🎵 Track Goals</h3><span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span></div><div class="card-body">`;
@@ -1188,7 +1244,7 @@ async function renderAlbum2x() {
     });
     const allComplete = completedCount === trackResults.length && trackResults.length > 0;
     const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
-    
+    container.innerHTML = renderGuide('album2x')
     container.innerHTML = `
         <div class="card" style="border-color:${allComplete ? 'var(--success)' : teamColor(team)}"><div class="card-body" style="text-align:center;padding:30px;"><div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div><h2 style="color:${teamColor(team)};margin-bottom:8px;">${sanitize(albumName)}</h2><p style="color:var(--text-dim);margin-bottom:20px;">Stream every track at least 2 times</p><div style="font-size:48px;font-weight:700;color:${allComplete ? 'var(--success)' : 'var(--purple-glow)'}">${completedCount}/${trackResults.length}</div><p style="color:var(--text-dim);">Tracks completed</p><div class="progress-bar" style="margin:20px auto;max-width:300px;height:12px;"><div class="progress-fill ${allComplete ? 'complete' : ''}" style="width:${pct}%;background:${allComplete ? 'var(--success)' : teamColor(team)}"></div></div></div></div>
         <div class="card"><div class="card-header"><h3>📋 Track Checklist</h3></div><div class="card-body">${trackResults.map((t, i) => `<div class="track-item ${t.passed ? 'passed' : 'pending'}" style="border-left-color:${t.passed ? 'var(--success)' : 'var(--danger)'}"><span class="track-num">${i + 1}</span><span class="track-name">${sanitize(t.name)}</span><span class="track-status ${t.passed ? 'pass' : 'fail'}">${t.count}/2 ${t.passed ? '✅' : '❌'}</span></div>`).join('')}</div></div>
@@ -1202,7 +1258,7 @@ async function renderTeamLevel() {
         const teams = summary.teams || {};
         const myTeam = STATE.data?.profile?.team;
         if (summary.lastUpdated) STATE.lastUpdated = summary.lastUpdated;
-        
+        container.innerHTML = renderGuide('team-level')
         // Sort teams by XP (Highest first)
         const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
         
@@ -1264,6 +1320,7 @@ async function renderSecretMissions() {
             api('getTeamSecretMissions', { team: myTeam, agentNo: STATE.agentNo, week: STATE.week }).catch(() => ({ active: [], completed: [], myAssigned: [] })),
             api('getTeamSecretStats', { week: STATE.week }).catch(() => ({ teams: {} }))
         ]);
+        container.innerHTML = renderGuide('secret-missions')
         const activeMissions = missionsData.active || [];
         const completedMissions = missionsData.completed || [];
         const myAssigned = missionsData.myAssigned || [];
