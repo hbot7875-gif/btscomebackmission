@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.5 (Guides Added & Syntax Fixed) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.6 (Team Ranking Link Added) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -687,13 +687,11 @@ async function loadDashboard() {
         
         if (STATE.isAdmin) addAdminIndicator();
 
-        // ▼▼▼ THIS IS THE MISSING PART ▼▼▼
         setTimeout(() => {
             if (typeof NOTIFICATIONS !== 'undefined') {
                 NOTIFICATIONS.checkUpdates();
             }
         }, 1500); 
-        // ▲▲▲ END OF NEW CODE ▲▲▲
         
     } catch (e) {
         console.error('Dashboard error:', e);
@@ -867,7 +865,6 @@ async function renderHome() {
     const selectedWeek = STATE.week;
     $('current-week').textContent = `Week: ${selectedWeek}`;
     
-    // ADDED: Guide text variable
     const guideHtml = renderGuide('home'); 
     
     try {
@@ -886,7 +883,6 @@ async function renderHome() {
         
         const quickStatsEl = document.querySelector('.quick-stats-section');
         if (quickStatsEl) {
-            // FIXED: Concatenating guideHtml with the stats card
             quickStatsEl.innerHTML = guideHtml + `
                 <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
                     <div class="card-body">
@@ -975,6 +971,7 @@ async function renderHome() {
         const sortedTeams = Object.keys(summary.teams || {}).sort((a, b) => (summary.teams[b].teamXP || 0) - (summary.teams[a].teamXP || 0));
         const standingsEl = $('home-standings');
         if (standingsEl) {
+            // ▼▼▼ FIX: ADDED BUTTON TO ACCESS THE 'comparison' PAGE FOR DETAILED TEAM RANKINGS ▼▼▼
             standingsEl.innerHTML = sortedTeams.length ? `
                 <div class="standings-header"><span class="standings-badge ${isCompleted ? 'final' : ''}">${isCompleted ? '🏆 Final Standings' : '⏳ Live Battle'}</span></div>
                 ${sortedTeams.map((t, i) => {
@@ -985,7 +982,11 @@ async function renderHome() {
                         <div class="standing-missions">${td.trackGoalPassed?'🎵✅':'🎵❌'} ${td.albumGoalPassed?'💿✅':'💿❌'} ${td.album2xPassed?'✨✅':'✨❌'}</div>
                     </div>`;
                 }).join('')}
+                <div class="standings-footer">
+                    <button class="btn-secondary" onclick="loadPage('comparison')">View Battle Details →</button>
+                </div>
             ` : '<p class="empty-text">No data yet</p>';
+            // ▲▲▲ END OF FIX ▲▲▲
         }
     } catch (e) { console.error(e); showToast('Failed to load home', 'error'); }
 }
@@ -1158,7 +1159,6 @@ async function renderRankings() {
     try {
         const data = await api('getRankings', { week: STATE.week, limit: 100 });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
-        // FIXED: Removed erroneous line overwriting the rankings
         const rankingsHtml = (data.rankings || []).map((r, i) => `
             <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}">
                 <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
@@ -1166,7 +1166,6 @@ async function renderRankings() {
                 <div class="rank-xp">${fmt(r.totalXP)} XP</div>
             </div>
         `).join('') || '<p class="empty-text">No data yet</p>';
-        // FIXED: Added renderGuide('rankings') to the start
         $('rankings-list').innerHTML = renderGuide('rankings') + `<div class="rankings-header"><span class="week-badge">${STATE.week}</span></div>${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}${rankingsHtml}`;
     } catch (e) { $('rankings-list').innerHTML = '<p class="error-text">Failed to load rankings</p>'; }
 }
@@ -1178,7 +1177,6 @@ async function renderGoals() {
         const data = await api('getGoalsProgress', { week: STATE.week });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
         
-        // FIXED: Added renderGuide('goals') to html initialization
         let html = renderGuide('goals') + `<div class="goals-header"><span class="week-badge">${STATE.week}</span></div><div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated || 'recently')}</div>`;
         
         const trackGoals = data.trackGoals || {};
@@ -1226,7 +1224,6 @@ async function renderAlbum2x() {
     const allComplete = completedCount === trackResults.length && trackResults.length > 0;
     const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
     
-    // FIXED: Concatenated renderGuide with the rest of the HTML
     container.innerHTML = renderGuide('album2x') + `
         <div class="card" style="border-color:${allComplete ? 'var(--success)' : teamColor(team)}"><div class="card-body" style="text-align:center;padding:30px;"><div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div><h2 style="color:${teamColor(team)};margin-bottom:8px;">${sanitize(albumName)}</h2><p style="color:var(--text-dim);margin-bottom:20px;">Stream every track at least 2 times</p><div style="font-size:48px;font-weight:700;color:${allComplete ? 'var(--success)' : 'var(--purple-glow)'}">${completedCount}/${trackResults.length}</div><p style="color:var(--text-dim);">Tracks completed</p><div class="progress-bar" style="margin:20px auto;max-width:300px;height:12px;"><div class="progress-fill ${allComplete ? 'complete' : ''}" style="width:${pct}%;background:${allComplete ? 'var(--success)' : teamColor(team)}"></div></div></div></div>
         <div class="card"><div class="card-header"><h3>📋 Track Checklist</h3></div><div class="card-body">${trackResults.map((t, i) => `<div class="track-item ${t.passed ? 'passed' : 'pending'}" style="border-left-color:${t.passed ? 'var(--success)' : 'var(--danger)'}"><span class="track-num">${i + 1}</span><span class="track-name">${sanitize(t.name)}</span><span class="track-status ${t.passed ? 'pass' : 'fail'}">${t.count}/2 ${t.passed ? '✅' : '❌'}</span></div>`).join('')}</div></div>
@@ -1241,10 +1238,8 @@ async function renderTeamLevel() {
         const myTeam = STATE.data?.profile?.team;
         if (summary.lastUpdated) STATE.lastUpdated = summary.lastUpdated;
         
-        // Sort teams by XP (Highest first)
         const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
         
-        // FIXED: Concatenated renderGuide with the rest of the HTML
         container.innerHTML = renderGuide('team-level') + `
             <div class="team-level-header"><h2>Team Levels</h2><span class="week-badge">${STATE.week}</span></div>
             ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
@@ -1252,7 +1247,7 @@ async function renderTeamLevel() {
             <div class="team-level-grid">
                 ${sortedTeams.map(([t, info], index) => { 
                     const isMyTeam = t === myTeam; 
-                    const tColor = teamColor(t); // Uses the new blended colors
+                    const tColor = teamColor(t);
                     const missions = (info.trackGoalPassed ? 1 : 0) + (info.albumGoalPassed ? 1 : 0) + (info.album2xPassed ? 1 : 0); 
                     
                     return `
@@ -1304,7 +1299,6 @@ async function renderSecretMissions() {
             api('getTeamSecretStats', { week: STATE.week }).catch(() => ({ teams: {} }))
         ]);
         
-        // FIXED: Concatenated renderGuide with the rest of the HTML
         const activeMissions = missionsData.active || [];
         const completedMissions = missionsData.completed || [];
         const myAssigned = missionsData.myAssigned || [];
@@ -1532,4 +1526,4 @@ window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
 
-console.log('🎮 BTS Spy Battle v3.4 Loaded (Syntax & Colors Fixed)');
+console.log('🎮 BTS Spy Battle v3.6 Loaded (Team Ranking Link Added)');
