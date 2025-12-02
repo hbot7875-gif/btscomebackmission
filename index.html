@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0a0a0f">
-    <meta name="description" content="BTS SPY BATTLE - Hyung Line Streaming Competition Dashboard">
+    <meta name="description" content="BTS COMEBACK MISSION - Hyung Line Streaming Competition Dashboard">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <title>BTS SPY BATTLE - HYUNG LINE EDITION</title>
+    <title>BTS COMEBACK MISSION - HYUNG LINE EDITION</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🕵️%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⟭⟬%3C/text%3E%3C/svg%3E">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -44,8 +44,8 @@
             <div class="login-content">
                 <!-- Logo Section -->
                 <div class="logo-section">
-                    <div class="bts-logo" aria-label="BTS Logo">🕵️</div>
-                    <h1 class="title">BTS SPY BATTLE</h1>
+                    <div class="bts-logo" aria-label="BTS Logo">⟭⟬</div>
+                    <h1 class="title">BTS COMEBACK MISSION</h1>
                     <p class="subtitle">HYUNG LINE EDITION</p>
                     <div class="scan-line" aria-hidden="true"></div>
                 </div>
@@ -128,13 +128,22 @@
         <!-- ==================== SIDEBAR ==================== -->
         <aside class="sidebar" id="sidebar">
             
-            <!-- SIDEBAR HEADER -->
+            <!-- Sidebar Header -->
             <div class="sidebar-header">
                 <div class="logo-container">
-                    <div class="logo-symbol">🕵️</div>
+                    <div class="logo-symbol">
+                        <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <text x="50%" y="55%" 
+                                  dominant-baseline="middle" 
+                                  text-anchor="middle" 
+                                  font-size="50" 
+                                  font-weight="bold"
+                                  fill="#9d4edd">⟭⟬</text>
+                        </svg>
+                    </div>
                     <div class="logo-text-group">
-                        <span class="logo-title">BTS SPY BATTLE</span>
-                        <span class="logo-subtitle">MISSION HQ</span>
+                        <span class="logo-title">BTS COMEBACK</span>
+                        <span class="logo-subtitle">MISSION</span>
                     </div>
                 </div>
                 <button id="close-sidebar" class="close-btn" aria-label="Close menu">✕</button>
@@ -163,7 +172,7 @@
             </div>
 
             <!-- Navigation Menu -->
-            <nav class="nav-links" role="menubar">
+            <nav class="nav-links" role="navigation">
                 
                 <!-- MAIN SECTION -->
                 <div class="nav-section">
@@ -237,6 +246,7 @@
                     </a>
                 </div>
                 
+                <!-- Admin link will be dynamically added here by app.js -->
             </nav>
 
             <!-- Sidebar Footer -->
@@ -266,8 +276,15 @@
                     <span class="hamburger-line"></span>
                 </button>
                 <div class="header-logo">
-                    <span class="header-logo-icon">🕵️</span>
-                    <span class="header-logo-text">BTS SPY BATTLE</span>
+                    <svg width="24" height="24" viewBox="0 0 100 100" class="header-logo-icon" xmlns="http://www.w3.org/2000/svg">
+                        <text x="50%" y="55%" 
+                              dominant-baseline="middle" 
+                              text-anchor="middle" 
+                              font-size="60" 
+                              font-weight="bold"
+                              fill="#9d4edd">⟭⟬</text>
+                    </svg>
+                    <span class="header-logo-text">BTS COMEBACK MISSION</span>
                 </div>
                 <div class="header-spacer"></div>
             </header>
@@ -287,10 +304,10 @@
                         </div>
                     </div>
 
-                    <!-- Quick Stats & Guide -->
+                    <!-- Quick Stats (Rendered by JS) -->
                     <div class="quick-stats-section"></div>
                     
-                    <!-- Active Missions Grid -->
+                    <!-- Missions Grid (Rendered by JS) -->
                     <div class="section-header">
                         <h2>📋 Active Missions</h2>
                     </div>
@@ -302,7 +319,13 @@
                             <h3><span class="header-icon">🏆</span> Top Agents This Week</h3>
                             <a href="#" class="card-link" onclick="loadPage('rankings'); return false;">View All →</a>
                         </div>
-                        <div class="card-body" id="home-top-agents"></div>
+                        <div class="card-body" id="home-top-agents">
+                            <div class="loading-skeleton">
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Team Standings -->
@@ -311,13 +334,20 @@
                             <h3><span class="header-icon">🎭</span> Team Battle Standings</h3>
                             <a href="#" class="card-link" onclick="loadPage('comparison'); return false;">Details →</a>
                         </div>
-                        <div class="card-body" id="home-standings"></div>
+                        <div class="card-body" id="home-standings">
+                            <div class="loading-skeleton">
+                                <div class="skeleton-item"></div>
+                                <div class="skeleton-item"></div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
                 <!-- ==================== PROFILE PAGE ==================== -->
                 <section id="page-profile" class="page">
-                    <div class="page-header"><h1>Agent Profile</h1></div>
+                    <div class="page-header">
+                        <h1>Agent Profile</h1>
+                    </div>
                     
                     <div class="profile-card">
                         <div class="profile-header">
@@ -330,21 +360,39 @@
                         </div>
                     </div>
 
-                    <div class="stats-grid" id="profile-stats"></div>
-
-                    <div class="card">
-                        <div class="card-header"><h3><span class="header-icon">🎵</span> Your Track Streams</h3></div>
-                        <div class="card-body scrollable" id="profile-tracks"></div>
+                    <div class="stats-grid" id="profile-stats">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-stat"></div>
+                            <div class="skeleton-stat"></div>
+                            <div class="skeleton-stat"></div>
+                        </div>
                     </div>
 
                     <div class="card">
-                        <div class="card-header"><h3><span class="header-icon">💿</span> Your Album Streams</h3></div>
-                        <div class="card-body scrollable" id="profile-albums"></div>
+                        <div class="card-header">
+                            <h3><span class="header-icon">🎵</span> Your Track Streams</h3>
+                        </div>
+                        <div class="card-body scrollable" id="profile-tracks">
+                            <p class="empty-text">Loading...</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><span class="header-icon">💿</span> Your Album Streams</h3>
+                        </div>
+                        <div class="card-body scrollable" id="profile-albums">
+                            <p class="empty-text">Loading...</p>
+                        </div>
                     </div>
                     
                     <div class="card">
-                        <div class="card-header"><h3><span class="header-icon">🎖️</span> Badges Earned</h3></div>
-                        <div class="card-body" id="profile-badges"></div>
+                        <div class="card-header">
+                            <h3><span class="header-icon">🎖️</span> Badges Earned</h3>
+                        </div>
+                        <div class="card-body" id="profile-badges">
+                            <p class="empty-text">Loading...</p>
+                        </div>
                     </div>
                 </section>
 
@@ -369,59 +417,119 @@
                         <h1>My Drawer</h1>
                         <p class="page-subtitle">Your badges, achievements & history</p>
                     </div>
-                    <div id="drawer-content"></div>
+                    <div id="drawer-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- ==================== GOALS PAGE ==================== -->
                 <section id="page-goals" class="page">
-                    <div class="page-header"><h1>Goals Progress</h1></div>
-                    <div id="goals-content"></div>
+                    <div class="page-header">
+                        <h1>Goals Progress</h1>
+                    </div>
+                    <div id="goals-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- ==================== ALBUM 2X PAGE ==================== -->
                 <section id="page-album2x" class="page">
-                    <div class="page-header"><h1>Album 2X Mission</h1></div>
-                    <div id="album2x-content"></div>
+                    <div class="page-header">
+                        <h1>Album 2X Mission</h1>
+                    </div>
+                    <div id="album2x-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- ==================== SECRET MISSIONS PAGE ==================== -->
                 <section id="page-secret-missions" class="page">
-                    <div class="page-header"><h1>🔒 Secret Missions</h1></div>
-                    <div id="secret-missions-content"></div>
+                    <div class="page-header">
+                        <h1>🔒 Secret Missions</h1>
+                    </div>
+                    <div id="secret-missions-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- ==================== TEAM LEVEL PAGE ==================== -->
                 <section id="page-team-level" class="page">
-                    <div class="page-header"><h1>Team Levels</h1></div>
-                    <div id="team-level-content"></div>
+                    <div class="page-header">
+                        <h1>Team Levels</h1>
+                    </div>
+                    <div id="team-level-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- ==================== COMPARISON PAGE ==================== -->
                 <section id="page-comparison" class="page">
-                    <div class="page-header"><h1>Team Comparison</h1></div>
-                    <div id="comparison-content"></div>
+                    <div class="page-header">
+                        <h1>Team Comparison</h1>
+                    </div>
+                    <div id="comparison-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- ==================== SUMMARY PAGE ==================== -->
                 <section id="page-summary" class="page">
-                    <div class="page-header"><h1>Weekly Summary</h1></div>
-                    <div id="summary-content"></div>
+                    <div class="page-header">
+                        <h1>Weekly Summary</h1>
+                    </div>
+                    <div id="summary-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- ==================== ANNOUNCEMENTS PAGE ==================== -->
                 <section id="page-announcements" class="page">
-                    <div class="page-header"><h1>Announcements</h1></div>
-                    <div id="announcements-content"></div>
+                    <div class="page-header">
+                        <h1>Announcements</h1>
+                    </div>
+                    <div id="announcements-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- ==================== CHAT PAGE ==================== -->
                 <section id="page-chat" class="page">
-                    <div id="chat-content"></div>
+                    <div id="chat-content">
+                        <div class="loading-skeleton">
+                            <div class="skeleton-card"></div>
+                        </div>
+                    </div>
                 </section>
 
             </div>
         </main>
     </div>
+
+    <!-- ==================== TOAST CONTAINER ==================== -->
+    <div id="toast-container"></div>
 
     <!-- ==================== APP SCRIPT ==================== -->
     <script src="app.js"></script>
