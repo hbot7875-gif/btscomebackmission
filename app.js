@@ -20,7 +20,7 @@ const CONFIG = {
     },
     
     // Chat Settings
-    CHAT_CHANNEL: 'bts-spy-battle-hq', 
+    CHAT_CHANNEL: 'bts-comeback-mission-hq', 
 
     // ===== BADGE CONFIGURATION =====
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
@@ -241,7 +241,7 @@ async function api(action, params = {}) {
 
 // ==================== INITIALIZATION ====================
 function initApp() {
-    console.log('🚀 Starting BTS Spy Battle app...');
+    console.log('🚀 Starting BTS COMEBACK MISSION app...');
     loading(false);
     setupLoginListeners();
     loadAllAgents();
