@@ -824,18 +824,54 @@ img {
     border-bottom: 1px solid var(--border);
 }
 
-.logo-mini {
-    font-size: 28px;
-    color: var(--purple-glow);
-    text-shadow: 0 0 20px var(--purple-main);
+/* --- NEW LOGO STYLES (v2) --- */
+
+/* The main container for our new logo */
+.sidebar-header .logo-container {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-.logo-text {
-    font-family: 'Orbitron', monospace;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--purple-glow);
+/* Container for the two vertical bars */
+.logo-icon-bars {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 36px; /* Adjust this to change the spread of the bars */
+}
+
+/* Individual bar style */
+.logo-icon-bars .bar {
+  display: block;
+  width: 4px;
+  height: 14px; /* Height of each bar segment */
+  background-color: var(--purple-glow);
+  border-radius: 2px;
+  box-shadow: 0 0 8px var(--purple-glow);
+}
+
+/* Container for the two lines of text */
+.logo-text-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Style for each line of text */
+.logo-text-group span {
+  font-family: 'Orbitron', monospace; /* Uses your existing font */
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  line-height: 1.1;
+  color: var(--purple-glow);
+}
+
+/* Special class for the dimmer second line */
+.logo-text-group span.dim {
+  color: #888; /* Dimmer grey color */
+  font-weight: 500;
 }
 
 #close-sidebar,
