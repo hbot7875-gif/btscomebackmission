@@ -10,8 +10,8 @@
     
     <title>BTS COMEBACK MISSION - HYUNG LINE EDITION</title>
     
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⟭⟬</text></svg>">
+    <!-- Favicon (Fixed URL Encoding) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⟭⟬%3C/text%3E%3C/svg%3E">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,13 +21,14 @@
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
     
-    <!-- Inline Critical CSS for Loading Screen -->
+    <!-- Inline Critical CSS -->
     <style>
         :root {
             --bg-dark: #0a0a0f;
             --purple-main: #7b2cbf;
             --purple-glow: #9d4edd;
             --text-main: #e0e0f0;
+            --team-color: #7b2cbf; /* Default fallback */
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,8 +39,10 @@
             color: var(--text-main);
             min-height: 100vh;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
         
+        /* Loading Overlay */
         .loading-overlay {
             position: fixed;
             inset: 0;
@@ -105,7 +108,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
         
-        /* ===== RANKING TABS CSS ===== */
+        /* Ranking Tabs */
         .ranking-tabs {
             display: flex;
             gap: 10px;
@@ -141,13 +144,12 @@
             box-shadow: 0 0 15px rgba(123, 44, 191, 0.3);
         }
         
-        /* Team-specific tab styling */
         .ranking-tab[style*="--team-color"].active {
             background: var(--team-color);
             border-color: var(--team-color);
         }
         
-        /* ===== NOTIFICATION DOT CSS ===== */
+        /* Notification Dot */
         .notification-dot {
             width: 8px;
             height: 8px;
@@ -175,7 +177,7 @@
             position: relative;
         }
         
-        /* ===== INTEL MODAL CSS ===== */
+        /* Intel Modal */
         .intel-modal {
             position: fixed;
             bottom: 20px;
@@ -190,6 +192,7 @@
             transform: translateX(400px);
             opacity: 0;
             transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: block; /* Visible in DOM, hidden via transform */
         }
         
         .intel-modal.show {
@@ -230,6 +233,11 @@
         
         .intel-icon {
             font-size: 20px;
+        }
+        
+        .intel-close {
+            cursor: pointer;
+            padding: 4px;
         }
     </style>
 </head>
@@ -343,12 +351,22 @@
             <!-- FIXED SIDEBAR HEADER -->
             <div class="sidebar-header">
                 <div class="logo-container" style="display: flex; align-items: center; gap: 10px;">
-                    <div class="logo-symbol" style="font-size: 28px; color: var(--purple-glow); font-weight: bold; line-height: 1;">
-                        ⟭⟬
+                    <!-- PRIMARY: SVG Logo -->
+                    <div class="logo-symbol">
+                        <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                            <text x="50%" y="55%" 
+                                  dominant-baseline="middle" 
+                                  text-anchor="middle" 
+                                  font-size="50" 
+                                  font-weight="bold"
+                                  fill="#9d4edd">⟭⟬</text>
+                        </svg>
                     </div>
+                    
+                    <!-- TITLE TEXT -->
                     <div class="logo-text-group">
-                        <span>BTS COMEBACK</span>
-                        <span class="dim">MISSION</span>
+                        <span style="color: #fff; font-weight: 600; font-size: 14px;">BTS COMEBACK</span>
+                        <span class="dim" style="color: #888; font-size: 12px; display: block;">MISSION</span>
                     </div>
                 </div>
                 <button id="close-sidebar" class="close-btn" aria-label="Close menu">✕</button>
@@ -376,7 +394,7 @@
                 </div>
             </div>
 
-            <!-- Navigation Menu (CLEANED - No Duplicates) -->
+            <!-- Navigation Menu -->
             <div class="nav-links">
                 <nav class="nav-menu" role="menubar">
                     
@@ -484,7 +502,15 @@
                     <span class="hamburger-line"></span>
                 </button>
                 <div class="header-logo">
-                    <span class="header-logo-icon">⟭⟬</span>
+                    <!-- SVG version for mobile -->
+                    <svg width="24" height="24" viewBox="0 0 100 100" class="header-logo-icon" xmlns="http://www.w3.org/2000/svg">
+                        <text x="50%" y="55%" 
+                              dominant-baseline="middle" 
+                              text-anchor="middle" 
+                              font-size="60" 
+                              font-weight="bold"
+                              fill="#9d4edd">⟭⟬</text>
+                    </svg>
                     <span class="header-logo-text">BTS COMEBACK MISSION</span>
                 </div>
                 <div class="header-spacer"></div>
@@ -574,20 +600,13 @@
                     </div>
                 </section>
 
-                <!-- ==================== RANKINGS PAGE (WITH TAB SUPPORT) ==================== -->
+                <!-- ==================== RANKINGS PAGE ==================== -->
                 <section id="page-rankings" class="page">
                     <div class="page-header">
                         <h1>Agent Rankings</h1>
                         <p class="page-subtitle">Top performers this week</p>
                     </div>
-                    <!-- 
-                        The rankings-list container is where the JS injects:
-                        1. Guide card
-                        2. Ranking tabs (Overall / My Team)
-                        3. The actual rankings list
-                    -->
                     <div id="rankings-list">
-                        <!-- Content dynamically injected by renderRankings() -->
                         <div class="loading-skeleton">
                             <div class="skeleton-card"></div>
                             <div class="skeleton-card"></div>
@@ -646,7 +665,15 @@
             </div>
         </main>
     </div>
-    <!-- End of Dashboard Screen -->
+
+    <!-- ==================== INTEL MODAL (ADDED) ==================== -->
+    <div id="intel-modal" class="intel-modal">
+        <div class="intel-header">
+            <span>INCOMING TRANSMISSION</span>
+            <span class="intel-close">✕</span>
+        </div>
+        <div id="intel-content"></div>
+    </div>
 
     <!-- ==================== APP SCRIPT ==================== -->
     <script src="app.js"></script>
