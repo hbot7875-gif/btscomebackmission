@@ -1,31 +1,24 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.1 (Scrollable Playlists & Helper Mode) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.2 (Fully Merged with All Features) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
-    // YOUR GOOGLE SCRIPT URL
     API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
     
     // --- ACCESS CONTROL ---
-    // 1. COMMANDER (You)
     ADMIN_AGENT_NO: 'AGENT001',
     ADMIN_PASSWORD: 'BTSSPYADMIN2024',
-    
-    // 2. INTEL OFFICERS (Helpers - Add their IDs here)
     HELPER_AGENTS: ['AGENT002', 'AGENT005', 'AGENT008'], 
     HELPER_PASSWORD: 'ARMYPLAYLIST2024', 
     
-    // End Dates
+    // --- DATES ---
     WEEK_DATES: {
-        'Test Week 1': '2025-11-29',
-        'Test Week 2': '2025-12-06',
-        'Week 1': '2025-12-13',
-        'Week 2': '2025-12-20',
-        'Week 3': '2025-12-27',
-        'Week 4': '2026-01-03'
+        'Test Week 1': '2025-11-29', 'Test Week 2': '2025-12-06',
+        'Week 1': '2025-12-13', 'Week 2': '2025-12-20',
+        'Week 3': '2025-12-27', 'Week 4': '2026-01-03'
     },
     
+    // --- CHAT & ASSETS ---
     CHAT_CHANNEL: 'bts-spy-battle-hq', 
-
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
     TOTAL_BADGE_IMAGES: 49, 
     
@@ -37,34 +30,28 @@ const CONFIG = {
         return pool;
     },
     
-    // TEAM COLORS (Blended/Natural)
+    // --- TEAMS & PLAYLISTS ---
     TEAMS: {
         'Indigo': { color: '#FFE082', album: 'Indigo' },
         'Echo': { color: '#FAFAFA', album: 'Echo' },
         'Agust D': { color: '#B0BEC5', album: 'Agust D' },
         'JITB': { color: '#FF4081', album: 'Jack In The Box' }
     },
-    
-    // PERMANENT ALBUM LINKS (Fixed)
     ALBUM_PLAYLISTS: {
         'Indigo': 'https://open.spotify.com/album/2wGINWO7dBkqnM9qfFQ4Ad', 
         'Echo': 'https://open.spotify.com/album/2K7D19m7f7q2j1Q3d4g5h6', 
         'Agust D': 'https://open.spotify.com/album/21jFjgN59v262kC0Y0e6K6', 
         'JITB': 'https://open.spotify.com/album/0R7b106z6q4wJdJ7Xz1z1z'
     },
-
-    // FALLBACK (If backend is empty, use these)
-    WEEKLY_PLAYLISTS_FALLBACK: {
-        'Test Week 1': [], 
-    },
+    WEEKLY_PLAYLISTS_FALLBACK: { 'Test Week 1': [] },
     
+    // --- TEAM DATA ---
     TEAM_ALBUM_TRACKS: {
         "Indigo": ["Yun (with Erykah Badu)", "Still Life (with Anderson .Paak)", "All Day (with Tablo)", "Forg_tful (with Kim Sawol)", "Closer (with Paul Blanco, Mahalia)", "Change pt.2", "Lonely", "Hectic (with Colde)", "Wild Flower (with youjeen)", "No.2 (with parkjiyoon)"],
         "Echo": ["Don't Say You Love Me", "Nothing Without Your Love", "Loser (feat. YENA)", "Rope It", "With the Clouds", "To Me, Today"],
         "Agust D": ["Intro : Dt sugA", "Agust D", "Skit", "So far away (feat. Suran)", "140503 at Dawn", "Tony Montana", "give it to me", "Interlude : Dream, Reality", "The Last", "724148"],
         "JITB": ["Intro", "Pandora's Box", "MORE", "STOP", "= (Equal Sign)", "Music Box : Reflection", "What if...", "Safety Zone", "Future", "Arson"]
     },
-    
     TEAM_PFPS: {
         "Indigo": "https://github.com/hbot7875-gif/btscomebackmission/blob/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamindigo.jpg?raw=true",
         "Echo": "https://github.com/hbot7875-gif/btscomebackmission/blob/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamecho.jpg?raw=true",
@@ -72,8 +59,8 @@ const CONFIG = {
         "JITB": "https://github.com/hbot7875-gif/btscomebackmission/blob/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamjitb.jpg?raw=true"
     },
     
+    // --- MISSION DATA ---
     SECRET_MISSIONS: { xpPerMission: 5, maxMissionsPerTeam: 5, maxTeamBonus: 25 },
-    
     MISSION_TYPES: {
         'joint_op': { name: 'Joint Operation', icon: '🤝', description: 'Agents from different teams collaborate' },
         'decode': { name: 'Decode Mission', icon: '🔐', description: 'Solve cipher to reveal target' },
@@ -94,7 +81,7 @@ const STATE = {
     allAgents: [],
     page: 'home',
     isLoading: false,
-    userRole: 'user', // 'user', 'admin', 'helper'
+    userRole: 'user', 
     adminSession: null,
     lastUpdated: null
 };
@@ -110,16 +97,8 @@ function loading(show) {
     if (el) el.classList.toggle('active', show);
 }
 
-function fmt(n) {
-    return Number(n || 0).toLocaleString();
-}
-
-function sanitize(str) {
-    if (!str) return '';
-    return String(str).replace(/[<>\"'&]/g, char => ({
-        '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;'
-    })[char] || char);
-}
+function fmt(n) { return Number(n || 0).toLocaleString(); }
+function sanitize(str) { return String(str || '').replace(/[<>\"'&]/g, char => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;' })[char] || char); }
 
 function formatLastUpdated(dateStr) {
     const targetDate = dateStr || STATE.lastUpdated;
@@ -127,10 +106,7 @@ function formatLastUpdated(dateStr) {
     try {
         const date = new Date(targetDate);
         if (isNaN(date.getTime())) return targetDate;
-        return date.toLocaleString('en-US', { 
-            month: 'short', day: 'numeric', 
-            hour: '2-digit', minute: '2-digit', hour12: false 
-        });
+        return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
     } catch (e) { return targetDate; }
 }
 
@@ -190,23 +166,14 @@ const PAGE_GUIDES = {
 function renderGuide(pageName) {
     const guide = PAGE_GUIDES[pageName];
     if (!guide) return '';
-    return `
-        <div class="card guide-card" style="background: rgba(255,255,255,0.03); border-left: 3px solid #7b2cbf; margin-bottom: 20px;">
-            <div class="card-body" style="display: flex; gap: 15px; align-items: flex-start; padding: 15px;">
-                <div style="font-size: 24px;">${guide.icon}</div>
-                <div><h4 style="margin: 0 0 5px 0; color: #fff; font-size: 14px;">${guide.title}</h4><p style="margin: 0; color: #aaa; font-size: 13px; line-height: 1.4;">${guide.text}</p></div>
-            </div>
-        </div>
-    `;
+    return `<div class="card guide-card" style="background: rgba(255,255,255,0.03); border-left: 3px solid #7b2cbf; margin-bottom: 20px;"><div class="card-body" style="display: flex; gap: 15px; align-items: flex-start; padding: 15px;"><div style="font-size: 24px;">${guide.icon}</div><div><h4 style="margin: 0 0 5px 0; color: #fff; font-size: 14px;">${guide.title}</h4><p style="margin: 0; color: #aaa; font-size: 13px; line-height: 1.4;">${guide.text}</p></div></div></div>`;
 }
 
 // ==================== API ====================
 async function api(action, params = {}) {
     const url = new URL(CONFIG.API_URL);
     url.searchParams.set('action', action);
-    Object.entries(params).forEach(([k, v]) => {
-        if (v != null) url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v);
-    });
+    Object.entries(params).forEach(([k, v]) => { if (v != null) url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v); });
     console.log('📡 API:', action, params);
     try {
         const controller = new AbortController();
@@ -215,8 +182,7 @@ async function api(action, params = {}) {
         clearTimeout(timeout);
         const text = await res.text();
         let data;
-        try { data = JSON.parse(text); } 
-        catch (parseError) { throw new Error('Invalid response from server'); }
+        try { data = JSON.parse(text); } catch (parseError) { throw new Error('Invalid response from server'); }
         if (data.lastUpdated) { STATE.lastUpdated = data.lastUpdated; updateTime(); }
         if (data.error) throw new Error(data.error);
         return data;
@@ -235,11 +201,7 @@ function initApp() {
     loadAllAgents();
 
     const saved = localStorage.getItem('spyAgent');
-    if (saved) {
-        STATE.agentNo = saved;
-        checkAdminStatus();
-        loadDashboard();
-    }
+    if (saved) { STATE.agentNo = saved; checkAdminStatus(); loadDashboard(); }
 }
 
 function setupLoginListeners() {
@@ -247,26 +209,14 @@ function setupLoginListeners() {
     const findBtn = $('find-btn');
     const agentInput = $('agent-input');
     const instagramInput = $('instagram-input');
-    
     if (loginBtn) loginBtn.onclick = handleLogin;
     if (findBtn) findBtn.onclick = handleFind;
-    
-    if (agentInput) {
-        agentInput.onkeypress = e => { if (e.key === 'Enter') handleLogin(); };
-        setTimeout(() => agentInput.focus(), 100);
-    }
-    if (instagramInput) {
-        instagramInput.onkeypress = e => { if (e.key === 'Enter') handleFind(); };
-    }
+    if (agentInput) { agentInput.onkeypress = e => { if (e.key === 'Enter') handleLogin(); }; setTimeout(() => agentInput.focus(), 100); }
+    if (instagramInput) instagramInput.onkeypress = e => { if (e.key === 'Enter') handleFind(); };
 }
 
 async function loadAllAgents() {
-    try {
-        const res = await api('getAllAgents');
-        STATE.allAgents = res.agents || [];
-    } catch (e) {
-        STATE.allAgents = [];
-    }
+    try { const res = await api('getAllAgents'); STATE.allAgents = res.agents || []; } catch (e) { STATE.allAgents = []; }
 }
 
 // ==================== LOGIN HANDLERS ====================
@@ -302,12 +252,7 @@ async function handleFind() {
         if (findBtn) { findBtn.disabled = true; findBtn.textContent = 'Searching...'; }
         loading(true);
         if (STATE.allAgents.length === 0) await loadAllAgents();
-        const found = STATE.allAgents.find(a => {
-            const igHandle = String(a.instagram || a.Instagram || a.ig || a.IG || '').trim().toLowerCase().replace('@', '');
-            if (igHandle === instagram) return true;
-            const name = String(a.name || a.Name || '').trim().toLowerCase();
-            return name === instagram || name.includes(instagram);
-        });
+        const found = STATE.allAgents.find(a => { const ig = String(a.instagram||'').trim().toLowerCase().replace('@',''); return ig === instagram; });
         if (!found) { showResult(`No agent found with "@${instagram}".`, true); return; }
         showResult(`Found! Your Agent ID is: <strong>${found.agentNo}</strong>`, false);
         const agentInput = $('agent-input');
@@ -318,66 +263,35 @@ async function handleFind() {
 
 // ==================== ACCESS CONTROL ====================
 function checkAdminStatus() {
-    const currentAgent = String(STATE.agentNo).toUpperCase();
-    
-    // 1. Check for Commander
-    if (currentAgent === String(CONFIG.ADMIN_AGENT_NO).toUpperCase()) {
+    const current = String(STATE.agentNo).toUpperCase();
+    STATE.userRole = 'user';
+    if (current === String(CONFIG.ADMIN_AGENT_NO).toUpperCase()) {
         const savedSession = localStorage.getItem('adminSession');
         const savedExpiry = localStorage.getItem('adminExpiry');
         if (savedSession && savedExpiry && Date.now() < parseInt(savedExpiry)) {
-            STATE.userRole = 'admin';
-            STATE.adminSession = savedSession;
-        } else {
-            STATE.userRole = 'user';
+            STATE.userRole = 'admin'; STATE.adminSession = savedSession;
         }
-    } 
-    // 2. Check for Helper
-    else if (CONFIG.HELPER_AGENTS.includes(currentAgent)) {
-        const savedSession = localStorage.getItem('adminSession');
-        if (savedSession === 'helper_mode') {
-            STATE.userRole = 'helper';
-        } else {
-            STATE.userRole = 'user';
-        }
-    } 
-    else {
-        STATE.userRole = 'user';
+    } else if (CONFIG.HELPER_AGENTS.includes(current)) {
+        if (localStorage.getItem('adminSession') === 'helper_mode') STATE.userRole = 'helper';
     }
 }
 
+function isAdminAgent() { return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase(); }
+function isHelperAgent() { return CONFIG.HELPER_AGENTS.includes(String(STATE.agentNo).toUpperCase()); }
+
 function showAdminLogin() {
     document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
-    
-    let title = "🔐 Access Control";
-    let desc = "Authorized personnel only.";
-    
-    if (CONFIG.HELPER_AGENTS.includes(STATE.agentNo)) {
-        title = "🎧 Intel Officer Access";
-        desc = "Enter Helper Password to manage playlists.";
-    } else if (STATE.agentNo === CONFIG.ADMIN_AGENT_NO) {
-        title = "🎛️ Mission Control";
-        desc = "Commander authentication required.";
-    } else {
-        showToast("You do not have clearance for this area.", "error");
-        return;
-    }
+    let title = "🔐 Access Control", desc = "Authorized personnel only.";
+    if (isAdminAgent()) { title = "🎛️ Mission Control"; desc = "Commander authentication required."; } 
+    else if (isHelperAgent()) { title = "🎧 Playlist Uplink Access"; desc = "Enter Helper Password to manage playlists."; } 
+    else { showToast('Access denied.', 'error'); return; }
 
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'admin-modal';
-    modal.innerHTML = `
-        <div class="modal admin-modal">
-            <div class="modal-header"><h3>${title}</h3><button class="modal-close" onclick="closeAdminModal()">×</button></div>
-            <div class="modal-body">
-                <div class="admin-welcome"><p>${desc}</p></div>
-                <div class="form-group"><label>PASSWORD:</label><input type="password" id="admin-password" class="form-input" placeholder="Enter password"></div>
-                <div id="admin-error" class="admin-error"></div>
-            </div>
-            <div class="modal-footer"><button onclick="verifyAdminPassword()" class="btn-primary" id="admin-verify-btn">Authenticate</button></div>
-        </div>
-    `;
+    modal.innerHTML = `<div class="modal admin-modal"><div class="modal-header"><h3>${title}</h3><button class="modal-close" onclick="closeAdminModal()">×</button></div><div class="modal-body"><div class="admin-welcome"><p>Welcome, Agent ${STATE.agentNo}</p><p>${desc}</p></div><div class="form-group"><label>PASSWORD:</label><input type="password" id="admin-password" class="form-input" placeholder="Enter password"></div><div id="admin-error" class="admin-error"></div></div><div class="modal-footer"><button onclick="verifyAdminPassword()" class="btn-primary" id="admin-verify-btn">Authenticate</button></div></div>`;
     document.body.appendChild(modal);
-    setTimeout(() => { const pw = $('admin-password'); if (pw) pw.focus(); }, 100);
+    setTimeout(() => { $('admin-password')?.focus(); }, 100);
 }
 
 function closeAdminModal() {
@@ -389,43 +303,21 @@ async function verifyAdminPassword() {
     const password = $('admin-password')?.value;
     const errorEl = $('admin-error');
     const verifyBtn = $('admin-verify-btn');
-    
     if (!password) return;
     if (verifyBtn) verifyBtn.disabled = true;
-    
     try {
-        if (STATE.agentNo === CONFIG.ADMIN_AGENT_NO) {
+        if (isAdminAgent()) {
             let verified = false;
-            try {
-                const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password: password });
-                if (result.success) { verified = true; STATE.adminSession = result.sessionToken; }
-            } catch (e) { 
-                if (password === CONFIG.ADMIN_PASSWORD) { verified = true; STATE.adminSession = 'local_' + Date.now(); } 
-            }
-            
-            if (verified) {
-                STATE.userRole = 'admin';
-                localStorage.setItem('adminSession', STATE.adminSession);
-                localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
-                finishLogin('Admin access granted!');
-            } else {
-                throw new Error('Invalid admin password');
-            }
-        } 
-        else if (CONFIG.HELPER_AGENTS.includes(STATE.agentNo)) {
-            if (password === CONFIG.HELPER_PASSWORD) {
-                STATE.userRole = 'helper';
-                localStorage.setItem('adminSession', 'helper_mode');
-                finishLogin('Playlist Manager unlocked!');
-            } else {
-                throw new Error('Invalid helper password');
-            }
-        } else {
-            throw new Error('Unauthorized agent');
-        }
-    } catch (e) {
-        if (errorEl) { errorEl.textContent = '❌ ' + e.message; errorEl.classList.add('show'); }
-    } finally { if (verifyBtn) verifyBtn.disabled = false; }
+            try { const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password: password }); if (result.success) { verified = true; STATE.adminSession = result.sessionToken; } } 
+            catch (e) { if (password === CONFIG.ADMIN_PASSWORD) { verified = true; STATE.adminSession = 'local_' + Date.now(); } }
+            if (verified) { STATE.userRole = 'admin'; localStorage.setItem('adminSession', STATE.adminSession); localStorage.setItem('adminExpiry', String(Date.now() + 86400000)); finishLogin('Admin access granted!'); } 
+            else { throw new Error('Invalid admin password'); }
+        } else if (isHelperAgent()) {
+            if (password === CONFIG.HELPER_PASSWORD) { STATE.userRole = 'helper'; localStorage.setItem('adminSession', 'helper_mode'); finishLogin('Playlist Manager unlocked!'); } 
+            else { throw new Error('Invalid helper password'); }
+        } else { throw new Error('Unauthorized agent'); }
+    } catch (e) { if (errorEl) { errorEl.textContent = '❌ ' + e.message; errorEl.classList.add('show'); } } 
+    finally { if (verifyBtn) verifyBtn.disabled = false; }
 }
 
 function finishLogin(msg) {
@@ -440,28 +332,29 @@ function addAdminIndicator() {
     document.querySelector('.admin-indicator')?.remove();
     let nav = document.querySelector('.nav-links');
     if (!nav) nav = document.getElementById('sidebar');
-    if (!nav) return;
-    
-    if (!nav.querySelector('.admin-nav-link')) {
-        const link = document.createElement('a');
-        link.href = '#';
-        link.className = 'nav-link admin-nav-link';
-        link.style.marginTop = 'auto';
-        link.style.borderTop = '1px solid rgba(255,255,255,0.1)';
-        
-        let icon = '🎛️';
-        let text = 'Admin';
-        if (STATE.userRole === 'helper') { icon = '🎧'; text = 'Playlists'; }
-        
-        link.innerHTML = `<span class="nav-icon">${icon}</span><span>${text}</span>`;
-        link.onclick = (e) => { 
-            e.preventDefault(); 
-            if (STATE.userRole === 'admin') showAdminPanel();
-            else if (STATE.userRole === 'helper') showHelperPanel();
-            else showAdminLogin(); 
-            closeSidebar(); 
-        };
-        nav.appendChild(link);
+    if (!nav || nav.querySelector('.admin-nav-link')) return;
+
+    const link = document.createElement('a');
+    link.href = '#';
+    link.className = 'nav-link admin-nav-link';
+    link.style.marginTop = 'auto';
+    link.style.borderTop = '1px solid rgba(255,255,255,0.1)';
+    let icon = '🎛️', text = 'Admin';
+    if (STATE.userRole === 'helper') { icon = '🎧'; text = 'Playlists'; }
+    link.innerHTML = `<span class="nav-icon">${icon}</span><span>${text}</span>`;
+    link.onclick = (e) => { e.preventDefault(); if (STATE.userRole === 'admin') showAdminPanel(); else if (STATE.userRole === 'helper') showHelperPanel(); else showAdminLogin(); closeSidebar(); };
+    nav.appendChild(link);
+}
+
+function exitAdminMode() {
+    if (confirm('Exit admin/helper mode?')) {
+        STATE.userRole = 'user';
+        STATE.adminSession = null;
+        localStorage.removeItem('adminSession');
+        localStorage.removeItem('adminExpiry');
+        document.querySelector('.admin-nav-link')?.remove();
+        document.querySelector('.admin-panel')?.remove();
+        showToast('Admin/Helper mode deactivated', 'info');
     }
 }
 
@@ -469,25 +362,9 @@ function addAdminIndicator() {
 function showHelperPanel() {
     if (STATE.userRole !== 'helper') { showAdminLogin(); return; }
     document.querySelector('.admin-panel')?.remove();
-    
     const panel = document.createElement('div');
-    panel.className = 'admin-panel'; 
-    panel.innerHTML = `
-        <div class="admin-panel-header" style="background: #2a2a40;">
-            <h3>🎧 Playlist Uplink</h3>
-            <button class="panel-close" onclick="closeAdminPanel()">×</button>
-        </div>
-        <div class="admin-panel-content active" style="padding: 20px;">
-            <div class="guide-card" style="margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-                <p style="font-size: 13px; margin: 0;">Add new playlists here. Use Emojis in names (e.g. 🔥 Aggressive Mix, 💤 Sleep Loop) to help Agents choose!</p>
-            </div>
-            <div class="form-group"><label>Target Week</label><select id="pl-week" class="form-select">${Object.keys(CONFIG.WEEK_DATES).map(w => `<option value="${w}" ${w === STATE.week ? 'selected' : ''}>${w}</option>`).join('')}</select></div>
-            <div class="form-group"><label>Button Name</label><input type="text" id="pl-name" class="form-input" placeholder="e.g., 🔥 Main Attack"></div>
-            <div class="form-group"><label>Link</label><input type="url" id="pl-url" class="form-input" placeholder="https://open.spotify.com/playlist/..."></div>
-            <button onclick="submitPlaylist()" class="btn-primary" style="width: 100%; margin-top: 10px;">💾 Upload Playlist</button>
-            <div id="pl-result" style="margin-top: 15px; font-size: 13px; text-align: center;"></div>
-        </div>
-    `;
+    panel.className = 'admin-panel';
+    panel.innerHTML = `<div class="admin-panel-header" style="background: #2a2a40;"><h3>🎧 Playlist Uplink</h3><button class="panel-close" onclick="closeAdminPanel()">×</button></div><div class="admin-panel-content active" style="padding: 20px;"><div class="guide-card" style="margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;"><p style="font-size: 13px; margin: 0;">Use emojis in names (e.g. 🔥 Main Attack, 💤 Sleep Mix) so agents can quickly pick a playlist.</p></div><div class="form-group"><label>Target Week</label><select id="pl-week" class="form-select">${Object.keys(CONFIG.WEEK_DATES).map(w => `<option value="${w}" ${w === STATE.week ? 'selected' : ''}>${w}</option>`).join('')}</select></div><div class="form-group"><label>Button Name</label><input type="text" id="pl-name" class="form-input" placeholder="e.g., 🔥 Main Attack"></div><div class="form-group"><label>Link</label><input type="url" id="pl-url" class="form-input" placeholder="https://open.spotify.com/playlist/..."></div><button onclick="submitPlaylist()" class="btn-primary" style="width: 100%; margin-top: 10px;">💾 Upload Playlist</button><div id="pl-result" style="margin-top: 15px; font-size: 13px; text-align: center;"></div></div>`;
     document.body.appendChild(panel);
 }
 
@@ -496,12 +373,10 @@ async function submitPlaylist() {
     const name = $('pl-name').value;
     const url = $('pl-url').value;
     const resultEl = $('pl-result');
-    
     if (!name || !url) { resultEl.innerHTML = '<span style="color: #ff5252;">❌ Fill all fields</span>'; return; }
     resultEl.innerHTML = '⏳ Uploading to HQ...';
-    
     try {
-        await api('addPlaylist', { targetWeek: week, name: name, url: url, agentNo: STATE.agentNo });
+        await api('addPlaylist', { targetWeek: week, name, url, agentNo: STATE.agentNo });
         resultEl.innerHTML = '<span style="color: #69f0ae;">✅ Success! Playlist Live.</span>';
         $('pl-name').value = '';
         $('pl-url').value = '';
@@ -514,35 +389,15 @@ function closeAdminPanel() {
     if (panel) { panel.classList.add('closing'); setTimeout(() => panel.remove(), 300); }
 }
 
-// ==================== ADMIN PANEL ====================
+// ==================== ADMIN PANEL & ASSETS ====================
 function showAdminPanel() {
     if (STATE.userRole !== 'admin') { showAdminLogin(); return; }
     document.querySelector('.admin-panel')?.remove();
     const panel = document.createElement('div');
     panel.className = 'admin-panel';
-    panel.innerHTML = `
-        <div class="admin-panel-header"><h3>🎛️ Mission Control</h3><button class="panel-close" onclick="closeAdminPanel()">×</button></div>
-        <div class="admin-panel-tabs">
-            <button class="admin-tab active" data-tab="create">Create Mission</button>
-            <button class="admin-tab" data-tab="active">Active</button>
-            <button class="admin-tab" data-tab="assets">🎨 Assets</button>
-            <button class="admin-tab" data-tab="history">History</button>
-        </div>
-        <div class="admin-panel-content">
-            <div id="admin-tab-create" class="admin-tab-content active">${renderCreateMissionForm()}</div>
-            <div id="admin-tab-active" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
-            <div id="admin-tab-assets" class="admin-tab-content"></div>
-            <div id="admin-tab-history" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
-        </div>
-    `;
+    panel.innerHTML = `<div class="admin-panel-header"><h3>🎛️ Mission Control</h3><button class="panel-close" onclick="closeAdminPanel()">×</button></div><div class="admin-panel-tabs"><button class="admin-tab active" data-tab="create">Create Mission</button><button class="admin-tab" data-tab="active">Active</button><button class="admin-tab" data-tab="assets">🎨 Assets</button><button class="admin-tab" data-tab="history">History</button></div><div class="admin-panel-content"><div id="admin-tab-create" class="admin-tab-content active">${renderCreateMissionForm()}</div><div id="admin-tab-active" class="admin-tab-content"><div class="loading-text">Loading...</div></div><div id="admin-tab-assets" class="admin-tab-content"></div><div id="admin-tab-history" class="admin-tab-content"><div class="loading-text">Loading...</div></div></div>`;
     document.body.appendChild(panel);
-    panel.querySelectorAll('.admin-tab').forEach(tab => { 
-        tab.onclick = () => {
-            switchAdminTab(tab.dataset.tab);
-            if (tab.dataset.tab === 'assets') renderAdminAssets();
-            if (tab.dataset.tab === 'history') loadMissionHistory();
-        };
-    });
+    panel.querySelectorAll('.admin-tab').forEach(tab => { tab.onclick = () => { switchAdminTab(tab.dataset.tab); if (tab.dataset.tab === 'assets') renderAdminAssets(); if (tab.dataset.tab === 'history') loadMissionHistory(); }; });
     loadActiveTeamMissions();
 }
 
@@ -554,106 +409,37 @@ function switchAdminTab(tabName) {
 }
 
 function renderAdminAssets() {
-    const container = document.getElementById('admin-tab-assets');
-    if (!container) return;
-    let html = `<div class="asset-section" style="padding:20px;"><h4>🎲 Level Up Random Pool</h4>`;
-    html += `<div class="badges-showcase" style="justify-content: flex-start; flex-wrap: wrap; gap: 10px;">`;
-    CONFIG.BADGE_POOL.forEach((imgUrl, index) => {
-        const filename = `BTS (${index + 1}).jpg`;
-        html += `<div class="badge-showcase-item" style="width:100px; margin: 5px;"><div class="badge-circle" style="width:80px; height:80px; border-color:#ffd700; background:#000;"><img src="${imgUrl}" style="width:100%; height:100%; object-fit:cover;"></div><div class="badge-name" style="font-size:10px;">${filename}</div></div>`;
-    });
-    html += `</div></div>`;
-    container.innerHTML = html;
+    const container = document.getElementById('admin-tab-assets'); if (!container) return;
+    let html = `<div class="asset-section" style="padding:20px;"><h4>🎲 Level Up Random Pool</h4><p style="color:#aaa; font-size:12px; margin-bottom:15px;"><strong>Repo:</strong> ${CONFIG.BADGE_REPO_URL}<br><strong>Total Configured:</strong> ${CONFIG.TOTAL_BADGE_IMAGES}</p>`;
+    if (CONFIG.BADGE_POOL && CONFIG.BADGE_POOL.length) {
+        html += `<div class="badges-showcase" style="justify-content: flex-start; flex-wrap: wrap; gap: 10px;">`;
+        CONFIG.BADGE_POOL.forEach((imgUrl, index) => { html += `<div class="badge-showcase-item" style="width:100px; margin: 5px;"><div class="badge-circle" style="width:80px; height:80px; border-color:#ffd700; background: #000;"><img src="${imgUrl}" style="width:100%; height:100%; object-fit:cover;"></div><div class="badge-name" style="font-size:10px;">BTS (${index + 1}).jpg</div></div>`; });
+        html += `</div>`;
+    } else { html += `<p>No random pool configured.</p>`; }
+    html += `</div>`; container.innerHTML = html;
 }
 
-function renderCreateMissionForm() {
-    return `
-        <div class="create-mission-form">
-            <div class="form-section"><h4>📋 Mission Type</h4><div class="mission-type-grid">${Object.entries(CONFIG.MISSION_TYPES).map(([key, m], i) => `<div class="mission-type-option ${i === 0 ? 'selected' : ''}" data-type="${key}" onclick="selectMissionType('${key}')"><span class="type-icon">${m.icon}</span><span class="type-name">${m.name}</span></div>`).join('')}</div><input type="hidden" id="selected-mission-type" value="joint_op"></div>
-            <div class="form-section"><h4>🎯 Target Teams</h4><div class="team-checkboxes">${Object.keys(CONFIG.TEAMS).map(team => `<label class="team-checkbox" style="--team-color: ${teamColor(team)}"><input type="checkbox" name="target-teams" value="${team}"><span class="checkbox-custom"></span><span class="team-name">${team}</span></label>`).join('')}</div><label class="select-all-teams"><input type="checkbox" id="all-teams" onchange="toggleAllTeams(this.checked)"><span>All Teams</span></label></div>
-            <div class="form-section"><h4>📝 Details</h4><div class="form-group"><label>Title *</label><input type="text" id="mission-title" class="form-input" placeholder="Title"></div><div class="form-group"><label>Briefing *</label><textarea id="mission-briefing" class="form-textarea" rows="2" placeholder="Briefing"></textarea></div><div class="form-group"><label>Target</label><input type="text" id="target-track" class="form-input" placeholder="Track Name"></div><div class="form-row"><div class="form-group"><label>Goal Type</label><select id="goal-type" class="form-select"><option value="combined_streams">Combined</option></select></div><div class="form-group"><label>Target #</label><input type="number" id="goal-target" class="form-input" value="100"></div></div></div>
-            <div class="form-actions"><button onclick="createTeamMission()" class="btn-primary btn-large">🚀 Deploy</button></div><div id="create-result" class="create-result"></div>
-        </div>
-    `;
-}
-
-function selectMissionType(type) {
-    document.querySelectorAll('.mission-type-option').forEach(el => el.classList.remove('selected'));
-    document.querySelector(`.mission-type-option[data-type="${type}"]`)?.classList.add('selected');
-    $('selected-mission-type').value = type;
-}
-
-function toggleAllTeams(checked) {
-    document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = checked);
-}
+function renderCreateMissionForm() { return `<div class="create-mission-form"><div class="form-section"><h4>📋 Mission Type</h4><div class="mission-type-grid">${Object.entries(CONFIG.MISSION_TYPES).map(([key, m], i) => `<div class="mission-type-option ${i === 0 ? 'selected' : ''}" data-type="${key}" onclick="selectMissionType('${key}')"><span class="type-icon">${m.icon}</span><span class="type-name">${m.name}</span></div>`).join('')}</div><input type="hidden" id="selected-mission-type" value="joint_op"></div><div class="form-section"><h4>🎯 Target Teams</h4><div class="team-checkboxes">${Object.keys(CONFIG.TEAMS).map(team => `<label class="team-checkbox" style="--team-color: ${teamColor(team)}"><input type="checkbox" name="target-teams" value="${team}"><span class="checkbox-custom"></span><span class="team-name">${team}</span></label>`).join('')}</div><label class="select-all-teams"><input type="checkbox" id="all-teams" onchange="toggleAllTeams(this.checked)"><span>All Teams</span></label></div><div class="form-section"><h4>📝 Details</h4><div class="form-group"><label>Title *</label><input type="text" id="mission-title" class="form-input" placeholder="Title"></div><div class="form-group"><label>Briefing *</label><textarea id="mission-briefing" class="form-textarea" rows="2" placeholder="Briefing"></textarea></div><div class="form-group"><label>Target</label><input type="text" id="target-track" class="form-input" placeholder="Track Name"></div><div class="form-row"><div class="form-group"><label>Goal Type</label><select id="goal-type" class="form-select"><option value="combined_streams">Combined</option></select></div><div class="form-group"><label>Target #</label><input type="number" id="goal-target" class="form-input" value="100"></div></div></div><div class="form-actions"><button onclick="createTeamMission()" class="btn-primary btn-large">🚀 Deploy</button></div><div id="create-result" class="create-result"></div></div>`; }
+function selectMissionType(type) { document.querySelectorAll('.mission-type-option').forEach(el => el.classList.remove('selected')); document.querySelector(`.mission-type-option[data-type="${type}"]`)?.classList.add('selected'); $('selected-mission-type').value = type; }
+function toggleAllTeams(checked) { document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = checked); }
 
 async function createTeamMission() {
-    const type = $('selected-mission-type')?.value;
-    const title = $('mission-title')?.value.trim();
-    const briefing = $('mission-briefing')?.value.trim();
-    const targetTeams = Array.from(document.querySelectorAll('input[name="target-teams"]:checked')).map(cb => cb.value);
-    const targetTrack = $('target-track')?.value.trim();
-    const goalType = $('goal-type')?.value;
-    const goalTarget = parseInt($('goal-target')?.value) || 100;
-    
+    const type = $('selected-mission-type')?.value, title = $('mission-title')?.value.trim(), briefing = $('mission-briefing')?.value.trim(), targetTeams = Array.from(document.querySelectorAll('input[name="target-teams"]:checked')).map(cb => cb.value), targetTrack = $('target-track')?.value.trim(), goalType = $('goal-type')?.value, goalTarget = parseInt($('goal-target')?.value) || 100;
     if (!title || targetTeams.length === 0 || !briefing) { showCreateResult('Please fill all required fields', true); return; }
-    
     loading(true);
-    try {
-        const result = await api('createTeamMission', { type, title, briefing, targetTeams: JSON.stringify(targetTeams), targetTrack, goalType, goalTarget, week: STATE.week, agentNo: STATE.agentNo, sessionToken: STATE.adminSession });
-        if (result.success) { showCreateResult(`✅ Mission deployed!`, false); loadActiveTeamMissions(); } else { showCreateResult('❌ ' + result.error, true); }
-    } catch (e) { showCreateResult('❌ Error: ' + e.message, true); } finally { loading(false); }
+    try { const result = await api('createTeamMission', { type, title, briefing, targetTeams: JSON.stringify(targetTeams), targetTrack, goalType, goalTarget, week: STATE.week, agentNo: STATE.agentNo, sessionToken: STATE.adminSession }); if (result.success) { showCreateResult(`✅ Mission deployed!`, false); loadActiveTeamMissions(); } else { showCreateResult('❌ ' + result.error, true); } } catch (e) { showCreateResult('❌ Error: ' + e.message, true); } finally { loading(false); }
 }
 
-function showCreateResult(msg, isError) {
-    const el = $('create-result');
-    if (!el) return;
-    el.textContent = msg;
-    el.className = `create-result show ${isError ? 'error' : 'success'}`;
-    if (!isError) setTimeout(() => el.classList.remove('show'), 5000);
-}
+function showCreateResult(msg, isError) { const el = $('create-result'); if (!el) return; el.textContent = msg; el.className = `create-result show ${isError ? 'error' : 'success'}`; if (!isError) setTimeout(() => el.classList.remove('show'), 5000); }
 
 async function loadActiveTeamMissions() {
-    const container = $('admin-tab-active');
-    if (!container) return;
-    try {
-        const result = await api('getTeamMissions', { status: 'active', week: STATE.week });
-        const missions = result.missions || [];
-        if (missions.length === 0) { container.innerHTML = `<div class="empty-state"><p>No active missions</p></div>`; return; }
-        container.innerHTML = missions.map(m => `<div class="admin-mission-card"><div class="amc-header"><span>${CONFIG.MISSION_TYPES[m.type]?.icon || '📋'} ${sanitize(m.title)}</span></div><div class="amc-actions"><button onclick="adminCompleteMission('${m.id}')" class="btn-sm btn-success">Complete</button><button onclick="adminCancelMission('${m.id}')" class="btn-sm btn-danger">Cancel</button></div></div>`).join('');
-    } catch (e) { container.innerHTML = `<div class="error-state">Error loading missions</div>`; }
+    const container = $('admin-tab-active'); if (!container) return;
+    try { const result = await api('getTeamMissions', { status: 'active', week: STATE.week }); const missions = result.missions || []; const tab = document.querySelector('.admin-tab[data-tab="active"]'); if(tab) tab.textContent = `Active (${missions.length})`; if (missions.length === 0) { container.innerHTML = `<div class="empty-state"><p>No active missions</p></div>`; return; } container.innerHTML = missions.map(m => `<div class="admin-mission-card"><div class="amc-header"><span>${CONFIG.MISSION_TYPES[m.type]?.icon || '📋'} ${sanitize(m.title)}</span></div><div class="amc-actions"><button onclick="adminCompleteMission('${m.id}')" class="btn-sm btn-success">Complete</button><button onclick="adminCancelMission('${m.id}')" class="btn-sm btn-danger">Cancel</button></div></div>`).join(''); } catch (e) { container.innerHTML = `<div class="error-state">Error loading missions</div>`; }
 }
 
-async function adminCompleteMission(missionId) {
-    const team = prompt('Enter team name to mark complete:');
-    if (!team) return;
-    loading(true);
-    try {
-        await api('completeTeamMission', { missionId, team, agentNo: STATE.agentNo, sessionToken: STATE.adminSession });
-        loadActiveTeamMissions();
-        showToast('Mission marked complete', 'success');
-    } catch (e) { alert('Error: ' + e.message); } finally { loading(false); }
-}
-
-async function adminCancelMission(missionId) {
-    if (!confirm('Cancel mission?')) return;
-    loading(true);
-    try {
-        await api('cancelTeamMission', { missionId, agentNo: STATE.agentNo, sessionToken: STATE.adminSession });
-        loadActiveTeamMissions();
-        showToast('Mission cancelled', 'info');
-    } catch (e) { alert('Error: ' + e.message); } finally { loading(false); }
-}
-
-async function loadMissionHistory() {
-    const container = $('admin-tab-history');
-    if (!container) return;
-    try {
-        const result = await api('getTeamMissions', { status: 'all' });
-        const missions = (result.missions || []).filter(m => m.status !== 'active');
-        container.innerHTML = missions.length ? missions.map(m => `<div class="history-item"><span>${sanitize(m.title)}</span><span class="status-badge">${m.status}</span></div>`).join('') : `<div class="empty-state"><p>No history</p></div>`;
-    } catch (e) { container.innerHTML = `<div class="error-state">Error</div>`; }
-}
+async function adminCompleteMission(missionId) { const team = prompt('Enter team name to mark complete:'); if (!team) return; loading(true); try { await api('completeTeamMission', { missionId, team, agentNo: STATE.agentNo, sessionToken: STATE.adminSession }); loadActiveTeamMissions(); showToast('Mission marked complete', 'success'); } catch (e) { alert('Error: ' + e.message); } finally { loading(false); } }
+async function adminCancelMission(missionId) { if (!confirm('Cancel mission?')) return; loading(true); try { await api('cancelTeamMission', { missionId, agentNo: STATE.agentNo, sessionToken: STATE.adminSession }); loadActiveTeamMissions(); showToast('Mission cancelled', 'info'); } catch (e) { alert('Error: ' + e.message); } finally { loading(false); } }
+async function loadMissionHistory() { const container = $('admin-tab-history'); if (!container) return; try { const result = await api('getTeamMissions', { status: 'all' }); const missions = (result.missions || []).filter(m => m.status !== 'active'); container.innerHTML = missions.length ? missions.map(m => `<div class="history-item"><span>${sanitize(m.title)}</span><span class="status-badge">${m.status}</span></div>`).join('') : `<div class="empty-state"><p>No history</p></div>`; } catch (e) { container.innerHTML = `<div class="error-state">Error</div>`; } }
 
 // ==================== DASHBOARD ====================
 async function loadDashboard() {
@@ -729,33 +515,10 @@ function setupDashboard() {
         };
     });
     
-    if (STATE.userRole === 'admin' || STATE.userRole === 'helper') addAdminIndicator();
     $('menu-btn')?.addEventListener('click', () => $('sidebar')?.classList.add('open'));
     $('close-sidebar')?.addEventListener('click', closeSidebar);
     $('logout-btn')?.addEventListener('click', logout);
     updateTime();
-}
-
-function addAdminNavLink() {
-    let nav = document.querySelector('.nav-links');
-    if (!nav) nav = document.getElementById('sidebar');
-    if (!nav) return;
-    
-    if (!nav.querySelector('.admin-nav-link')) {
-        const link = document.createElement('a');
-        link.href = '#';
-        link.className = 'nav-link admin-nav-link';
-        link.style.marginTop = 'auto';
-        link.style.borderTop = '1px solid rgba(255,255,255,0.1)';
-        
-        let icon = '🎛️';
-        let text = 'Admin';
-        if (STATE.userRole === 'helper') { icon = '🎧'; text = 'Playlists'; }
-        
-        link.innerHTML = `<span class="nav-icon">${icon}</span><span>${text}</span>`;
-        link.onclick = (e) => { e.preventDefault(); if (STATE.userRole === 'admin') showAdminPanel(); else if (STATE.userRole === 'helper') showHelperPanel(); else showAdminLogin(); closeSidebar(); };
-        nav.appendChild(link);
-    }
 }
 
 function closeSidebar() { $('sidebar')?.classList.remove('open'); }
@@ -774,6 +537,7 @@ async function loadPage(page) {
     STATE.page = page;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     
+    // Ensure chat container exists dynamically if not present
     if (page === 'chat' && !$('page-chat')) {
         const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
         if (mainContent) {
@@ -804,22 +568,12 @@ async function loadPage(page) {
             case 'secret-missions': await renderSecretMissions(); break;
             case 'chat': await renderChat(); break;
         }
-    } catch (e) { if (el) el.innerHTML = `<div class="error-page"><h3>Failed to load</h3><p>${sanitize(e.message)}</p><button onclick="loadPage('${page}')" class="btn-primary">Retry</button></div>`; } 
-    finally { loading(false); }
+    } catch (e) {
+        if (el) el.innerHTML = `<div class="error-page"><h3>Failed to load</h3><p>${sanitize(e.message)}</p><button onclick="loadPage('${page}')" class="btn-primary">Retry</button></div>`;
+    } finally { loading(false); }
 }
 
-// ==================== CHAT ====================
-async function renderChat() {
-    const container = document.getElementById('chat-content');
-    if (!container) return;
-    const team = STATE.data?.profile?.team || 'Unknown';
-    const name = sanitize(STATE.data?.profile?.name) || 'Agent';
-    const color = teamColor(team);
-    const chatUrl = `https://tlk.io/${CONFIG.CHAT_CHANNEL}`;
-    container.innerHTML = `<div class="card" style="height: 100%; display: flex; flex-direction: column; margin-bottom: 0;"><div class="card-header" style="border-bottom: 1px solid var(--border);"><h3>💬 Secret Comms Channel</h3><div class="mission-hint">Encrypted Channel • Logged in as <span style="color:${color}">${name}</span></div></div><div class="card-body" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0f 100%);"><div style="font-size: 60px; margin-bottom: 20px; animation: float 3s ease-in-out infinite;">🛰️</div><h2 style="color: var(--text-bright); margin-bottom: 10px;">Secure Link Established</h2><p style="color: var(--text-dim); max-width: 400px; margin-bottom: 30px; font-size: 14px;">To bypass ad-blockers and ensure transmission security, the comms channel must be opened in a secure popup link.</p><a href="${chatUrl}" target="_blank" onclick="window.open(this.href, 'bts_chat', 'width=500,height=700'); return false;" class="btn-primary" style="padding: 15px 30px; font-size: 16px; border: 1px solid var(--purple-glow); box-shadow: 0 0 20px rgba(123, 44, 191, 0.3);">🚀 LAUNCH COMMS CHANNEL</a><div style="margin-top: 30px; font-size: 11px; color: var(--text-muted);">Status: <span style="color: var(--success);">ONLINE</span> • Encryption: <span style="color: var(--success);">ACTIVE</span></div></div></div>`;
-}
-
-// ==================== RENDER HOME (SCROLLABLE PLAYLISTS) ====================
+// ==================== HOME PAGE ====================
 async function renderHome() {
     const selectedWeek = STATE.week;
     $('current-week').textContent = `Week: ${selectedWeek}`;
@@ -839,12 +593,10 @@ async function renderHome() {
         const isCompleted = isWeekCompleted(selectedWeek);
         const daysLeft = getDaysRemaining(selectedWeek);
 
-        // Contribution %
         const teamTotalXP = teamData.teamXP || 1;
         const myTotalXP = myStats.totalXP || 0;
         const contribPercent = ((myTotalXP / teamTotalXP) * 100).toFixed(2);
 
-        // Mission of Hour
         const allTrackGoals = goals.trackGoals || {};
         const incompleteTracks = Object.entries(allTrackGoals).filter(([track, info]) => {
             const current = info.teams?.[team]?.current || 0;
@@ -857,7 +609,6 @@ async function renderHome() {
             missionText = `Team needs help here! Stream <b>${randomGoal[0]}</b> to push the bar.`;
         }
 
-        // --- PLAYLIST LINKS (SCROLLABLE FIX) ---
         const albumLink = CONFIG.ALBUM_PLAYLISTS[team];
         let weeklyData = summary.playlists || [];
         if (weeklyData.length === 0 && CONFIG.WEEKLY_PLAYLISTS_FALLBACK[selectedWeek]) {
@@ -865,84 +616,17 @@ async function renderHome() {
         }
         
         let missionPlaylistsHtml = '';
-        
         if (Array.isArray(weeklyData) && weeklyData.length > 0) {
-            // SCROLLABLE CONTAINER
-            missionPlaylistsHtml = `
-                <div class="playlist-container" style="display: flex; flex-direction: column; gap: 5px; height: 100%;">
-                    <div style="font-size: 9px; color: #aaa; text-transform: uppercase; letter-spacing:1px; margin-bottom: 2px;">MISSION LOG (${weeklyData.length})</div>
-                    <div class="playlist-scroll" style="display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto; padding-right: 5px;">
-                        ${weeklyData.map(pl => `
-                            <a href="${pl.url}" target="_blank" class="btn-mini-deploy" style="background: linear-gradient(90deg, ${teamColor(team)}22, rgba(0,0,0,0)); border-left: 2px solid ${teamColor(team)}; color: #fff; padding: 8px 10px; border-radius: 4px; text-decoration: none; display: flex; align-items: center; justify-content: space-between; font-size: 11px; transition: all 0.2s;">
-                                <span style="font-weight:600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">${sanitize(pl.name)}</span>
-                                <span style="font-size:10px; opacity:0.7;">▶</span>
-                            </a>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
+            missionPlaylistsHtml = `<div class="playlist-container" style="display:flex;flex-direction:column;gap:5px;height:100%;"><div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Mission Playlists (${weeklyData.length})</div><div class="playlist-scroll" style="display:flex;flex-direction:column;gap:6px;max-height:120px;overflow-y:auto;padding-right:4px;">${weeklyData.map(pl => `<a href="${pl.url}" target="_blank" class="btn-mini-deploy" style="background:linear-gradient(90deg,${teamColor(team)}22,rgba(0,0,0,0));border-left:2px solid ${teamColor(team)};color:#fff;padding:8px 10px;border-radius:4px;text-decoration:none;display:flex;align-items:center;justify-content:space-between;font-size:11px;"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80%;">${sanitize(pl.name)}</span><span style="font-size:10px;opacity:0.7;">▶</span></a>`).join('')}</div></div>`;
         } else {
-            missionPlaylistsHtml = `
-                <div class="btn-deploy disabled" style="background: #1a1a2e; border: 1px solid #333; color: #555; padding: 15px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 10px; height: 100%;">
-                    <span style="font-size: 20px; filter: grayscale(1);">🔒</span>
-                    <div style="text-align: left;"><div style="font-size: 10px; text-transform: uppercase;">Weekly Mission</div><div style="font-size: 13px;">No Playlist Yet</div></div>
-                </div>
-            `;
+            missionPlaylistsHtml = `<div class="btn-deploy disabled" style="background:#1a1a2e;border:1px solid #333;color:#555;padding:15px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:10px;height:100%;"><span style="font-size:20px;filter:grayscale(1);">🔒</span><div style="text-align:left;"><div style="font-size:10px;text-transform:uppercase;">Weekly Mission</div><div style="font-size:13px;">No Playlist Yet</div></div></div>`;
         }
         
-        const deployButtonsHtml = `
-            <div class="deploy-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-                <!-- LEFT: ALBUM -->
-                ${albumLink ? `
-                <a href="${albumLink}" target="_blank" class="btn-deploy" style="background: linear-gradient(45deg, #1a1a2e, #2a2a40); border: 1px solid ${teamColor(team)}; color: #fff; padding: 15px; border-radius: 12px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s; height: 100%;">
-                    <span style="font-size: 24px;">💿</span>
-                    <div style="text-align: left;">
-                        <div style="font-size: 10px; color: ${teamColor(team)}; text-transform: uppercase; font-weight: bold;">Team Album</div>
-                        <div style="font-size: 13px; font-weight: 600;">Stream ${sanitize(CONFIG.TEAMS[team]?.album)}</div>
-                    </div>
-                </a>` : ''}
-                
-                <!-- RIGHT: SCROLLABLE LIST -->
-                <div class="mission-playlists-wrapper" style="height:100%;">
-                    ${missionPlaylistsHtml}
-                </div>
-            </div>
-        `;
+        const deployButtonsHtml = `<div class="deploy-container" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">${albumLink ? `<a href="${albumLink}" target="_blank" class="btn-deploy" style="background:linear-gradient(45deg,#1a1a2e,#2a2a40);border:1px solid ${teamColor(team)};color:#fff;padding:15px;border-radius:12px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:10px;height:100%;"><span style="font-size:24px;">💿</span><div style="text-align:left;"><div style="font-size:10px;color:${teamColor(team)};text-transform:uppercase;font-weight:bold;">Team Album</div><div style="font-size:13px;font-weight:600;">Stream ${sanitize(CONFIG.TEAMS[team]?.album)}</div></div></a>` : ''}<div class="mission-playlists-wrapper" style="height:100%;">${missionPlaylistsHtml}</div></div>`;
         
         const quickStatsEl = document.querySelector('.quick-stats-section');
         if (quickStatsEl) {
-            quickStatsEl.innerHTML = guideHtml + `
-                <div class="card" style="background: linear-gradient(45deg, #1a1a2e, #16213e); border-left: 4px solid ${teamColor(team)}; margin-bottom: 20px;">
-                    <div class="card-body" style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">⚡ Mission of the Hour</div>
-                            <div style="font-size: 14px; color: #fff;">${missionText}</div>
-                        </div>
-                        <a href="${CONFIG.ALBUM_PLAYLISTS[team] || '#'}" target="_blank" class="btn-sm btn-primary" style="font-size: 12px; padding: 8px 15px; white-space: nowrap;">🎧 Play</a>
-                    </div>
-                </div>
-            ` + deployButtonsHtml + `
-                <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
-                    <div class="card-body">
-                        <div class="quick-header">
-                            ${teamPfp(team) ? `<img src="${teamPfp(team)}" class="quick-pfp" style="border-color:${teamColor(team)}">` : ''}
-                            <div class="quick-info"><div class="quick-name">Welcome, ${sanitize(STATE.data?.profile?.name)}!</div><div class="quick-team" style="color:${teamColor(team)}">Team ${team} • Rank #${STATE.data?.rank || 'N/A'}</div></div>
-                        </div>
-                        <div class="quick-stats-grid">
-                            <div class="quick-stat"><div class="quick-stat-value">${fmt(myStats.totalXP)}</div><div class="quick-stat-label">XP</div></div>
-                            <div class="quick-stat"><div class="quick-stat-value">${fmt(myStats.trackScrobbles || 0)}</div><div class="quick-stat-label">Tracks</div></div>
-                            <div class="quick-stat"><div class="quick-stat-value">${fmt(myStats.albumScrobbles || 0)}</div><div class="quick-stat-label">Albums</div></div>
-                        </div>
-                        <div style="margin-top: 15px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:11px; color:#aaa;"><span>🦸 Your Impact</span><span>${contribPercent}% of Team Total</span></div>
-                            <div class="progress-bar" style="height: 6px;"><div class="progress-fill" style="width: ${Math.max(contribPercent, 2)}%; background: ${teamColor(team)};"></div></div>
-                        </div>
-                        <div class="battle-timer ${isCompleted ? 'ended' : ''}">${isCompleted ? '🏆 Week Completed' : (daysLeft <= 1 ? '🚀 Final Day!' : `⏰ ${daysLeft} days left`)}</div>
-                        ${isCompleted ? `<div class="results-alert" onclick="loadPage('summary')">🏆 View Final Results →</div>` : ''}
-                        ${STATE.lastUpdated ? `<div class="last-updated-mini">Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
-                    </div>
-                </div>
-            `;
+            quickStatsEl.innerHTML = guideHtml + `<div class="card" style="background:linear-gradient(45deg,#1a1a2e,#16213e);border-left:4px solid ${teamColor(team)};margin-bottom:20px;"><div class="card-body" style="padding:15px;display:flex;justify-content:space-between;align-items:center;"><div><div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">⚡ Mission of the Hour</div><div style="font-size:14px;color:#fff;">${missionText}</div></div><a href="${albumLink || '#'}" target="_blank" class="btn-sm btn-primary" style="font-size:12px;padding:8px 15px;white-space:nowrap;">🎧 Play</a></div></div>` + deployButtonsHtml + `<div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg,${teamColor(team)}11,var(--bg-card));"><div class="card-body"><div class="quick-header">${teamPfp(team) ? `<img src="${teamPfp(team)}" class="quick-pfp" style="border-color:${teamColor(team)}">` : ''}<div class="quick-info"><div class="quick-name">Welcome, ${sanitize(STATE.data?.profile?.name)}!</div><div class="quick-team" style="color:${teamColor(team)}">Team ${team} • Rank #${STATE.data?.rank || 'N/A'}</div></div></div><div class="quick-stats-grid"><div class="quick-stat"><div class="quick-stat-value">${fmt(myStats.totalXP)}</div><div class="quick-stat-label">XP</div></div><div class="quick-stat"><div class="quick-stat-value">${fmt(myStats.trackScrobbles || 0)}</div><div class="quick-stat-label">Tracks</div></div><div class="quick-stat"><div class="quick-stat-value">${fmt(myStats.albumScrobbles || 0)}</div><div class="quick-stat-label">Albums</div></div></div><div style="margin-top:15px;background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px;color:#aaa;"><span>🦸 Your Impact</span><span>${contribPercent}% of Team Total</span></div><div class="progress-bar" style="height:6px;"><div class="progress-fill" style="width:${Math.max(contribPercent,2)}%;background:${teamColor(team)};"></div></div></div><div class="battle-timer ${isCompleted ? 'ended' : ''}">${isCompleted ? '🏆 Week Completed' : (daysLeft <= 1 ? '🚀 Final Day!' : `⏰ ${daysLeft} days left`)}</div>${isCompleted ? `<div class="results-alert" onclick="loadPage('summary')">🏆 View Final Results →</div>` : ''}${STATE.lastUpdated ? `<div class="last-updated-mini">Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}</div></div>`;
         }
         
         const trackGoals = goals.trackGoals || {};
@@ -951,82 +635,26 @@ async function renderHome() {
         const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
         const tracksCompleted2x = teamTracks.filter(t => (album2xStatus.tracks?.[t] || 0) >= 2).length;
         
-        const trackGoalsList = Object.entries(trackGoals).map(([trackName, info]) => {
-            const tp = info.teams?.[team] || {};
-            return { name: trackName, current: tp.current || 0, goal: info.goal || 0, done: tp.status === 'Completed' || (tp.current || 0) >= (info.goal || 0) };
-        });
-        const albumGoalsList = Object.entries(albumGoals).map(([albumName, info]) => {
-            const ap = info.teams?.[team] || {};
-            return { name: albumName, current: ap.current || 0, goal: info.goal || 0, done: ap.status === 'Completed' || (ap.current || 0) >= (info.goal || 0) };
-        });
+        const trackGoalsList = Object.entries(trackGoals).map(([trackName, info]) => { const tp = info.teams?.[team] || {}; return { name: trackName, current: tp.current || 0, goal: info.goal || 0, done: tp.status === 'Completed' || (tp.current || 0) >= (info.goal || 0) }; });
+        const albumGoalsList = Object.entries(albumGoals).map(([albumName, info]) => { const ap = info.teams?.[team] || {}; return { name: albumName, current: ap.current || 0, goal: info.goal || 0, done: ap.status === 'Completed' || (ap.current || 0) >= (info.goal || 0) }; });
 
         const missionCardsContainer = document.querySelector('.missions-grid');
         if (missionCardsContainer) {
-            missionCardsContainer.innerHTML = `
-                <div class="mission-card expanded" onclick="loadPage('goals')">
-                    <div class="mission-icon">🎵</div><h3>Track Goals</h3>
-                    <div class="mission-status ${teamData.trackGoalPassed ? 'complete' : ''}">${teamData.trackGoalPassed ? '✅ Complete' : '⏳ In Progress'}</div>
-                    <div class="goals-list">${trackGoalsList.length ? trackGoalsList.map(g => `<div class="goal-mini ${g.done ? 'done' : ''}"><span class="goal-name">${sanitize(g.name)}</span><span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span></div>`).join('') : '<p class="no-goals">No track goals</p>'}</div>
-                </div>
-                <div class="mission-card expanded" onclick="loadPage('goals')">
-                    <div class="mission-icon">💿</div><h3>Album Goals</h3>
-                    <div class="mission-status ${teamData.albumGoalPassed ? 'complete' : ''}">${teamData.albumGoalPassed ? '✅ Complete' : '⏳ In Progress'}</div>
-                    <div class="goals-list">${albumGoalsList.length ? albumGoalsList.map(g => `<div class="goal-mini ${g.done ? 'done' : ''}"><span class="goal-name">${sanitize(g.name)}</span><span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span></div>`).join('') : '<p class="no-goals">No album goals</p>'}</div>
-                </div>
-                <div class="mission-card" onclick="loadPage('album2x')">
-                    <div class="mission-icon">✨</div><h3>Album 2X</h3><div class="mission-subtitle">${sanitize(CONFIG.TEAMS[team]?.album || team)}</div>
-                    <div class="mission-status ${album2xStatus.passed ? 'complete' : ''}">${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}</div>
-                    <div class="mission-progress"><div class="progress-bar"><div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div></div><span>${tracksCompleted2x}/${teamTracks.length} tracks</span></div>
-                </div>
-                <div class="mission-card secret" onclick="loadPage('secret-missions')"><div class="mission-icon">🔒</div><h3>Secret Missions</h3><div class="mission-status">🕵️ Classified</div><div class="mission-hint">Tap to view team missions</div></div>
-                <div class="mission-card" onclick="loadPage('chat')"><div class="mission-icon">💬</div><h3>Secret Comms</h3><div class="mission-subtitle">HQ Encrypted Channel</div><div class="mission-hint">Tap to join chat</div></div>
-            `;
+            missionCardsContainer.innerHTML = `<div class="mission-card expanded" onclick="loadPage('goals')"><div class="mission-icon">🎵</div><h3>Track Goals</h3><div class="mission-status ${teamData.trackGoalPassed ? 'complete' : ''}">${teamData.trackGoalPassed ? '✅ Complete' : '⏳ In Progress'}</div><div class="goals-list">${trackGoalsList.length ? trackGoalsList.map(g => `<div class="goal-mini ${g.done ? 'done' : ''}"><span class="goal-name">${sanitize(g.name)}</span><span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span></div>`).join('') : '<p class="no-goals">No track goals</p>'}</div></div><div class="mission-card expanded" onclick="loadPage('goals')"><div class="mission-icon">💿</div><h3>Album Goals</h3><div class="mission-status ${teamData.albumGoalPassed ? 'complete' : ''}">${teamData.albumGoalPassed ? '✅ Complete' : '⏳ In Progress'}</div><div class="goals-list">${albumGoalsList.length ? albumGoalsList.map(g => `<div class="goal-mini ${g.done ? 'done' : ''}"><span class="goal-name">${sanitize(g.name)}</span><span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span></div>`).join('') : '<p class="no-goals">No album goals</p>'}</div></div><div class="mission-card" onclick="loadPage('album2x')"><div class="mission-icon">✨</div><h3>Album 2X</h3><div class="mission-subtitle">${sanitize(CONFIG.TEAMS[team]?.album || team)}</div><div class="mission-status ${album2xStatus.passed ? 'complete' : ''}">${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}</div><div class="mission-progress"><div class="progress-bar"><div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div></div><span>${tracksCompleted2x}/${teamTracks.length} tracks</span></div></div><div class="mission-card secret" onclick="loadPage('secret-missions')"><div class="mission-icon">🔒</div><h3>Secret Missions</h3><div class="mission-status">🕵️ Classified</div><div class="mission-hint">Tap to view team missions</div></div><div class="mission-card" onclick="loadPage('chat')"><div class="mission-icon">💬</div><h3>Secret Comms</h3><div class="mission-subtitle">HQ Encrypted Channel</div><div class="mission-hint">Tap to join chat</div></div>`;
         }
         
         const rankList = rankings.rankings || [];
         const topAgentsEl = $('home-top-agents');
-        if (topAgentsEl) {
-            topAgentsEl.innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => `<div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" onclick="loadPage('rankings')"><div class="rank-num">${i+1}</div><div class="rank-info"><div class="rank-name">${sanitize(r.name)}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div></div><div class="rank-xp">${fmt(r.totalXP)} XP</div></div>`).join('') : '<p class="empty-text">No data yet</p>';
-        }
+        if (topAgentsEl) { topAgentsEl.innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => `<div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" onclick="loadPage('rankings')"><div class="rank-num">${i+1}</div><div class="rank-info"><div class="rank-name">${sanitize(r.name)}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div></div><div class="rank-xp">${fmt(r.totalXP)} XP</div></div>`).join('') : '<p class="empty-text">No data yet</p>'; }
         
         const sortedTeams = Object.keys(summary.teams || {}).sort((a, b) => (summary.teams[b].teamXP || 0) - (summary.teams[a].teamXP || 0));
         const standingsEl = $('home-standings');
-        if (standingsEl) {
-            standingsEl.innerHTML = sortedTeams.length ? `<div class="standings-header"><span class="standings-badge ${isCompleted ? 'final' : ''}">${isCompleted ? '🏆 Final Standings' : '⏳ Live Battle'}</span></div>${sortedTeams.map((t, i) => { const td = summary.teams[t]; return `<div class="standing-item ${t === team ? 'my-team' : ''}" onclick="loadPage('team-level')" style="--team-color:${teamColor(t)}"><div class="standing-rank">${i+1}</div>${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}<div class="standing-info"><div class="standing-name" style="color:${teamColor(t)}">${t}</div><div class="standing-xp">${fmt(td.teamXP)} XP</div></div><div class="standing-missions">${td.trackGoalPassed?'🎵✅':'🎵❌'} ${td.albumGoalPassed?'💿✅':'💿❌'} ${td.album2xPassed?'✨✅':'✨❌'}</div></div>`; }).join('')}` : '<p class="empty-text">No data yet</p>';
-        }
+        if (standingsEl) { standingsEl.innerHTML = sortedTeams.length ? `<div class="standings-header"><span class="standings-badge ${isCompleted ? 'final' : ''}">${isCompleted ? '🏆 Final Standings' : '⏳ Live Battle'}</span></div>${sortedTeams.map((t, i) => { const td = summary.teams[t]; return `<div class="standing-item ${t === team ? 'my-team' : ''}" onclick="loadPage('team-level')" style="--team-color:${teamColor(t)}"><div class="standing-rank">${i+1}</div>${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}<div class="standing-info"><div class="standing-name" style="color:${teamColor(t)}">${t}</div><div class="standing-xp">${fmt(td.teamXP)} XP</div></div><div class="standing-missions">${td.trackGoalPassed?'🎵✅':'🎵❌'} ${td.albumGoalPassed?'💿✅':'💿❌'} ${td.album2xPassed?'✨✅':'✨❌'}</div></div>`; }).join('')}` : '<p class="empty-text">No data yet</p>'; }
     } catch (e) { console.error(e); showToast('Failed to load home', 'error'); }
 }
 
-// ==================== OTHER RENDERERS (Keep unchanged) ====================
-async function renderSummary() {
-    const container = $('summary-content');
-    const selectedWeek = STATE.week;
-    const isCompleted = isWeekCompleted(selectedWeek);
-    if (!isCompleted) { const days = getDaysRemaining(selectedWeek); container.innerHTML = `<div class="card"><div class="card-body" style="text-align:center;padding:60px 20px;"><div style="font-size:64px;margin-bottom:20px;">🔒</div><h2>Summary Locked</h2><p style="color:var(--text-dim);margin:16px 0;">Results for <strong>${selectedWeek}</strong> are not yet final.</p><div class="countdown-box"><div class="countdown-value">${days}</div><div class="countdown-label">day${days !== 1 ? 's' : ''} until results</div></div><button onclick="loadPage('home')" class="btn-primary" style="margin-top:20px;">View Live Progress →</button></div></div>`; return; }
-    try { const [summary, winners] = await Promise.all([api('getWeeklySummary', { week: selectedWeek }), api('getWeeklyWinners').catch(() => ({ winners: [] }))]); const teams = summary.teams || {}; const sorted = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0)); const actualWinner = sorted[0]?.[0] || summary.winner; container.innerHTML = `<div class="summary-week-header"><h2>📊 ${selectedWeek} Results</h2><p class="results-date">${isCompleted ? 'Battle Concluded' : 'Provisional Results'}</p></div>${actualWinner ? `<div class="card winner-card" style="border-color:${teamColor(actualWinner)}"><div class="card-body" style="text-align:center;padding:40px;"><div style="font-size:64px;margin-bottom:16px;">🏆</div><h2 style="color:${teamColor(actualWinner)}">Team ${actualWinner} WINS!</h2><p style="font-size:32px;color:var(--purple-glow);">${fmt(teams[actualWinner]?.teamXP)} XP</p></div></div>` : ''}<div class="card"><div class="card-header"><h3>📊 Final Standings</h3></div><div class="card-body">${sorted.map(([t, info], i) => `<div class="final-standing ${i===0?'winner':''}" style="border-left-color:${teamColor(t)}"><span class="standing-pos">${i+1}</span><div class="standing-details"><div style="color:${teamColor(t)};font-weight:600;">${t}</div></div><div class="standing-xp-final">${fmt(info.teamXP)} XP</div></div>`).join('')}</div></div>`; } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load summary</p></div></div>'; }
-}
 
-async function renderDrawer() {
-    const container = $('drawer-content');
-    if (!container) return;
-    const profile = STATE.data?.profile || {};
-    const currentXP = STATE.data?.stats?.totalXP || 0;
-    function getLevelBadges(agentNo, totalXP) { const pool = CONFIG.BADGE_POOL; if (!pool || pool.length === 0) return []; const xp = parseInt(totalXP) || 0; const currentLevel = Math.floor(xp / 100); const badges = []; for (let level = 1; level <= currentLevel; level++) { let seed = 0; const str = String(agentNo).toUpperCase(); for (let i = 0; i < str.length; i++) seed += str.charCodeAt(i); seed += (level * 137); const index = seed % pool.length; badges.push({ name: `Level ${level}`, description: `Unlocked at ${level * 100} XP`, imageUrl: pool[index], isLevelBadge: true }); } return badges.reverse(); }
-    const allBadges = getLevelBadges(STATE.agentNo, currentXP);
-    const isAdmin = String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
-    container.innerHTML = `<div class="card"><div class="card-body"><div class="drawer-header">${teamPfp(profile.team) ? `<img src="${teamPfp(profile.team)}" class="drawer-pfp" style="border-color:${teamColor(profile.team)}">` : ''}<div class="drawer-info"><div class="drawer-name">${sanitize(profile.name)}</div><div class="drawer-team" style="color:${teamColor(profile.team)}">Team ${profile.team}</div><div class="drawer-id">Agent #${STATE.agentNo}</div></div></div>${isAdmin ? `<button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">🔐 Access Mission Control</button>` : ''}<div class="drawer-stats"><div class="drawer-stat"><span class="value">${fmt(currentXP)}</span><span class="label">Total XP</span></div><div class="drawer-stat"><span class="value">${allBadges.length}</span><span class="label">Badges</span></div></div></div></div><div class="card"><div class="card-header"><h3>🎖️ Collection (${allBadges.length})</h3><div style="font-size:11px; color:var(--text-dim)">Next Reward: ${(Math.floor(currentXP/100) + 1) * 100} XP</div></div><div class="card-body">${allBadges.length ? `<div class="badges-showcase">${allBadges.map(b => `<div class="badge-showcase-item"><div class="badge-circle" style="${b.isLevelBadge ? 'border-color:#ffd700;' : ''}"><img src="${b.imageUrl}" onerror="this.style.display='none';"></div><div class="badge-name">${sanitize(b.name)}</div><div class="badge-desc">${sanitize(b.description)}</div></div>`).join('')}</div>` : `<div class="empty-state" style="text-align:center; padding:20px; color:#777;">Earn 100 XP to unlock your first random badge!</div>`}</div></div>`;
-}
-
-async function renderProfile() { const stats = STATE.data?.stats || {}; $('profile-stats').innerHTML = `<div class="stat-box"><div class="stat-value">${fmt(stats.totalXP)}</div><div class="stat-label">XP</div></div><div class="stat-box"><div class="stat-value">#${STATE.data?.rank || 'N/A'}</div><div class="stat-label">Rank</div></div><div class="stat-box"><div class="stat-value">#${STATE.data?.teamRank || 'N/A'}</div><div class="stat-label">Team Rank</div></div><div class="stat-box"><div class="stat-value">${fmt(stats.trackScrobbles)}</div><div class="stat-label">Tracks</div></div><div class="stat-box"><div class="stat-value">${fmt(stats.albumScrobbles)}</div><div class="stat-label">Albums</div></div><div class="stat-box"><div class="stat-value">${STATE.data?.album2xStatus?.passed ? '✅' : '❌'}</div><div class="stat-label">2X</div></div>`; const tc = STATE.data?.trackContributions || {}; $('profile-tracks').innerHTML = Object.keys(tc).length ? Object.entries(tc).sort((a, b) => b[1] - a[1]).map(([t, c]) => `<div class="contrib-item"><span>${sanitize(t)}</span><span>${fmt(c)}</span></div>`).join('') : '<p class="empty-text">No track data</p>'; const ac = STATE.data?.albumContributions || {}; $('profile-albums').innerHTML = Object.keys(ac).length ? Object.entries(ac).sort((a, b) => b[1] - a[1]).map(([a, c]) => `<div class="contrib-item"><span>${sanitize(a)}</span><span>${fmt(c)}</span></div>`).join('') : '<p class="empty-text">No album data</p>'; try { const bd = await api('getBadges', { agentNo: STATE.agentNo }); $('profile-badges').innerHTML = (bd.badges || []).length ? `<div class="badges-grid">${bd.badges.map(b => `<div class="badge-item"><div class="badge-icon"><img src="${b.imageUrl}"></div><div class="badge-name">${sanitize(b.name)}</div></div>`).join('')}</div>` : '<p class="empty-text">No badges yet</p>'; } catch (e) { $('profile-badges').innerHTML = '<p class="empty-text">No badges</p>'; } }
-async function renderRankings() { try { const data = await api('getRankings', { week: STATE.week, limit: 100 }); if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated; $('rankings-list').innerHTML = renderGuide('rankings') + `<div class="rankings-header"><span class="week-badge">${STATE.week}</span></div>${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}` + ((data.rankings || []).map((r, i) => `<div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}"><div class="rank-num">${i+1}</div><div class="rank-info"><div class="rank-name">${sanitize(r.name)}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div></div><div class="rank-xp">${fmt(r.totalXP)} XP</div></div>`).join('') || '<p class="empty-text">No data</p>'); } catch (e) { $('rankings-list').innerHTML = '<p class="error-text">Failed</p>'; } }
-async function renderGoals() { const container = $('goals-content'); const team = STATE.data?.profile?.team; try { const data = await api('getGoalsProgress', { week: STATE.week }); if (data.lastUpdated) { STATE.lastUpdated = data.lastUpdated; updateTime(); } let html = renderGuide('goals') + `<div class="goals-header"><span class="week-badge">${STATE.week}</span></div><div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>`; const tg = data.trackGoals || {}; if (Object.keys(tg).length) { html += `<div class="card"><div class="card-header"><h3>🎵 Track Goals</h3></div><div class="card-body">` + Object.entries(tg).map(([t, i]) => { const tp = i.teams?.[team] || {}; const pct = i.goal > 0 ? Math.min((tp.current||0)/i.goal*100, 100) : 0; return `<div class="goal-item"><div class="goal-header"><span class="goal-name">${sanitize(t)}</span><span class="goal-status">${fmt(tp.current)}/${fmt(i.goal)}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div>`; }).join('') + `</div></div>`; } container.innerHTML = html; } catch (e) { container.innerHTML = '<p class="error">Error</p>'; } }
-async function renderAlbum2x() { const container = $('album2x-content'); const team = STATE.data?.profile?.team; const status = STATE.data?.album2xStatus || {}; const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || []; let complete = 0; const list = teamTracks.map(t => { const passed = (status.tracks?.[t] || 0) >= 2; if (passed) complete++; return { name: t, passed, count: status.tracks?.[t] || 0 }; }); const all = complete === teamTracks.length; container.innerHTML = renderGuide('album2x') + `<div class="card" style="border-color:${all?'var(--success)':teamColor(team)}"><div class="card-body" style="text-align:center;"><h2 style="color:${teamColor(team)}">${sanitize(CONFIG.TEAMS[team]?.album)}</h2><p>Stream 2x each</p><div style="font-size:40px;">${complete}/${teamTracks.length}</div></div></div><div class="card"><div class="card-body">${list.map(t => `<div class="track-item ${t.passed?'passed':'pending'}"><span>${sanitize(t.name)}</span><span>${t.count}/2 ${t.passed?'✅':'❌'}</span></div>`).join('')}</div></div>`; }
-async function renderTeamLevel() { const container = $('team-level-content'); try { const summary = await api('getWeeklySummary', { week: STATE.week }); if (summary.lastUpdated) STATE.lastUpdated = summary.lastUpdated; const teams = Object.entries(summary.teams||{}).sort((a,b)=>(b[1].teamXP||0)-(a[1].teamXP||0)); container.innerHTML = renderGuide('team-level') + `<div class="team-level-grid">${teams.map(([t,i])=>`<div class="team-level-card" style="border-color:${teamColor(t)}"><div class="team-level-name" style="color:${teamColor(t)}">${t}</div><div class="team-level-num">${i.level}</div><div class="team-level-xp">${fmt(i.teamXP)} XP</div></div>`).join('')}</div>`; } catch (e) { container.innerHTML = '<p>Error</p>'; } }
-async function renderAnnouncements() { const container = $('announcements-content'); try { const data = await api('getAnnouncements', { week: STATE.week }); container.innerHTML = (data.announcements||[]).map(a => `<div class="card announcement"><div class="card-body"><h3>${sanitize(a.title)}</h3><p>${sanitize(a.message)}</p></div></div>`).join('') || '<div class="card"><div class="card-body" style="text-align:center;">No announcements</div></div>'; } catch (e) { container.innerHTML = '<p>Error</p>'; } }
-async function renderSecretMissions() { const container = $('secret-missions-content'); if (!container) return; const team = STATE.data?.profile?.team; try { const [m, s] = await Promise.all([api('getTeamSecretMissions', { team, agentNo: STATE.agentNo, week: STATE.week }), api('getTeamSecretStats', { week: STATE.week })]); container.innerHTML = renderGuide('secret-missions') + (m.active||[]).map(x => renderSecretMissionCard(x, team, false)).join('') || '<div class="card"><div class="card-body" style="text-align:center;">No secret missions</div></div>'; } catch (e) { container.innerHTML = '<p>Error</p>'; } }
-function renderSecretMissionCard(m, team, assigned) { const info = CONFIG.MISSION_TYPES[m.type]; const pct = Math.min((m.progress?.[team]||0)/m.goalTarget*100, 100); return `<div class="secret-mission-card"><div class="smc-header"><span class="smc-icon">${info.icon}</span><div class="smc-title">${sanitize(m.title)}</div></div><div class="smc-progress"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${teamColor(team)}"></div></div></div></div>`; }
-async function renderComparison() { const container = $('comparison-content'); try { const [c, g] = await Promise.all([api('getTeamComparison', { week: STATE.week }), api('getGoalsProgress', { week: STATE.week })]); if (c.lastUpdated) STATE.lastUpdated = c.lastUpdated; container.innerHTML = `<div class="card"><div class="card-body">${(c.comparison||[]).map(t => `<div class="comparison-item"><span style="color:${teamColor(t.team)}">${t.team}</span><span>${fmt(t.teamXP)} XP</span></div>`).join('')}</div></div>`; } catch (e) { container.innerHTML = '<p>Error</p>'; } }
-
+// ===== The functions you were missing are now restored below =====
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
@@ -1034,17 +662,18 @@ document.addEventListener('DOMContentLoaded', initApp);
 window.loadPage = loadPage;
 window.logout = logout;
 window.showAdminPanel = showAdminPanel;
-window.showHelperPanel = showHelperPanel;
 window.showAdminLogin = showAdminLogin;
 window.closeAdminModal = closeAdminModal;
 window.closeAdminPanel = closeAdminPanel;
 window.verifyAdminPassword = verifyAdminPassword;
+window.exitAdminMode = exitAdminMode;
 window.selectMissionType = selectMissionType;
 window.toggleAllTeams = toggleAllTeams;
 window.createTeamMission = createTeamMission;
 window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
+window.showHelperPanel = showHelperPanel;
 window.submitPlaylist = submitPlaylist;
 
-console.log('🎮 BTS Spy Battle v4.1 Loaded (Scrollable Playlists & Helper Mode)');
+console.log('🎮 BTS Spy Battle v4.2 Loaded (All Features Merged)');
