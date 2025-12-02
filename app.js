@@ -1382,7 +1382,130 @@ async function renderComparison() {
 
     } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; }
 }
+// ==================== NOTIFICATION SYSTEM ====================
 
+const NOTIFICATIONS = {
+    // Run this function at the end of loadDashboard()
+    checkUpdates: function() {
+        const stats = STATE.data?.stats || {};
+        const profile = STATE.data?.profile || {};
+        const summary = STATE.data?.weeklySummary || {}; // You might need to fetch this if not in data
+        
+        let newNotifications = [];
+
+        // 1. CHECK BADGES
+        const currentXP = parseInt(stats.totalXP) || 0;
+        const currentLevel = Math.floor(currentXP / 100);
+        const savedLevel = parseInt(localStorage.getItem('spy_lastLevel')) || 0;
+
+        if (currentLevel > savedLevel) {
+            newNotifications.push({ type: 'badge', msg: `New Badge Unlocked: Level ${currentLevel}`, page: 'drawer', dotId: 'dot-drawer' });
+            localStorage.setItem('spy_lastLevel', currentLevel);
+        }
+
+        // 2. CHECK WEEKLY RESULTS
+        // We assume STATE.lastUpdated or a specific flag indicates a new result
+        const lastWeekCheck = localStorage.getItem('spy_lastWeekCheck');
+        const isWeekComplete = isWeekCompleted(STATE.week); // Uses your existing helper
+        
+        if (isWeekComplete && lastWeekCheck !== STATE.week) {
+             newNotifications.push({ type: 'result', msg: `Week Results are Finalized`, page: 'summary', dotId: 'dot-summary' });
+             localStorage.setItem('spy_lastWeekCheck', STATE.week);
+        }
+
+        // 3. CHECK SECRET MISSIONS (Requires checking API data or estimating)
+        // We store the count of missions seen
+        const missionCount = STATE.data?.secretMissionCount || 0; // *You need to ensure your API returns this count
+        const savedMissionCount = parseInt(localStorage.getItem('spy_lastMissionCount')) || 0;
+        
+        if (missionCount > savedMissionCount) {
+             newNotifications.push({ type: 'mission', msg: 'New Secret Mission Assigned', page: 'secret-missions', dotId: 'dot-mission' });
+             localStorage.setItem('spy_lastMissionCount', missionCount);
+        }
+
+        // 4. CHECK ANNOUNCEMENTS (Simulated check)
+        // Check if there is a high priority announcement we haven't seen
+        const latestAnnounceID = STATE.data?.latestAnnouncementID || 0; 
+        const savedAnnounceID = parseInt(localStorage.getItem('spy_lastAnnounceID')) || 0;
+
+        if (latestAnnounceID > savedAnnounceID) {
+            newNotifications.push({ type: 'announce', msg: 'New Priority Announcement', page: 'announcements', dotId: 'dot-announce' });
+            localStorage.setItem('spy_lastAnnounceID', latestAnnounceID);
+        }
+
+        // EXECUTE NOTIFICATIONS
+        if (newNotifications.length > 0) {
+            this.showIntelModal(newNotifications);
+            this.updateSidebarDots(newNotifications);
+        }
+    },
+
+    showIntelModal: function(notifs) {
+        // Remove existing modal
+        document.querySelector('.intel-modal')?.remove();
+
+        const html = `
+            <div class="intel-modal">
+                <div class="intel-header">
+                    <span>📡 INTELLIGENCE UPDATE</span>
+                    <button onclick="this.closest('.intel-modal').classList.remove('show')" style="background:none;border:none;color:#fff;">✕</button>
+                </div>
+                ${notifs.map(n => `
+                    <div class="intel-item" onclick="loadPage('${n.page}'); this.closest('.intel-modal').classList.remove('show');">
+                        <span class="intel-icon">${this.getIcon(n.type)}</span>
+                        <span>${n.msg}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', html);
+        
+        // Animate in
+        setTimeout(() => document.querySelector('.intel-modal').classList.add('show'), 500);
+        
+        // Auto hide after 8 seconds
+        setTimeout(() => document.querySelector('.intel-modal')?.classList.remove('show'), 8000);
+    },
+
+    updateSidebarDots: function(notifs) {
+        // Clear all dots first (optional, or keep them persistent until clicked)
+        // document.querySelectorAll('.notification-dot').forEach(d => d.classList.remove('active'));
+
+        notifs.forEach(n => {
+            const dot = document.getElementById(n.dotId);
+            if (dot) dot.classList.add('active');
+        });
+    },
+
+    getIcon: function(type) {
+        switch(type) {
+            case 'badge': return '🎖️';
+            case 'mission': return '🕵️';
+            case 'result': return '🏆';
+            case 'announce': return '📢';
+            default: return 'ℹ️';
+        }
+    }
+};
+
+// Helper to clear dots when page is visited
+const originalLoadPage = window.loadPage;
+window.loadPage = async function(page) {
+    // Hide dot for this page
+    const map = {
+        'drawer': 'dot-drawer',
+        'secret-missions': 'dot-mission',
+        'summary': 'dot-summary',
+        'announcements': 'dot-announce'
+    };
+    if (map[page]) {
+        document.getElementById(map[page])?.classList.remove('active');
+    }
+    
+    // Call original function
+    await originalLoadPage(page);
+};
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
