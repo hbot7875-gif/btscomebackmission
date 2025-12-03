@@ -718,6 +718,8 @@ function exitAdminMode() {
     STATE.adminSession = null;
     localStorage.removeItem('adminSession');
     localStorage.removeItem('adminExpiry');
+    location.reload(); // Added reload to refresh UI state
+} 
 // ==================== ADMIN LOGIC (FIXED) ====================
 
 function showAdminLogin() {
