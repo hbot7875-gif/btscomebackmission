@@ -501,22 +501,4 @@ const NOTIFICATIONS = {
 };
 
 document.addEventListener('DOMContentLoaded', initApp);
-
-
-window.loadPage = loadPage;
-window.logout = logout;
-window.showAdminPanel = showAdminPanel;
-window.showAdminLogin = showAdminLogin;
-window.closeAdminModal = closeAdminModal;
-window.closeAdminPanel = closeAdminPanel;
-window.verifyAdminPassword = verifyAdminPassword;
-window.exitAdminMode = exitAdminMode;
-window.selectMissionType = selectMissionType;
-window.toggleAllTeams = toggleAllTeams;
-window.createTeamMission = createTeamMission;
-window.adminCompleteMission = adminCompleteMission;
-window.adminCancelMission = adminCancelMission;
-window.switchAdminTab = switchAdminTab;
-
 console.log('v4.7 Loaded');
-```
