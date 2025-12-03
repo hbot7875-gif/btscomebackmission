@@ -710,18 +710,20 @@ function checkAdminStatus() {
         STATE.isAdmin = false;
     }
 }
+
 function isAdminAgent() {
     return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
 }
+
 function exitAdminMode() {
     STATE.isAdmin = false;
     STATE.adminSession = null;
     localStorage.removeItem('adminSession');
     localStorage.removeItem('adminExpiry');
-    location.reload(); // Added reload to refresh UI state
-} 
-// ==================== ADMIN LOGIC (FIXED) ====================
+    location.reload();
+}
 
+// ==================== ADMIN LOGIN ====================
 function showAdminLogin() {
     if (!isAdminAgent()) { 
         showToast('Access denied.', 'error'); 
@@ -857,18 +859,8 @@ async function verifyAdminPassword() {
     }
 }
 
-// ==================== ADMIN PANEL (FIXED) ====================
-
-function closeAdminPanel() {
-    const panel = document.getElementById('admin-panel');
-    if (panel) {
-        panel.style.display = 'none'; // Hide immediately
-        // Small delay before removal to ensure no click events linger
-        setTimeout(() => panel.remove(), 10);
-        console.log('✅ Admin panel closed');
-    }
-}
-    
+// ==================== ADMIN PANEL ====================
+function showAdminPanel() {
     // Remove any existing panels
     document.querySelectorAll('.admin-panel').forEach(p => p.remove());
 
@@ -924,7 +916,8 @@ function closeAdminPanel() {
 function closeAdminPanel() {
     const panel = document.getElementById('admin-panel');
     if (panel) {
-        panel.remove();
+        panel.style.display = 'none';
+        setTimeout(() => panel.remove(), 10);
         console.log('✅ Admin panel closed');
     }
 }
@@ -1250,8 +1243,7 @@ async function adminCancelMission(id) {
     }
 }
 
-// ==================== ADMIN INDICATOR (FIXED) ====================
-
+// ==================== ADMIN INDICATOR ====================
 function addAdminIndicator() {
     // Remove any existing admin links to prevent duplicates
     document.querySelectorAll('.admin-nav-link').forEach(el => el.remove());
@@ -1268,19 +1260,17 @@ function addAdminIndicator() {
     link.style.paddingTop = '15px';
     link.innerHTML = '<span class="nav-icon">🎛️</span><span>Admin Panel</span>';
     
-    // === THE FIX IS HERE ===
     link.onclick = function(e) {
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation(); // Stop other listeners
+        e.stopImmediatePropagation();
         
-        // 1. Close the sidebar first
+        // Close the sidebar first
         closeSidebar();
         
-        // 2. Open panel after a tiny delay to prevent event conflict
+        // Open panel after a tiny delay to prevent event conflict
         setTimeout(() => {
             if (STATE.isAdmin) {
-                // Check if panel is already open to prevent double-open
                 if (!document.getElementById('admin-panel')) {
                     showAdminPanel();
                 }
@@ -1289,13 +1279,14 @@ function addAdminIndicator() {
                     showAdminLogin();
                 }
             }
-        }, 50); // 50ms delay
+        }, 50);
         
         return false;
     };
     
     nav.appendChild(link);
 }
+
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
     console.log('📌 Agent No:', STATE.agentNo);
@@ -1337,17 +1328,13 @@ async function loadDashboard() {
         setTimeout(() => checkForResultsPopup(), 1000);
         
     } catch (e) {
-        // DETAILED ERROR LOGGING
         console.error('❌ Dashboard error:', e);
         console.error('❌ Error message:', e.message);
         console.error('❌ Error stack:', e.stack);
         
-        // Show the actual error to user for debugging
         showToast('Error: ' + e.message, 'error');
         showResult('Error: ' + e.message, true);
         
-        // Don't clear session yet - let user see what's wrong
-        // Just show login screen
         const loginScreen = $('login-screen');
         const dashboardScreen = $('dashboard-screen');
         
@@ -1487,7 +1474,7 @@ function setupDashboard() {
     
     // Remove old click handlers first to prevent duplicates
     document.querySelectorAll('.nav-link').forEach(link => {
-        link.onclick = null; // Clear old handler
+        link.onclick = null;
         link.onclick = e => {
             e.preventDefault();
             e.stopPropagation();
@@ -1503,7 +1490,6 @@ function setupDashboard() {
     
     if (isAdminAgent()) addAdminIndicator();
     
-    // Fix: Remove old handlers before adding new ones
     const menuBtn = $('menu-btn');
     if (menuBtn) {
         menuBtn.onclick = null;
@@ -1524,10 +1510,9 @@ function setupDashboard() {
         };
     }
     
-    // Fix: Properly handle logout button
     const logoutBtn = $('logout-btn');
     if (logoutBtn) {
-        logoutBtn.onclick = null; // Clear any old handler
+        logoutBtn.onclick = null;
         logoutBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1537,6 +1522,7 @@ function setupDashboard() {
     
     updateTime();
 }
+
 function closeSidebar() { $('sidebar')?.classList.remove('open'); }
 
 function logout() {
@@ -1738,14 +1724,13 @@ async function renderHome() {
     } catch (e) { console.error(e); showToast('Failed to load home', 'error'); }
 }
 
-// ==================== DRAWER (All Weeks Badges + XP) - FIXED ====================
+// ==================== DRAWER (All Weeks Badges + XP) ====================
 async function renderDrawer() {
     const container = $('drawer-content');
     if (!container) return;
     const profile = STATE.data?.profile || {};
     const isAdmin = String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
-    
-    // Calculate totals from all weeks
+        // Calculate totals from all weeks
     let totalXP = 0;
     let allBadges = [];
     
@@ -2028,7 +2013,7 @@ function getPlaylistIcon(platform) {
     return icons[(platform || '').toLowerCase()] || '🎵';
 }
 
-// ==================== GC LINKS (FIXED - No Duplicate) ====================
+// ==================== GC LINKS ====================
 async function renderGCLinks() {
     const container = document.getElementById('gc-links-content');
     if (!container) return;
@@ -2084,7 +2069,7 @@ async function renderGCLinks() {
     }
 }
 
-// ==================== HELPER ROLES (Updated with Agent Names) ====================
+// ==================== HELPER ROLES ====================
 async function renderHelperRoles() {
     const container = document.getElementById('helper-roles-content');
     if (!container) return;
@@ -2152,6 +2137,7 @@ async function renderHelperRoles() {
         document.getElementById('roles-list').innerHTML = '<p style="color:red;">Failed to load roles</p>';
     }
 }
+
 // ==================== ANNOUNCEMENTS ====================
 async function renderAnnouncements() {
     const container = $('announcements-content');
