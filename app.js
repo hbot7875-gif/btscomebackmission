@@ -218,8 +218,8 @@ const PAGE_GUIDES = {
     },
     'gc-links': {
         icon: '👥',
-        title: 'Group Chat Links',
-        text: "Join your team's Instagram GC. Not added yet? No worries - follow the goals and we'll add you soon!"
+        title: 'Instagram Group Chats',
+        text: "Connect with your team for mission coordination. Join the GCs below!"
     },
     'helper-roles': {
         icon: '🎖️',
@@ -1936,7 +1936,7 @@ function getPlaylistIcon(platform) {
     return icons[(platform || '').toLowerCase()] || '🎵';
 }
 
-// ==================== GC LINKS ====================
+// ==================== GC LINKS (FIXED - No Duplicate) ====================
 async function renderGCLinks() {
     const container = document.getElementById('gc-links-content');
     if (!container) return;
