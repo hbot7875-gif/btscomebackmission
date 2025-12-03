@@ -597,6 +597,10 @@ function renderPlaylists() {
 
 async function renderHome() {
     const guide = renderGuide('home');
+    
+    // Safety check: Ensure data exists before rendering
+    if (!STATE.data || !STATE.data.stats) return;
+
     const stats = STATE.data.stats;
     const team = STATE.data.profile.team;
     
@@ -612,35 +616,43 @@ async function renderHome() {
         }
     } catch(e) {}
 
-    $('.quick-stats-section').innerHTML = guide + `
-        <!-- FOCUS SONG BANNER -->
-        <div style="background:linear-gradient(90deg, #ff0055 0%, #ff0000 100%); padding:10px 15px; border-radius:8px; margin-bottom:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:14px; box-shadow:0 0 15px rgba(255,0,0,0.4);">
-            <span style="margin-right:8px;">🎯 TEAM PRIORITY:</span> ${sanitize(focusSong)}
-        </div>
-
-        <!-- MY CONTRIBUTION BAR -->
-        <div style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); padding:10px 15px; border-radius:8px; margin-bottom:20px; font-size:13px; display:flex; justify-content:space-between;">
-            <span style="color:#aaa;">👤 Your Contribution:</span>
-            <span style="color:#fff; font-weight:bold;">${fmt(stats.trackScrobbles)} streams</span>
-        </div>
-
-        <div class="card quick-stats-card" style="background:linear-gradient(135deg, ${teamColor(team)}22, #1a1a2e);">
-            <div class="card-body">
-                <h3>Welcome, Agent ${STATE.data.profile.name}</h3>
-                <div class="quick-stats-grid">
-                    <div>${fmt(stats.totalXP)} XP</div>
-                    <div>${fmt(stats.trackScrobbles)} Tracks</div>
-                </div>
+    // 👇 FIX: Use document.querySelector for classes instead of $
+    const statsContainer = document.querySelector('.quick-stats-section');
+    if (statsContainer) {
+        statsContainer.innerHTML = guide + `
+            <!-- FOCUS SONG BANNER -->
+            <div style="background:linear-gradient(90deg, #ff0055 0%, #ff0000 100%); padding:10px 15px; border-radius:8px; margin-bottom:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:14px; box-shadow:0 0 15px rgba(255,0,0,0.4);">
+                <span style="margin-right:8px;">🎯 TEAM PRIORITY:</span> ${sanitize(focusSong)}
             </div>
-        </div>`;
-        
-    $('.missions-grid').innerHTML = `
-        <div class="mission-card" onclick="loadPage('goals')"><div>🎵</div><h3>Track Goals</h3></div>
-        <div class="mission-card" onclick="loadPage('album2x')"><div>💿</div><h3>Album 2X</h3></div>
-        <div class="mission-card secret" onclick="loadPage('secret-missions')"><div>🔒</div><h3>Secret Ops</h3></div>
-    `;
-}
 
+            <!-- MY CONTRIBUTION BAR -->
+            <div style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); padding:10px 15px; border-radius:8px; margin-bottom:20px; font-size:13px; display:flex; justify-content:space-between;">
+                <span style="color:#aaa;">👤 Your Contribution:</span>
+                <span style="color:#fff; font-weight:bold;">${fmt(stats.trackScrobbles)} streams</span>
+            </div>
+
+            <div class="card quick-stats-card" style="background:linear-gradient(135deg, ${teamColor(team)}22, #1a1a2e);">
+                <div class="card-body">
+                    <h3>Welcome, Agent ${STATE.data.profile.name}</h3>
+                    <div class="quick-stats-grid">
+                        <div>${fmt(stats.totalXP)} XP</div>
+                        <div>${fmt(stats.trackScrobbles)} Tracks</div>
+                    </div>
+                </div>
+            </div>`;
+    }
+        
+    // 👇 FIX: Use document.querySelector here too
+    const missionsContainer = document.querySelector('.missions-grid');
+    if (missionsContainer) {
+        missionsContainer.innerHTML = `
+            <div class="mission-card" onclick="loadPage('goals')"><div>🎵</div><h3>Track Goals</h3></div>
+            <div class="mission-card" onclick="loadPage('album2x')"><div>💿</div><h3>Album 2X</h3></div>
+            <div class="mission-card secret" onclick="loadPage('secret-missions')"><div>🔒</div><h3>Secret Ops</h3></div>
+        `;
+    }
+}
+        
 // ==================== DRAWER (BADGES) ====================
 async function renderDrawer() {
     const container = $('drawer-content');
