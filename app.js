@@ -781,10 +781,10 @@ function setupDashboard() {
 }
 
 function addAdminNavLink() {
-    // 1. Look for the specific container from your HTML
+    // 1. Look for the specific container you added to HTML
     let container = document.getElementById('nav-admin-container');
     
-    // 2. Fallback if container is missing
+    // 2. Fallback (just in case)
     if (!container) container = document.querySelector('.nav-links');
     if (!container) return;
     
@@ -795,7 +795,7 @@ function addAdminNavLink() {
     link.href = '#';
     link.className = 'nav-link admin-nav-link';
     
-    // Style it to stand out
+    // Style to make it look distinct
     link.style.color = '#ff4757'; 
     link.style.marginTop = '10px';
     link.style.borderTop = '1px solid rgba(255,255,255,0.1)';
@@ -808,6 +808,7 @@ function addAdminNavLink() {
         closeSidebar(); 
     };
     
+    // 4. Add to the specific container
     container.appendChild(link);
 }
 }
