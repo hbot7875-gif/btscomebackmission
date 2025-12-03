@@ -1341,7 +1341,7 @@ async function renderHome() {
     } catch (e) { console.error(e); showToast('Failed to load home', 'error'); }
 }
 
-// ==================== DRAWER (All Weeks Badges + XP) ====================
+// ==================== DRAWER (All Weeks Badges + XP) - FIXED ====================
 async function renderDrawer() {
     const container = $('drawer-content');
     if (!container) return;
@@ -1352,7 +1352,7 @@ async function renderDrawer() {
     let totalXP = 0;
     let allBadges = [];
     
-    if (STATE.allWeeksData && STATE.allWeeksData.weeks) {
+    if (STATE.allWeeksData && STATE.allWeeksData.weeks && STATE.allWeeksData.weeks.length > 0) {
         STATE.allWeeksData.weeks.forEach(weekData => {
             const weekXP = parseInt(weekData.stats?.totalXP) || 0;
             totalXP += weekXP;
@@ -1413,7 +1413,6 @@ async function renderDrawer() {
                         `).join('')}
                     </div>
                 ` : `
-                    <div class="empty-state" style="                ` : `
                     <div class="empty-state" style="text-align:center; padding:40px; color:#777;">
                         <div style="font-size:60px; margin-bottom:15px;">🔒</div>
                         <h4 style="color:#fff; margin-bottom:8px;">No Badges Yet</h4>
