@@ -212,6 +212,7 @@ function ensureAdminCSS() {
     const style = document.createElement('style');
     style.id = 'admin-panel-styles';
     style.innerHTML = `
+        /* === ADMIN PANEL BASE === */
         .admin-panel { 
             position: fixed !important; 
             top: 0 !important; 
@@ -228,11 +229,231 @@ function ensureAdminCSS() {
         .admin-panel-header { background: #1a1a2e; padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
         .admin-panel-content { flex: 1; overflow-y: auto; padding: 20px; }
         .admin-panel-tabs { display: flex; background: #12121a; padding: 10px; gap: 10px; overflow-x: auto; }
-        .admin-tab { padding: 8px 16px; border: 1px solid #333; border-radius: 20px; background: transparent; color: #888; cursor: pointer; white-space: nowrap; }
+        .admin-tab { padding: 8px 16px; border: 1px solid #333; border-radius: 20px; background: transparent; color: #888; cursor: pointer; white-space: nowrap; transition: all 0.3s ease; }
+        .admin-tab:hover { background: rgba(123, 44, 191, 0.2); border-color: #7b2cbf; }
         .admin-tab.active { background: #7b2cbf; color: #fff; border-color: #7b2cbf; }
         .admin-tab-content { display: none; }
         .admin-tab-content.active { display: block; }
         .admin-mission-card { background: #1a1a2e; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* === HOLOGRAPHIC BADGE RING === */
+        .badge-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            background: #1a1a2e;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .badge-circle.holographic {
+            background: linear-gradient(135deg, #1a1a2e, #2a2a3e);
+            border: none !important;
+            padding: 3px;
+        }
+        
+        .badge-circle.holographic::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                #ffd700,
+                #ff6b6b,
+                #c56cf0,
+                #7b2cbf,
+                #00d4ff,
+                #00ff88,
+                #ffd700
+            );
+            z-index: -1;
+            animation: holoSpin 4s linear infinite;
+        }
+        
+        .badge-circle.holographic::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            right: 3px;
+            bottom: 3px;
+            border-radius: 50%;
+            background: #1a1a2e;
+            z-index: -1;
+        }
+        
+        .badge-circle.holographic {
+            box-shadow: 
+                0 0 15px rgba(255, 215, 0, 0.4),
+                0 0 30px rgba(123, 44, 191, 0.3),
+                0 0 45px rgba(0, 212, 255, 0.2);
+        }
+        
+        .badge-circle:hover {
+            transform: scale(1.1);
+            box-shadow: 
+                0 0 20px rgba(255, 215, 0, 0.6),
+                0 0 40px rgba(123, 44, 191, 0.5),
+                0 0 60px rgba(0, 212, 255, 0.3);
+        }
+        
+        @keyframes holoSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .badge-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* === ADMIN ASSETS - DATA CHIPS === */
+        .assets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 12px;
+            padding: 10px;
+        }
+        
+        .asset-chip {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            background: linear-gradient(145deg, #1a1a2e, #12121a);
+            border: 1px solid rgba(123, 44, 191, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .asset-chip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.1) 0%,
+                transparent 50%,
+                rgba(0, 0, 0, 0.2) 100%
+            );
+            z-index: 2;
+            pointer-events: none;
+            border-radius: 12px;
+        }
+        
+        .asset-chip img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .asset-chip:hover {
+            transform: translateY(-4px) scale(1.05);
+            border-color: #7b2cbf;
+            box-shadow: 
+                0 8px 20px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(123, 44, 191, 0.3);
+        }
+        
+        .asset-chip:hover img {
+            transform: scale(1.1);
+        }
+        
+        .asset-chip-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            color: #fff;
+            font-size: 10px;
+            padding: 15px 5px 5px;
+            text-align: center;
+            z-index: 3;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .asset-chip:hover .asset-chip-label {
+            opacity: 1;
+        }
+
+        /* === GLOBAL IMAGE HOVER EFFECTS === */
+        .team-level-pfp,
+        .standing-pfp,
+        .quick-pfp,
+        .drawer-pfp,
+        .intel-pfp,
+        .secret-team-pfp {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .team-level-pfp:hover,
+        .standing-pfp:hover,
+        .quick-pfp:hover,
+        .drawer-pfp:hover,
+        .intel-pfp:hover,
+        .secret-team-pfp:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(123, 44, 191, 0.5);
+        }
+
+        /* === BADGES SHOWCASE ENHANCED === */
+        .badges-showcase {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 20px;
+            padding: 10px;
+        }
+        
+        .badge-showcase-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 15px 10px;
+            background: linear-gradient(145deg, rgba(26, 26, 46, 0.8), rgba(18, 18, 26, 0.9));
+            border-radius: 16px;
+            border: 1px solid rgba(123, 44, 191, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .badge-showcase-item:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 215, 0, 0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .badge-name {
+            margin-top: 10px;
+            font-weight: 600;
+            color: #ffd700;
+            font-size: 12px;
+        }
+        
+        .badge-desc {
+            font-size: 10px;
+            color: #888;
+            margin-top: 4px;
+        }
     `;
     document.head.appendChild(style);
 }
@@ -491,7 +712,53 @@ async function loadMissionHistory() {
 
 function renderAdminAssets() {
     const container = $('admin-tab-assets');
-    if(container) container.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:5px;">${CONFIG.BADGE_POOL.map(url => `<img src="${url}" style="width:50px;height:50px;object-fit:cover;border:1px solid #333;">`).join('')}</div>`;
+    if (!container) return;
+    
+    const badges = CONFIG.BADGE_POOL;
+    
+    container.innerHTML = `
+        <div class="assets-header" style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="margin: 0; color: #fff;">📦 Badge Inventory</h4>
+            <span style="color: #888; font-size: 12px;">${badges.length} Assets</span>
+        </div>
+        <div class="assets-grid">
+            ${badges.map((url, index) => `
+                <div class="asset-chip" onclick="previewAsset('${url}', ${index + 1})">
+                    <img src="${url}" alt="Badge ${index + 1}" loading="lazy">
+                    <div class="asset-chip-label">#${index + 1}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Add asset preview function
+function previewAsset(url, index) {
+    document.querySelectorAll('.asset-preview-modal').forEach(m => m.remove());
+    
+    const modal = document.createElement('div');
+    modal.className = 'asset-preview-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999999;
+        cursor: pointer;
+    `;
+    modal.innerHTML = `
+        <img src="${url}" style="max-width: 80%; max-height: 70%; border-radius: 16px; box-shadow: 0 0 40px rgba(123, 44, 191, 0.5);">
+        <div style="margin-top: 20px; color: #fff; font-size: 18px;">Badge #${index}</div>
+        <div style="margin-top: 10px; color: #888; font-size: 14px;">Tap anywhere to close</div>
+    `;
+    modal.onclick = () => modal.remove();
+    document.body.appendChild(modal);
 }
 
 async function adminCompleteMission(id) {
@@ -741,6 +1008,7 @@ async function renderDrawer() {
     const profile = STATE.data?.profile || {};
     const stats = STATE.data?.stats || {};
     const currentXP = stats.totalXP || 0;
+    
     function getLevelBadges(agentNo, totalXP) {
         const pool = CONFIG.BADGE_POOL;
         if (!pool || pool.length === 0) return [];
@@ -757,15 +1025,73 @@ async function renderDrawer() {
         }
         return badges.reverse();
     }
+    
     const levelBadges = getLevelBadges(STATE.agentNo, currentXP);
     const allBadges = levelBadges;
     const isAdmin = String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
+    const nextLevelXP = (Math.floor(currentXP/100) + 1) * 100;
+    const progressToNext = currentXP % 100;
+    
     container.innerHTML = `
-        <div class="card"><div class="card-body"><div class="drawer-header">${teamPfp(profile.team) ? `<img src="${teamPfp(profile.team)}" class="drawer-pfp" style="border-color:${teamColor(profile.team)}">` : ''}<div class="drawer-info"><div class="drawer-name">${sanitize(profile.name)}</div><div class="drawer-team" style="color:${teamColor(profile.team)}">Team ${profile.team}</div><div class="drawer-id">Agent #${STATE.agentNo}</div></div></div>${isAdmin ? `<button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">🔐 Access Mission Control</button>` : ''}<div class="drawer-stats"><div class="drawer-stat"><span class="value">${fmt(currentXP)}</span><span class="label">Total XP</span></div><div class="drawer-stat"><span class="value">${allBadges.length}</span><span class="label">Badges</span></div></div></div></div>
-        <div class="card"><div class="card-header"><h3>🎖️ Collection (${allBadges.length})</h3><div style="font-size:11px; color:var(--text-dim)">Next Reward: ${(Math.floor(currentXP/100) + 1) * 100} XP</div></div><div class="card-body">${allBadges.length ? `<div class="badges-showcase">${allBadges.map(b => `<div class="badge-showcase-item"><div class="badge-circle" style="${b.isLevelBadge ? 'border-color:#ffd700;' : ''}"><img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='❓';"></div><div class="badge-name">${sanitize(b.name)}</div><div class="badge-desc">${sanitize(b.description)}</div></div>`).join('')}</div>` : `<div class="empty-state" style="text-align:center; padding:20px; color:#777;"><div style="font-size:40px; margin-bottom:10px;">🔒</div>Earn 100 XP to unlock your first random badge!</div>`}</div></div>
+        <div class="card">
+            <div class="card-body">
+                <div class="drawer-header">
+                    ${teamPfp(profile.team) ? `<img src="${teamPfp(profile.team)}" class="drawer-pfp" style="border-color:${teamColor(profile.team)}">` : ''}
+                    <div class="drawer-info">
+                        <div class="drawer-name">${sanitize(profile.name)}</div>
+                        <div class="drawer-team" style="color:${teamColor(profile.team)}">Team ${profile.team}</div>
+                        <div class="drawer-id">Agent #${STATE.agentNo}</div>
+                    </div>
+                </div>
+                ${isAdmin ? `<button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">🔐 Access Mission Control</button>` : ''}
+                <div class="drawer-stats">
+                    <div class="drawer-stat">
+                        <span class="value">${fmt(currentXP)}</span>
+                        <span class="label">Total XP</span>
+                    </div>
+                    <div class="drawer-stat">
+                        <span class="value">${allBadges.length}</span>
+                        <span class="label">Badges</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3>🎖️ Badge Collection (${allBadges.length})</h3>
+                <div style="font-size:11px; color:var(--text-dim)">
+                    Next Badge: ${nextLevelXP} XP (${progressToNext}/100)
+                </div>
+            </div>
+            <div class="card-body">
+                ${allBadges.length ? `
+                    <div class="badges-showcase">
+                        ${allBadges.map(b => `
+                            <div class="badge-showcase-item">
+                                <div class="badge-circle ${b.isLevelBadge ? 'holographic' : ''}">
+                                    <img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='❓';">
+                                </div>
+                                <div class="badge-name">${sanitize(b.name)}</div>
+                                <div class="badge-desc">${sanitize(b.description)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div class="empty-state" style="text-align:center; padding:40px; color:#777;">
+                        <div style="font-size:60px; margin-bottom:15px;">🔒</div>
+                        <h4 style="color:#fff; margin-bottom:8px;">No Badges Yet</h4>
+                        <p>Earn <strong style="color:#ffd700;">100 XP</strong> to unlock your first holographic badge!</p>
+                        <div class="progress-bar" style="margin-top:20px; max-width:200px; margin-left:auto; margin-right:auto;">
+                            <div class="progress-fill" style="width:${progressToNext}%; background: linear-gradient(90deg, #7b2cbf, #ffd700);"></div>
+                        </div>
+                        <div style="margin-top:8px; font-size:12px;">${progressToNext}/100 XP</div>
+                    </div>
+                `}
+            </div>
+        </div>
     `;
 }
-
 async function renderProfile() {
     const stats = STATE.data?.stats || {};
     const album2xStatus = STATE.data?.album2xStatus || {};
@@ -1075,5 +1401,6 @@ window.createTeamMission = createTeamMission;
 window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
+window.previewAsset = previewAsset;
 
 console.log('🎮 BTS Spy Battle v3.8 Loaded (Original+Fixes)');
