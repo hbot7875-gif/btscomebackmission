@@ -711,200 +711,417 @@ function checkAdminStatus() {
     }
 }
 
+// ==================== ADMIN LOGIC (FIXED) ====================
+
 function showAdminLogin() {
-    if (!isAdminAgent()) { showToast('Access denied.', 'error'); return; }
+    if (!isAdminAgent()) { 
+        showToast('Access denied.', 'error'); 
+        return; 
+    }
+    
+    // Remove any existing modals first
     document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+    
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'admin-modal';
+    
+    // Stop propagation on the modal itself
+    modal.onclick = function(e) {
+        // Only close if clicking the overlay background, not the modal content
+        if (e.target === modal) {
+            closeAdminModal();
+        }
+    };
+    
     modal.innerHTML = `
-        <div class="modal admin-modal">
-            <div class="modal-header"><h3>🔐 Admin Access</h3><button class="modal-close" onclick="closeAdminModal()">×</button></div>
+        <div class="modal admin-modal" onclick="event.stopPropagation();">
+            <div class="modal-header">
+                <h3>🔐 Admin Access</h3>
+                <button class="modal-close" type="button" onclick="event.stopPropagation(); closeAdminModal();">×</button>
+            </div>
             <div class="modal-body">
-                <div class="form-group"><label>PASSWORD:</label><input type="password" id="admin-password" class="form-input"></div>
+                <div class="form-group">
+                    <label>PASSWORD:</label>
+                    <input type="password" id="admin-password" class="form-input" autocomplete="off">
+                </div>
                 <div id="admin-error" class="admin-error"></div>
             </div>
-            <div class="modal-footer"><button onclick="verifyAdminPassword()" class="btn-primary" id="admin-verify-btn">Authenticate</button></div>
-        </div>`;
+            <div class="modal-footer">
+                <button type="button" onclick="event.stopPropagation(); verifyAdminPassword();" class="btn-primary" id="admin-verify-btn">
+                    Authenticate
+                </button>
+            </div>
+        </div>
+    `;
+    
     document.body.appendChild(modal);
-    setTimeout(() => $('admin-password')?.focus(), 100);
+    
+    // Focus password field after a short delay
+    setTimeout(() => {
+        const pwField = document.getElementById('admin-password');
+        if (pwField) {
+            pwField.focus();
+            // Add enter key handler
+            pwField.onkeypress = function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    verifyAdminPassword();
+                }
+            };
+        }
+    }, 150);
 }
 
 function closeAdminModal() {
-    const modal = $('admin-modal');
-    if (modal) modal.remove();
+    const modal = document.getElementById('admin-modal');
+    if (modal) {
+        modal.remove();
+    }
 }
 
 async function verifyAdminPassword() {
-    const password = $('admin-password')?.value;
-    if (!password) return;
+    const passwordField = document.getElementById('admin-password');
+    const password = passwordField?.value;
+    
+    if (!password) {
+        const err = document.getElementById('admin-error');
+        if (err) {
+            err.textContent = '❌ Please enter password';
+            err.style.display = 'block';
+        }
+        return;
+    }
     
     let verified = false;
+    
+    // Check local password first
     if (password === CONFIG.ADMIN_PASSWORD) {
         verified = true;
         STATE.adminSession = 'local_' + Date.now();
     } else {
+        // Try server verification
         try {
             const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password });
-            if (result.success) { verified = true; STATE.adminSession = result.sessionToken; }
-        } catch (e) {}
+            if (result.success) { 
+                verified = true; 
+                STATE.adminSession = result.sessionToken; 
+            }
+        } catch (e) {
+            console.log('Server verification failed:', e);
+        }
     }
 
     if (verified) {
         STATE.isAdmin = true;
         localStorage.setItem('adminSession', STATE.adminSession);
         localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
+        
+        // Close modal first
         closeAdminModal();
+        
+        // Add admin indicator
         addAdminIndicator();
-        if (!STATE.week) { try { const w = await api('getAvailableWeeks'); STATE.week = w.current || w.weeks?.[0]; } catch(e) {} }
+        
+        // Ensure week is set
+        if (!STATE.week) { 
+            try { 
+                const w = await api('getAvailableWeeks'); 
+                STATE.week = w.current || w.weeks?.[0]; 
+            } catch(e) {} 
+        }
+        
         showToast('Access Granted', 'success');
-        showAdminPanel();
+        
+        // Open admin panel after a short delay
+        setTimeout(() => {
+            showAdminPanel();
+        }, 100);
+        
     } else {
-        const err = $('admin-error');
-        if (err) { err.textContent = '❌ Invalid password'; err.classList.add('show'); }
+        const err = document.getElementById('admin-error');
+        if (err) { 
+            err.textContent = '❌ Invalid password'; 
+            err.style.display = 'block';
+        }
     }
 }
 
-function isAdminAgent() {
-    return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
-}
+// ==================== ADMIN PANEL (FIXED) ====================
 
-function addAdminIndicator() {
-    document.querySelector('.admin-indicator')?.remove();
-    let nav = document.querySelector('.nav-links');
-    if (!nav) nav = document.getElementById('sidebar');
-    if (!nav) return;
-    if (!nav.querySelector('.admin-nav-link')) {
-        const link = document.createElement('a');
-        link.href = '#';
-        link.className = 'nav-link admin-nav-link';
-        link.style.marginTop = 'auto';
-        link.style.borderTop = '1px solid rgba(255,255,255,0.1)';
-        link.innerHTML = '<span class="nav-icon">🎛️</span><span>Admin</span>';
-        link.onclick = (e) => { e.preventDefault(); STATE.isAdmin ? showAdminPanel() : showAdminLogin(); closeSidebar(); };
-        nav.appendChild(link);
-    }
-}
-
-// ==================== ADMIN PANEL ====================
 function showAdminPanel() {
-    if (!STATE.isAdmin) return showAdminLogin();
+    if (!STATE.isAdmin) {
+        showAdminLogin();
+        return;
+    }
     
+    // Remove any existing panels
     document.querySelectorAll('.admin-panel').forEach(p => p.remove());
 
     const panel = document.createElement('div');
     panel.className = 'admin-panel';
-    panel.style.display = 'flex';
+    panel.id = 'admin-panel';
+    
+    // Prevent clicks inside panel from bubbling
+    panel.onclick = function(e) {
+        e.stopPropagation();
+    };
     
     panel.innerHTML = `
         <div class="admin-panel-header">
             <div>
                 <h3 style="margin:0;">🎛️ Mission Control</h3>
-                <p style="margin:5px 0 0;color:#888;font-size:12px;">${STATE.week}</p>
+                <p style="margin:5px 0 0;color:#888;font-size:12px;">${STATE.week || 'Current Week'}</p>
             </div>
-            <button class="panel-close" onclick="closeAdminPanel()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">×</button>
+            <button type="button" class="panel-close" onclick="event.stopPropagation(); closeAdminPanel();" style="background:none;border:none;color:#fff;font-size:28px;cursor:pointer;padding:5px 10px;">×</button>
         </div>
         <div class="admin-panel-tabs">
-            <button class="admin-tab active" data-tab="create">Create Mission</button>
-            <button class="admin-tab" data-tab="active">Active</button>
-            <button class="admin-tab" data-tab="assets">Badge Preview</button>
-            <button class="admin-tab" data-tab="history">History</button>
+            <button type="button" class="admin-tab active" data-tab="create">Create Mission</button>
+            <button type="button" class="admin-tab" data-tab="active">Active</button>
+            <button type="button" class="admin-tab" data-tab="assets">Badge Preview</button>
+            <button type="button" class="admin-tab" data-tab="history">History</button>
         </div>
         <div class="admin-panel-content">
             <div id="admin-tab-create" class="admin-tab-content active">${renderCreateMissionForm()}</div>
             <div id="admin-tab-active" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
             <div id="admin-tab-assets" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
             <div id="admin-tab-history" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
-        </div>`;
+        </div>
+    `;
+    
     document.body.appendChild(panel);
     
+    // Setup tab handlers with event stopPropagation
     panel.querySelectorAll('.admin-tab').forEach(tab => { 
-        tab.addEventListener('click', (e) => {
+        tab.onclick = function(e) {
             e.preventDefault();
-            switchAdminTab(tab.dataset.tab);
-            if (tab.dataset.tab === 'active') loadActiveTeamMissions();
-            if (tab.dataset.tab === 'assets') renderAdminAssets();
-            if (tab.dataset.tab === 'history') loadMissionHistory();
-        });
+            e.stopPropagation();
+            const tabName = this.dataset.tab;
+            switchAdminTab(tabName);
+            if (tabName === 'active') loadActiveTeamMissions();
+            if (tabName === 'assets') renderAdminAssets();
+            if (tabName === 'history') loadMissionHistory();
+        };
     });
+    
+    console.log('✅ Admin panel opened');
 }
 
-function closeAdminPanel() { 
-    document.querySelectorAll('.admin-panel').forEach(p => p.remove()); 
+function closeAdminPanel() {
+    const panel = document.getElementById('admin-panel');
+    if (panel) {
+        panel.remove();
+        console.log('✅ Admin panel closed');
+    }
 }
-
-function exitAdminMode() { STATE.isAdmin=false; localStorage.removeItem('adminSession'); location.reload(); }
 
 function switchAdminTab(tabName) {
+    // Remove active from all tabs
     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
-    document.querySelector(`.admin-tab[data-tab="${tabName}"]`)?.classList.add('active');
-    document.getElementById(`admin-tab-${tabName}`)?.classList.add('active');
+    
+    // Add active to selected
+    const selectedTab = document.querySelector(`.admin-tab[data-tab="${tabName}"]`);
+    const selectedContent = document.getElementById(`admin-tab-${tabName}`);
+    
+    if (selectedTab) selectedTab.classList.add('active');
+    if (selectedContent) selectedContent.classList.add('active');
 }
 
 function renderCreateMissionForm() {
     return `
-        <div class="create-mission-form">
-            <div class="form-section"><h4>Type</h4><div class="mission-type-grid">${Object.entries(CONFIG.MISSION_TYPES).map(([key, m], i) => `<div class="mission-type-option ${i === 0 ? 'selected' : ''}" data-type="${key}" onclick="selectMissionType('${key}')"><span>${m.icon}</span> <span>${m.name}</span></div>`).join('')}</div><input type="hidden" id="selected-mission-type" value="switch_app"></div>
-            <div class="form-section"><h4>Target</h4><div class="team-checkboxes">${Object.keys(CONFIG.TEAMS).map(team => `<label class="team-checkbox"><input type="checkbox" name="target-teams" value="${team}"> <span class="team-name" style="color:${teamColor(team)}">${team}</span></label>`).join('')}</div><label><input type="checkbox" onchange="toggleAllTeams(this.checked)"> All</label></div>
-            <div class="form-section"><h4>Details</h4><input type="text" id="mission-title" class="form-input" placeholder="Title"><textarea id="mission-briefing" class="form-textarea" placeholder="Briefing"></textarea><input type="text" id="target-track" class="form-input" placeholder="Target Track"><input type="number" id="goal-target" class="form-input" value="100" placeholder="Goal #"></div>
-            <div class="form-actions"><button onclick="createTeamMission()" class="btn-primary">🚀 Deploy</button></div><div id="create-result"></div>
-        </div>`;
+        <div class="create-mission-form" onclick="event.stopPropagation();">
+            <div class="form-section">
+                <h4>Mission Type</h4>
+                <div class="mission-type-grid">
+                    ${Object.entries(CONFIG.MISSION_TYPES).map(([key, m], i) => `
+                        <div class="mission-type-option ${i === 0 ? 'selected' : ''}" 
+                             data-type="${key}" 
+                             onclick="event.stopPropagation(); selectMissionType('${key}');">
+                            <span>${m.icon}</span> 
+                            <span>${m.name}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <input type="hidden" id="selected-mission-type" value="switch_app">
+            </div>
+            
+            <div class="form-section">
+                <h4>Target Teams</h4>
+                <div class="team-checkboxes">
+                    ${Object.keys(CONFIG.TEAMS).map(team => `
+                        <label class="team-checkbox" onclick="event.stopPropagation();">
+                            <input type="checkbox" name="target-teams" value="${team}"> 
+                            <span class="team-name" style="color:${teamColor(team)}">${team}</span>
+                        </label>
+                    `).join('')}
+                </div>
+                <label onclick="event.stopPropagation();">
+                    <input type="checkbox" onchange="toggleAllTeams(this.checked)"> Select All
+                </label>
+            </div>
+            
+            <div class="form-section">
+                <h4>Mission Details</h4>
+                <input type="text" id="mission-title" class="form-input" placeholder="Mission Title" onclick="event.stopPropagation();">
+                <textarea id="mission-briefing" class="form-textarea" placeholder="Mission Briefing" onclick="event.stopPropagation();"></textarea>
+                <input type="text" id="target-track" class="form-input" placeholder="Target Track (optional)" onclick="event.stopPropagation();">
+                <input type="number" id="goal-target" class="form-input" value="100" placeholder="Goal Number" onclick="event.stopPropagation();">
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" onclick="event.stopPropagation(); createTeamMission();" class="btn-primary">
+                    🚀 Deploy Mission
+                </button>
+            </div>
+            <div id="create-result" style="margin-top:10px;"></div>
+        </div>
+    `;
 }
 
 function selectMissionType(type) {
     document.querySelectorAll('.mission-type-option').forEach(el => el.classList.remove('selected'));
-    document.querySelector(`.mission-type-option[data-type="${type}"]`)?.classList.add('selected');
-    $('selected-mission-type').value = type;
+    const selected = document.querySelector(`.mission-type-option[data-type="${type}"]`);
+    if (selected) selected.classList.add('selected');
+    
+    const hiddenInput = document.getElementById('selected-mission-type');
+    if (hiddenInput) hiddenInput.value = type;
 }
 
-function toggleAllTeams(checked) { document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = checked); }
+function toggleAllTeams(checked) { 
+    document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = checked); 
+}
 
 async function createTeamMission() {
-    const type = $('selected-mission-type')?.value;
-    const title = $('mission-title')?.value.trim();
-    const briefing = $('mission-briefing')?.value.trim();
+    const type = document.getElementById('selected-mission-type')?.value;
+    const title = document.getElementById('mission-title')?.value.trim();
+    const briefing = document.getElementById('mission-briefing')?.value.trim();
     const targetTeams = Array.from(document.querySelectorAll('input[name="target-teams"]:checked')).map(cb => cb.value);
-    const targetTrack = $('target-track')?.value.trim();
-    const goalTarget = parseInt($('goal-target')?.value) || 100;
-    if (!title || targetTeams.length === 0 || !briefing) return showCreateResult('Missing Fields', true);
+    const targetTrack = document.getElementById('target-track')?.value.trim();
+    const goalTarget = parseInt(document.getElementById('goal-target')?.value) || 100;
+    
+    if (!title) {
+        showCreateResult('Please enter a mission title', true);
+        return;
+    }
+    if (targetTeams.length === 0) {
+        showCreateResult('Please select at least one team', true);
+        return;
+    }
+    if (!briefing) {
+        showCreateResult('Please enter a mission briefing', true);
+        return;
+    }
+    
     loading(true);
     try {
-        const res = await api('createTeamMission', { type, title, briefing, targetTeams: JSON.stringify(targetTeams), targetTrack, goalTarget, week: STATE.week, agentNo: STATE.agentNo, sessionToken: STATE.adminSession });
-        if (res.success) { showCreateResult('Deployed!', false); loadActiveTeamMissions(); } else { showCreateResult(res.error, true); }
-    } catch (e) { showCreateResult(e.message, true); } finally { loading(false); }
+        const res = await api('createTeamMission', { 
+            type, 
+            title, 
+            briefing, 
+            targetTeams: JSON.stringify(targetTeams), 
+            targetTrack, 
+            goalTarget, 
+            week: STATE.week, 
+            agentNo: STATE.agentNo, 
+            sessionToken: STATE.adminSession 
+        });
+        
+        if (res.success) { 
+            showCreateResult('✅ Mission Deployed Successfully!', false);
+            // Clear form
+            document.getElementById('mission-title').value = '';
+            document.getElementById('mission-briefing').value = '';
+            document.getElementById('target-track').value = '';
+            document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = false);
+            // Refresh active missions
+            loadActiveTeamMissions();
+        } else { 
+            showCreateResult(res.error || 'Failed to create mission', true); 
+        }
+    } catch (e) { 
+        showCreateResult(e.message, true); 
+    } finally { 
+        loading(false); 
+    }
 }
 
 function showCreateResult(msg, isError) {
-    const el = $('create-result');
-    if(el) { el.textContent = msg; el.style.color = isError ? 'red' : 'green'; }
+    const el = document.getElementById('create-result');
+    if (el) { 
+        el.textContent = msg; 
+        el.style.color = isError ? '#ff4444' : '#00ff88';
+        el.style.padding = '10px';
+        el.style.borderRadius = '8px';
+        el.style.background = isError ? 'rgba(255,68,68,0.1)' : 'rgba(0,255,136,0.1)';
+    }
 }
 
 async function loadActiveTeamMissions() {
-    const container = $('admin-tab-active');
+    const container = document.getElementById('admin-tab-active');
     if (!container) return;
-    loading(true);
+    
+    container.innerHTML = '<div class="loading-text">Loading missions...</div>';
+    
     try {
         const res = await api('getTeamMissions', { status: 'active', week: STATE.week });
         const missions = res.missions || [];
-        container.innerHTML = missions.length ? missions.map(m => `<div class="admin-mission-card"><div>${m.title}</div><div><button onclick="adminCompleteMission('${m.id}')" class="btn-sm btn-success">Complete</button> <button onclick="adminCancelMission('${m.id}')" class="btn-sm btn-danger">Cancel</button></div></div>`).join('') : '<p style="color:#888;text-align:center;padding:40px;">No active missions</p>';
-    } catch (e) { container.innerHTML = '<p style="color:red;">Error loading missions</p>'; } finally { loading(false); }
+        
+        if (missions.length) {
+            container.innerHTML = missions.map(m => `
+                <div class="admin-mission-card" onclick="event.stopPropagation();">
+                    <div style="flex:1;">
+                        <div style="font-weight:600;color:#fff;">${sanitize(m.title)}</div>
+                        <div style="font-size:12px;color:#888;">Teams: ${(m.targetTeams || []).join(', ')}</div>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" onclick="event.stopPropagation(); adminCompleteMission('${m.id}');" class="btn-sm" style="background:#00aa55;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
+                            ✓ Complete
+                        </button>
+                        <button type="button" onclick="event.stopPropagation(); adminCancelMission('${m.id}');" class="btn-sm" style="background:#aa3333;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
+                            ✕ Cancel
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p style="color:#888;text-align:center;padding:40px;">No active missions</p>';
+        }
+    } catch (e) { 
+        container.innerHTML = '<p style="color:#ff4444;text-align:center;">Error loading missions</p>'; 
+    }
 }
 
 async function loadMissionHistory() {
-    const container = $('admin-tab-history');
+    const container = document.getElementById('admin-tab-history');
     if (!container) return;
-    loading(true);
+    
+    container.innerHTML = '<div class="loading-text">Loading history...</div>';
+    
     try {
         const res = await api('getTeamMissions', { status: 'all', week: STATE.week });
         const missions = (res.missions || []).filter(m => m.status !== 'active');
-        container.innerHTML = missions.length ? missions.map(m => `<div style="padding:10px;border-bottom:1px solid #333;"><span>${m.title}</span> <span style="color:${m.status==='completed'?'#00ff88':'#888'}">${m.status}</span></div>`).join('') : '<p style="color:#888;text-align:center;padding:40px;">No history</p>';
-    } catch (e) { container.innerHTML = '<p style="color:red;">Error</p>'; } finally { loading(false); }
+        
+        if (missions.length) {
+            container.innerHTML = missions.map(m => `
+                <div style="padding:12px;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:#fff;">${sanitize(m.title)}</span>
+                    <span style="color:${m.status === 'completed' ? '#00ff88' : '#888'};font-size:12px;text-transform:uppercase;">
+                        ${m.status}
+                    </span>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p style="color:#888;text-align:center;padding:40px;">No mission history</p>';
+        }
+    } catch (e) { 
+        container.innerHTML = '<p style="color:#ff4444;text-align:center;">Error loading history</p>'; 
+    }
 }
 
-// ADMIN ASSETS - BADGE PREVIEW (Same as Agents see)
 function renderAdminAssets() {
-    const container = $('admin-tab-assets');
+    const container = document.getElementById('admin-tab-assets');
     if (!container) return;
     
     const badges = CONFIG.BADGE_POOL;
@@ -916,7 +1133,7 @@ function renderAdminAssets() {
         </div>
         <div class="assets-grid">
             ${badges.map((url, index) => `
-                <div class="asset-chip" onclick="previewAsset('${url}', ${index + 1})">
+                <div class="asset-chip" onclick="event.stopPropagation(); previewAsset('${url}', ${index + 1});">
                     <div class="asset-chip-number">#${index + 1}</div>
                     <div class="asset-chip-inner">
                         <img src="${url}" alt="Badge ${index + 1}" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:24px;\\'>❌</div>'">
@@ -933,37 +1150,125 @@ function renderAdminAssets() {
 }
 
 function previewAsset(url, index) {
+    // Remove existing preview modals
     document.querySelectorAll('.asset-preview-modal').forEach(m => m.remove());
     
     const modal = document.createElement('div');
     modal.className = 'asset-preview-modal';
-    modal.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999999;cursor:pointer;`;
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.95);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999999;
+        cursor: pointer;
+    `;
+    
     modal.innerHTML = `
-        <div class="badge-circle holographic" style="width:200px;height:200px;">
+        <div class="badge-circle holographic" style="width:200px;height:200px;" onclick="event.stopPropagation();">
             <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
         </div>
         <div style="margin-top:20px;color:#ffd700;font-size:20px;">Badge #${index}</div>
         <div style="margin-top:10px;color:#888;font-size:14px;">Tap anywhere to close</div>
     `;
-    modal.onclick = () => modal.remove();
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    };
+    
     document.body.appendChild(modal);
 }
 
 async function adminCompleteMission(id) {
-    const team = prompt('Team Name to Complete:');
-    if (!team) return;
+    const team = prompt('Enter Team Name to mark as complete:');
+    if (!team || !team.trim()) return;
+    
     loading(true);
-    await api('completeTeamMission', { missionId: id, team, agentNo: STATE.agentNo, sessionToken: STATE.adminSession });
-    loading(false); loadActiveTeamMissions();
+    try {
+        const res = await api('completeTeamMission', { 
+            missionId: id, 
+            team: team.trim(), 
+            agentNo: STATE.agentNo, 
+            sessionToken: STATE.adminSession 
+        });
+        
+        if (res.success) {
+            showToast('Mission completed for ' + team, 'success');
+            loadActiveTeamMissions();
+        } else {
+            showToast(res.error || 'Failed to complete mission', 'error');
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        loading(false);
+    }
 }
 
 async function adminCancelMission(id) {
-    if (!confirm('Cancel?')) return;
+    if (!confirm('Are you sure you want to cancel this mission?')) return;
+    
     loading(true);
-    await api('cancelTeamMission', { missionId: id, agentNo: STATE.agentNo, sessionToken: STATE.adminSession });
-    loading(false); loadActiveTeamMissions();
+    try {
+        const res = await api('cancelTeamMission', { 
+            missionId: id, 
+            agentNo: STATE.agentNo, 
+            sessionToken: STATE.adminSession 
+        });
+        
+        if (res.success) {
+            showToast('Mission cancelled', 'success');
+            loadActiveTeamMissions();
+        } else {
+            showToast(res.error || 'Failed to cancel mission', 'error');
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        loading(false);
+    }
 }
 
+// ==================== ADMIN INDICATOR (FIXED) ====================
+
+function addAdminIndicator() {
+    // Remove existing
+    document.querySelectorAll('.admin-nav-link').forEach(el => el.remove());
+    
+    let nav = document.querySelector('.nav-links');
+    if (!nav) nav = document.getElementById('sidebar');
+    if (!nav) return;
+    
+    const link = document.createElement('a');
+    link.href = '#';
+    link.className = 'nav-link admin-nav-link';
+    link.style.marginTop = 'auto';
+    link.style.borderTop = '1px solid rgba(255,255,255,0.1)';
+    link.style.paddingTop = '15px';
+    link.innerHTML = '<span class="nav-icon">🎛️</span><span>Admin Panel</span>';
+    
+    link.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (STATE.isAdmin) {
+            showAdminPanel();
+        } else {
+            showAdminLogin();
+        }
+        closeSidebar();
+    };
+    
+    nav.appendChild(link);
+}
 // ==================== DASHBOARD ====================
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
