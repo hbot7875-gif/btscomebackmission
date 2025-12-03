@@ -1688,45 +1688,74 @@ async function renderGCLinks() {
     }
 }
 
-// ==================== HELPER ROLES ====================
+// ==================== HELPER ROLES (Updated with Agent Names) ====================
 async function renderHelperRoles() {
     const container = document.getElementById('helper-roles-content');
     if (!container) return;
     
     container.innerHTML = `
         ${renderGuide('helper-roles')}
-        
         <div class="card">
             <div class="card-header">
                 <h3>🎖️ Helper Army Roles</h3>
                 <span style="font-size:12px;color:#888;">Help HQ run the mission!</span>
             </div>
-            <div class="card-body">
-                ${CONFIG.HELPER_ROLES.map(role => `
-                    <div class="role-card">
-                        <div class="role-icon">${role.icon}</div>
-                        <div>
-                            <div class="role-name">${role.name}</div>
-                            <div class="role-desc">${role.description}</div>
-                        </div>
-                    </div>
-                `).join('')}
+            <div class="card-body" id="roles-list">
+                <div class="loading-text">Loading roles...</div>
             </div>
         </div>
         
         <div class="card" style="background:linear-gradient(135deg, rgba(123,44,191,0.1), rgba(255,215,0,0.05));border-color:#7b2cbf;">
             <div class="card-body" style="text-align:center;padding:30px;">
                 <div style="font-size:40px;margin-bottom:15px;">🚀</div>
-                <h4 style="color:#fff;margin-bottom:10px;">More Roles Coming Soon!</h4>
+                <h4 style="color:#fff;margin-bottom:10px;">Want to Join the Helper Army?</h4>
                 <p style="color:#888;font-size:13px;">
-                    HQ will release more roles depending on the need.<br>
-                    Stay tuned for updates in announcements!
+                    Contact Admin through Secret Comms or announcements.<br>
+                    More roles will be released depending on the need!
                 </p>
             </div>
         </div>
     `;
+    
+    try {
+        const data = await api('getHelperRoles');
+        const roles = data.roles || [];
+        
+        const rolesListEl = document.getElementById('roles-list');
+        
+        if (roles.length) {
+            rolesListEl.innerHTML = roles.map(role => `
+                <div class="role-card">
+                    <div class="role-icon">${role.icon}</div>
+                    <div style="flex:1;">
+                        <div class="role-name">${sanitize(role.name)}</div>
+                        <div class="role-desc">${sanitize(role.description)}</div>
+                        ${role.agents && role.agents.length > 0 ? `
+                            <div class="role-agents" style="margin-top:8px;">
+                                <span style="color:#7b2cbf;font-size:11px;font-weight:600;">Assigned:</span>
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+                                    ${role.agents.map(agent => `
+                                        <span class="agent-badge" style="background:rgba(123,44,191,0.2);color:#c9a0ff;padding:3px 8px;border-radius:12px;font-size:11px;">
+                                            👤 ${sanitize(agent.name)}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : `
+                            <div style="margin-top:8px;font-size:11px;color:#666;">
+                                <span style="color:#ffd700;">⭐</span> Position open - Apply now!
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            rolesListEl.innerHTML = '<p style="color:#888;text-align:center;">No roles defined yet</p>';
+        }
+    } catch (e) {
+        document.getElementById('roles-list').innerHTML = '<p style="color:red;">Failed to load roles</p>';
+    }
 }
-
 // ==================== ANNOUNCEMENTS ====================
 async function renderAnnouncements() {
     const container = $('announcements-content');
