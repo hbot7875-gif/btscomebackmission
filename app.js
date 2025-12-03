@@ -710,7 +710,14 @@ function checkAdminStatus() {
         STATE.isAdmin = false;
     }
 }
-
+function isAdminAgent() {
+    return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
+}
+function exitAdminMode() {
+    STATE.isAdmin = false;
+    STATE.adminSession = null;
+    localStorage.removeItem('adminSession');
+    localStorage.removeItem('adminExpiry');
 // ==================== ADMIN LOGIC (FIXED) ====================
 
 function showAdminLogin() {
