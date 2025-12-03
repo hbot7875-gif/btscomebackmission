@@ -1,4 +1,4 @@
-/* ==================== BTS SPY BATTLE - PURPLE CYBER THEME v3.8 (FIXED) ==================== */
+F/* ==================== BTS SPY BATTLE - PURPLE CYBER THEME v3.8 (FIXED) ==================== */
 
 /* ==================== CSS VARIABLES ==================== */
 :root {
@@ -3724,19 +3724,18 @@ img {
 }
 
 /* ===== ADMIN PANEL STYLES (REQUIRED FOR VISIBILITY) ===== */
-.admin-panel {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #0a0a0f; /* Dark Background */
-    z-index: 10000; /* Sit on top of EVERYTHING */
-    display: flex;
-    flex-direction: column;
-    animation: slideUp 0.3s ease-out;
+/* === ADMIN PANEL BASE === */
+.admin-panel { 
+    position: fixed !important; 
+    top: 0 !important; 
+    left: 0 !important; 
+    width: 100vw !important; 
+    height: 100vh !important; 
+    background: #0a0a0f !important; 
+    z-index: 2147483647 !important; /* Max valid CSS Z-Index */
+    display: flex !important; 
+    flex-direction: column !important;
 }
-
 .admin-panel-header {
     display: flex;
     justify-content: space-between;
@@ -5149,19 +5148,6 @@ textarea:focus-visible {
     font-size: 12px !important;
     line-height: 1.45 !important;
     color: #aaa;
-}
-/* UPDATE THIS IN ensureAppCSS function */
-.admin-panel { 
-    position: fixed !important; 
-    top: 0 !important; 
-    left: 0 !important; 
-    width: 100vw !important; 
-    height: 100vh !important; 
-    background: #0a0a0f !important; 
-    z-index: 2147483647 !important; /* Max Z-Index */
-    display: flex !important; 
-    flex-direction: column !important;
-    overflow: hidden !important; /* Prevent body scroll */
 }
 
 /* ==================== END OF STYLES ==================== */
