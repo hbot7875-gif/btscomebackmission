@@ -187,44 +187,44 @@ const PAGE_GUIDES = {
     'secret-missions': { 
         icon: '🕵️', 
         title: 'Classified Tasks', 
-        text: "Bonus XP tasks. If empty, you're doing great!" 
+        text: "Bonus XP tasks from HQ. Complete them for extra team XP!" 
     },
     'team-level': { 
         icon: '🚀', 
         title: 'Leveling Up', 
-        text: "Complete Track, Album, and 2X missions to earn badges." 
+        text: "Complete Track, Album, and 2X missions to level up your team and earn badges." 
     },
     'rankings': { 
         icon: '🏆', 
         title: 'Friendly Competition', 
-        text: "We are one big team. Rankings are for fun." 
+        text: "We are one big team. Rankings are just for fun and motivation!" 
     },
     'playlists': {
         icon: '⚠️',
-        title: 'DIRECT ORDER FROM HIGH COMMAND',
-        text: "USE ONLY THE GIVEN PLAYLISTS OR ELSE YOU WILL BE SUSPENDED! No exceptions.",
+        title: 'DIRECT ORDER FROM HQ',
+        text: "USE ONLY THE GIVEN PLAYLISTS! Using other playlists may result in suspension. No exceptions.",
         isWarning: true
     },
     'announcements': {
         icon: '📢',
-        title: 'Important Intel',
-        text: "Watch this section for any important announcements or news regarding BTS comeback directly from Admin."
+        title: 'HQ Announcements',
+        text: "Important news and updates regarding BTS comeback directly from Admin. Check regularly!"
     },
     'chat': {
         icon: '💬',
-        title: 'Secret Comms Rules',
-        text: "• Communicate anonymously with other agents\n• Search for agents for secret missions\n• Use for ranting too - but DON'T reveal personal info\n• ⚠️ IMPORTANT: The word 'kindness' is FORBIDDEN in agent communications!",
-        isWarning: true
+        title: 'Secret Comms Channel',
+        text: "Chat anonymously with fellow agents. Shy to ask something? Ask here - no judgments! Remember, you were once a baby ARMY too, so help others out. Coordinate missions, share tips, vent if needed. Be kind - we're ONE team! 💜 (Keep personal info private)",
+        isWarning: false
     },
     'gc-links': {
         icon: '👥',
         title: 'Group Chat Links',
-        text: "Don't worry if you're not added yet - just follow the goals displayed and we will add you soon!"
+        text: "Join your team's Instagram GC. Not added yet? No worries - follow the goals and we'll add you soon!"
     },
     'helper-roles': {
         icon: '🎖️',
         title: 'Helper Army Roles',
-        text: "Help HQ run smoothly! More roles will be released depending on the need."
+        text: "Want to help HQ? Check available roles below. More roles coming based on mission needs!"
     }
 };
 
