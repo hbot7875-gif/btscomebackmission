@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.5 (Login Fixed + Cool Design) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.6 (Server-First Login Fix) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -126,11 +126,13 @@ async function api(action, params = {}) {
 
 // ==================== INITIALIZATION ====================
 function initApp() {
-    console.log('🚀 Starting App v4.5 (Login Fixed + Cool Design)...');
+    console.log('🚀 Starting App v4.6 (Server-First Login)...');
     injectTotalCSS(); 
     loading(false);
     setupLoginListeners();
-    loadAllAgents(); // Pre-fetch, but don't block
+    // Pre-fetch in background, but don't block UI
+    api('getAllAgents').then(r => STATE.allAgents = r.agents).catch(e => console.log('Pre-fetch failed'));
+    
     const saved = localStorage.getItem('spyAgent');
     if (saved) { STATE.agentNo = saved; checkAdminStatus(); loadDashboard(); }
 }
@@ -141,7 +143,6 @@ function injectTotalCSS() {
     const style = document.createElement('style');
     style.id = 'total-app-styles';
     style.textContent = `
-        /* --- AGENT DRAWER: NEON MEDALS --- */
         .cool-badge-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; padding: 10px; }
         .cool-badge-item { display: flex; flex-direction: column; align-items: center; width: 90px; transition: transform 0.2s; }
         .cool-badge-item:hover { transform: translateY(-5px); }
@@ -156,7 +157,6 @@ function injectTotalCSS() {
         .cool-badge-label { margin-top: 8px; font-size: 11px; font-weight: bold; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .cool-badge-desc { font-size: 9px; color: #aaa; margin-top: 2px; }
 
-        /* --- ADMIN ASSETS: ROUNDED GRID CHIPS --- */
         .admin-asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; padding: 15px; }
         .admin-asset-item { 
             width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden; 
@@ -168,7 +168,6 @@ function injectTotalCSS() {
         .admin-asset-item:hover .admin-asset-img { opacity: 1; }
         .admin-asset-id { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.8); font-size: 10px; color: #fff; text-align: center; padding: 3px 0; font-family: monospace; }
 
-        /* --- ADMIN PANEL STABILITY --- */
         .admin-panel { 
             position: fixed !important; top: 0 !important; left: 0 !important; 
             width: 100vw !important; height: 100vh !important; 
@@ -197,7 +196,7 @@ function setupLoginListeners() {
 
 async function loadAllAgents() { try { STATE.allAgents = (await api('getAllAgents')).agents || []; } catch (e) { STATE.allAgents = []; } }
 
-// === FIXED LOGIN FUNCTION (v4.5) ===
+// === FIXED SERVER-FIRST LOGIN (v4.6) ===
 async function handleLogin() {
     if (STATE.isLoading) return;
     const agentNo = $('agent-input')?.value.trim().toUpperCase();
@@ -205,26 +204,37 @@ async function handleLogin() {
     
     loading(true);
     try {
-        // 1. Ensure List is Loaded
-        if (STATE.allAgents.length === 0) {
-            await loadAllAgents();
+        // 1. Check local cache first (Fast path)
+        if (STATE.allAgents.length > 0) {
+            const found = STATE.allAgents.find(a => String(a.agentNo).trim().toUpperCase() === agentNo);
+            if (found) {
+                localStorage.setItem('spyAgent', found.agentNo);
+                STATE.agentNo = found.agentNo;
+                checkAdminStatus();
+                await loadDashboard();
+                return;
+            }
         }
+
+        // 2. If not in cache, ask SERVER directly (Robust path)
+        // We do this by trying to fetch data for this specific agent
+        const weeksRes = await api('getAvailableWeeks'); // Get week first
+        const week = weeksRes.current || weeksRes.weeks?.[0];
         
-        // 2. Verify ID exists in the list
-        const found = STATE.allAgents.find(a => String(a.agentNo).trim().toUpperCase() === agentNo);
+        // If this call succeeds, the Agent exists
+        const data = await api('getAgentData', { agentNo: agentNo, week: week });
         
-        if (found) {
-            // Success: Found in list
-            localStorage.setItem('spyAgent', found.agentNo);
-            STATE.agentNo = found.agentNo;
+        if (data && data.profile) {
+            localStorage.setItem('spyAgent', agentNo);
+            STATE.agentNo = agentNo;
             checkAdminStatus();
             await loadDashboard();
         } else {
-            // Failure: ID not found in list
-            showResult('Agent not found. Check ID.', true);
+            throw new Error('Agent not found');
         }
+
     } catch (e) { 
-        showResult('Connection Error: ' + e.message, true); 
+        showResult('Login Failed: Agent not found', true); 
     } finally { 
         loading(false); 
     }
@@ -236,7 +246,9 @@ async function handleFind() {
     if (!handle) { showResult('Enter Instagram', true); return; }
     loading(true);
     try {
+        // Force load list for search
         if (STATE.allAgents.length === 0) await loadAllAgents();
+        
         const found = STATE.allAgents.find(a => String(a.instagram||a.ig||'').toLowerCase().replace('@','') === handle || String(a.name||'').toLowerCase().includes(handle));
         if (!found) throw new Error('Not found');
         showResult(`Agent ID: <strong>${found.agentNo}</strong>`, false);
@@ -451,7 +463,7 @@ const NOTIFICATIONS = {
 };
 
 document.addEventListener('DOMContentLoaded', initApp);
-console.log('v4.5 Loaded');
+console.log('v4.6 Loaded');
 ```
 
 window.loadPage = loadPage;
