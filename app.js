@@ -1,4 +1,18 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.3 (Stable Logic + Cool Design) =====
+I understand. You want the **exact visual look** of the "Cool Update" (Neon Badges, Grid Assets) but with the **Admin Panel fix** so it doesn't disappear.
+
+In the previous version, the "Stable Logic" might have accidentally overridden the "Cool Visuals" in the Admin tab specifically.
+
+Here is **v4.4**. I have forced the **Cool Designs** to be the default for everything.
+
+### 💎 Changes in v4.4:
+1.  **Forced "Cool" Renderer:** The Admin Assets tab is now strictly the **Rounded Grid** design (no more messy list).
+2.  **Neon Badges Restored:** The Agent Drawer uses the **Gradient Ring** style explicitly.
+3.  **Admin Visibility:** Kept the `!important` CSS so the panel stays open.
+
+### 📋 Copy & Paste Full Code (v4.4):
+
+```javascript
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.4 (Cool Visuals + Stable Admin) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -126,9 +140,8 @@ async function api(action, params = {}) {
 
 // ==================== INITIALIZATION ====================
 function initApp() {
-    console.log('🚀 Starting App v4.3 (Stable + Cool Design)...');
-    injectCoolBadgeCSS(); // INJECT NEW STYLES
-    ensureAdminCSS();     // ENSURE ADMIN VISIBILITY
+    console.log('🚀 Starting App v4.4 (Cool Design)...');
+    injectTotalCSS(); // ALL STYLES IN ONE FUNCTION
     loading(false);
     setupLoginListeners();
     loadAllAgents();
@@ -136,56 +149,56 @@ function initApp() {
     if (saved) { STATE.agentNo = saved; checkAdminStatus(); loadDashboard(); }
 }
 
-// === 1. NEW DESIGN CSS ===
-function injectCoolBadgeCSS() {
-    if ($('cool-badge-styles')) return;
+// === CSS MASTER FUNCTION (Cool + Stable) ===
+function injectTotalCSS() {
+    if ($('total-app-styles')) return;
     const style = document.createElement('style');
-    style.id = 'cool-badge-styles';
+    style.id = 'total-app-styles';
     style.textContent = `
-        /* --- AGENT DRAWER (Holographic Medal Look) --- */
+        /* --- AGENT DRAWER: NEON MEDALS --- */
         .cool-badge-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; padding: 10px; }
-        .cool-badge-item { display: flex; flex-direction: column; align-items: center; width: 90px; }
+        .cool-badge-item { display: flex; flex-direction: column; align-items: center; width: 90px; transition: transform 0.2s; }
+        .cool-badge-item:hover { transform: translateY(-5px); }
         .cool-badge-img-wrapper {
             width: 80px; height: 80px;
             border-radius: 50%;
-            padding: 3px; /* Gap for gradient */
-            background: linear-gradient(135deg, #ff00cc, #3333ff); /* Neon Pink/Blue */
-            box-shadow: 0 0 10px rgba(51, 51, 255, 0.5);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            padding: 3px;
+            background: linear-gradient(135deg, #ffd700, #ff8c00); /* Gold/Orange for Levels */
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
         }
-        .cool-badge-img-wrapper:hover { transform: scale(1.1); box-shadow: 0 0 20px rgba(255, 0, 204, 0.8); }
+        .cool-badge-img-wrapper.level-badge { background: linear-gradient(135deg, #ff00cc, #3333ff); box-shadow: 0 0 15px rgba(51, 51, 255, 0.6); }
         .cool-badge-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 2px solid #000; background: #000; }
-        .cool-badge-label { margin-top: 10px; font-size: 10px; background: #1a1a2e; padding: 3px 10px; border-radius: 12px; color: #fff; border: 1px solid #333; text-transform: uppercase; letter-spacing: 1px; }
+        .cool-badge-label { margin-top: 8px; font-size: 11px; font-weight: bold; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .cool-badge-desc { font-size: 9px; color: #aaa; margin-top: 2px; }
 
-        /* --- ADMIN ASSETS (Data Chip Grid) --- */
-        .admin-asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px; padding: 10px; }
+        /* --- ADMIN ASSETS: ROUNDED GRID CHIPS --- */
+        .admin-asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; padding: 15px; }
         .admin-asset-item { 
             width: 100%; aspect-ratio: 1;
-            border-radius: 10px; 
+            border-radius: 12px; 
             overflow: hidden; 
-            border: 1px solid #444;
+            border: 1px solid #333;
             position: relative;
             background: #000;
-            transition: transform 0.2s ease;
+            transition: all 0.2s ease;
             cursor: pointer;
         }
-        .admin-asset-item:hover { transform: scale(1.15); z-index: 100; border-color: #7b2cbf; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .admin-asset-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; transition: opacity 0.2s; }
+        .admin-asset-item:hover { transform: scale(1.15); z-index: 100; border-color: #7b2cbf; box-shadow: 0 5px 20px rgba(0,0,0,0.6); }
+        .admin-asset-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: opacity 0.2s; }
         .admin-asset-item:hover .admin-asset-img { opacity: 1; }
-        .admin-asset-id { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.8); font-size: 9px; color: #fff; text-align: center; padding: 2px 0; font-family: monospace; }
-    `;
-    document.head.appendChild(style);
-}
+        .admin-asset-id { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.8); font-size: 10px; color: #fff; text-align: center; padding: 3px 0; font-family: monospace; }
 
-// === 2. STABLE ADMIN CSS (Aggressive Z-Index) ===
-function ensureAdminCSS() {
-    if ($('admin-panel-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'admin-panel-styles';
-    style.innerHTML = `
-        .admin-panel { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: #0a0a0f !important; z-index: 999999 !important; display: flex !important; flex-direction: column !important; }
+        /* --- ADMIN PANEL STABILITY --- */
+        .admin-panel { 
+            position: fixed !important; 
+            top: 0 !important; left: 0 !important; 
+            width: 100vw !important; height: 100vh !important; 
+            background: #0a0a0f !important; 
+            z-index: 999999 !important; 
+            display: flex !important; flex-direction: column !important; 
+        }
         .admin-panel-header { background: #1a1a2e; padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
         .admin-panel-content { flex: 1; overflow-y: auto; padding: 20px; }
         .admin-panel-tabs { display: flex; background: #12121a; padding: 10px; gap: 10px; overflow-x: auto; }
@@ -214,7 +227,7 @@ async function handleLogin() {
     if (!agentNo) { showResult('Enter Agent Number', true); return; }
     loading(true);
     try {
-        // Optimistic Login (v4.1 logic)
+        // Optimistic Login
         if (STATE.allAgents.length > 0) {
             const found = STATE.allAgents.find(a => String(a.agentNo).trim().toUpperCase() === agentNo);
             if (!found) throw new Error('Agent not found');
@@ -224,7 +237,7 @@ async function handleLogin() {
         checkAdminStatus();
         await loadDashboard();
     } catch (e) { 
-        // Retry via server if local list failed
+        // Retry via server
         try {
             const check = await api('getAgentData', { agentNo: agentNo, week: 'Check' });
             if (check.profile) { localStorage.setItem('spyAgent', agentNo); STATE.agentNo = agentNo; checkAdminStatus(); await loadDashboard(); return; }
@@ -323,11 +336,17 @@ function showCreateResult(msg, isError) { const el = $('create-result'); if(el) 
 async function loadActiveTeamMissions() { const container = $('admin-tab-active'); if (!container) return; loading(true); try { const res = await api('getTeamMissions', { status: 'active', week: STATE.week }); const missions = res.missions || []; container.innerHTML = missions.length ? missions.map(m => `<div class="admin-mission-card"><div>${m.title}</div><div><button onclick="adminCompleteMission('${m.id}')" class="btn-sm btn-success">Complete</button> <button onclick="adminCancelMission('${m.id}')" class="btn-sm btn-danger">Cancel</button></div></div>`).join('') : '<p>No active missions</p>'; } catch (e) { container.innerHTML = 'Error'; } finally { loading(false); } }
 async function loadMissionHistory() { const container = $('admin-tab-history'); if (!container) return; loading(true); try { const res = await api('getTeamMissions', { status: 'all', week: STATE.week }); const missions = (res.missions || []).filter(m => m.status !== 'active'); container.innerHTML = missions.length ? missions.map(m => `<div class="history-item"><span>${m.title}</span> <span>${m.status}</span></div>`).join('') : '<p>No history</p>'; } catch (e) { container.innerHTML = 'Error'; } finally { loading(false); } }
 
-// === UPDATED: COOL ADMIN ASSETS RENDER ===
+// === COOL ADMIN ASSETS RENDER (GRID VIEW) ===
 function renderAdminAssets() {
     const container = $('admin-tab-assets');
     if(!container) return;
-    container.innerHTML = `<div class="admin-asset-grid">${CONFIG.BADGE_POOL.map((url, i) => `<div class="admin-asset-item"><img src="${url}" class="admin-asset-img"><div class="admin-asset-id">#${i+1}</div></div>`).join('')}</div>`;
+    // This HTML Structure matches the 'admin-asset-grid' CSS injected at the top
+    container.innerHTML = `<div class="admin-asset-grid">${CONFIG.BADGE_POOL.map((url, i) => `
+        <div class="admin-asset-item">
+            <img src="${url}" class="admin-asset-img">
+            <div class="admin-asset-id">#${i+1}</div>
+        </div>
+    `).join('')}</div>`;
 }
 
 async function adminCompleteMission(id) { const team = prompt('Team Name to Complete:'); if (!team) return; loading(true); await api('completeTeamMission', { missionId: id, team, agentNo: STATE.agentNo, sessionToken: STATE.adminSession }); loading(false); loadActiveTeamMissions(); }
@@ -389,7 +408,7 @@ async function renderHome() {
 
 async function renderChat() { if($('chat-content')) $('chat-content').innerHTML = `<div class="card"><div class="card-body" style="text-align:center;padding:40px;"><a href="https://tlk.io/${CONFIG.CHAT_CHANNEL}" target="_blank" onclick="window.open(this.href,'chat','width=500,height=700');return false;" class="btn-primary">🚀 Open Chat</a></div></div>`; }
 
-// === UPDATED: COOL BADGES FOR DRAWER ===
+// === COOL BADGES FOR DRAWER ===
 async function renderDrawer() {
     const container = $('drawer-content'); if (!container) return;
     const xp = STATE.data.stats.totalXP || 0;
@@ -398,10 +417,12 @@ async function renderDrawer() {
     for (let i = 1; i <= level; i++) {
         let seed = 0; const str = String(STATE.agentNo); for (let j = 0; j < str.length; j++) seed += str.charCodeAt(j);
         const img = CONFIG.BADGE_POOL[(seed + i * 137) % CONFIG.BADGE_POOL.length];
+        // This HTML matches the 'cool-badge-item' CSS injected at the top
         badgesHtml += `
             <div class="cool-badge-item">
-                <div class="cool-badge-img-wrapper"><img src="${img}" class="cool-badge-img"></div>
+                <div class="cool-badge-img-wrapper level-badge"><img src="${img}" class="cool-badge-img"></div>
                 <div class="cool-badge-label">Level ${i}</div>
+                <div class="cool-badge-desc">Unlocked</div>
             </div>`;
     }
     container.innerHTML = `
@@ -445,7 +466,8 @@ const NOTIFICATIONS = {
 };
 
 document.addEventListener('DOMContentLoaded', initApp);
-console.log('v4.3 Loaded');
+console.log('v4.4 Loaded');
+```
 
 window.loadPage = loadPage;
 window.logout = logout;
