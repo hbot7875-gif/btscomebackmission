@@ -781,20 +781,35 @@ function setupDashboard() {
 }
 
 function addAdminNavLink() {
-    let nav = document.querySelector('.nav-links');
-    if (!nav) nav = document.getElementById('sidebar');
-    if (!nav) return;
+    // 1. Look for the specific container from your HTML
+    let container = document.getElementById('nav-admin-container');
     
-    if (!nav.querySelector('.admin-nav-link')) {
-        const link = document.createElement('a');
-        link.href = '#';
-        link.className = 'nav-link admin-nav-link';
-        link.style.marginTop = 'auto';
-        link.style.borderTop = '1px solid rgba(255,255,255,0.1)';
-        link.innerHTML = '<span class="nav-icon">🎛️</span><span>Admin</span>';
-        link.onclick = (e) => { e.preventDefault(); STATE.isAdmin ? showAdminPanel() : showAdminLogin(); closeSidebar(); };
-        nav.appendChild(link);
-    }
+    // 2. Fallback if container is missing
+    if (!container) container = document.querySelector('.nav-links');
+    if (!container) return;
+    
+    // 3. Prevent duplicates
+    if (document.querySelector('.admin-nav-link')) return;
+
+    const link = document.createElement('a');
+    link.href = '#';
+    link.className = 'nav-link admin-nav-link';
+    
+    // Style it to stand out
+    link.style.color = '#ff4757'; 
+    link.style.marginTop = '10px';
+    link.style.borderTop = '1px solid rgba(255,255,255,0.1)';
+
+    link.innerHTML = '<span class="nav-icon">🎛️</span><span class="nav-text">Admin Panel</span>';
+    
+    link.onclick = (e) => { 
+        e.preventDefault(); 
+        STATE.isAdmin ? showAdminPanel() : showAdminLogin(); 
+        closeSidebar(); 
+    };
+    
+    container.appendChild(link);
+}
 }
 
 function closeSidebar() { $('sidebar')?.classList.remove('open'); }
