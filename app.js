@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.0 (Playlists & Focus Update) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.9 (Final Strategic & Admin Fixed) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -22,14 +22,6 @@ const CONFIG = {
     // Chat Settings
     CHAT_CHANNEL: 'bts-comeback-mission-hq', 
 
-    // ===== PLAYLISTS CONFIGURATION (NEW) =====
-    PLAYLISTS: [
-        { title: "Warm Up: Road to 1B", platform: "Spotify", url: "https://open.spotify.com/playlist/YOUR_LINK_HERE", desc: "Old hits close to 1 Billion" },
-        { title: "Hyung Line Focus", platform: "Spotify", url: "https://open.spotify.com/playlist/YOUR_LINK_HERE", desc: "Indigo, Echo, D-Day, JITB" },
-        { title: "YouTube Streaming", platform: "YouTube", url: "https://youtube.com/playlist/YOUR_LINK_HERE", desc: "Official MV Rotation" },
-        { title: "Sleep Playlist", platform: "Apple Music", url: "https://music.apple.com/YOUR_LINK_HERE", desc: "Long playlist for overnight" }
-    ],
-
     // ===== BADGE CONFIGURATION =====
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
     TOTAL_BADGE_IMAGES: 49, 
@@ -37,6 +29,7 @@ const CONFIG = {
     get BADGE_POOL() {
         const pool = [];
         for (let i = 1; i <= this.TOTAL_BADGE_IMAGES; i++) {
+            // Matches "BTS (1).jpg", "BTS (2).jpg"
             pool.push(`${this.BADGE_REPO_URL}BTS%20(${i}).jpg`);
         }
         return pool;
@@ -70,14 +63,24 @@ const CONFIG = {
         'filler_mode': { name: 'Filler Mode', icon: '🧬', description: 'Stream 1 BTS Song + 2 Non-Kpop songs to look human.' },
         'old_songs': { name: 'Old Songs', icon: '🕰️', description: 'Stream tracks older than 2 years (Road to 1B).' },
         'stream_party': { name: 'Stream Party', icon: '🎉', description: 'Everyone streams the exact same playlist NOW.' },
-        'custom': { name: 'Custom Task', icon: '⭐', description: 'Special instruction from Admin. Read briefing carefully.' }
+        'custom': { name: 'Custom Task', icon: '⭐', description: 'Special instruction from Admin. Read briefing carefully.' },
+        'joint_op': { name: 'Joint Operation', icon: '🤝', description: 'Agents from different teams collaborate' },
+        'decode': { name: 'Decode Mission', icon: '🔐', description: 'Solve cipher to reveal target' }
     }
 };
 
 // ==================== STATE ====================
 const STATE = {
-    agentNo: null, week: null, weeks: [], data: null, allAgents: [],
-    page: 'home', isLoading: false, isAdmin: false, adminSession: null, lastUpdated: null
+    agentNo: null,
+    week: null,
+    weeks: [],
+    data: null,
+    allAgents: [],
+    page: 'home',
+    isLoading: false,
+    isAdmin: false,
+    adminSession: null,
+    lastUpdated: null
 };
 
 // ==================== HELPERS ====================
@@ -165,8 +168,7 @@ const PAGE_GUIDES = {
     'album2x': { icon: '🎧', title: 'The 2X Challenge', text: "Listen to every song on the album at least 2 times this week." },
     'secret-missions': { icon: '🕵️', title: 'Classified Tasks', text: "Special operations like 'Switch App' or 'Old Songs' appear here." },
     'team-level': { icon: '🚀', title: 'Leveling Up', text: "Complete missions to raise your Team Level." },
-    'rankings': { icon: '🏆', title: 'Competition', text: "Friendly competition. Every stream counts." },
-    'playlists': { icon: '🎧', title: 'Streaming Arsenal', text: "Use these playlists to maximize impact. Don't forget to switch platforms occasionally!" }
+    'rankings': { icon: '🏆', title: 'Competition', text: "Friendly competition. Every stream counts." }
 };
 
 function renderGuide(pageName) {
@@ -203,7 +205,10 @@ async function api(action, params = {}) {
         if (data.lastUpdated) { STATE.lastUpdated = data.lastUpdated; updateTime(); }
         if (data.error) throw new Error(data.error);
         return data;
-    } catch (e) { console.error('API Error:', e); throw e; }
+    } catch (e) {
+        console.error('API Error:', e);
+        throw e;
+    }
 }
 
 // ==================== INITIALIZATION ====================
@@ -310,6 +315,7 @@ async function verifyAdminPassword() {
     const password = $('admin-password')?.value;
     const errorEl = $('admin-error');
     if (!password) return;
+    
     try {
         let verified = false;
         try {
@@ -324,15 +330,23 @@ async function verifyAdminPassword() {
             addAdminIndicator();
             closeAdminModal();
             showToast('Admin access granted!', 'success');
+            
+            // Delay to ensure CSS animations work
             setTimeout(() => showAdminPanel(), 300);
-        } else { if (errorEl) { errorEl.textContent = '❌ Invalid password'; errorEl.classList.add('show'); } }
-    } catch (e) { if (errorEl) { errorEl.textContent = '❌ Error'; errorEl.classList.add('show'); } }
+        } else {
+            if (errorEl) { errorEl.textContent = '❌ Invalid password'; errorEl.classList.add('show'); }
+        }
+    } catch (e) {
+        if (errorEl) { errorEl.textContent = '❌ Error'; errorEl.classList.add('show'); }
+    }
 }
 
+// FIXED ADMIN LINK INJECTION
 function addAdminIndicator() {
     let container = document.getElementById('nav-admin-container');
     if (!container) container = document.querySelector('.nav-links');
     if (!container) return;
+    
     if (document.querySelector('.admin-nav-link')) return;
 
     const link = document.createElement('a');
@@ -360,7 +374,10 @@ function showAdminPanel() {
     const panel = document.createElement('div');
     panel.className = 'admin-panel';
     panel.innerHTML = `
-        <div class="admin-panel-header"><h3>🎛️ Mission Control</h3><button class="panel-close" onclick="closeAdminPanel()">×</button></div>
+        <div class="admin-panel-header">
+            <h3>🎛️ Mission Control</h3>
+            <button class="panel-close" onclick="closeAdminPanel()">×</button>
+        </div>
         <div class="admin-panel-tabs">
             <button class="admin-tab active" data-tab="create">Create Mission</button>
             <button class="admin-tab" data-tab="active">Active</button>
@@ -375,6 +392,7 @@ function showAdminPanel() {
         </div>
     `;
     document.body.appendChild(panel);
+    
     panel.querySelectorAll('.admin-tab').forEach(tab => { 
         tab.onclick = () => {
             switchAdminTab(tab.dataset.tab);
@@ -400,7 +418,7 @@ function switchAdminTab(tabName) {
 function renderAdminAssets() {
     const container = $('admin-tab-assets');
     if (!container) return;
-    let html = `<div class="asset-section" style="padding:20px;"><h4>🎲 Level Up Badge Pool</h4><div class="badges-showcase" style="flex-wrap:wrap; gap:10px;">`;
+    let html = `<div class="asset-section" style="padding:20px;"><h4>🎲 Level Up Badge Pool</h4><p style="font-size:12px;color:#888;">${CONFIG.TOTAL_BADGE_IMAGES} images configured in ${CONFIG.BADGE_REPO_URL}</p><div class="badges-showcase" style="flex-wrap:wrap; gap:10px;">`;
     CONFIG.BADGE_POOL.forEach((img, i) => {
         html += `<div style="width:80px;text-align:center;"><div class="badge-circle" style="margin:0 auto;"><img src="${img}" onerror="this.style.display='none';this.parentNode.style.background='red'"></div><div style="font-size:10px;margin-top:5px;">BTS (${i+1})</div></div>`;
     });
@@ -535,31 +553,13 @@ function logout() {
 async function loadPage(page) {
     STATE.page = page;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    
-    // Dynamic Page Creation for Playlists if missing
-    if (page === 'playlists' && !$('page-playlists')) {
-        const main = document.querySelector('.pages-wrapper');
-        const section = document.createElement('section');
-        section.id = 'page-playlists';
-        section.className = 'page';
-        section.innerHTML = '<div class="page-header"><h1>Streaming Playlists</h1></div><div id="playlists-content"></div>';
-        main.appendChild(section);
-    }
-    if (page === 'chat' && !$('chat-content')) {
-        const main = document.querySelector('.pages-wrapper');
-        const section = document.createElement('section');
-        section.id = 'page-chat';
-        section.className = 'page';
-        section.innerHTML = '<div id="chat-content"></div>';
-        main.appendChild(section);
-    }
-
     $('page-'+page)?.classList.add('active');
+    
+    if (page === 'chat' && !$('chat-content')) return;
     
     loading(true);
     try {
         if (page === 'home') await renderHome();
-        else if (page === 'playlists') renderPlaylists();
         else if (page === 'rankings') await renderRankings();
         else if (page === 'drawer') await renderDrawer();
         else if (page === 'goals') await renderGoals();
@@ -576,83 +576,30 @@ async function loadPage(page) {
 }
 
 // ==================== PAGES ====================
-function renderPlaylists() {
-    const container = $('playlists-content');
-    if (!container) return;
-    container.innerHTML = renderGuide('playlists') + `
-        <div style="display:grid; gap:15px;">
-            ${CONFIG.PLAYLISTS.map(p => `
-                <div class="card" style="display:flex; align-items:center; padding:15px; background:rgba(255,255,255,0.05);">
-                    <div style="font-size:24px; margin-right:15px;">${p.platform==='Spotify'?'🟢':p.platform==='YouTube'?'🔴':'🎵'}</div>
-                    <div style="flex:1;">
-                        <div style="font-weight:bold; color:#fff;">${sanitize(p.title)}</div>
-                        <div style="font-size:12px; color:#aaa;">${sanitize(p.desc)}</div>
-                    </div>
-                    <a href="${p.url}" target="_blank" class="btn-sm btn-primary">OPEN</a>
-                </div>
-            `).join('')}
-        </div>
-    `;
-}
-
 async function renderHome() {
     const guide = renderGuide('home');
-    
-    // Safety check: Ensure data exists before rendering
-    if (!STATE.data || !STATE.data.stats) return;
-
     const stats = STATE.data.stats;
     const team = STATE.data.profile.team;
     
-    // Get Goals for Focus Track
-    let focusSong = "Loading...";
-    try {
-        const goalsData = await api('getGoalsProgress', { week: STATE.week });
-        const teamGoals = goalsData.trackGoals;
-        if(teamGoals && Object.keys(teamGoals).length > 0) {
-            focusSong = Object.keys(teamGoals)[0]; // Pick first track
-        } else {
-            focusSong = "No active targets";
-        }
-    } catch(e) {}
-
-    // 👇 FIX: Use document.querySelector for classes instead of $
-    const statsContainer = document.querySelector('.quick-stats-section');
-    if (statsContainer) {
-        statsContainer.innerHTML = guide + `
-            <!-- FOCUS SONG BANNER -->
-            <div style="background:linear-gradient(90deg, #ff0055 0%, #ff0000 100%); padding:10px 15px; border-radius:8px; margin-bottom:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:14px; box-shadow:0 0 15px rgba(255,0,0,0.4);">
-                <span style="margin-right:8px;">🎯 TEAM PRIORITY:</span> ${sanitize(focusSong)}
-            </div>
-
-            <!-- MY CONTRIBUTION BAR -->
-            <div style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); padding:10px 15px; border-radius:8px; margin-bottom:20px; font-size:13px; display:flex; justify-content:space-between;">
-                <span style="color:#aaa;">👤 Your Contribution:</span>
-                <span style="color:#fff; font-weight:bold;">${fmt(stats.trackScrobbles)} streams</span>
-            </div>
-
-            <div class="card quick-stats-card" style="background:linear-gradient(135deg, ${teamColor(team)}22, #1a1a2e);">
-                <div class="card-body">
-                    <h3>Welcome, Agent ${STATE.data.profile.name}</h3>
-                    <div class="quick-stats-grid">
-                        <div>${fmt(stats.totalXP)} XP</div>
-                        <div>${fmt(stats.trackScrobbles)} Tracks</div>
-                    </div>
+    $('.quick-stats-section').innerHTML = guide + `
+        <div class="card quick-stats-card" style="background:linear-gradient(135deg, ${teamColor(team)}22, #1a1a2e);">
+            <div class="card-body">
+                <h3>Welcome, Agent ${STATE.data.profile.name}</h3>
+                <div class="quick-stats-grid">
+                    <div>${fmt(stats.totalXP)} XP</div>
+                    <div>${fmt(stats.trackScrobbles)} Tracks</div>
                 </div>
-            </div>`;
-    }
+            </div>
+        </div>`;
         
-    // 👇 FIX: Use document.querySelector here too
-    const missionsContainer = document.querySelector('.missions-grid');
-    if (missionsContainer) {
-        missionsContainer.innerHTML = `
-            <div class="mission-card" onclick="loadPage('goals')"><div>🎵</div><h3>Track Goals</h3></div>
-            <div class="mission-card" onclick="loadPage('album2x')"><div>💿</div><h3>Album 2X</h3></div>
-            <div class="mission-card secret" onclick="loadPage('secret-missions')"><div>🔒</div><h3>Secret Ops</h3></div>
-        `;
-    }
+    const data = await api('getGoalsProgress', { week: STATE.week });
+    $('.missions-grid').innerHTML = `
+        <div class="mission-card" onclick="loadPage('goals')"><div>🎵</div><h3>Track Goals</h3></div>
+        <div class="mission-card" onclick="loadPage('album2x')"><div>💿</div><h3>Album 2X</h3></div>
+        <div class="mission-card secret" onclick="loadPage('secret-missions')"><div>🔒</div><h3>Secret Ops</h3></div>
+    `;
 }
-        
+
 // ==================== DRAWER (BADGES) ====================
 async function renderDrawer() {
     const container = $('drawer-content');
@@ -719,6 +666,7 @@ const NOTIFICATIONS = {
         const xp = STATE.data?.stats?.totalXP || 0;
         const lvl = Math.floor(xp/100);
         const oldLvl = parseInt(localStorage.getItem('lastLvl')||0);
+        
         if(lvl > oldLvl) {
             showToast(`New Badge Unlocked: Level ${lvl}`, 'success');
             localStorage.setItem('lastLvl', lvl);
