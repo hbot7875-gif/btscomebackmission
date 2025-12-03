@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.4 (Cool Visuals + Stable Admin) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.5 (Login Fixed + Cool Design) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -126,16 +126,16 @@ async function api(action, params = {}) {
 
 // ==================== INITIALIZATION ====================
 function initApp() {
-    console.log('🚀 Starting App v4.4 (Cool Design)...');
-    injectTotalCSS(); // ALL STYLES IN ONE FUNCTION
+    console.log('🚀 Starting App v4.5 (Login Fixed + Cool Design)...');
+    injectTotalCSS(); 
     loading(false);
     setupLoginListeners();
-    loadAllAgents();
+    loadAllAgents(); // Pre-fetch, but don't block
     const saved = localStorage.getItem('spyAgent');
     if (saved) { STATE.agentNo = saved; checkAdminStatus(); loadDashboard(); }
 }
 
-// === CSS MASTER FUNCTION (Cool + Stable) ===
+// === CSS MASTER FUNCTION ===
 function injectTotalCSS() {
     if ($('total-app-styles')) return;
     const style = document.createElement('style');
@@ -146,13 +146,10 @@ function injectTotalCSS() {
         .cool-badge-item { display: flex; flex-direction: column; align-items: center; width: 90px; transition: transform 0.2s; }
         .cool-badge-item:hover { transform: translateY(-5px); }
         .cool-badge-img-wrapper {
-            width: 80px; height: 80px;
-            border-radius: 50%;
-            padding: 3px;
-            background: linear-gradient(135deg, #ffd700, #ff8c00); /* Gold/Orange for Levels */
+            width: 80px; height: 80px; border-radius: 50%; padding: 3px;
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
         .cool-badge-img-wrapper.level-badge { background: linear-gradient(135deg, #ff00cc, #3333ff); box-shadow: 0 0 15px rgba(51, 51, 255, 0.6); }
         .cool-badge-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 2px solid #000; background: #000; }
@@ -162,14 +159,9 @@ function injectTotalCSS() {
         /* --- ADMIN ASSETS: ROUNDED GRID CHIPS --- */
         .admin-asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; padding: 15px; }
         .admin-asset-item { 
-            width: 100%; aspect-ratio: 1;
-            border-radius: 12px; 
-            overflow: hidden; 
-            border: 1px solid #333;
-            position: relative;
-            background: #000;
-            transition: all 0.2s ease;
-            cursor: pointer;
+            width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden; 
+            border: 1px solid #333; position: relative; background: #000;
+            transition: all 0.2s ease; cursor: pointer;
         }
         .admin-asset-item:hover { transform: scale(1.15); z-index: 100; border-color: #7b2cbf; box-shadow: 0 5px 20px rgba(0,0,0,0.6); }
         .admin-asset-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: opacity 0.2s; }
@@ -178,11 +170,9 @@ function injectTotalCSS() {
 
         /* --- ADMIN PANEL STABILITY --- */
         .admin-panel { 
-            position: fixed !important; 
-            top: 0 !important; left: 0 !important; 
+            position: fixed !important; top: 0 !important; left: 0 !important; 
             width: 100vw !important; height: 100vh !important; 
-            background: #0a0a0f !important; 
-            z-index: 999999 !important; 
+            background: #0a0a0f !important; z-index: 999999 !important; 
             display: flex !important; flex-direction: column !important; 
         }
         .admin-panel-header { background: #1a1a2e; padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
@@ -207,29 +197,37 @@ function setupLoginListeners() {
 
 async function loadAllAgents() { try { STATE.allAgents = (await api('getAllAgents')).agents || []; } catch (e) { STATE.allAgents = []; } }
 
+// === FIXED LOGIN FUNCTION (v4.5) ===
 async function handleLogin() {
     if (STATE.isLoading) return;
     const agentNo = $('agent-input')?.value.trim().toUpperCase();
     if (!agentNo) { showResult('Enter Agent Number', true); return; }
+    
     loading(true);
     try {
-        // Optimistic Login
-        if (STATE.allAgents.length > 0) {
-            const found = STATE.allAgents.find(a => String(a.agentNo).trim().toUpperCase() === agentNo);
-            if (!found) throw new Error('Agent not found');
+        // 1. Ensure List is Loaded
+        if (STATE.allAgents.length === 0) {
+            await loadAllAgents();
         }
-        localStorage.setItem('spyAgent', agentNo);
-        STATE.agentNo = agentNo;
-        checkAdminStatus();
-        await loadDashboard();
+        
+        // 2. Verify ID exists in the list
+        const found = STATE.allAgents.find(a => String(a.agentNo).trim().toUpperCase() === agentNo);
+        
+        if (found) {
+            // Success: Found in list
+            localStorage.setItem('spyAgent', found.agentNo);
+            STATE.agentNo = found.agentNo;
+            checkAdminStatus();
+            await loadDashboard();
+        } else {
+            // Failure: ID not found in list
+            showResult('Agent not found. Check ID.', true);
+        }
     } catch (e) { 
-        // Retry via server
-        try {
-            const check = await api('getAgentData', { agentNo: agentNo, week: 'Check' });
-            if (check.profile) { localStorage.setItem('spyAgent', agentNo); STATE.agentNo = agentNo; checkAdminStatus(); await loadDashboard(); return; }
-        } catch(err){}
-        showResult('Login Failed', true); 
-    } finally { loading(false); }
+        showResult('Connection Error: ' + e.message, true); 
+    } finally { 
+        loading(false); 
+    }
 }
 
 async function handleFind() {
@@ -269,7 +267,6 @@ async function verifyAdminPassword() {
     const password = $('admin-password')?.value;
     if (!password) return;
     let verified = false;
-    // Hardcoded check first (Stability)
     if (password === CONFIG.ADMIN_PASSWORD) { verified = true; STATE.adminSession = 'local_' + Date.now(); } 
     else { try { const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password }); if (result.success) { verified = true; STATE.adminSession = result.sessionToken; } } catch (e) {} }
 
@@ -326,7 +323,6 @@ async function loadMissionHistory() { const container = $('admin-tab-history'); 
 function renderAdminAssets() {
     const container = $('admin-tab-assets');
     if(!container) return;
-    // This HTML Structure matches the 'admin-asset-grid' CSS injected at the top
     container.innerHTML = `<div class="admin-asset-grid">${CONFIG.BADGE_POOL.map((url, i) => `
         <div class="admin-asset-item">
             <img src="${url}" class="admin-asset-img">
@@ -354,7 +350,10 @@ async function loadDashboard() {
         setupDashboard(); await loadPage('home');
         if (STATE.isAdmin) addAdminIndicator();
         setTimeout(() => { if (typeof NOTIFICATIONS !== 'undefined') NOTIFICATIONS.checkUpdates(); }, 1500);
-    } catch (e) { console.error('Dashboard error:', e); showToast('Failed to load: ' + e.message, 'error'); if(e.message.includes('found')) logout(); } finally { loading(false); }
+    } catch (e) { 
+        console.error('Dashboard error:', e); 
+        showToast('Failed to load: ' + e.message, 'error'); 
+    } finally { loading(false); }
 }
 
 function setupDashboard() {
@@ -452,7 +451,7 @@ const NOTIFICATIONS = {
 };
 
 document.addEventListener('DOMContentLoaded', initApp);
-console.log('v4.4 Loaded');
+console.log('v4.5 Loaded');
 ```
 
 window.loadPage = loadPage;
