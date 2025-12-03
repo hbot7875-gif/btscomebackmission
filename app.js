@@ -859,8 +859,7 @@ async function verifyAdminPassword() {
     }
 }
 
-// ==================== ADMIN PANEL ====================
-// ==================== ADMIN PANEL (COMPLETELY FIXED) ====================
+// ==================== ADMIN PANEL (FIXED) ====================
 function showAdminPanel() {
     console.log('🎛️ showAdminPanel called');
     
@@ -942,6 +941,7 @@ function showAdminPanel() {
     console.log('✅ Admin panel opened successfully');
 }
 
+// SINGLE closeAdminPanel function - removed duplicate
 function closeAdminPanel() {
     console.log('🔒 closeAdminPanel called');
     const panel = document.getElementById('admin-panel');
@@ -964,24 +964,6 @@ function switchAdminTab(tabName) {
     if (selectedTab) selectedTab.classList.add('active');
     if (selectedContent) selectedContent.classList.add('active');
 }
-// When opening admin panel
-function openAdminPanel() {
-    const adminPanel = document.querySelector('.admin-panel');
-    if (adminPanel) {
-        adminPanel.classList.add('show');
-        document.body.style.overflow = 'hidden';  // Prevent background scroll
-    }
-}
-
-// When closing admin panel
-function closeAdminPanel() {
-    const adminPanel = document.querySelector('.admin-panel');
-    if (adminPanel) {
-        adminPanel.classList.remove('show');
-        document.body.style.overflow = '';  // Restore scroll
-    }
-}
-
 function renderCreateMissionForm() {
     return `
         <div class="create-mission-form" onclick="event.stopPropagation();">
