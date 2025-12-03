@@ -4331,473 +4331,263 @@ textarea:focus-visible {
     line-height: 1.45 !important;
     color: #aaa;
 }
-/* ==================== ADMIN PANEL STYLES - PURPLE CYBER THEME ==================== */
-
-/* Admin Navigation Link */
-.admin-nav-link {
-    border: 1px dashed var(--purple-main);
-    color: var(--purple-glow) !important;
+// ==================== ADMIN LOGIN (FIXED FOR YOUR CSS) ====================
+function showAdminLogin() {
+    if (!isAdminAgent()) { 
+        showToast('Access denied.', 'error'); 
+        return; 
+    }
+    
+    // Close sidebar first
+    closeSidebar();
+    
+    // Remove any existing modals first
+    document.querySelectorAll('.admin-modal-overlay').forEach(m => m.remove());
+    
+    const modal = document.createElement('div');
+    modal.className = 'admin-modal-overlay';  // ← Matches your CSS
+    modal.id = 'admin-modal';
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            closeAdminModal();
+        }
+    };
+    
+    modal.innerHTML = `
+        <div class="admin-modal" onclick="event.stopPropagation();">
+            <div class="admin-modal-header">
+                <h3>Admin Access</h3>
+                <button class="admin-modal-close" type="button" onclick="event.stopPropagation(); closeAdminModal();">×</button>
+            </div>
+            <div class="admin-modal-body">
+                <div class="admin-welcome">
+                    <p>Welcome, Commander</p>
+                    <p class="admin-note">Enter your credentials to access Mission Control</p>
+                </div>
+                <div class="terminal-style">
+                    <div class="terminal-line">AUTHENTICATION REQUIRED</div>
+                    <label class="terminal-label">PASSWORD:</label>
+                    <input type="password" id="admin-password" class="terminal-input" placeholder="Enter access code..." autocomplete="off">
+                </div>
+                <div id="admin-error" class="admin-error"></div>
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" onclick="event.stopPropagation(); closeAdminModal();" class="btn-secondary">
+                    Cancel
+                </button>
+                <button type="button" onclick="event.stopPropagation(); verifyAdminPassword();" class="btn-primary" id="admin-verify-btn">
+                    🔓 Authenticate
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Focus password field after a short delay
+    setTimeout(() => {
+        const pwField = document.getElementById('admin-password');
+        if (pwField) {
+            pwField.focus();
+            pwField.onkeypress = function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    verifyAdminPassword();
+                }
+            };
+        }
+    }, 150);
 }
 
-.admin-nav-link:hover {
-    background: rgba(157, 78, 221, 0.1) !important;
-    border-style: solid;
-}
-
-/* Admin Indicator Badge */
-.admin-indicator {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: linear-gradient(135deg, var(--purple-main), var(--purple-dark));
-    color: white;
-    padding: 12px 20px;
-    border-radius: var(--radius-lg);
-    font-size: 12px;
-    font-weight: 600;
-    z-index: 1000;
-    cursor: pointer;
-    box-shadow: 0 4px 20px rgba(157, 78, 221, 0.4);
-    border: 1px solid var(--purple-light);
-    transition: all var(--transition-normal);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.admin-indicator:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 25px rgba(157, 78, 221, 0.5);
-}
-
-.admin-indicator::before {
-    content: '⚡';
-    font-size: 14px;
-}
-
-@media (max-width: 768px) {
-    .admin-indicator {
-        bottom: 80px;
-        right: 16px;
-        padding: 10px 16px;
-        font-size: 11px;
+function closeAdminModal() {
+    const modal = document.getElementById('admin-modal');
+    if (modal) {
+        modal.remove();
     }
 }
 
-/* ===== ADMIN MODAL (Login/Auth) ===== */
-.admin-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(10, 10, 20, 0.95);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100000;
-    padding: var(--spacing-lg);
-    animation: fadeIn 0.3s ease;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+async function verifyAdminPassword() {
+    const passwordField = document.getElementById('admin-password');
+    const password = passwordField?.value;
+    const errorEl = document.getElementById('admin-error');
+    
+    if (!password) {
+        if (errorEl) {
+            errorEl.textContent = '❌ Please enter password';
+            errorEl.classList.add('show');
+        }
+        return;
+    }
+    
+    let verified = false;
+    
+    // Check local password first
+    if (password === CONFIG.ADMIN_PASSWORD) {
+        verified = true;
+        STATE.adminSession = 'local_' + Date.now();
+    } else {
+        // Try server verification
+        try {
+            const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password });
+            if (result.success) { 
+                verified = true; 
+                STATE.adminSession = result.sessionToken; 
+            }
+        } catch (e) {
+            console.log('Server verification failed:', e);
+        }
+    }
+
+    if (verified) {
+        STATE.isAdmin = true;
+        localStorage.setItem('adminSession', STATE.adminSession);
+        localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
+        
+        // Close modal first
+        closeAdminModal();
+        
+        // Add admin indicator
+        addAdminIndicator();
+        
+        // Ensure week is set
+        if (!STATE.week) { 
+            try { 
+                const w = await api('getAvailableWeeks'); 
+                STATE.week = w.current || w.weeks?.[0]; 
+            } catch(e) {} 
+        }
+        
+        showToast('Access Granted', 'success');
+        
+        // Open admin panel after a short delay
+        setTimeout(() => {
+            showAdminPanel();
+        }, 100);
+        
+    } else {
+        if (errorEl) { 
+            errorEl.textContent = '❌ Invalid password'; 
+            errorEl.classList.add('show');
+        }
+    }
 }
 
-.admin-modal {
-    background: var(--bg-card);
-    border-radius: var(--radius-xl);
-    width: 100%;
-    max-width: 420px;
-    overflow: hidden;
-    animation: slideUp 0.3s ease;
-    border: 2px solid var(--purple-main);
-    box-shadow: 
-        0 0 40px rgba(157, 78, 221, 0.3),
-        inset 0 0 60px rgba(157, 78, 221, 0.05);
+// ==================== ADMIN PANEL (FIXED FOR YOUR CSS) ====================
+function showAdminPanel() {
+    console.log('🎛️ showAdminPanel called');
+    
+    // Remove any existing panels first
+    const existingPanel = document.getElementById('admin-panel');
+    if (existingPanel) {
+        console.log('Removing existing panel');
+        existingPanel.remove();
+    }
+
+    const panel = document.createElement('div');
+    panel.className = 'admin-panel';  // ← Start without 'show' class
+    panel.id = 'admin-panel';
+    
+    // Stop event propagation
+    panel.addEventListener('click', function(e) {
+        e.stopPropagation();
+    }, true);
+    
+    panel.addEventListener('mousedown', function(e) {
+        e.stopPropagation();
+    }, true);
+    
+    panel.addEventListener('touchstart', function(e) {
+        e.stopPropagation();
+    }, { passive: true, capture: true });
+    
+    panel.innerHTML = `
+        <div class="admin-panel-header">
+            <div>
+                <h3 style="margin:0; color:#fff; font-family: 'Orbitron', monospace;">🎛️ Mission Control</h3>
+                <p style="margin:5px 0 0; color:rgba(255,255,255,0.7); font-size:12px;">${STATE.week || 'Current Week'}</p>
+            </div>
+            <button type="button" id="admin-panel-close-btn" class="panel-close">×</button>
+        </div>
+        <div class="admin-panel-tabs">
+            <button type="button" class="admin-tab active" data-tab="create">📝 Create Mission</button>
+            <button type="button" class="admin-tab" data-tab="active">⚡ Active</button>
+            <button type="button" class="admin-tab" data-tab="assets">🎖️ Badges</button>
+            <button type="button" class="admin-tab" data-tab="history">📜 History</button>
+        </div>
+        <div class="admin-panel-content">
+            <div id="admin-tab-create" class="admin-tab-content active">${renderCreateMissionForm()}</div>
+            <div id="admin-tab-active" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
+            <div id="admin-tab-assets" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
+            <div id="admin-tab-history" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
+        </div>
+    `;
+    
+    document.body.appendChild(panel);
+    
+    // ⭐ KEY FIX: Add 'show' class after appending to DOM (triggers CSS animation)
+    requestAnimationFrame(() => {
+        panel.classList.add('show');
+    });
+    
+    // Setup close button
+    const closeBtn = document.getElementById('admin-panel-close-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            closeAdminPanel();
+        }, { capture: true });
+    }
+    
+    // Setup tab handlers
+    panel.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const tabName = this.dataset.tab;
+            switchAdminTab(tabName);
+            if (tabName === 'active') loadActiveTeamMissions();
+            if (tabName === 'assets') renderAdminAssets();
+            if (tabName === 'history') loadMissionHistory();
+        }, { capture: true });
+    });
+    
+    // Prevent body scroll when panel is open
+    document.body.style.overflow = 'hidden';
+    
+    console.log('✅ Admin panel opened successfully');
 }
 
-.admin-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--border);
-    background: linear-gradient(135deg, rgba(157, 78, 221, 0.2), rgba(74, 26, 107, 0.3));
+function closeAdminPanel() {
+    console.log('🔒 closeAdminPanel called');
+    const panel = document.getElementById('admin-panel');
+    if (panel) {
+        // Add closing animation class
+        panel.classList.add('closing');
+        panel.classList.remove('show');
+        
+        // Remove after animation completes
+        setTimeout(() => {
+            panel.remove();
+            document.body.style.overflow = '';
+            console.log('✅ Admin panel closed');
+        }, 300);  // Match your CSS animation duration
+    }
 }
 
-.admin-modal-header h3 {
-    margin: 0;
-    font-size: 18px;
-    font-family: 'Orbitron', monospace;
-    color: var(--purple-glow);
-    letter-spacing: 1px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.admin-modal-header h3::before {
-    content: '🔐';
-    font-size: 20px;
-}
-
-.admin-modal-close {
-    background: var(--bg-dark);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    width: 36px;
-    height: 36px;
-    border-radius: var(--radius-full);
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.admin-modal-close:hover {
-    background: rgba(248, 113, 113, 0.2);
-    border-color: var(--danger);
-    color: var(--danger);
-}
-
-.admin-modal-body {
-    padding: var(--spacing-xl);
-}
-
-.admin-welcome {
-    text-align: center;
-    margin-bottom: var(--spacing-xl);
-}
-
-.admin-welcome p:first-child {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-bright);
-    margin-bottom: var(--spacing-sm);
-}
-
-.admin-note {
-    font-size: 13px;
-    color: var(--text-dim);
-    line-height: 1.5;
-}
-
-/* Terminal Style Input */
-.terminal-style {
-    font-family: 'Share Tech Mono', 'Courier New', monospace;
-}
-
-.terminal-line {
-    color: var(--purple-glow);
-    font-size: 13px;
-    margin-bottom: var(--spacing-md);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.terminal-line::before {
-    content: '>';
-    color: var(--success);
-    font-weight: bold;
-}
-
-.terminal-label {
-    color: var(--purple-glow);
-    font-size: 12px;
-    margin-bottom: var(--spacing-sm);
-    display: block;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
-
-.terminal-input {
-    width: 100%;
-    background: var(--bg-dark);
-    border: 1px solid var(--border);
-    color: var(--purple-glow);
-    padding: 14px 16px;
-    font-family: 'Share Tech Mono', 'Courier New', monospace;
-    font-size: 16px;
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
-}
-
-.terminal-input:focus {
-    outline: none;
-    border-color: var(--purple-main);
-    box-shadow: 0 0 20px rgba(157, 78, 221, 0.3);
-    background: var(--bg-hover);
-}
-
-.terminal-input::placeholder {
-    color: var(--text-muted);
-}
-
-.admin-error {
-    color: var(--danger);
-    font-size: 13px;
-    margin-top: var(--spacing-md);
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: rgba(248, 113, 113, 0.1);
-    border: 1px solid rgba(248, 113, 113, 0.3);
-    border-radius: var(--radius-md);
-    display: none;
-    text-align: center;
-}
-
-.admin-error.show {
-    display: block;
-    animation: shake 0.5s ease;
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-
-.admin-modal-footer {
-    display: flex;
-    gap: var(--spacing-md);
-    justify-content: flex-end;
-    padding: var(--spacing-md) var(--spacing-xl) var(--spacing-xl);
-}
-
-.admin-modal-footer .btn-primary {
-    flex: 1;
-    background: linear-gradient(135deg, var(--purple-main), var(--purple-dark));
-    border: 1px solid var(--purple-light);
-}
-
-.admin-modal-footer .btn-secondary {
-    background: transparent;
-    border: 1px solid var(--border);
-}
-
-/* ===== ADMIN PANEL (Full Screen) - FIXED ===== */
-.admin-panel {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    background: var(--bg-dark) !important;
-    z-index: 999999 !important;  /* Very high to be on top */
-    display: none;
-    flex-direction: column;
-    overflow: hidden;
-    isolation: isolate;  /* Creates new stacking context */
-}
-
-.admin-panel.show {
-    display: flex !important;
-    animation: adminPanelIn 0.3s ease-out;
-}
-
-.admin-panel.closing {
-    animation: adminPanelOut 0.3s ease-in forwards;
-}
-
-/* Ensure all admin panel content is clickable */
-.admin-panel * {
-    pointer-events: auto;
-}
-
-.admin-panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--spacing-lg) var(--spacing-xl);
-    background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple-main) 50%, var(--purple-dark) 100%);
-    border-bottom: 2px solid var(--purple-glow);
-    flex-shrink: 0;
-    position: relative;
-    z-index: 10;  /* Above other panel content */
-}
-
-.admin-panel-tabs {
-    display: flex;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-    flex-shrink: 0;
-    padding: 0 var(--spacing-md);
-    gap: var(--spacing-xs);
-    position: relative;
-    z-index: 10;  /* Above content */
-}
-
-.admin-tab {
-    padding: 16px 24px;
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    cursor: pointer;  /* Make sure cursor shows pointer */
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
-    border-bottom: 3px solid transparent;
-    transition: all var(--transition-fast);
-    font-family: 'Rajdhani', sans-serif;
-    letter-spacing: 0.5px;
-    position: relative;
-    z-index: 11;  /* Clickable */
-    pointer-events: auto;  /* Ensure clickable */
-}
-
-.admin-tab:hover {
-    color: var(--text-bright);
-    background: rgba(157, 78, 221, 0.1);
-}
-
-.admin-tab.active {
-    color: var(--purple-glow);
-    border-bottom-color: var(--purple-main);
-    background: rgba(157, 78, 221, 0.15);
-}
-
-.admin-panel-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: var(--spacing-xl);
-    background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-card) 100%);
-    position: relative;
-    z-index: 5;
-}
-
-.admin-tab-content {
-    display: none;
-    animation: contentFadeIn 0.3s ease;
-}
-
-.admin-tab-content.active {
-    display: block;
-}
-
-/* Close button - ensure clickable */
-.panel-close {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-full);
-    font-size: 24px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--transition-fast);
-    position: relative;
-    z-index: 20;  /* Always on top */
-    pointer-events: auto !important;  /* Force clickable */
-}
-
-.panel-close:hover {
-    background: rgba(248, 113, 113, 0.3);
-    border-color: var(--danger);
-    transform: rotate(90deg);
-}
-
-/* All buttons in admin panel must be clickable */
-.admin-panel button,
-.admin-panel .btn-primary,
-.admin-panel .btn-secondary,
-.admin-panel input,
-.admin-panel select,
-.admin-panel textarea,
-.admin-panel a,
-.admin-panel label {
-    pointer-events: auto !important;
-    cursor: pointer;
-    position: relative;
-    z-index: 5;
-}
-
-.admin-panel input[type="text"],
-.admin-panel input[type="number"],
-.admin-panel textarea {
-    cursor: text;
-}
-
-/* Mission type options - clickable */
-.mission-type-option {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: var(--spacing-md);
-    background: var(--bg-dark);
-    border: 2px solid var(--border);
-    border-radius: var(--radius-lg);
-    cursor: pointer !important;
-    pointer-events: auto !important;
-    transition: all var(--transition-fast);
-    position: relative;
-    z-index: 5;
-}
-
-.mission-type-option:hover {
-    border-color: var(--purple-main);
-    transform: translateY(-2px);
-    background: rgba(157, 78, 221, 0.1);
-}
-
-.mission-type-option.selected {
-    border-color: var(--purple-glow);
-    background: rgba(157, 78, 221, 0.2);
-    box-shadow: 0 0 20px rgba(157, 78, 221, 0.3);
-}
-
-/* Team checkboxes - clickable */
-.team-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 18px;
-    background: var(--bg-dark);
-    border: 2px solid var(--border);
-    border-radius: var(--radius-md);
-    cursor: pointer !important;
-    pointer-events: auto !important;
-    transition: all var(--transition-fast);
-    flex: 1;
-    min-width: 140px;
-    position: relative;
-    z-index: 5;
-}
-
-.team-checkbox:hover {
-    border-color: var(--purple-main);
-    background: rgba(157, 78, 221, 0.1);
-}
-
-/* Form inputs - clickable/typeable */
-.form-input,
-.form-select,
-.form-textarea {
-    width: 100%;
-    background: var(--bg-dark);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 14px 16px;
-    border-radius: var(--radius-md);
-    font-size: 14px;
-    font-family: 'Rajdhani', sans-serif;
-    transition: all var(--transition-fast);
-    pointer-events: auto !important;
-    position: relative;
-    z-index: 5;
-}
-
-.form-input:focus,
-.form-select:focus,
-.form-textarea:focus {
-    outline: none;
-    border-color: var(--purple-main);
-    box-shadow: 0 0 20px rgba(157, 78, 221, 0.2);
-    background: var(--bg-hover);
+function switchAdminTab(tabName) {
+    // Remove active from all tabs
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+    
+    // Add active to selected
+    const selectedTab = document.querySelector(`.admin-tab[data-tab="${tabName}"]`);
+    const selectedContent = document.getElementById(`admin-tab-${tabName}`);
+    
+    if (selectedTab) selectedTab.classList.add('active');
+    if (selectedContent) selectedContent.classList.add('active');
 }
 /* ==================== END OF STYLES ==================== */
