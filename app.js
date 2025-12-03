@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.2 (Cool Badges Update) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.3 (Stable Logic + Cool Design) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -126,9 +126,9 @@ async function api(action, params = {}) {
 
 // ==================== INITIALIZATION ====================
 function initApp() {
-    console.log('🚀 Starting App v4.2 (Cool Badges)...');
-    injectCoolBadgeCSS(); // NEW: Injects the cool styles
-    ensureAdminCSS();
+    console.log('🚀 Starting App v4.3 (Stable + Cool Design)...');
+    injectCoolBadgeCSS(); // INJECT NEW STYLES
+    ensureAdminCSS();     // ENSURE ADMIN VISIBILITY
     loading(false);
     setupLoginListeners();
     loadAllAgents();
@@ -136,45 +136,50 @@ function initApp() {
     if (saved) { STATE.agentNo = saved; checkAdminStatus(); loadDashboard(); }
 }
 
-// === NEW: COOL BADGE STYLES ===
+// === 1. NEW DESIGN CSS ===
 function injectCoolBadgeCSS() {
     if ($('cool-badge-styles')) return;
     const style = document.createElement('style');
     style.id = 'cool-badge-styles';
     style.textContent = `
-        /* --- DRAWER/PROFILE BADGES (The Medal Look) --- */
-        .cool-badge-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+        /* --- AGENT DRAWER (Holographic Medal Look) --- */
+        .cool-badge-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; padding: 10px; }
         .cool-badge-item { display: flex; flex-direction: column; align-items: center; width: 90px; }
         .cool-badge-img-wrapper {
             width: 80px; height: 80px;
             border-radius: 50%;
-            padding: 3px; /* Space for the gradient */
-            background: linear-gradient(45deg, #7b2cbf, #4cc9f0); /* Neon Gradient */
-            box-shadow: 0 0 15px rgba(123, 44, 191, 0.4);
+            padding: 3px; /* Gap for gradient */
+            background: linear-gradient(135deg, #ff00cc, #3333ff); /* Neon Pink/Blue */
+            box-shadow: 0 0 10px rgba(51, 51, 255, 0.5);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
         }
-        .cool-badge-img-wrapper:hover { transform: scale(1.1); box-shadow: 0 0 25px rgba(76, 201, 240, 0.6); }
+        .cool-badge-img-wrapper:hover { transform: scale(1.1); box-shadow: 0 0 20px rgba(255, 0, 204, 0.8); }
         .cool-badge-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 2px solid #000; background: #000; }
-        .cool-badge-label { margin-top: 8px; font-size: 11px; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; color: #fff; border: 1px solid rgba(255,255,255,0.1); }
+        .cool-badge-label { margin-top: 10px; font-size: 10px; background: #1a1a2e; padding: 3px 10px; border-radius: 12px; color: #fff; border: 1px solid #333; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* --- ADMIN ASSETS (The Grid Look) --- */
-        .admin-asset-grid { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; }
+        /* --- ADMIN ASSETS (Data Chip Grid) --- */
+        .admin-asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px; padding: 10px; }
         .admin-asset-item { 
-            width: 60px; height: 60px; 
-            border-radius: 8px; 
+            width: 100%; aspect-ratio: 1;
+            border-radius: 10px; 
             overflow: hidden; 
-            border: 1px solid #333;
+            border: 1px solid #444;
             position: relative;
-            transition: transform 0.2s;
+            background: #000;
+            transition: transform 0.2s ease;
+            cursor: pointer;
         }
-        .admin-asset-item:hover { transform: scale(1.1); z-index: 10; border-color: #fff; }
-        .admin-asset-img { width: 100%; height: 100%; object-fit: cover; }
-        .admin-asset-id { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.7); font-size: 9px; color: #fff; text-align: center; padding: 1px 0; }
+        .admin-asset-item:hover { transform: scale(1.15); z-index: 100; border-color: #7b2cbf; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .admin-asset-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; transition: opacity 0.2s; }
+        .admin-asset-item:hover .admin-asset-img { opacity: 1; }
+        .admin-asset-id { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.8); font-size: 9px; color: #fff; text-align: center; padding: 2px 0; font-family: monospace; }
     `;
     document.head.appendChild(style);
 }
 
+// === 2. STABLE ADMIN CSS (Aggressive Z-Index) ===
 function ensureAdminCSS() {
     if ($('admin-panel-styles')) return;
     const style = document.createElement('style');
@@ -209,14 +214,23 @@ async function handleLogin() {
     if (!agentNo) { showResult('Enter Agent Number', true); return; }
     loading(true);
     try {
-        if (STATE.allAgents.length === 0) await loadAllAgents();
-        const found = STATE.allAgents.find(a => String(a.agentNo).trim().toUpperCase() === agentNo);
-        if (!found) throw new Error('Agent not found');
-        localStorage.setItem('spyAgent', found.agentNo);
-        STATE.agentNo = found.agentNo;
+        // Optimistic Login (v4.1 logic)
+        if (STATE.allAgents.length > 0) {
+            const found = STATE.allAgents.find(a => String(a.agentNo).trim().toUpperCase() === agentNo);
+            if (!found) throw new Error('Agent not found');
+        }
+        localStorage.setItem('spyAgent', agentNo);
+        STATE.agentNo = agentNo;
         checkAdminStatus();
         await loadDashboard();
-    } catch (e) { showResult(e.message, true); } finally { loading(false); }
+    } catch (e) { 
+        // Retry via server if local list failed
+        try {
+            const check = await api('getAgentData', { agentNo: agentNo, week: 'Check' });
+            if (check.profile) { localStorage.setItem('spyAgent', agentNo); STATE.agentNo = agentNo; checkAdminStatus(); await loadDashboard(); return; }
+        } catch(err){}
+        showResult('Login Failed', true); 
+    } finally { loading(false); }
 }
 
 async function handleFind() {
@@ -233,7 +247,7 @@ async function handleFind() {
     } catch (e) { showResult(e.message, true); } finally { loading(false); }
 }
 
-// ==================== ADMIN ====================
+// ==================== ADMIN LOGIC ====================
 function checkAdminStatus() {
     if (String(STATE.agentNo).toUpperCase() !== String(CONFIG.ADMIN_AGENT_NO).toUpperCase()) { STATE.isAdmin = false; return; }
     const savedSession = localStorage.getItem('adminSession');
@@ -256,6 +270,7 @@ async function verifyAdminPassword() {
     const password = $('admin-password')?.value;
     if (!password) return;
     let verified = false;
+    // Hardcoded check first (Stability)
     if (password === CONFIG.ADMIN_PASSWORD) { verified = true; STATE.adminSession = 'local_' + Date.now(); } 
     else { try { const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password }); if (result.success) { verified = true; STATE.adminSession = result.sessionToken; } } catch (e) {} }
 
@@ -277,6 +292,7 @@ function addAdminIndicator() {
     nav.appendChild(link);
 }
 
+// ==================== ADMIN PANEL ====================
 function showAdminPanel() {
     if (!STATE.isAdmin) return showAdminLogin();
     document.querySelectorAll('.admin-panel').forEach(p => p.remove());
@@ -325,10 +341,15 @@ async function loadDashboard() {
         const weeksRes = await api('getAvailableWeeks'); STATE.weeks = weeksRes.weeks || []; STATE.week = weeksRes.current || STATE.weeks[0];
         STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: STATE.week });
         if (STATE.data?.lastUpdated) STATE.lastUpdated = STATE.data.lastUpdated;
-        $('login-screen').style.display = 'none'; $('dashboard-screen').style.display = 'flex';
+        
+        // EXPLICIT SCREEN SWITCH
+        $('login-screen').classList.remove('active'); $('login-screen').style.display = 'none';
+        $('dashboard-screen').classList.add('active'); $('dashboard-screen').style.display = 'flex';
+        
         setupDashboard(); await loadPage('home');
         if (STATE.isAdmin) addAdminIndicator();
-    } catch (e) { console.error('Dashboard error:', e); showToast('Failed to load: ' + e.message, 'error'); logout(); } finally { loading(false); }
+        setTimeout(() => { if (typeof NOTIFICATIONS !== 'undefined') NOTIFICATIONS.checkUpdates(); }, 1500);
+    } catch (e) { console.error('Dashboard error:', e); showToast('Failed to load: ' + e.message, 'error'); if(e.message.includes('found')) logout(); } finally { loading(false); }
 }
 
 function setupDashboard() {
@@ -390,7 +411,7 @@ async function renderDrawer() {
 }
 
 async function renderProfile() { $('profile-stats').innerHTML = `<div class="stat-box"><div class="stat-value">${fmt(STATE.data.stats.totalXP)}</div><div class="stat-label">XP</div></div>`; }
-async function renderRankings() { /* Same as before */ $('rankings-list').innerHTML = 'Loading...'; await renderOverallRankings(); }
+async function renderRankings() { $('rankings-list').innerHTML = 'Loading...'; await renderOverallRankings(); }
 async function renderOverallRankings() { const d = await api('getRankings', { week: STATE.week, limit: 100 }); $('rankings-list').innerHTML = d.rankings.map((r,i)=>`<div class="rank-item">#${i+1} ${r.name} - ${r.totalXP}</div>`).join(''); }
 async function renderGoals() { $('goals-content').innerHTML = 'Loading...'; const g = await api('getGoalsProgress', {week:STATE.week}); $('goals-content').innerHTML = `<div class="card"><div class="card-body"><h3>Goals</h3><p>Loaded</p></div></div>`; }
 async function renderAlbum2x() { $('album2x-content').innerHTML = 'Loading...'; $('album2x-content').innerHTML = `<div class="card"><div class="card-body"><h3>2X</h3><p>Loaded</p></div></div>`; }
@@ -400,8 +421,31 @@ async function renderSummary() { $('summary-content').innerHTML = 'Check back la
 async function renderAnnouncements() { $('announcements-content').innerHTML = 'Loading...'; $('announcements-content').innerHTML = 'No news'; }
 async function renderSecretMissions() { $('secret-missions-content').innerHTML = 'Loading...'; $('secret-missions-content').innerHTML = 'No missions'; }
 
+// ==================== NOTIFICATIONS ====================
+const NOTIFICATIONS = {
+    checkUpdates: function() {
+        const stats = STATE.data?.stats || {};
+        let newNotifications = [];
+        const currentXP = parseInt(stats.totalXP) || 0;
+        const currentLevel = Math.floor(currentXP / 100);
+        const savedLevel = parseInt(localStorage.getItem('spy_lastLevel')) || 0;
+        if (currentLevel > savedLevel) {
+            newNotifications.push({ type: 'badge', msg: `New Badge Unlocked: Level ${currentLevel}`, page: 'drawer', dotId: 'dot-drawer' });
+            localStorage.setItem('spy_lastLevel', currentLevel);
+        }
+        if (newNotifications.length > 0) { this.showIntelModal(newNotifications); this.updateSidebarDots(newNotifications); }
+    },
+    showIntelModal: function(notifs) {
+        document.querySelector('.intel-modal')?.remove();
+        const html = `<div class="intel-modal"><div class="intel-header"><span>📡 UPDATE</span><button onclick="this.closest('.intel-modal').remove()">✕</button></div>${notifs.map(n => `<div class="intel-item" onclick="loadPage('${n.page}')">${n.msg}</div>`).join('')}</div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+        setTimeout(() => document.querySelector('.intel-modal').classList.add('show'), 500);
+    },
+    updateSidebarDots: function(notifs) { notifs.forEach(n => { const dot = document.getElementById(n.dotId); if (dot) dot.classList.add('active'); }); }
+};
+
 document.addEventListener('DOMContentLoaded', initApp);
-console.log('v4.2 Loaded');
+console.log('v4.3 Loaded');
 
 window.loadPage = loadPage;
 window.logout = logout;
