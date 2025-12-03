@@ -734,7 +734,7 @@ function showAdminLogin() {
     document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
     
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
+    modal.className = 'admin-modal-overlay';
     modal.id = 'admin-modal';
     
     // Stop propagation on the modal itself
