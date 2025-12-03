@@ -1,16 +1,3 @@
-This sounds like a **CSS Layering (Z-Index) issue** or a **CSS Animation conflict**. The panel is likely opening, but getting hidden immediately behind the dashboard or fading out because of a transition bug.
-
-Here is **v4.1**. I have stripped out the "fancy" close animations and forced the Admin Panel to sit on top of **everything** with aggressive CSS.
-
-### 🔧 Changes in this version:
-1.  **Forced Visibility:** Added `!important` to the Admin Panel CSS to ensure nothing overrides it.
-2.  **Removed Animations:** The panel now opens/closes instantly to prevent it from getting stuck in a "fading out" state.
-3.  **Z-Index Boost:** Increased Z-Index to `999999` to ensure it's above the loading screen and dashboard.
-4.  **Direct Cleanup:** The `closeAdminPanel` function now deletes the element immediately, preventing ghost elements.
-
-### 📋 Copy & Paste Full Code:
-
-```javascript
 // ===== BTS SPY BATTLE - COMPLETE APP.JS v4.1 (Stability Fix) =====
 
 // ==================== CONFIGURATION ====================
@@ -1090,4 +1077,3 @@ window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
 
 console.log('🎮 BTS Spy Battle v3.8 Loaded (Original+Fixes)');
-```
