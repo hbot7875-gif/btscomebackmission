@@ -860,26 +860,41 @@ async function verifyAdminPassword() {
 }
 
 // ==================== ADMIN PANEL ====================
+// ==================== ADMIN PANEL (COMPLETELY FIXED) ====================
 function showAdminPanel() {
-    // Remove any existing panels
-    document.querySelectorAll('.admin-panel').forEach(p => p.remove());
+    console.log('🎛️ showAdminPanel called');
+    
+    // Remove any existing panels first
+    const existingPanel = document.getElementById('admin-panel');
+    if (existingPanel) {
+        console.log('Removing existing panel');
+        existingPanel.remove();
+    }
 
     const panel = document.createElement('div');
     panel.className = 'admin-panel';
     panel.id = 'admin-panel';
     
-    // Prevent clicks inside panel from bubbling
-    panel.onclick = function(e) {
+    // CRITICAL: Stop ALL event propagation
+    panel.addEventListener('click', function(e) {
         e.stopPropagation();
-    };
+    }, true);
+    
+    panel.addEventListener('mousedown', function(e) {
+        e.stopPropagation();
+    }, true);
+    
+    panel.addEventListener('touchstart', function(e) {
+        e.stopPropagation();
+    }, { passive: true, capture: true });
     
     panel.innerHTML = `
         <div class="admin-panel-header">
             <div>
-                <h3 style="margin:0;">🎛️ Mission Control</h3>
-                <p style="margin:5px 0 0;color:#888;font-size:12px;">${STATE.week || 'Current Week'}</p>
+                <h3 style="margin:0; color:#fff;">🎛️ Mission Control</h3>
+                <p style="margin:5px 0 0; color:#888; font-size:12px;">${STATE.week || 'Current Week'}</p>
             </div>
-            <button type="button" class="panel-close" onclick="event.stopPropagation(); closeAdminPanel();" style="background:none;border:none;color:#fff;font-size:28px;cursor:pointer;padding:5px 10px;">×</button>
+            <button type="button" id="admin-panel-close-btn" class="panel-close" style="background:none; border:none; color:#fff; font-size:28px; cursor:pointer; padding:5px 15px; border-radius:8px;">×</button>
         </div>
         <div class="admin-panel-tabs">
             <button type="button" class="admin-tab active" data-tab="create">Create Mission</button>
@@ -897,9 +912,20 @@ function showAdminPanel() {
     
     document.body.appendChild(panel);
     
-    // Setup tab handlers with event stopPropagation
-    panel.querySelectorAll('.admin-tab').forEach(tab => { 
-        tab.onclick = function(e) {
+    // Setup close button with dedicated handler
+    const closeBtn = document.getElementById('admin-panel-close-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            closeAdminPanel();
+        }, { capture: true });
+    }
+    
+    // Setup tab handlers
+    panel.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             const tabName = this.dataset.tab;
@@ -907,17 +933,21 @@ function showAdminPanel() {
             if (tabName === 'active') loadActiveTeamMissions();
             if (tabName === 'assets') renderAdminAssets();
             if (tabName === 'history') loadMissionHistory();
-        };
+        }, { capture: true });
     });
     
-    console.log('✅ Admin panel opened');
+    // Prevent body scroll when panel is open
+    document.body.style.overflow = 'hidden';
+    
+    console.log('✅ Admin panel opened successfully');
 }
 
 function closeAdminPanel() {
+    console.log('🔒 closeAdminPanel called');
     const panel = document.getElementById('admin-panel');
     if (panel) {
-        panel.style.display = 'none';
-        setTimeout(() => panel.remove(), 10);
+        panel.remove();
+        document.body.style.overflow = '';
         console.log('✅ Admin panel closed');
     }
 }
@@ -1244,47 +1274,66 @@ async function adminCancelMission(id) {
 }
 
 // ==================== ADMIN INDICATOR ====================
+// ==================== ADMIN INDICATOR (COMPLETELY FIXED) ====================
 function addAdminIndicator() {
     // Remove any existing admin links to prevent duplicates
     document.querySelectorAll('.admin-nav-link').forEach(el => el.remove());
     
-    let nav = document.querySelector('.nav-links');
-    if (!nav) nav = document.getElementById('sidebar');
-    if (!nav) return;
+    // Use the dedicated admin container in HTML
+    let container = document.getElementById('nav-admin-container');
+    
+    // Fallback to nav-links if container doesn't exist
+    if (!container) {
+        container = document.querySelector('.nav-links');
+    }
+    
+    if (!container) {
+        console.warn('Could not find container for admin button');
+        return;
+    }
     
     const link = document.createElement('a');
     link.href = '#';
     link.className = 'nav-link admin-nav-link';
-    link.style.marginTop = 'auto';
-    link.style.borderTop = '1px solid rgba(255,255,255,0.1)';
-    link.style.paddingTop = '15px';
-    link.innerHTML = '<span class="nav-icon">🎛️</span><span>Admin Panel</span>';
+    link.innerHTML = '<span class="nav-icon">🎛️</span><span class="nav-text">Admin Panel</span>';
     
-    link.onclick = function(e) {
+    // Use a named function for the click handler
+    link.addEventListener('click', function handleAdminClick(e) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
         
-        // Close the sidebar first
+        console.log('🔐 Admin button clicked');
+        
+        // Close sidebar first
         closeSidebar();
         
-        // Open panel after a tiny delay to prevent event conflict
-        setTimeout(() => {
-            if (STATE.isAdmin) {
-                if (!document.getElementById('admin-panel')) {
-                    showAdminPanel();
+        // Use requestAnimationFrame for better timing
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                if (STATE.isAdmin) {
+                    if (!document.getElementById('admin-panel')) {
+                        console.log('Opening admin panel...');
+                        showAdminPanel();
+                    } else {
+                        console.log('Admin panel already open');
+                    }
+                } else {
+                    if (!document.getElementById('admin-modal')) {
+                        console.log('Opening admin login...');
+                        showAdminLogin();
+                    } else {
+                        console.log('Admin modal already open');
+                    }
                 }
-            } else {
-                if (!document.getElementById('admin-modal')) {
-                    showAdminLogin();
-                }
-            }
-        }, 50);
+            }, 100);
+        });
         
         return false;
-    };
+    }, { capture: true });
     
-    nav.appendChild(link);
+    container.appendChild(link);
+    console.log('✅ Admin indicator added');
 }
 
 async function loadDashboard() {
