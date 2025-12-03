@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.8 (Strategic Update) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.8 (Fixed) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -60,40 +60,11 @@ const CONFIG = {
     SECRET_MISSIONS: { xpPerMission: 5, maxMissionsPerTeam: 5, maxTeamBonus: 25 },
     
     MISSION_TYPES: {
-        // STRATEGY 1: PLATFORM SWITCHING
-        'switch_app': { 
-            name: 'Switch App', 
-            icon: '🔄', 
-            description: 'Stop Spotify. Switch to YouTube/Apple Music for 1 hour.' 
-        },
-
-        // STRATEGY 2: HUMAN BEHAVIOR
-        'filler_mode': { 
-            name: 'Filler Mode', 
-            icon: '🧬', 
-            description: 'Stream 1 BTS Song + 2 Non-Kpop songs to look human.' 
-        },
-
-        // STRATEGY 3: WARM UP / 1 BILLION
-        'old_songs': { 
-            name: 'Old Songs', 
-            icon: '🕰️', 
-            description: 'Stream tracks older than 2 years (Road to 1B).' 
-        },
-
-        // STRATEGY 4: COORDINATED ATTACK
-        'stream_party': { 
-            name: 'Stream Party', 
-            icon: '🎉', 
-            description: 'Everyone streams the exact same playlist NOW.' 
-        },
-
-        // STRATEGY 5: THE "ANYTHING ELSE" OPTION
-        'custom': { 
-            name: 'Custom Task', 
-            icon: '⭐', 
-            description: 'Special instruction from Admin. Read briefing carefully.' 
-        }
+        'switch_app': { name: 'Switch App', icon: '🔄', description: 'Stop Spotify. Switch to YouTube/Apple Music for 1 hour.' },
+        'filler_mode': { name: 'Filler Mode', icon: '🧬', description: 'Stream 1 BTS Song + 2 Non-Kpop songs to look human.' },
+        'old_songs': { name: 'Old Songs', icon: '🕰️', description: 'Stream tracks older than 2 years (Road to 1B).' },
+        'stream_party': { name: 'Stream Party', icon: '🎉', description: 'Everyone streams the exact same playlist NOW.' },
+        'custom': { name: 'Custom Task', icon: '⭐', description: 'Special instruction from Admin. Read briefing carefully.' }
     }
 };
 
@@ -122,15 +93,11 @@ function loading(show) {
     if (el) el.classList.toggle('active', show);
 }
 
-function fmt(n) {
-    return Number(n || 0).toLocaleString();
-}
+function fmt(n) { return Number(n || 0).toLocaleString(); }
 
 function sanitize(str) {
     if (!str) return '';
-    return String(str).replace(/[<>\"'&]/g, char => ({
-        '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;'
-    })[char] || char);
+    return String(str).replace(/[<>\"'&]/g, char => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;' })[char] || char);
 }
 
 function formatLastUpdated(dateStr) {
@@ -163,11 +130,8 @@ function showResult(msg, isError) {
 function updateTime() {
     const el = $('last-update');
     if (el) {
-        if (STATE.lastUpdated) {
-            el.textContent = `Updated: ${formatLastUpdated(STATE.lastUpdated)}`;
-        } else {
-            el.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        }
+        if (STATE.lastUpdated) el.textContent = `Updated: ${formatLastUpdated(STATE.lastUpdated)}`;
+        else el.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     }
 }
 
@@ -193,36 +157,12 @@ function isWeekCompleted(selectedWeek) {
 
 // ==================== GUIDES / INSTRUCTIONS ====================
 const PAGE_GUIDES = {
-    'home': {
-        icon: '👋',
-        title: 'Welcome to HQ!',
-        text: "Comeback is real and we’re not losing. Just stream like your life depends on it (it kinda does)."
-    },
-    'goals': {
-        icon: '🎯',
-        title: 'Team Targets',
-        text: "These are the tracks we are focusing on this week. Don’t loop one track — it looks like bot activity.Mix it up!"
-    },
-    'album2x': {
-        icon: '🎧',
-        title: 'The 2X Challenge',
-        text: "A simple mission: Try to listen to every song on this album at least 2 times this week. It's a great way to rediscover B-sides!"
-    },
-    'secret-missions': {
-        icon: '🕵️',
-        title: 'Classified Tasks',
-        text: "These grant bonus XP! If you see a mission here, it means your team needs extra help on a specific song. If it's empty, you're doing great!"
-    },
-    'team-level': {
-        icon: '🚀',
-        title: 'Leveling Up',
-        text: "This shows how strong your team is. Complete the Track, Album, and 2X missions to earn all 3 badges and raise your team's level!"
-    },
-    'rankings': {
-        icon: '🏆',
-        title: 'Friendly Competition',
-        text: "Remember, we are all one big team! Rankings are just for fun. Whether you are #1 or #100, every stream counts."
-    }
+    'home': { icon: '👋', title: 'Welcome to HQ!', text: "Comeback is real and we’re not losing. Just stream like your life depends on it (it kinda does)." },
+    'goals': { icon: '🎯', title: 'Team Targets', text: "These are the tracks we are focusing on this week. Don’t loop one track — it looks like bot activity. Mix it up!" },
+    'album2x': { icon: '🎧', title: 'The 2X Challenge', text: "A simple mission: Try to listen to every song on this album at least 2 times this week. It's a great way to rediscover B-sides!" },
+    'secret-missions': { icon: '🕵️', title: 'Classified Tasks', text: "These grant bonus XP! If you see a mission here, it means your team needs extra help on a specific song. If it's empty, you're doing great!" },
+    'team-level': { icon: '🚀', title: 'Leveling Up', text: "This shows how strong your team is. Complete the Track, Album, and 2X missions to earn all 3 badges and raise your team's level!" },
+    'rankings': { icon: '🏆', title: 'Friendly Competition', text: "Remember, we are all one big team! Rankings are just for fun. Whether you are #1 or #100, every stream counts." }
 };
 
 function renderGuide(pageName) {
@@ -358,7 +298,8 @@ async function handleFind() {
     finally { if (findBtn) { findBtn.disabled = false; findBtn.textContent = originalText || 'Find My ID'; } loading(false); }
 }
 
-// ==================== ADMIN FUNCTIONS ====================
+// ==================== ADMIN LOGIC ====================
+
 function checkAdminStatus() {
     if (String(STATE.agentNo).toUpperCase() !== String(CONFIG.ADMIN_AGENT_NO).toUpperCase()) {
         STATE.isAdmin = false;
@@ -369,6 +310,8 @@ function checkAdminStatus() {
     if (savedSession && savedExpiry && Date.now() < parseInt(savedExpiry)) {
         STATE.isAdmin = true;
         STATE.adminSession = savedSession;
+        // Extend expiry by 24h on check
+        localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
     } else {
         localStorage.removeItem('adminSession');
         localStorage.removeItem('adminExpiry');
@@ -425,7 +368,18 @@ async function verifyAdminPassword() {
             localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
             closeAdminModal();
             addAdminIndicator();
-            showAdminPanel();
+            
+            // Refresh dashboard data if week changed or stale
+            if (!STATE.week) {
+                try {
+                    const weeksRes = await api('getAvailableWeeks');
+                    STATE.week = weeksRes.current || weeksRes.weeks?.[0];
+                    const select = $('week-select');
+                    if (select) select.value = STATE.week;
+                } catch (e) { showToast('Week data unavailable', 'error'); }
+            }
+
+            setTimeout(() => showAdminPanel(), 100);
             showToast('Admin access granted!', 'success');
         } else {
             if (errorEl) { errorEl.textContent = '❌ Invalid password'; errorEl.classList.add('show'); }
@@ -465,9 +419,12 @@ function exitAdminMode() {
     }
 }
 
-// ==================== ADMIN PANEL & ASSETS ====================
 function showAdminPanel() {
-    if (!STATE.isAdmin) { showAdminLogin(); return; }
+    if (!STATE.isAdmin) { 
+        showToast('Admin session expired. Re-login required.', 'error'); 
+        exitAdminMode(); 
+        return; 
+    }
     
     document.querySelector('.admin-panel')?.remove();
     
@@ -475,7 +432,7 @@ function showAdminPanel() {
     panel.className = 'admin-panel';
     panel.innerHTML = `
         <div class="admin-panel-header">
-            <h3>🎛️ Mission Control</h3>
+            <h3>🎛️ Mission Control • ${STATE.week || 'No Week'}</h3>
             <button class="panel-close" onclick="closeAdminPanel()">×</button>
         </div>
         <div class="admin-panel-tabs">
@@ -486,23 +443,25 @@ function showAdminPanel() {
         </div>
         <div class="admin-panel-content">
             <div id="admin-tab-create" class="admin-tab-content active">${renderCreateMissionForm()}</div>
-            <div id="admin-tab-active" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
-            <div id="admin-tab-assets" class="admin-tab-content"></div>
-            <div id="admin-tab-history" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
+            <div id="admin-tab-active" class="admin-tab-content"><div class="loading-text">Switch to this tab to load...</div></div>
+            <div id="admin-tab-assets" class="admin-tab-content"><div class="loading-text">Switch to this tab to load...</div></div>
+            <div id="admin-tab-history" class="admin-tab-content"><div class="loading-text">Switch to this tab to load...</div></div>
         </div>
     `;
     document.body.appendChild(panel);
     
-    // Add click listeners
     panel.querySelectorAll('.admin-tab').forEach(tab => { 
-        tab.onclick = () => {
-            switchAdminTab(tab.dataset.tab);
-            if (tab.dataset.tab === 'assets') renderAdminAssets();
-            if (tab.dataset.tab === 'history') loadMissionHistory();
-        };
+        tab.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabName = tab.dataset.tab;
+            switchAdminTab(tabName);
+            if (tabName === 'active') loadActiveTeamMissions();
+            if (tabName === 'assets') renderAdminAssets();
+            if (tabName === 'history') loadMissionHistory();
+        });
     });
     
-    loadActiveTeamMissions();
+    showToast('Mission Control Active', 'success');
 }
 
 function closeAdminPanel() {
@@ -513,10 +472,8 @@ function closeAdminPanel() {
 function switchAdminTab(tabName) {
     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
-    
     const selectedTab = document.querySelector(`.admin-tab[data-tab="${tabName}"]`);
     const selectedContent = document.getElementById(`admin-tab-${tabName}`);
-    
     if (selectedTab) selectedTab.classList.add('active');
     if (selectedContent) selectedContent.classList.add('active');
 }
@@ -524,41 +481,14 @@ function switchAdminTab(tabName) {
 function renderAdminAssets() {
     const container = document.getElementById('admin-tab-assets');
     if (!container) return;
-    
-    let html = `<div class="asset-section" style="padding:20px;">`;
-    
-    // Debug Info
-    html += `<h4>🎲 Level Up Random Pool</h4>`;
-    html += `<p style="color:#aaa; font-size:12px; margin-bottom:15px;">
-        <strong>Repo:</strong> ${CONFIG.BADGE_REPO_URL}<br>
-        <strong>Total Configured:</strong> ${CONFIG.TOTAL_BADGE_IMAGES}<br>
-        If images are broken, check if your GitHub filenames match exactly: "BTS (1).jpg", "BTS (2).jpg", etc. (Case sensitive, spaces matter).
-    </p>`;
-    
+    let html = `<div class="asset-section" style="padding:20px;"><h4>🎲 Level Up Random Pool</h4><p style="color:#aaa; font-size:12px; margin-bottom:15px;">Total Configured: ${CONFIG.TOTAL_BADGE_IMAGES}</p>`;
     if (CONFIG.BADGE_POOL && CONFIG.BADGE_POOL.length) {
         html += `<div class="badges-showcase" style="justify-content: flex-start; flex-wrap: wrap; gap: 10px;">`;
-        
         CONFIG.BADGE_POOL.forEach((imgUrl, index) => {
-            const filename = `BTS (${index + 1}).jpg`;
-            
-            html += `
-                <div class="badge-showcase-item" style="width:100px; margin: 5px;">
-                    <div class="badge-circle" style="width:80px; height:80px; border-color:#ffd700; background: #000; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img src="${imgUrl}" 
-                             style="width:100%; height:100%; object-fit:cover;"
-                             onload="this.style.opacity=1"
-                             onerror="this.style.display='none'; this.parentNode.innerHTML='❌ Broken'; this.parentNode.style.fontSize='10px'; this.parentNode.style.color='red';">
-                    </div>
-                    <div class="badge-name" style="font-size:10px; margin-top:5px; word-break:break-all;">${filename}</div>
-                    <a href="${imgUrl}" target="_blank" style="font-size:9px; color:#4cc9f0;">Open Link</a>
-                </div>
-            `;
+            html += `<div class="badge-showcase-item" style="width:100px; margin: 5px;"><div class="badge-circle" style="width:80px; height:80px; border-color:#ffd700; background: #000; display:flex; align-items:center; justify-content:center; overflow:hidden;"><img src="${imgUrl}" style="width:100%; height:100%; object-fit:cover;" onload="this.style.opacity=1" onerror="this.style.display='none';"></div><div class="badge-name" style="font-size:10px; margin-top:5px;">BTS (${index + 1}).jpg</div></div>`;
         });
         html += `</div>`;
-    } else {
-        html += `<p>No random pool configured.</p>`;
     }
-    
     html += `</div>`;
     container.innerHTML = html;
 }
@@ -566,41 +496,10 @@ function renderAdminAssets() {
 function renderCreateMissionForm() {
     return `
         <div class="create-mission-form">
-            <div class="form-section">
-                <h4>📋 Mission Type</h4>
-                <div class="mission-type-grid">
-                    ${Object.entries(CONFIG.MISSION_TYPES).map(([key, m], i) => `
-                        <div class="mission-type-option ${i === 0 ? 'selected' : ''}" data-type="${key}" onclick="selectMissionType('${key}')">
-                            <span class="type-icon">${m.icon}</span><span class="type-name">${m.name}</span>
-                        </div>
-                    `).join('')}
-                </div>
-                <input type="hidden" id="selected-mission-type" value="switch_app">
-            </div>
-            <div class="form-section">
-                <h4>🎯 Target Teams</h4>
-                <div class="team-checkboxes">
-                    ${Object.keys(CONFIG.TEAMS).map(team => `
-                        <label class="team-checkbox" style="--team-color: ${teamColor(team)}">
-                            <input type="checkbox" name="target-teams" value="${team}">
-                            <span class="checkbox-custom"></span><span class="team-name">${team}</span>
-                        </label>
-                    `).join('')}
-                </div>
-                <label class="select-all-teams"><input type="checkbox" id="all-teams" onchange="toggleAllTeams(this.checked)"><span>All Teams</span></label>
-            </div>
-            <div class="form-section">
-                <h4>📝 Details</h4>
-                <div class="form-group"><label>Title *</label><input type="text" id="mission-title" class="form-input" placeholder="Title"></div>
-                <div class="form-group"><label>Briefing *</label><textarea id="mission-briefing" class="form-textarea" rows="2" placeholder="Briefing"></textarea></div>
-                <div class="form-group"><label>Target</label><input type="text" id="target-track" class="form-input" placeholder="Track Name"></div>
-                <div class="form-row">
-                    <div class="form-group"><label>Goal Type</label><select id="goal-type" class="form-select"><option value="combined_streams">Combined</option></select></div>
-                    <div class="form-group"><label>Target #</label><input type="number" id="goal-target" class="form-input" value="100"></div>
-                </div>
-            </div>
-            <div class="form-actions"><button onclick="createTeamMission()" class="btn-primary btn-large">🚀 Deploy</button></div>
-            <div id="create-result" class="create-result"></div>
+            <div class="form-section"><h4>📋 Mission Type</h4><div class="mission-type-grid">${Object.entries(CONFIG.MISSION_TYPES).map(([key, m], i) => `<div class="mission-type-option ${i === 0 ? 'selected' : ''}" data-type="${key}" onclick="selectMissionType('${key}')"><span class="type-icon">${m.icon}</span><span class="type-name">${m.name}</span></div>`).join('')}</div><input type="hidden" id="selected-mission-type" value="switch_app"></div>
+            <div class="form-section"><h4>🎯 Target Teams</h4><div class="team-checkboxes">${Object.keys(CONFIG.TEAMS).map(team => `<label class="team-checkbox" style="--team-color: ${teamColor(team)}"><input type="checkbox" name="target-teams" value="${team}"><span class="checkbox-custom"></span><span class="team-name">${team}</span></label>`).join('')}</div><label class="select-all-teams"><input type="checkbox" id="all-teams" onchange="toggleAllTeams(this.checked)"><span>All Teams</span></label></div>
+            <div class="form-section"><h4>📝 Details</h4><div class="form-group"><label>Title *</label><input type="text" id="mission-title" class="form-input" placeholder="Title"></div><div class="form-group"><label>Briefing *</label><textarea id="mission-briefing" class="form-textarea" rows="2" placeholder="Briefing"></textarea></div><div class="form-group"><label>Target</label><input type="text" id="target-track" class="form-input" placeholder="Track Name"></div><div class="form-row"><div class="form-group"><label>Goal Type</label><select id="goal-type" class="form-select"><option value="combined_streams">Combined</option></select></div><div class="form-group"><label>Target #</label><input type="number" id="goal-target" class="form-input" value="100"></div></div></div>
+            <div class="form-actions"><button onclick="createTeamMission()" class="btn-primary btn-large">🚀 Deploy</button></div><div id="create-result" class="create-result"></div>
         </div>
     `;
 }
@@ -623,20 +522,12 @@ async function createTeamMission() {
     const targetTrack = $('target-track')?.value.trim();
     const goalType = $('goal-type')?.value;
     const goalTarget = parseInt($('goal-target')?.value) || 100;
-    
     if (!title || targetTeams.length === 0 || !briefing) { showCreateResult('Please fill all required fields', true); return; }
-    
     loading(true);
     try {
-        const result = await api('createTeamMission', {
-            type, title, briefing, targetTeams: JSON.stringify(targetTeams), targetTrack, goalType, goalTarget, week: STATE.week, agentNo: STATE.agentNo, sessionToken: STATE.adminSession
-        });
-        if (result.success) {
-            showCreateResult(`✅ Mission deployed!`, false);
-            loadActiveTeamMissions();
-        } else {
-            showCreateResult('❌ ' + result.error, true);
-        }
+        const result = await api('createTeamMission', { type, title, briefing, targetTeams: JSON.stringify(targetTeams), targetTrack, goalType, goalTarget, week: STATE.week, agentNo: STATE.agentNo, sessionToken: STATE.adminSession });
+        if (result.success) { showCreateResult(`✅ Mission deployed!`, false); loadActiveTeamMissions(); } 
+        else { showCreateResult('❌ ' + result.error, true); }
     } catch (e) { showCreateResult('❌ Error: ' + e.message, true); } finally { loading(false); }
 }
 
@@ -651,16 +542,28 @@ function showCreateResult(msg, isError) {
 async function loadActiveTeamMissions() {
     const container = $('admin-tab-active');
     if (!container) return;
+    if (!STATE.week) { container.innerHTML = `<div class="empty-state"><p>⚠️ No week selected</p></div>`; return; }
+    loading(true);
     try {
         const result = await api('getTeamMissions', { status: 'active', week: STATE.week });
         const missions = result.missions || [];
         const tab = document.querySelector('.admin-tab[data-tab="active"]');
         if (tab) tab.textContent = `Active (${missions.length})`;
         if (missions.length === 0) { container.innerHTML = `<div class="empty-state"><p>No active missions</p></div>`; return; }
-        container.innerHTML = missions.map(m => `
-            <div class="admin-mission-card"><div class="amc-header"><span>${CONFIG.MISSION_TYPES[m.type]?.icon || '📋'} ${sanitize(m.title)}</span></div><div class="amc-actions"><button onclick="adminCompleteMission('${m.id}')" class="btn-sm btn-success">Complete</button><button onclick="adminCancelMission('${m.id}')" class="btn-sm btn-danger">Cancel</button></div></div>
-        `).join('');
-    } catch (e) { container.innerHTML = `<div class="error-state">Error loading missions</div>`; }
+        container.innerHTML = missions.map(m => `<div class="admin-mission-card"><div class="amc-header"><span>${CONFIG.MISSION_TYPES[m.type]?.icon || '📋'} ${sanitize(m.title)}</span></div><div class="amc-actions"><button onclick="adminCompleteMission('${m.id}')" class="btn-sm btn-success">Complete</button><button onclick="adminCancelMission('${m.id}')" class="btn-sm btn-danger">Cancel</button></div></div>`).join('');
+    } catch (e) { container.innerHTML = `<div class="error-state"><p>⚠️ Failed to load missions</p></div>`; } finally { loading(false); }
+}
+
+async function loadMissionHistory() {
+    const container = $('admin-tab-history');
+    if (!container) return;
+    if (!STATE.week) { container.innerHTML = `<div class="empty-state"><p>⚠️ No week selected</p></div>`; return; }
+    loading(true);
+    try {
+        const result = await api('getTeamMissions', { status: 'all', week: STATE.week });
+        const missions = (result.missions || []).filter(m => m.status !== 'active');
+        container.innerHTML = missions.length ? missions.map(m => `<div class="history-item"><span>${sanitize(m.title)}</span><span class="status-badge">${m.status}</span></div>`).join('') : `<div class="empty-state"><p>No history</p></div>`;
+    } catch (e) { container.innerHTML = `<div class="error-state"><p>⚠️ Failed to load history</p></div>`; } finally { loading(false); }
 }
 
 async function adminCompleteMission(missionId) {
@@ -682,16 +585,6 @@ async function adminCancelMission(missionId) {
         loadActiveTeamMissions();
         showToast('Mission cancelled', 'info');
     } catch (e) { alert('Error: ' + e.message); } finally { loading(false); }
-}
-
-async function loadMissionHistory() {
-    const container = $('admin-tab-history');
-    if (!container) return;
-    try {
-        const result = await api('getTeamMissions', { status: 'all' });
-        const missions = (result.missions || []).filter(m => m.status !== 'active');
-        container.innerHTML = missions.length ? missions.map(m => `<div class="history-item"><span>${sanitize(m.title)}</span><span class="status-badge">${m.status}</span></div>`).join('') : `<div class="empty-state"><p>No history</p></div>`;
-    } catch (e) { container.innerHTML = `<div class="error-state">Error</div>`; }
 }
 
 // ==================== DASHBOARD ====================
@@ -716,11 +609,7 @@ async function loadDashboard() {
         
         if (STATE.isAdmin) addAdminIndicator();
 
-        setTimeout(() => {
-            if (typeof NOTIFICATIONS !== 'undefined') {
-                NOTIFICATIONS.checkUpdates();
-            }
-        }, 1500); 
+        setTimeout(() => { if (typeof NOTIFICATIONS !== 'undefined') NOTIFICATIONS.checkUpdates(); }, 1500); 
         
     } catch (e) {
         console.error('Dashboard error:', e);
@@ -728,6 +617,7 @@ async function loadDashboard() {
         logout();
     } finally { loading(false); }
 }
+
 function setupDashboard() {
     const p = STATE.data?.profile;
     if (p) {
@@ -773,28 +663,11 @@ function setupDashboard() {
         };
     });
     
-    if (isAdminAgent()) addAdminNavLink();
+    if (isAdminAgent()) addAdminIndicator();
     $('menu-btn')?.addEventListener('click', () => $('sidebar')?.classList.add('open'));
     $('close-sidebar')?.addEventListener('click', closeSidebar);
     $('logout-btn')?.addEventListener('click', logout);
     updateTime();
-}
-
-function addAdminNavLink() {
-    let nav = document.querySelector('.nav-links');
-    if (!nav) nav = document.getElementById('sidebar');
-    if (!nav) return;
-    
-    if (!nav.querySelector('.admin-nav-link')) {
-        const link = document.createElement('a');
-        link.href = '#';
-        link.className = 'nav-link admin-nav-link';
-        link.style.marginTop = 'auto';
-        link.style.borderTop = '1px solid rgba(255,255,255,0.1)';
-        link.innerHTML = '<span class="nav-icon">🎛️</span><span>Admin</span>';
-        link.onclick = (e) => { e.preventDefault(); STATE.isAdmin ? showAdminPanel() : showAdminLogin(); closeSidebar(); };
-        nav.appendChild(link);
-    }
 }
 
 function closeSidebar() { $('sidebar')?.classList.remove('open'); }
@@ -813,7 +686,6 @@ async function loadPage(page) {
     STATE.page = page;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     
-    // Ensure chat container exists dynamically if not present
     if (page === 'chat' && !$('page-chat')) {
         const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
         if (mainContent) {
@@ -853,37 +725,19 @@ async function loadPage(page) {
 async function renderChat() {
     const container = document.getElementById('chat-content');
     if (!container) return;
-
     const team = STATE.data?.profile?.team || 'Unknown';
     const name = sanitize(STATE.data?.profile?.name) || 'Agent';
     const color = teamColor(team);
     const chatUrl = `https://tlk.io/${CONFIG.CHAT_CHANNEL}`;
-
     container.innerHTML = `
         <div class="card" style="height: 100%; display: flex; flex-direction: column; margin-bottom: 0;">
-            <div class="card-header" style="border-bottom: 1px solid var(--border);">
-                <h3>💬 Secret Comms Channel</h3>
-                <div class="mission-hint">Encrypted Channel • Logged in as <span style="color:${color}">${name}</span></div>
-            </div>
-            
+            <div class="card-header" style="border-bottom: 1px solid var(--border);"><h3>💬 Secret Comms Channel</h3><div class="mission-hint">Encrypted Channel • Logged in as <span style="color:${color}">${name}</span></div></div>
             <div class="card-body" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0f 100%);">
-                
                 <div style="font-size: 60px; margin-bottom: 20px; animation: float 3s ease-in-out infinite;">🛰️</div>
-                
                 <h2 style="color: var(--text-bright); margin-bottom: 10px;">Secure Link Established</h2>
-                <p style="color: var(--text-dim); max-width: 400px; margin-bottom: 30px; font-size: 14px;">
-                    To bypass ad-blockers and ensure transmission security, the comms channel must be opened in a secure popup link.
-                </p>
-
-                <a href="${chatUrl}" target="_blank" onclick="window.open(this.href, 'bts_chat', 'width=500,height=700'); return false;" 
-                   class="btn-primary" style="padding: 15px 30px; font-size: 16px; border: 1px solid var(--purple-glow); box-shadow: 0 0 20px rgba(123, 44, 191, 0.3);">
-                    🚀 LAUNCH COMMS CHANNEL
-                </a>
-
-                <div style="margin-top: 30px; font-size: 11px; color: var(--text-muted);">
-                    Status: <span style="color: var(--success);">ONLINE</span> • Encryption: <span style="color: var(--success);">ACTIVE</span>
-                </div>
-
+                <p style="color: var(--text-dim); max-width: 400px; margin-bottom: 30px; font-size: 14px;">To bypass ad-blockers and ensure transmission security, the comms channel must be opened in a secure popup link.</p>
+                <a href="${chatUrl}" target="_blank" onclick="window.open(this.href, 'bts_chat', 'width=500,height=700'); return false;" class="btn-primary" style="padding: 15px 30px; font-size: 16px; border: 1px solid var(--purple-glow); box-shadow: 0 0 20px rgba(123, 44, 191, 0.3);">🚀 LAUNCH COMMS CHANNEL</a>
+                <div style="margin-top: 30px; font-size: 11px; color: var(--text-muted);">Status: <span style="color: var(--success);">ONLINE</span> • Encryption: <span style="color: var(--success);">ACTIVE</span></div>
             </div>
         </div>
     `;
@@ -893,17 +747,10 @@ async function renderChat() {
 async function renderHome() {
     const selectedWeek = STATE.week;
     $('current-week').textContent = `Week: ${selectedWeek}`;
-    
     const guideHtml = renderGuide('home'); 
-    
     try {
-        const [summary, rankings, goals] = await Promise.all([
-            api('getWeeklySummary', { week: selectedWeek }),
-            api('getRankings', { week: selectedWeek, limit: 5 }),
-            api('getGoalsProgress', { week: selectedWeek })
-        ]);
+        const [summary, rankings, goals] = await Promise.all([api('getWeeklySummary', { week: selectedWeek }), api('getRankings', { week: selectedWeek, limit: 5 }), api('getGoalsProgress', { week: selectedWeek })]);
         if (summary.lastUpdated) { STATE.lastUpdated = summary.lastUpdated; updateTime(); }
-        
         const team = STATE.data?.profile?.team;
         const teamData = summary.teams?.[team] || {};
         const myStats = STATE.data?.stats || {};
@@ -924,9 +771,7 @@ async function renderHome() {
                             <div class="quick-stat"><div class="quick-stat-value">${fmt(myStats.trackScrobbles || 0)}</div><div class="quick-stat-label">Tracks</div></div>
                             <div class="quick-stat"><div class="quick-stat-value">${fmt(myStats.albumScrobbles || 0)}</div><div class="quick-stat-label">Albums</div></div>
                         </div>
-                        <div class="battle-timer ${isCompleted ? 'ended' : ''}">
-                            ${isCompleted ? '🏆 Week Completed' : (daysLeft <= 1 ? '🚀 Final Day!' : `⏰ ${daysLeft} days left`)}
-                        </div>
+                        <div class="battle-timer ${isCompleted ? 'ended' : ''}">${isCompleted ? '🏆 Week Completed' : (daysLeft <= 1 ? '🚀 Final Day!' : `⏰ ${daysLeft} days left`)}</div>
                         ${isCompleted ? `<div class="results-alert" onclick="loadPage('summary')">🏆 View Final Results →</div>` : ''}
                         ${STATE.lastUpdated ? `<div class="last-updated-mini">Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
                     </div>
@@ -952,49 +797,18 @@ async function renderHome() {
         const missionCardsContainer = document.querySelector('.missions-grid');
         if (missionCardsContainer) {
             missionCardsContainer.innerHTML = `
-                <div class="mission-card expanded" onclick="loadPage('goals')">
-                    <div class="mission-icon">🎵</div><h3>Track Goals</h3>
-                    <div class="mission-status ${teamData.trackGoalPassed ? 'complete' : ''}">${teamData.trackGoalPassed ? '✅ Complete' : '⏳ In Progress'}</div>
-                    <div class="goals-list">
-                        ${trackGoalsList.length ? trackGoalsList.map(g => `<div class="goal-mini ${g.done ? 'done' : ''}"><span class="goal-name">${sanitize(g.name)}</span><span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span></div>`).join('') : '<p class="no-goals">No track goals</p>'}
-                    </div>
-                </div>
-                <div class="mission-card expanded" onclick="loadPage('goals')">
-                    <div class="mission-icon">💿</div><h3>Album Goals</h3>
-                    <div class="mission-status ${teamData.albumGoalPassed ? 'complete' : ''}">${teamData.albumGoalPassed ? '✅ Complete' : '⏳ In Progress'}</div>
-                    <div class="goals-list">
-                        ${albumGoalsList.length ? albumGoalsList.map(g => `<div class="goal-mini ${g.done ? 'done' : ''}"><span class="goal-name">${sanitize(g.name)}</span><span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span></div>`).join('') : '<p class="no-goals">No album goals</p>'}
-                    </div>
-                </div>
-                <div class="mission-card" onclick="loadPage('album2x')">
-                    <div class="mission-icon">✨</div><h3>Album 2X</h3><div class="mission-subtitle">${sanitize(CONFIG.TEAMS[team]?.album || team)}</div>
-                    <div class="mission-status ${album2xStatus.passed ? 'complete' : ''}">${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}</div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div></div>
-                        <span>${tracksCompleted2x}/${teamTracks.length} tracks</span>
-                    </div>
-                </div>
-                <div class="mission-card secret" onclick="loadPage('secret-missions')">
-                    <div class="mission-icon">🔒</div><h3>Secret Missions</h3><div class="mission-status">🕵️ Classified</div><div class="mission-hint">Tap to view team missions</div>
-                </div>
-                <!-- CHAT SHORTCUT -->
-                <div class="mission-card" onclick="loadPage('chat')">
-                    <div class="mission-icon">💬</div><h3>Secret Comms</h3><div class="mission-subtitle">HQ Encrypted Channel</div>
-                    <div class="mission-hint">Tap to join chat</div>
-                </div>
+                <div class="mission-card expanded" onclick="loadPage('goals')"><div class="mission-icon">🎵</div><h3>Track Goals</h3><div class="mission-status ${teamData.trackGoalPassed ? 'complete' : ''}">${teamData.trackGoalPassed ? '✅ Complete' : '⏳ In Progress'}</div><div class="goals-list">${trackGoalsList.length ? trackGoalsList.map(g => `<div class="goal-mini ${g.done ? 'done' : ''}"><span class="goal-name">${sanitize(g.name)}</span><span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span></div>`).join('') : '<p class="no-goals">No track goals</p>'}</div></div>
+                <div class="mission-card expanded" onclick="loadPage('goals')"><div class="mission-icon">💿</div><h3>Album Goals</h3><div class="mission-status ${teamData.albumGoalPassed ? 'complete' : ''}">${teamData.albumGoalPassed ? '✅ Complete' : '⏳ In Progress'}</div><div class="goals-list">${albumGoalsList.length ? albumGoalsList.map(g => `<div class="goal-mini ${g.done ? 'done' : ''}"><span class="goal-name">${sanitize(g.name)}</span><span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span></div>`).join('') : '<p class="no-goals">No album goals</p>'}</div></div>
+                <div class="mission-card" onclick="loadPage('album2x')"><div class="mission-icon">✨</div><h3>Album 2X</h3><div class="mission-subtitle">${sanitize(CONFIG.TEAMS[team]?.album || team)}</div><div class="mission-status ${album2xStatus.passed ? 'complete' : ''}">${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}</div><div class="mission-progress"><div class="progress-bar"><div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div></div><span>${tracksCompleted2x}/${teamTracks.length} tracks</span></div></div>
+                <div class="mission-card secret" onclick="loadPage('secret-missions')"><div class="mission-icon">🔒</div><h3>Secret Missions</h3><div class="mission-status">🕵️ Classified</div><div class="mission-hint">Tap to view team missions</div></div>
+                <div class="mission-card" onclick="loadPage('chat')"><div class="mission-icon">💬</div><h3>Secret Comms</h3><div class="mission-subtitle">HQ Encrypted Channel</div><div class="mission-hint">Tap to join chat</div></div>
             `;
         }
         
         const rankList = rankings.rankings || [];
         const topAgentsEl = $('home-top-agents');
         if (topAgentsEl) {
-            topAgentsEl.innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => `
-                <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" onclick="loadPage('rankings')">
-                    <div class="rank-num">${i+1}</div>
-                    <div class="rank-info"><div class="rank-name">${sanitize(r.name)}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div></div>
-                    <div class="rank-xp">${fmt(r.totalXP)} XP</div>
-                </div>
-            `).join('') : '<p class="empty-text">No data yet</p>';
+            topAgentsEl.innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => `<div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" onclick="loadPage('rankings')"><div class="rank-num">${i+1}</div><div class="rank-info"><div class="rank-name">${sanitize(r.name)}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div></div><div class="rank-xp">${fmt(r.totalXP)} XP</div></div>`).join('') : '<p class="empty-text">No data yet</p>';
         }
         
         const sortedTeams = Object.keys(summary.teams || {}).sort((a, b) => (summary.teams[b].teamXP || 0) - (summary.teams[a].teamXP || 0));
@@ -1004,15 +818,9 @@ async function renderHome() {
                 <div class="standings-header"><span class="standings-badge ${isCompleted ? 'final' : ''}">${isCompleted ? '🏆 Final Standings' : '⏳ Live Battle'}</span></div>
                 ${sortedTeams.map((t, i) => {
                     const td = summary.teams[t];
-                    return `<div class="standing-item ${t === team ? 'my-team' : ''}" onclick="loadPage('team-level')" style="--team-color:${teamColor(t)}">
-                        <div class="standing-rank">${i+1}</div>${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}
-                        <div class="standing-info"><div class="standing-name" style="color:${teamColor(t)}">${t}</div><div class="standing-xp">${fmt(td.teamXP)} XP</div></div>
-                        <div class="standing-missions">${td.trackGoalPassed?'🎵✅':'🎵❌'} ${td.albumGoalPassed?'💿✅':'💿❌'} ${td.album2xPassed?'✨✅':'✨❌'}</div>
-                    </div>`;
+                    return `<div class="standing-item ${t === team ? 'my-team' : ''}" onclick="loadPage('team-level')" style="--team-color:${teamColor(t)}"><div class="standing-rank">${i+1}</div>${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}<div class="standing-info"><div class="standing-name" style="color:${teamColor(t)}">${t}</div><div class="standing-xp">${fmt(td.teamXP)} XP</div></div><div class="standing-missions">${td.trackGoalPassed?'🎵✅':'🎵❌'} ${td.albumGoalPassed?'💿✅':'💿❌'} ${td.album2xPassed?'✨✅':'✨❌'}</div></div>`;
                 }).join('')}
-                <div class="standings-footer">
-                    <button class="btn-secondary" onclick="loadPage('comparison')">View Battle Details →</button>
-                </div>
+                <div class="standings-footer"><button class="btn-secondary" onclick="loadPage('comparison')">View Battle Details →</button></div>
             ` : '<p class="empty-text">No data yet</p>';
         }
     } catch (e) { console.error(e); showToast('Failed to load home', 'error'); }
@@ -1026,190 +834,79 @@ async function renderSummary() {
     
     if (!isCompleted) {
         const days = getDaysRemaining(selectedWeek);
-        container.innerHTML = `
-            <div class="card">
-                <div class="card-body" style="text-align:center;padding:60px 20px;">
-                    <div style="font-size:64px;margin-bottom:20px;">🔒</div>
-                    <h2>Summary Locked</h2>
-                    <p style="color:var(--text-dim);margin:16px 0;">Results for <strong>${selectedWeek}</strong> are not yet final.</p>
-                    <div class="countdown-box"><div class="countdown-value">${days}</div><div class="countdown-label">day${days !== 1 ? 's' : ''} until results</div></div>
-                    <button onclick="loadPage('home')" class="btn-primary" style="margin-top:20px;">View Live Progress →</button>
-                </div>
-            </div>
-        `;
+        container.innerHTML = `<div class="card"><div class="card-body" style="text-align:center;padding:60px 20px;"><div style="font-size:64px;margin-bottom:20px;">🔒</div><h2>Summary Locked</h2><p style="color:var(--text-dim);margin:16px 0;">Results for <strong>${selectedWeek}</strong> are not yet final.</p><div class="countdown-box"><div class="countdown-value">${days}</div><div class="countdown-label">day${days !== 1 ? 's' : ''} until results</div></div><button onclick="loadPage('home')" class="btn-primary" style="margin-top:20px;">View Live Progress →</button></div></div>`;
         return;
     }
     
     try {
-        const [summary, winners] = await Promise.all([
-            api('getWeeklySummary', { week: selectedWeek }),
-            api('getWeeklyWinners').catch(() => ({ winners: [] }))
-        ]);
+        const [summary, winners] = await Promise.all([api('getWeeklySummary', { week: selectedWeek }), api('getWeeklyWinners').catch(() => ({ winners: [] }))]);
         const teams = summary.teams || {};
-        const winner = summary.winner;
         const sorted = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
-        const actualWinner = sorted[0]?.[0] || winner;
+        const actualWinner = sorted[0]?.[0] || summary.winner;
         
-        container.innerHTML = `
-            <div class="summary-week-header"><h2>📊 ${selectedWeek} Results</h2><p class="results-date">${isCompleted ? 'Battle Concluded' : 'Provisional Results'}</p></div>
-            ${actualWinner ? `<div class="card winner-card" style="border-color:${teamColor(actualWinner)}"><div class="card-body" style="text-align:center;padding:40px;"><div style="font-size:64px;margin-bottom:16px;">🏆</div><h2 style="color:${teamColor(actualWinner)}">Team ${actualWinner} WINS!</h2><p style="font-size:32px;color:var(--purple-glow);">${fmt(teams[actualWinner]?.teamXP)} XP</p></div></div>` : ''}
-            <div class="card"><div class="card-header"><h3>📊 Final Standings</h3></div><div class="card-body">${sorted.map(([t, info], i) => `<div class="final-standing ${i===0?'winner':''}" style="border-left-color:${teamColor(t)}"><span class="standing-pos">${i+1}</span><div class="standing-details"><div style="color:${teamColor(t)};font-weight:600;">${t}</div></div><div class="standing-xp-final">${fmt(info.teamXP)} XP</div></div>`).join('')}</div></div>
-        `;
+        container.innerHTML = `<div class="summary-week-header"><h2>📊 ${selectedWeek} Results</h2><p class="results-date">${isCompleted ? 'Battle Concluded' : 'Provisional Results'}</p></div>${actualWinner ? `<div class="card winner-card" style="border-color:${teamColor(actualWinner)}"><div class="card-body" style="text-align:center;padding:40px;"><div style="font-size:64px;margin-bottom:16px;">🏆</div><h2 style="color:${teamColor(actualWinner)}">Team ${actualWinner} WINS!</h2><p style="font-size:32px;color:var(--purple-glow);">${fmt(teams[actualWinner]?.teamXP)} XP</p></div></div>` : ''}<div class="card"><div class="card-header"><h3>📊 Final Standings</h3></div><div class="card-body">${sorted.map(([t, info], i) => `<div class="final-standing ${i===0?'winner':''}" style="border-left-color:${teamColor(t)}"><span class="standing-pos">${i+1}</span><div class="standing-details"><div style="color:${teamColor(t)};font-weight:600;">${t}</div></div><div class="standing-xp-final">${fmt(info.teamXP)} XP</div></div>`).join('')}</div></div>`;
     } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load summary</p></div></div>'; }
 }
 
-// ==================== DRAWER PAGE (UPDATED) ====================
+// ==================== DRAWER PAGE ====================
 async function renderDrawer() {
     const container = $('drawer-content');
     if (!container) return;
-
     const profile = STATE.data?.profile || {};
     const stats = STATE.data?.stats || {};
     const currentXP = stats.totalXP || 0;
 
-    // 1. CALCULATE LEVEL BADGES
     function getLevelBadges(agentNo, totalXP) {
         const pool = CONFIG.BADGE_POOL;
         if (!pool || pool.length === 0) return [];
-        
         const xp = parseInt(totalXP) || 0;
         const currentLevel = Math.floor(xp / 100);
         const badges = [];
-        
         for (let level = 1; level <= currentLevel; level++) {
             let seed = 0;
             const str = String(agentNo).toUpperCase();
             for (let i = 0; i < str.length; i++) seed += str.charCodeAt(i);
             seed += (level * 137);
-            
             const index = seed % pool.length;
-            const imageUrl = pool[index];
-            
-            badges.push({
-                name: `Level ${level}`,
-                description: `Unlocked at ${level * 100} XP`,
-                imageUrl: imageUrl,
-                isLevelBadge: true
-            });
+            badges.push({ name: `Level ${level}`, description: `Unlocked at ${level * 100} XP`, imageUrl: pool[index], isLevelBadge: true });
         }
         return badges.reverse();
     }
 
     const levelBadges = getLevelBadges(STATE.agentNo, currentXP);
-
-    // 2. FIXED BADGES (Optional)
-    const fixedBadges = [];
-    // If you add CONFIG.BADGES later, they will merge here.
-    
-    const allBadges = [...fixedBadges, ...levelBadges];
+    const allBadges = levelBadges;
     const isAdmin = String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
     
     container.innerHTML = `
-        <div class="card">
-            <div class="card-body">
-                <div class="drawer-header">
-                    ${teamPfp(profile.team) ? `<img src="${teamPfp(profile.team)}" class="drawer-pfp" style="border-color:${teamColor(profile.team)}">` : ''}
-                    <div class="drawer-info">
-                        <div class="drawer-name">${sanitize(profile.name)}</div>
-                        <div class="drawer-team" style="color:${teamColor(profile.team)}">Team ${profile.team}</div>
-                        <div class="drawer-id">Agent #${STATE.agentNo}</div>
-                    </div>
-                </div>
-                ${isAdmin ? `<button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">🔐 Access Mission Control</button>` : ''}
-                <div class="drawer-stats">
-                    <div class="drawer-stat"><span class="value">${fmt(currentXP)}</span><span class="label">Total XP</span></div>
-                    <div class="drawer-stat"><span class="value">${allBadges.length}</span><span class="label">Badges</span></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h3>🎖️ Collection (${allBadges.length})</h3>
-                <div style="font-size:11px; color:var(--text-dim)">Next Reward: ${(Math.floor(currentXP/100) + 1) * 100} XP</div>
-            </div>
-            <div class="card-body">
-                ${allBadges.length ? 
-                    `<div class="badges-showcase">
-                        ${allBadges.map(b => `
-                            <div class="badge-showcase-item">
-                                <div class="badge-circle" style="${b.isLevelBadge ? 'border-color:#ffd700;' : ''}">
-                                    <img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='❓';">
-                                </div>
-                                <div class="badge-name">${sanitize(b.name)}</div>
-                                <div class="badge-desc">${sanitize(b.description)}</div>
-                            </div>
-                        `).join('')}
-                    </div>` 
-                    : `<div class="empty-state" style="text-align:center; padding:20px; color:#777;">
-                        <div style="font-size:40px; margin-bottom:10px;">🔒</div>
-                        Earn 100 XP to unlock your first random badge!
-                       </div>`
-                }
-            </div>
-        </div>
+        <div class="card"><div class="card-body"><div class="drawer-header">${teamPfp(profile.team) ? `<img src="${teamPfp(profile.team)}" class="drawer-pfp" style="border-color:${teamColor(profile.team)}">` : ''}<div class="drawer-info"><div class="drawer-name">${sanitize(profile.name)}</div><div class="drawer-team" style="color:${teamColor(profile.team)}">Team ${profile.team}</div><div class="drawer-id">Agent #${STATE.agentNo}</div></div></div>${isAdmin ? `<button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">🔐 Access Mission Control</button>` : ''}<div class="drawer-stats"><div class="drawer-stat"><span class="value">${fmt(currentXP)}</span><span class="label">Total XP</span></div><div class="drawer-stat"><span class="value">${allBadges.length}</span><span class="label">Badges</span></div></div></div></div>
+        <div class="card"><div class="card-header"><h3>🎖️ Collection (${allBadges.length})</h3><div style="font-size:11px; color:var(--text-dim)">Next Reward: ${(Math.floor(currentXP/100) + 1) * 100} XP</div></div><div class="card-body">${allBadges.length ? `<div class="badges-showcase">${allBadges.map(b => `<div class="badge-showcase-item"><div class="badge-circle" style="${b.isLevelBadge ? 'border-color:#ffd700;' : ''}"><img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='❓';"></div><div class="badge-name">${sanitize(b.name)}</div><div class="badge-desc">${sanitize(b.description)}</div></div>`).join('')}</div>` : `<div class="empty-state" style="text-align:center; padding:20px; color:#777;"><div style="font-size:40px; margin-bottom:10px;">🔒</div>Earn 100 XP to unlock your first random badge!</div>`}</div></div>
     `;
 }
 
-// ==================== OTHER PAGES ====================
+// ==================== PROFILE & RANKINGS ====================
 async function renderProfile() {
     const stats = STATE.data?.stats || {};
-    const profile = STATE.data?.profile || {};
     const album2xStatus = STATE.data?.album2xStatus || {};
     const trackContributions = STATE.data?.trackContributions || {};
     const albumContributions = STATE.data?.albumContributions || {};
     
-    $('profile-stats').innerHTML = `
-        <div class="stat-box"><div class="stat-value">${fmt(stats.totalXP)}</div><div class="stat-label">XP</div></div>
-        <div class="stat-box"><div class="stat-value">#${STATE.data?.rank || 'N/A'}</div><div class="stat-label">Rank</div></div>
-        <div class="stat-box"><div class="stat-value">#${STATE.data?.teamRank || 'N/A'}</div><div class="stat-label">Team Rank</div></div>
-        <div class="stat-box"><div class="stat-value">${fmt(stats.trackScrobbles)}</div><div class="stat-label">Tracks</div></div>
-        <div class="stat-box"><div class="stat-value">${fmt(stats.albumScrobbles)}</div><div class="stat-label">Albums</div></div>
-        <div class="stat-box"><div class="stat-value">${album2xStatus.passed ? '✅' : '❌'}</div><div class="stat-label">2X</div></div>
-    `;
-    
-    $('profile-tracks').innerHTML = Object.keys(trackContributions).length ? 
-        Object.entries(trackContributions).sort((a, b) => b[1] - a[1]).map(([t, c]) => `<div class="contrib-item"><span>${sanitize(t)}</span><span>${fmt(c)}</span></div>`).join('') : '<p class="empty-text">No track data</p>';
-    
-    $('profile-albums').innerHTML = Object.keys(albumContributions).length ?
-        Object.entries(albumContributions).sort((a, b) => b[1] - a[1]).map(([a, c]) => `<div class="contrib-item"><span>${sanitize(a)}</span><span>${fmt(c)}</span></div>`).join('') : '<p class="empty-text">No album data</p>';
-    
+    $('profile-stats').innerHTML = `<div class="stat-box"><div class="stat-value">${fmt(stats.totalXP)}</div><div class="stat-label">XP</div></div><div class="stat-box"><div class="stat-value">#${STATE.data?.rank || 'N/A'}</div><div class="stat-label">Rank</div></div><div class="stat-box"><div class="stat-value">#${STATE.data?.teamRank || 'N/A'}</div><div class="stat-label">Team Rank</div></div><div class="stat-box"><div class="stat-value">${fmt(stats.trackScrobbles)}</div><div class="stat-label">Tracks</div></div><div class="stat-box"><div class="stat-value">${fmt(stats.albumScrobbles)}</div><div class="stat-label">Albums</div></div><div class="stat-box"><div class="stat-value">${album2xStatus.passed ? '✅' : '❌'}</div><div class="stat-label">2X</div></div>`;
+    $('profile-tracks').innerHTML = Object.keys(trackContributions).length ? Object.entries(trackContributions).sort((a, b) => b[1] - a[1]).map(([t, c]) => `<div class="contrib-item"><span>${sanitize(t)}</span><span>${fmt(c)}</span></div>`).join('') : '<p class="empty-text">No track data</p>';
+    $('profile-albums').innerHTML = Object.keys(albumContributions).length ? Object.entries(albumContributions).sort((a, b) => b[1] - a[1]).map(([a, c]) => `<div class="contrib-item"><span>${sanitize(a)}</span><span>${fmt(c)}</span></div>`).join('') : '<p class="empty-text">No album data</p>';
     try {
-        // Backup API call for fixed badges
         const badgesData = await api('getBadges', { agentNo: STATE.agentNo });
-        $('profile-badges').innerHTML = (badgesData.badges || []).length ? 
-            `<div class="badges-grid">${badgesData.badges.map(b => `<div class="badge-item"><div class="badge-icon">${b.imageUrl ? `<img src="${b.imageUrl}">` : '🎖️'}</div><div class="badge-name">${sanitize(b.name)}</div></div>`).join('')}</div>` : '<p class="empty-text">No badges yet</p>';
+        $('profile-badges').innerHTML = (badgesData.badges || []).length ? `<div class="badges-grid">${badgesData.badges.map(b => `<div class="badge-item"><div class="badge-icon">${b.imageUrl ? `<img src="${b.imageUrl}">` : '🎖️'}</div><div class="badge-name">${sanitize(b.name)}</div></div>`).join('')}</div>` : '<p class="empty-text">No badges yet</p>';
     } catch (e) { $('profile-badges').innerHTML = '<p class="empty-text">No badges</p>'; }
 }
 
-
-// ▼▼▼ ENTIRE RANKINGS SECTION REBUILT TO SUPPORT TABS ▼▼▼
-
-// This is the new main function for the rankings page
 async function renderRankings() {
     const container = $('rankings-list');
     if (!container) return;
-
     const myTeam = STATE.data?.profile?.team || 'Team';
     const tColor = teamColor(myTeam);
-
-    // Set up the page structure with tabs
-    container.innerHTML = `
-        ${renderGuide('rankings')}
-        <div class="ranking-tabs">
-            <button id="rank-tab-overall" class="ranking-tab active">🏆 Overall</button>
-            <button id="rank-tab-team" class="ranking-tab" style="--team-color: ${tColor};">${myTeam}</button>
-        </div>
-        <div id="rankings-content-container">
-             <div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
-        </div>
-    `;
-    
-    // Add event listeners for the new tabs
+    container.innerHTML = `${renderGuide('rankings')}<div class="ranking-tabs"><button id="rank-tab-overall" class="ranking-tab active">🏆 Overall</button><button id="rank-tab-team" class="ranking-tab" style="--team-color: ${tColor};">${myTeam}</button></div><div id="rankings-content-container"><div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div></div></div>`;
     $('rank-tab-overall').onclick = () => switchRankingTab('overall');
     $('rank-tab-team').onclick = () => switchRankingTab('team');
-
-    // Load the default view (Overall rankings)
     await renderOverallRankings();
 }
 
@@ -1217,88 +914,46 @@ async function switchRankingTab(tab) {
     const overallTab = $('rank-tab-overall');
     const teamTab = $('rank-tab-team');
     const contentContainer = $('rankings-content-container');
-
     if (!overallTab || !teamTab || !contentContainer) return;
-    
     contentContainer.innerHTML = `<div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>`;
     loading(true);
-
-    if (tab === 'overall') {
-        overallTab.classList.add('active');
-        teamTab.classList.remove('active');
-        await renderOverallRankings();
-    } else {
-        overallTab.classList.remove('active');
-        teamTab.classList.add('active');
-        await renderMyTeamRankings();
-    }
+    if (tab === 'overall') { overallTab.classList.add('active'); teamTab.classList.remove('active'); await renderOverallRankings(); } 
+    else { overallTab.classList.remove('active'); teamTab.classList.add('active'); await renderMyTeamRankings(); }
     loading(false);
 }
 
-// Renders the "Overall" rankings list
 async function renderOverallRankings() {
     const container = $('rankings-content-container');
     if (!container) return;
     try {
         const data = await api('getRankings', { week: STATE.week, limit: 100 });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
-        
-        const rankingsHtml = (data.rankings || []).map((r, i) => `
-            <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}">
-                <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
-                <div class="rank-info"><div class="rank-name">${sanitize(r.name)}${String(r.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div></div>
-                <div class="rank-xp">${fmt(r.totalXP)} XP</div>
-            </div>
-        `).join('') || '<p class="empty-text">No ranking data yet</p>';
-        
+        const rankingsHtml = (data.rankings || []).map((r, i) => `<div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}"><div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div><div class="rank-info"><div class="rank-name">${sanitize(r.name)}${String(r.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div></div><div class="rank-xp">${fmt(r.totalXP)} XP</div></div>`).join('') || '<p class="empty-text">No ranking data yet</p>';
         container.innerHTML = `<div class="rankings-header"><span class="week-badge">${STATE.week}</span></div>${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}${rankingsHtml}`;
-    } catch (e) { 
-        container.innerHTML = '<p class="error-text">Failed to load overall rankings: ' + e.message + '</p>'; 
-    }
+    } catch (e) { container.innerHTML = '<p class="error-text">Failed to load overall rankings</p>'; }
 }
 
-// Renders the "My Team" rankings list
 async function renderMyTeamRankings() {
     const container = $('rankings-content-container');
     if (!container) return;
     const myTeam = STATE.data?.profile?.team;
-
-    if (!myTeam) {
-        container.innerHTML = '<p class="error-text">Could not identify your team.</p>';
-        return;
-    }
-    
+    if (!myTeam) { container.innerHTML = '<p class="error-text">Could not identify your team.</p>'; return; }
     try {
-        // This is a NEW API call you need to add to your backend
         const data = await api('getTeamRankings', { week: STATE.week, team: myTeam });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
-        
-        const rankingsHtml = (data.rankings || []).map((r, i) => `
-            <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" style="border-left-color: ${teamColor(myTeam)}">
-                <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
-                <div class="rank-info"><div class="rank-name">${sanitize(r.name)}${String(r.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team} Agent</div></div>
-                <div class="rank-xp">${fmt(r.totalXP)} XP</div>
-            </div>
-        `).join('') || '<p class="empty-text">No team ranking data yet</p>';
-        
+        const rankingsHtml = (data.rankings || []).map((r, i) => `<div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" style="border-left-color: ${teamColor(myTeam)}"><div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div><div class="rank-info"><div class="rank-name">${sanitize(r.name)}${String(r.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team} Agent</div></div><div class="rank-xp">${fmt(r.totalXP)} XP</div></div>`).join('') || '<p class="empty-text">No team ranking data yet</p>';
         container.innerHTML = `<div class="rankings-header"><span class="week-badge" style="background-color: ${teamColor(myTeam)}">${myTeam} Leaderboard</span></div>${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}${rankingsHtml}`;
-    } catch (e) {
-        container.innerHTML = '<p class="error-text">Failed to load team rankings. Make sure the `getTeamRankings` action is set up in your backend script. Error: ' + e.message + '</p>'; 
-    }
+    } catch (e) { container.innerHTML = '<p class="error-text">Failed to load team rankings.</p>'; }
 }
 
-// ▲▲▲ END OF REBUILT RANKINGS SECTION ▲▲▲
-
-
+// ==================== GOALS & MISSIONS ====================
 async function renderGoals() {
     const container = $('goals-content');
     const team = STATE.data?.profile?.team;
     try {
         const data = await api('getGoalsProgress', { week: STATE.week });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
-        
         let html = renderGuide('goals') + `<div class="goals-header"><span class="week-badge">${STATE.week}</span></div><div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated || 'recently')}</div>`;
-        
         const trackGoals = data.trackGoals || {};
         if (Object.keys(trackGoals).length) {
             html += `<div class="card"><div class="card-header"><h3>🎵 Track Goals</h3><span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span></div><div class="card-body">`;
@@ -1343,7 +998,6 @@ async function renderAlbum2x() {
     });
     const allComplete = completedCount === trackResults.length && trackResults.length > 0;
     const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
-    
     container.innerHTML = renderGuide('album2x') + `
         <div class="card" style="border-color:${allComplete ? 'var(--success)' : teamColor(team)}"><div class="card-body" style="text-align:center;padding:30px;"><div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div><h2 style="color:${teamColor(team)};margin-bottom:8px;">${sanitize(albumName)}</h2><p style="color:var(--text-dim);margin-bottom:20px;">Stream every track at least 2 times</p><div style="font-size:48px;font-weight:700;color:${allComplete ? 'var(--success)' : 'var(--purple-glow)'}">${completedCount}/${trackResults.length}</div><p style="color:var(--text-dim);">Tracks completed</p><div class="progress-bar" style="margin:20px auto;max-width:300px;height:12px;"><div class="progress-fill ${allComplete ? 'complete' : ''}" style="width:${pct}%;background:${allComplete ? 'var(--success)' : teamColor(team)}"></div></div></div></div>
         <div class="card"><div class="card-header"><h3>📋 Track Checklist</h3></div><div class="card-body">${trackResults.map((t, i) => `<div class="track-item ${t.passed ? 'passed' : 'pending'}" style="border-left-color:${t.passed ? 'var(--success)' : 'var(--danger)'}"><span class="track-num">${i + 1}</span><span class="track-name">${sanitize(t.name)}</span><span class="track-status ${t.passed ? 'pass' : 'fail'}">${t.count}/2 ${t.passed ? '✅' : '❌'}</span></div>`).join('')}</div></div>
@@ -1357,46 +1011,17 @@ async function renderTeamLevel() {
         const teams = summary.teams || {};
         const myTeam = STATE.data?.profile?.team;
         if (summary.lastUpdated) STATE.lastUpdated = summary.lastUpdated;
-        
         const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
-        
         container.innerHTML = renderGuide('team-level') + `
-            <div class="team-level-header"><h2>Team Levels</h2><span class="week-badge">${STATE.week}</span></div>
-            ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
-            
-            <div class="team-level-grid">
-                ${sortedTeams.map(([t, info], index) => { 
+            <div class="team-level-header"><h2>Team Levels</h2><span class="week-badge">${STATE.week}</span></div>${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
+            <div class="team-level-grid">${sortedTeams.map(([t, info], index) => { 
                     const isMyTeam = t === myTeam; 
                     const tColor = teamColor(t);
                     const missions = (info.trackGoalPassed ? 1 : 0) + (info.albumGoalPassed ? 1 : 0) + (info.album2xPassed ? 1 : 0); 
-                    
-                    return `
-                    <div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="border-color:${tColor}">
-                        ${isMyTeam ? '<div class="my-team-badge">Your Team</div>' : ''}
-                        
-                        ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${tColor}">` : ''}
-                        
-                        <div class="team-level-name" style="color:${tColor}">${t}</div>
-                        <div class="team-level-num">${info.level || 1}</div>
-                        <div class="team-level-label">LEVEL</div>
-                        <div class="team-level-xp">${fmt(info.teamXP)} XP</div>
-                        
-                        <div class="team-level-missions">
-                            <div class="mission-check" title="Track Goals">${info.trackGoalPassed ? '🎵✅' : '🎵❌'}</div>
-                            <div class="mission-check" title="Album Goals">${info.albumGoalPassed ? '💿✅' : '💿❌'}</div>
-                            <div class="mission-check" title="Album 2X">${info.album2xPassed ? '✨✅' : '✨❌'}</div>
-                        </div>
-                        
-                        <div class="team-level-status ${missions === 3 ? 'complete' : ''}">
-                            ${missions}/3 missions
-                        </div>
-                    </div>`; 
-                }).join('')}
-            </div>
+                    return `<div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="border-color:${tColor}">${isMyTeam ? '<div class="my-team-badge">Your Team</div>' : ''}${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${tColor}">` : ''}<div class="team-level-name" style="color:${tColor}">${t}</div><div class="team-level-num">${info.level || 1}</div><div class="team-level-label">LEVEL</div><div class="team-level-xp">${fmt(info.teamXP)} XP</div><div class="team-level-missions"><div class="mission-check" title="Track Goals">${info.trackGoalPassed ? '🎵✅' : '🎵❌'}</div><div class="mission-check" title="Album Goals">${info.albumGoalPassed ? '💿✅' : '💿❌'}</div><div class="mission-check" title="Album 2X">${info.album2xPassed ? '✨✅' : '✨❌'}</div></div><div class="team-level-status ${missions === 3 ? 'complete' : ''}">${missions}/3 missions</div></div>`; 
+                }).join('')}</div>
         `;
-    } catch (e) { 
-        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; 
-    }
+    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; }
 }
 
 async function renderAnnouncements() {
@@ -1414,11 +1039,7 @@ async function renderSecretMissions() {
     const myTeam = STATE.data?.profile?.team;
     container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>';
     try {
-        const [missionsData, statsData] = await Promise.all([
-            api('getTeamSecretMissions', { team: myTeam, agentNo: STATE.agentNo, week: STATE.week }).catch(() => ({ active: [], completed: [], myAssigned: [] })),
-            api('getTeamSecretStats', { week: STATE.week }).catch(() => ({ teams: {} }))
-        ]);
-        
+        const [missionsData, statsData] = await Promise.all([api('getTeamSecretMissions', { team: myTeam, agentNo: STATE.agentNo, week: STATE.week }).catch(() => ({ active: [], completed: [], myAssigned: [] })), api('getTeamSecretStats', { week: STATE.week }).catch(() => ({ teams: {} }))]);
         const activeMissions = missionsData.active || [];
         const completedMissions = missionsData.completed || [];
         const myAssigned = missionsData.myAssigned || [];
@@ -1459,16 +1080,10 @@ async function renderComparison() {
     if (!container) return;
     const weekToShow = STATE.week;
     try {
-        const [comparison, goals, summary] = await Promise.all([
-            api('getTeamComparison', { week: weekToShow }),
-            api('getGoalsProgress', { week: weekToShow }),
-            api('getWeeklySummary', { week: weekToShow })
-        ]);
+        const [comparison, goals, summary] = await Promise.all([api('getTeamComparison', { week: weekToShow }), api('getGoalsProgress', { week: weekToShow }), api('getWeeklySummary', { week: weekToShow })]);
         if (comparison.lastUpdated) STATE.lastUpdated = comparison.lastUpdated;
-        
         const teams = (comparison.comparison || []).sort((a, b) => (b.teamXP || 0) - (a.teamXP || 0));
         const maxXP = teams[0]?.teamXP || 1;
-        
         const trackGoals = goals.trackGoals || {};
         const albumGoals = goals.albumGoals || {};
         const teamNames = Object.keys(CONFIG.TEAMS);
@@ -1487,7 +1102,6 @@ async function renderComparison() {
                 }).join('')}</div></div>`;
             }).join('')}</div></div>`;
         }
-
         if (Object.keys(albumGoals).length) {
             container.innerHTML += `<div class="card"><div class="card-header"><h3>💿 Album Goals</h3></div><div class="card-body comparison-goals-section">${Object.entries(albumGoals).map(([albumName, info]) => {
                 const goal = info.goal || 0;
@@ -1500,137 +1114,73 @@ async function renderComparison() {
                 }).join('')}</div></div>`;
             }).join('')}</div></div>`;
         }
-
     } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; }
 }
-// ==================== NOTIFICATION SYSTEM ====================
 
+// ==================== NOTIFICATION SYSTEM ====================
 const NOTIFICATIONS = {
-    // Run this function at the end of loadDashboard()
     checkUpdates: function() {
         const stats = STATE.data?.stats || {};
-        const profile = STATE.data?.profile || {};
-        const summary = STATE.data?.weeklySummary || {}; // You might need to fetch this if not in data
-        
         let newNotifications = [];
-
-        // 1. CHECK BADGES
         const currentXP = parseInt(stats.totalXP) || 0;
         const currentLevel = Math.floor(currentXP / 100);
         const savedLevel = parseInt(localStorage.getItem('spy_lastLevel')) || 0;
-
         if (currentLevel > savedLevel) {
             newNotifications.push({ type: 'badge', msg: `New Badge Unlocked: Level ${currentLevel}`, page: 'drawer', dotId: 'dot-drawer' });
             localStorage.setItem('spy_lastLevel', currentLevel);
         }
-
-        // 2. CHECK WEEKLY RESULTS
-        // We assume STATE.lastUpdated or a specific flag indicates a new result
         const lastWeekCheck = localStorage.getItem('spy_lastWeekCheck');
-        const isWeekComplete = isWeekCompleted(STATE.week); // Uses your existing helper
-        
+        const isWeekComplete = isWeekCompleted(STATE.week);
         if (isWeekComplete && lastWeekCheck !== STATE.week) {
              newNotifications.push({ type: 'result', msg: `Week Results are Finalized`, page: 'summary', dotId: 'dot-summary' });
              localStorage.setItem('spy_lastWeekCheck', STATE.week);
         }
-
-        // 3. CHECK SECRET MISSIONS (Requires checking API data or estimating)
-        // We store the count of missions seen
-        const missionCount = STATE.data?.secretMissionCount || 0; // *You need to ensure your API returns this count
+        const missionCount = STATE.data?.secretMissionCount || 0;
         const savedMissionCount = parseInt(localStorage.getItem('spy_lastMissionCount')) || 0;
-        
         if (missionCount > savedMissionCount) {
              newNotifications.push({ type: 'mission', msg: 'New Secret Mission Assigned', page: 'secret-missions', dotId: 'dot-mission' });
              localStorage.setItem('spy_lastMissionCount', missionCount);
         }
-
-        // 4. CHECK ANNOUNCEMENTS (Simulated check)
-        // Check if there is a high priority announcement we haven't seen
         const latestAnnounceID = STATE.data?.latestAnnouncementID || 0; 
         const savedAnnounceID = parseInt(localStorage.getItem('spy_lastAnnounceID')) || 0;
-
         if (latestAnnounceID > savedAnnounceID) {
             newNotifications.push({ type: 'announce', msg: 'New Priority Announcement', page: 'announcements', dotId: 'dot-announce' });
             localStorage.setItem('spy_lastAnnounceID', latestAnnounceID);
         }
-
-        // EXECUTE NOTIFICATIONS
-        if (newNotifications.length > 0) {
-            this.showIntelModal(newNotifications);
-            this.updateSidebarDots(newNotifications);
-        }
+        if (newNotifications.length > 0) { this.showIntelModal(newNotifications); this.updateSidebarDots(newNotifications); }
     },
 
     showIntelModal: function(notifs) {
-        // Remove existing modal
         document.querySelector('.intel-modal')?.remove();
-
         const html = `
-            <div class="intel-modal">
-                <div class="intel-header">
-                    <span>📡 INTELLIGENCE UPDATE</span>
-                    <button onclick="this.closest('.intel-modal').classList.remove('show')" style="background:none;border:none;color:#fff;">✕</button>
-                </div>
-                ${notifs.map(n => `
-                    <div class="intel-item" onclick="loadPage('${n.page}'); this.closest('.intel-modal').classList.remove('show');">
-                        <span class="intel-icon">${this.getIcon(n.type)}</span>
-                        <span>${n.msg}</span>
-                    </div>
-                `).join('')}
+            <div class="intel-modal"><div class="intel-header"><span>📡 INTELLIGENCE UPDATE</span><button onclick="this.closest('.intel-modal').classList.remove('show')" style="background:none;border:none;color:#fff;">✕</button></div>
+                ${notifs.map(n => `<div class="intel-item" onclick="loadPage('${n.page}'); this.closest('.intel-modal').classList.remove('show');"><span class="intel-icon">${this.getIcon(n.type)}</span><span>${n.msg}</span></div>`).join('')}
             </div>
         `;
-        
         document.body.insertAdjacentHTML('beforeend', html);
-        
-        // Animate in
         setTimeout(() => document.querySelector('.intel-modal').classList.add('show'), 500);
-        
-        // Auto hide after 8 seconds
         setTimeout(() => document.querySelector('.intel-modal')?.classList.remove('show'), 8000);
     },
 
     updateSidebarDots: function(notifs) {
-        // Clear all dots first (optional, or keep them persistent until clicked)
-        // document.querySelectorAll('.notification-dot').forEach(d => d.classList.remove('active'));
-
-        notifs.forEach(n => {
-            const dot = document.getElementById(n.dotId);
-            if (dot) dot.classList.add('active');
-        });
+        notifs.forEach(n => { const dot = document.getElementById(n.dotId); if (dot) dot.classList.add('active'); });
     },
 
     getIcon: function(type) {
-        switch(type) {
-            case 'badge': return '🎖️';
-            case 'mission': return '🕵️';
-            case 'result': return '🏆';
-            case 'announce': return '📢';
-            default: return 'ℹ️';
-        }
+        switch(type) { case 'badge': return '🎖️'; case 'mission': return '🕵️'; case 'result': return '🏆'; case 'announce': return '📢'; default: return 'ℹ️'; }
     }
 };
 
-// Helper to clear dots when page is visited
 const originalLoadPage = window.loadPage;
 window.loadPage = async function(page) {
-    // Hide dot for this page
-    const map = {
-        'drawer': 'dot-drawer',
-        'secret-missions': 'dot-mission',
-        'summary': 'dot-summary',
-        'announcements': 'dot-announce'
-    };
-    if (map[page]) {
-        document.getElementById(map[page])?.classList.remove('active');
-    }
-    
-    // Call original function
+    const map = { 'drawer': 'dot-drawer', 'secret-missions': 'dot-mission', 'summary': 'dot-summary', 'announcements': 'dot-announce' };
+    if (map[page]) document.getElementById(map[page])?.classList.remove('active');
     if(originalLoadPage) await originalLoadPage(page);
 };
-// ==================== INITIALIZATION ====================
+
+// ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
-// Exports
 window.loadPage = loadPage;
 window.logout = logout;
 window.showAdminPanel = showAdminPanel;
@@ -1646,4 +1196,4 @@ window.adminCompleteMission = adminCompleteMission;
 window.adminCancelMission = adminCancelMission;
 window.switchAdminTab = switchAdminTab;
 
-console.log('🎮 BTS Spy Battle v3.8 Loaded (Strategic Update)');
+console.log('🎮 BTS Spy Battle v3.8 Loaded (Fixed)');
