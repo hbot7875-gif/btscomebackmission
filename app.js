@@ -964,6 +964,23 @@ function switchAdminTab(tabName) {
     if (selectedTab) selectedTab.classList.add('active');
     if (selectedContent) selectedContent.classList.add('active');
 }
+// When opening admin panel
+function openAdminPanel() {
+    const adminPanel = document.querySelector('.admin-panel');
+    if (adminPanel) {
+        adminPanel.classList.add('show');
+        document.body.style.overflow = 'hidden';  // Prevent background scroll
+    }
+}
+
+// When closing admin panel
+function closeAdminPanel() {
+    const adminPanel = document.querySelector('.admin-panel');
+    if (adminPanel) {
+        adminPanel.classList.remove('show');
+        document.body.style.overflow = '';  // Restore scroll
+    }
+}
 
 function renderCreateMissionForm() {
     return `
