@@ -1,4 +1,4 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v3.8 (Original with Fixes) =====
+// ===== BTS SPY BATTLE - COMPLETE APP.JS v4.1 (Stability Fix) =====
 
 // ==================== CONFIGURATION ====================
 const CONFIG = {
@@ -7,7 +7,6 @@ const CONFIG = {
     
     // Admin Settings
     ADMIN_AGENT_NO: 'AGENT001',
-    // Password handled by server or local fallback
     ADMIN_PASSWORD: 'BTSSPYADMIN2024', 
     
     // End Dates (YYYY-MM-DD)
@@ -30,17 +29,16 @@ const CONFIG = {
     get BADGE_POOL() {
         const pool = [];
         for (let i = 1; i <= this.TOTAL_BADGE_IMAGES; i++) {
-            // Matches "BTS (1).jpg", "BTS (2).jpg"
             pool.push(`${this.BADGE_REPO_URL}BTS%20(${i}).jpg`);
         }
         return pool;
     },
     
     TEAMS: {
-        'Indigo': { color: '#FFE082', album: 'Indigo' },   // Warm Sand
-        'Echo': { color: '#FAFAFA', album: 'Echo' },       // Optical White
-        'Agust D': { color: '#B0BEC5', album: 'Agust D' }, // Glitch Steel
-        'JITB': { color: '#FF4081', album: 'Jack In The Box' } // Electric Magenta
+        'Indigo': { color: '#FFE082', album: 'Indigo' },   
+        'Echo': { color: '#FAFAFA', album: 'Echo' },       
+        'Agust D': { color: '#B0BEC5', album: 'Agust D' }, 
+        'JITB': { color: '#FF4081', album: 'Jack In The Box' }
     },
     
     TEAM_ALBUM_TRACKS: {
@@ -194,8 +192,8 @@ async function api(action, params = {}) {
 
 // ==================== INITIALIZATION ====================
 function initApp() {
-    console.log('🚀 Starting App v3.8 (Fixed)...');
-    ensureAdminCSS(); // Fix for Admin Panel Visibility
+    console.log('🚀 Starting App v4.1 (Stability Fix)...');
+    ensureAdminCSS(); 
     loading(false);
     setupLoginListeners();
     loadAllAgents();
@@ -208,12 +206,25 @@ function initApp() {
     }
 }
 
+// === AGGRESSIVE ADMIN CSS ===
 function ensureAdminCSS() {
     if (document.getElementById('admin-panel-styles')) return;
     const style = document.createElement('style');
     style.id = 'admin-panel-styles';
     style.innerHTML = `
-        .admin-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0f; z-index: 10000; display: flex; flex-direction: column; }
+        .admin-panel { 
+            position: fixed !important; 
+            top: 0 !important; 
+            left: 0 !important; 
+            width: 100vw !important; 
+            height: 100vh !important; 
+            background: #0a0a0f !important; 
+            z-index: 999999 !important; 
+            display: flex !important; 
+            flex-direction: column !important;
+            opacity: 1 !important;
+            transform: none !important;
+        }
         .admin-panel-header { background: #1a1a2e; padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
         .admin-panel-content { flex: 1; overflow-y: auto; padding: 20px; }
         .admin-panel-tabs { display: flex; background: #12121a; padding: 10px; gap: 10px; overflow-x: auto; }
@@ -307,7 +318,8 @@ function showAdminLogin() {
 
 function closeAdminModal() {
     const modal = $('admin-modal');
-    if (modal) { modal.classList.add('closing'); setTimeout(() => modal.remove(), 300); }
+    // REMOVED ANIMATION TO PREVENT GLITCHES
+    if (modal) modal.remove();
 }
 
 async function verifyAdminPassword() {
@@ -315,13 +327,11 @@ async function verifyAdminPassword() {
     if (!password) return;
     
     let verified = false;
-    
-    // 1. Check Local First (Instant)
+    // 1. Instant Check
     if (password === CONFIG.ADMIN_PASSWORD) {
         verified = true;
         STATE.adminSession = 'local_' + Date.now();
     } else {
-        // 2. Check Server Second
         try {
             const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password });
             if (result.success) { verified = true; STATE.adminSession = result.sessionToken; }
@@ -334,14 +344,11 @@ async function verifyAdminPassword() {
         localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
         closeAdminModal();
         addAdminIndicator();
-        
-        // Data Refresh
-        if (!STATE.week) {
-            try { const w = await api('getAvailableWeeks'); STATE.week = w.current || w.weeks?.[0]; } catch(e) {}
-        }
-        
+        if (!STATE.week) { try { const w = await api('getAvailableWeeks'); STATE.week = w.current || w.weeks?.[0]; } catch(e) {} }
         showToast('Access Granted', 'success');
-        setTimeout(showAdminPanel, 200); // Force open
+        
+        // Force open without delay
+        showAdminPanel();
     } else {
         const err = $('admin-error');
         if (err) { err.textContent = '❌ Invalid password'; err.classList.add('show'); }
@@ -369,13 +376,18 @@ function addAdminIndicator() {
     }
 }
 
-// ==================== ADMIN PANEL ====================
+// ==================== ADMIN PANEL (FIXED) ====================
 function showAdminPanel() {
     if (!STATE.isAdmin) return showAdminLogin();
     
-    document.querySelector('.admin-panel')?.remove();
+    // Force cleanup
+    document.querySelectorAll('.admin-panel').forEach(p => p.remove());
+
     const panel = document.createElement('div');
     panel.className = 'admin-panel';
+    // Explicitly set display to ensure visibility
+    panel.style.display = 'flex';
+    
     panel.innerHTML = `
         <div class="admin-panel-header"><h3>🎛️ Mission Control (${STATE.week})</h3><button class="panel-close" onclick="closeAdminPanel()">×</button></div>
         <div class="admin-panel-tabs">
@@ -403,7 +415,11 @@ function showAdminPanel() {
     });
 }
 
-function closeAdminPanel() { document.querySelector('.admin-panel')?.remove(); }
+function closeAdminPanel() { 
+    // IMMEDIATE REMOVAL NO ANIMATION
+    document.querySelectorAll('.admin-panel').forEach(p => p.remove()); 
+}
+
 function exitAdminMode() { STATE.isAdmin=false; localStorage.removeItem('adminSession'); location.reload(); }
 
 function switchAdminTab(tabName) {
