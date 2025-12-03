@@ -1264,16 +1264,23 @@ function addAdminIndicator() {
     link.style.paddingTop = '15px';
     link.innerHTML = '<span class="nav-icon">🎛️</span><span>Admin Panel</span>';
     
+    // FIXED EVENT HANDLER
     link.onclick = function(e) {
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation(); // Critical fix for "Flash" issues
         
-        if (STATE.isAdmin) {
-            showAdminPanel();
-        } else {
-            showAdminLogin();
-        }
+        // Close sidebar first
         closeSidebar();
+
+        // Small delay to allow UI to settle before opening modal
+        setTimeout(() => {
+            if (STATE.isAdmin) {
+                showAdminPanel();
+            } else {
+                showAdminLogin();
+            }
+        }, 50);
     };
     
     nav.appendChild(link);
