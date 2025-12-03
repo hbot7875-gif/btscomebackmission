@@ -859,11 +859,15 @@ async function verifyAdminPassword() {
 
 // ==================== ADMIN PANEL (FIXED) ====================
 
-function showAdminPanel() {
-    if (!STATE.isAdmin) {
-        showAdminLogin();
-        return;
+function closeAdminPanel() {
+    const panel = document.getElementById('admin-panel');
+    if (panel) {
+        panel.style.display = 'none'; // Hide immediately
+        // Small delay before removal to ensure no click events linger
+        setTimeout(() => panel.remove(), 10);
+        console.log('✅ Admin panel closed');
     }
+}
     
     // Remove any existing panels
     document.querySelectorAll('.admin-panel').forEach(p => p.remove());
