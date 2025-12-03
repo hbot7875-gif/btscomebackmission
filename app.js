@@ -1249,7 +1249,7 @@ async function adminCancelMission(id) {
 // ==================== ADMIN INDICATOR (FIXED) ====================
 
 function addAdminIndicator() {
-    // Remove existing
+    // Remove any existing admin links to prevent duplicates
     document.querySelectorAll('.admin-nav-link').forEach(el => el.remove());
     
     let nav = document.querySelector('.nav-links');
@@ -1264,23 +1264,30 @@ function addAdminIndicator() {
     link.style.paddingTop = '15px';
     link.innerHTML = '<span class="nav-icon">🎛️</span><span>Admin Panel</span>';
     
-    // FIXED EVENT HANDLER
+    // === THE FIX IS HERE ===
     link.onclick = function(e) {
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation(); // Critical fix for "Flash" issues
+        e.stopImmediatePropagation(); // Stop other listeners
         
-        // Close sidebar first
+        // 1. Close the sidebar first
         closeSidebar();
-
-        // Small delay to allow UI to settle before opening modal
+        
+        // 2. Open panel after a tiny delay to prevent event conflict
         setTimeout(() => {
             if (STATE.isAdmin) {
-                showAdminPanel();
+                // Check if panel is already open to prevent double-open
+                if (!document.getElementById('admin-panel')) {
+                    showAdminPanel();
+                }
             } else {
-                showAdminLogin();
+                if (!document.getElementById('admin-modal')) {
+                    showAdminLogin();
+                }
             }
-        }, 50);
+        }, 50); // 50ms delay
+        
+        return false;
     };
     
     nav.appendChild(link);
