@@ -1472,7 +1472,7 @@ function setupDashboard() {
         };
     }
     
-    // Remove old click handlers first to prevent duplicates
+    // Nav links
     document.querySelectorAll('.nav-link').forEach(link => {
         link.onclick = null;
         link.onclick = e => {
@@ -1488,8 +1488,7 @@ function setupDashboard() {
         };
     });
     
-    if (isAdminAgent()) addAdminIndicator();
-    
+    // Menu button
     const menuBtn = $('menu-btn');
     if (menuBtn) {
         menuBtn.onclick = null;
@@ -1500,6 +1499,7 @@ function setupDashboard() {
         };
     }
     
+    // Close sidebar button
     const closeSidebarBtn = $('close-sidebar');
     if (closeSidebarBtn) {
         closeSidebarBtn.onclick = null;
@@ -1510,6 +1510,19 @@ function setupDashboard() {
         };
     }
     
+    // ⭐ FIX: Sidebar overlay - DON'T close admin panel
+    const sidebarOverlay = $('sidebar-overlay');
+    if (sidebarOverlay) {
+        sidebarOverlay.onclick = null;
+        sidebarOverlay.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Only close sidebar, NOT the admin panel
+            closeSidebar();
+        };
+    }
+    
+    // Logout button
     const logoutBtn = $('logout-btn');
     if (logoutBtn) {
         logoutBtn.onclick = null;
@@ -1520,18 +1533,10 @@ function setupDashboard() {
         };
     }
     
+    // Add admin indicator if admin
+    if (isAdminAgent()) addAdminIndicator();
+    
     updateTime();
-}
-
-function closeSidebar() { $('sidebar')?.classList.remove('open'); }
-
-function logout() {
-    if (confirm('Logout?')) {
-        localStorage.removeItem('spyAgent');
-        localStorage.removeItem('adminSession');
-        localStorage.removeItem('adminExpiry');
-        location.reload();
-    }
 }
 
 // ==================== PAGE ROUTER ====================
