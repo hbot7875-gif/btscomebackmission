@@ -1269,7 +1269,6 @@ function addAdminIndicator() {
     
     nav.appendChild(link);
 }
-// ==================== DASHBOARD ====================
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
     loading(true);
@@ -1300,8 +1299,29 @@ async function loadDashboard() {
     } catch (e) {
         console.error('Dashboard error:', e);
         showToast('Failed to load: ' + e.message, 'error');
-        logout();
-    } finally { loading(false); }
+        
+        // FIX: Don't automatically logout - just clear saved data and show login screen
+        localStorage.removeItem('spyAgent');
+        STATE.agentNo = null;
+        STATE.data = null;
+        
+        // Make sure login screen is visible
+        const loginScreen = $('login-screen');
+        const dashboardScreen = $('dashboard-screen');
+        
+        if (loginScreen) {
+            loginScreen.classList.add('active');
+            loginScreen.style.display = 'flex';
+        }
+        if (dashboardScreen) {
+            dashboardScreen.classList.remove('active');
+            dashboardScreen.style.display = 'none';
+        }
+        
+        showResult('Session expired or server error. Please try again.', true);
+    } finally { 
+        loading(false); 
+    }
 }
 
 async function loadAllWeeksData() {
