@@ -1271,18 +1271,33 @@ function addAdminIndicator() {
 }
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
+    console.log('📌 Agent No:', STATE.agentNo);
+    console.log('📌 API URL:', CONFIG.API_URL);
+    
     loading(true);
     try {
+        // Step 1: Get weeks
+        console.log('⏳ Fetching available weeks...');
         const weeksRes = await api('getAvailableWeeks');
+        console.log('✅ Weeks response:', weeksRes);
+        
         STATE.weeks = weeksRes.weeks || [];
         STATE.week = weeksRes.current || STATE.weeks[0];
+        console.log('📌 Selected week:', STATE.week);
         
+        // Step 2: Get agent data
+        console.log('⏳ Fetching agent data...');
         STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: STATE.week });
+        console.log('✅ Agent data:', STATE.data);
+        
         if (STATE.data?.lastUpdated) STATE.lastUpdated = STATE.data.lastUpdated;
         
-        // Load all weeks data for drawer
+        // Step 3: Load all weeks data
+        console.log('⏳ Loading all weeks data...');
         await loadAllWeeksData();
+        console.log('✅ All weeks data loaded');
         
+        // Show dashboard
         $('login-screen').classList.remove('active');
         $('login-screen').style.display = 'none';
         $('dashboard-screen').classList.add('active');
@@ -1292,20 +1307,20 @@ async function loadDashboard() {
         await loadPage('home');
         
         if (STATE.isAdmin) addAdminIndicator();
-        
-        // Check for new results popup
         setTimeout(() => checkForResultsPopup(), 1000);
         
     } catch (e) {
-        console.error('Dashboard error:', e);
-        showToast('Failed to load: ' + e.message, 'error');
+        // DETAILED ERROR LOGGING
+        console.error('❌ Dashboard error:', e);
+        console.error('❌ Error message:', e.message);
+        console.error('❌ Error stack:', e.stack);
         
-        // FIX: Don't automatically logout - just clear saved data and show login screen
-        localStorage.removeItem('spyAgent');
-        STATE.agentNo = null;
-        STATE.data = null;
+        // Show the actual error to user for debugging
+        showToast('Error: ' + e.message, 'error');
+        showResult('Error: ' + e.message, true);
         
-        // Make sure login screen is visible
+        // Don't clear session yet - let user see what's wrong
+        // Just show login screen
         const loginScreen = $('login-screen');
         const dashboardScreen = $('dashboard-screen');
         
@@ -1317,8 +1332,6 @@ async function loadDashboard() {
             dashboardScreen.classList.remove('active');
             dashboardScreen.style.display = 'none';
         }
-        
-        showResult('Session expired or server error. Please try again.', true);
     } finally { 
         loading(false); 
     }
