@@ -1587,7 +1587,13 @@ function setupDashboard() {
     
     updateTime();
 }
-
+function closeSidebar() {
+    const sidebar = $('sidebar');
+    if (sidebar) {
+        sidebar.classList.remove('open');
+    }
+    // DON'T do anything else here that might interfere
+}
 // ==================== PAGE ROUTER ====================
 async function loadPage(page) {
     STATE.page = page;
