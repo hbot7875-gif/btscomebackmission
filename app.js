@@ -1425,9 +1425,12 @@ function setupDashboard() {
         };
     }
     
+    // Remove old click handlers first to prevent duplicates
     document.querySelectorAll('.nav-link').forEach(link => {
+        link.onclick = null; // Clear old handler
         link.onclick = e => {
             e.preventDefault();
+            e.stopPropagation();
             const page = link.dataset.page;
             if (page) {
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
@@ -1439,12 +1442,41 @@ function setupDashboard() {
     });
     
     if (isAdminAgent()) addAdminIndicator();
-    $('menu-btn')?.addEventListener('click', () => $('sidebar')?.classList.add('open'));
-    $('close-sidebar')?.addEventListener('click', closeSidebar);
-    $('logout-btn')?.addEventListener('click', logout);
+    
+    // Fix: Remove old handlers before adding new ones
+    const menuBtn = $('menu-btn');
+    if (menuBtn) {
+        menuBtn.onclick = null;
+        menuBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            $('sidebar')?.classList.add('open');
+        };
+    }
+    
+    const closeSidebarBtn = $('close-sidebar');
+    if (closeSidebarBtn) {
+        closeSidebarBtn.onclick = null;
+        closeSidebarBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeSidebar();
+        };
+    }
+    
+    // Fix: Properly handle logout button
+    const logoutBtn = $('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.onclick = null; // Clear any old handler
+        logoutBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            logout();
+        };
+    }
+    
     updateTime();
 }
-
 function closeSidebar() { $('sidebar')?.classList.remove('open'); }
 
 function logout() {
