@@ -5121,5 +5121,34 @@ textarea:focus-visible {
     align-items: center;
     gap: 4px;
 }
+/* === COMPACT GUIDE CARDS === */
+.guide-card {
+    margin-bottom: 15px !important;
+}
+
+.guide-card .card-body {
+    padding: 12px 15px !important;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.guide-card .card-body > div:first-child {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.guide-card .card-body h4 {
+    margin: 0 0 4px 0 !important;
+    font-size: 13px !important;
+    font-weight: 600;
+}
+
+.guide-card .card-body p {
+    margin: 0 !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+    color: #aaa;
+}
 
 /* ==================== END OF STYLES ==================== */
