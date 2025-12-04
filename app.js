@@ -87,13 +87,13 @@ const STATE = {
     weeks: [],
     data: null,
     allAgents: [],
-    allWeeksData: null, // For storing all weeks badges/XP
+    allWeeksData: null,
     page: 'home',
     isLoading: false,
     isAdmin: false,
     adminSession: null,
     lastUpdated: null,
-    hasSeenResults: {} // Track which week results user has seen
+    hasSeenResults: {}
 };
 
 // ==================== HELPERS ====================
@@ -165,6 +165,11 @@ function isWeekCompleted(selectedWeek) {
     const end = new Date(endDateStr);
     end.setHours(23, 59, 59, 999);
     return new Date() > end;
+}
+
+function closeSidebar() {
+    const sidebar = $('sidebar');
+    if (sidebar) sidebar.classList.remove('open');
 }
 
 // ==================== GUIDES ====================
@@ -250,7 +255,9 @@ function renderGuide(pageName) {
 async function api(action, params = {}) {
     const url = new URL(CONFIG.API_URL);
     url.searchParams.set('action', action);
-    Object.entries(params).forEach(([k, v]) => { if (v != null) url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v); });
+    Object.entries(params).forEach(([k, v]) => { 
+        if (v != null) url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v); 
+    });
     console.log('📡 API:', action, params);
     try {
         const controller = new AbortController();
@@ -269,387 +276,59 @@ async function api(action, params = {}) {
     }
 }
 
-// ==================== INITIALIZATION ====================
-function initApp() {
-    console.log('🚀 Starting App v5.0 (Full Features)...');
-    ensureAppCSS(); 
-    loading(false);
-    setupLoginListeners();
-    loadAllAgents();
+// ==================== ADMIN FUNCTIONS ====================
+function isAdminAgent() {
+    return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
+}
 
-    const saved = localStorage.getItem('spyAgent');
-    if (saved) {
-        STATE.agentNo = saved;
-        checkAdminStatus();
-        loadSeenResults();
-        loadDashboard();
+function checkAdminStatus() {
+    if (!isAdminAgent()) { 
+        STATE.isAdmin = false; 
+        return; 
+    }
+    const savedSession = localStorage.getItem('adminSession');
+    const savedExpiry = localStorage.getItem('adminExpiry');
+    if (savedSession && savedExpiry && Date.now() < parseInt(savedExpiry)) {
+        STATE.isAdmin = true;
+        STATE.adminSession = savedSession;
+        localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
+    } else {
+        STATE.isAdmin = false;
     }
 }
 
-function loadSeenResults() {
-    try {
-        const saved = localStorage.getItem('seenResults_' + STATE.agentNo);
-        STATE.hasSeenResults = saved ? JSON.parse(saved) : {};
-    } catch (e) {
-        STATE.hasSeenResults = {};
-    }
+function exitAdminMode() {
+    STATE.isAdmin = false;
+    STATE.adminSession = null;
+    localStorage.removeItem('adminSession');
+    localStorage.removeItem('adminExpiry');
+    document.querySelectorAll('.admin-nav-link').forEach(el => el.remove());
+    closeAdminPanel();
+    showToast('Admin mode deactivated', 'info');
 }
 
-function markResultsSeen(week) {
-    STATE.hasSeenResults[week] = true;
-    localStorage.setItem('seenResults_' + STATE.agentNo, JSON.stringify(STATE.hasSeenResults));
+function addAdminIndicator() {
+    if (!isAdminAgent()) return;
+    document.querySelectorAll('.admin-nav-link').forEach(el => el.remove());
+    
+    let nav = document.querySelector('.nav-links') || $('sidebar');
+    if (!nav) return;
+    
+    const link = document.createElement('a');
+    link.href = '#';
+    link.className = 'nav-link admin-nav-link';
+    link.style.cssText = 'margin-top:auto; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;';
+    link.innerHTML = '<span class="nav-icon">🎛️</span><span>Admin Panel</span>';
+    link.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (STATE.isAdmin) showAdminPanel();
+        else showAdminLogin();
+        closeSidebar();
+    };
+    nav.appendChild(link);
 }
 
-// === APP CSS (CORRECTED) ===
-function ensureAppCSS() {
-    if (document.getElementById('app-custom-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'app-custom-styles';
-    style.innerHTML = `
-        /* === ADMIN PANEL BASE === */
-        .admin-panel { 
-            position: fixed !important; 
-            top: 0 !important; 
-            left: 0 !important; 
-            width: 100vw !important; 
-            height: 100vh !important; 
-            background: #0a0a0f !important; 
-            z-index: 999999 !important; 
-            display: flex !important; 
-            flex-direction: column !important;
-        }
-        .admin-panel-header { background: #1a1a2e; padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .admin-panel-content { flex: 1; overflow-y: auto; padding: 20px; }
-        .admin-panel-tabs { display: flex; background: #12121a; padding: 10px; gap: 10px; overflow-x: auto; }
-        .admin-tab { padding: 8px 16px; border: 1px solid #333; border-radius: 20px; background: transparent; color: #888; cursor: pointer; white-space: nowrap; transition: all 0.3s ease; }
-        .admin-tab:hover { background: rgba(123, 44, 191, 0.2); border-color: #7b2cbf; }
-        .admin-tab.active { background: #7b2cbf; color: #fff; border-color: #7b2cbf; }
-        .admin-tab-content { display: none; }
-        .admin-tab-content.active { display: block; }
-        .admin-mission-card { background: #1a1a2e; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-
-        /* === ADMIN LOGIN MODAL === */
-        .admin-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 999998;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .admin-modal {
-            background: linear-gradient(145deg, #1a1a2e, #0a0a0f);
-            border-radius: 16px;
-            width: 90%;
-            max-width: 400px;
-            border: 1px solid #7b2cbf;
-            box-shadow: 0 0 50px rgba(123, 44, 191, 0.3);
-        }
-        .admin-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            border-bottom: 1px solid #333;
-        }
-        .admin-modal-header h3 { color: #fff; margin: 0; }
-        .admin-modal-close {
-            background: none;
-            border: none;
-            color: #888;
-            font-size: 28px;
-            cursor: pointer;
-            padding: 0;
-            line-height: 1;
-        }
-        .admin-modal-body { padding: 20px; }
-        .terminal-style {
-            background: #0a0a0f;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 15px;
-        }
-        .terminal-label { color: #888; font-size: 12px; display: block; margin-bottom: 5px; }
-        .terminal-input {
-            width: 100%;
-            background: transparent;
-            border: 1px solid #444;
-            border-radius: 4px;
-            padding: 10px;
-            color: #fff;
-            font-family: monospace;
-        }
-        .admin-error {
-            color: #ff4444;
-            text-align: center;
-            padding: 10px;
-            display: none;
-        }
-        .admin-error.show { display: block; }
-        .admin-modal-footer {
-            display: flex;
-            gap: 10px;
-            padding: 20px;
-            border-top: 1px solid #333;
-            justify-content: flex-end;
-        }
-
-        /* === FORM ELEMENTS === */
-        .create-mission-form { padding: 10px 0; }
-        .form-section { margin-bottom: 20px; }
-        .form-section h4 { color: #fff; margin-bottom: 10px; font-size: 14px; }
-        .form-input, .form-textarea {
-            width: 100%;
-            background: #12121a;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 12px;
-            color: #fff;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        .form-textarea { min-height: 80px; resize: vertical; }
-        .mission-type-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-        .mission-type-option {
-            padding: 12px;
-            background: #12121a;
-            border: 1px solid #333;
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: center;
-            color: #888;
-            transition: all 0.3s;
-        }
-        .mission-type-option:hover { border-color: #7b2cbf; }
-        .mission-type-option.selected {
-            background: rgba(123, 44, 191, 0.2);
-            border-color: #7b2cbf;
-            color: #fff;
-        }
-        .team-checkboxes {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .team-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-        }
-        .form-actions { margin-top: 20px; }
-
-        /* === BUTTONS === */
-        .btn-primary {
-            background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-            color: #fff;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(123, 44, 191, 0.4);
-        }
-        .btn-secondary {
-            background: #333;
-            color: #fff;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .loading-text {
-            color: #888;
-            text-align: center;
-            padding: 20px;
-        }
-
-        /* === HOLOGRAPHIC BADGE RING === */
-        .badge-circle {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-            background: #1a1a2e;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .badge-circle.holographic {
-            background: linear-gradient(135deg, #1a1a2e, #2a2a3e);
-            border: none !important;
-            padding: 3px;
-        }
-        .badge-circle.holographic::before {
-            content: '';
-            position: absolute;
-            top: -3px;
-            left: -3px;
-            right: -3px;
-            bottom: -3px;
-            border-radius: 50%;
-            background: conic-gradient(from 0deg, #ffd700, #ff6b6b, #c56cf0, #7b2cbf, #00d4ff, #00ff88, #ffd700);
-            z-index: -1;
-            animation: holoSpin 4s linear infinite;
-        }
-        .badge-circle.holographic::after {
-            content: '';
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            right: 3px;
-            bottom: 3px;
-            border-radius: 50%;
-            background: #1a1a2e;
-            z-index: -1;
-        }
-        .badge-circle.holographic {
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4), 0 0 30px rgba(123, 44, 191, 0.3), 0 0 45px rgba(0, 212, 255, 0.2);
-        }
-        .badge-circle:hover { transform: scale(1.1); }
-        @keyframes holoSpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .badge-circle img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* === ADMIN ASSETS - DATA CHIPS === */
-        .assets-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 15px;
-            padding: 10px;
-        }
-        .asset-chip {
-            position: relative;
-            aspect-ratio: 1;
-            border-radius: 16px;
-            overflow: hidden;
-            background: linear-gradient(145deg, #1a1a2e, #12121a);
-            border: 2px solid rgba(123, 44, 191, 0.3);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .asset-chip::before {
-            content: '';
-            position: absolute;
-            top: -3px;
-            left: -3px;
-            right: -3px;
-            bottom: -3px;
-            border-radius: 18px;
-            background: conic-gradient(from 0deg, #ffd700, #ff6b6b, #c56cf0, #7b2cbf, #00d4ff, #00ff88, #ffd700);
-            z-index: -1;
-            opacity: 0;
-            animation: holoSpin 4s linear infinite;
-            transition: opacity 0.3s;
-        }
-        .asset-chip:hover::before { opacity: 1; }
-        .asset-chip-inner {
-            width: 100%;
-            height: 100%;
-            border-radius: 14px;
-            overflow: hidden;
-            background: #1a1a2e;
-            position: relative;
-        }
-        .asset-chip img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s ease;
-        }
-        .asset-chip:hover {
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 10px 30px rgba(123, 44, 191, 0.4);
-        }
-        .asset-chip:hover img { transform: scale(1.1); }
-        .asset-chip-number {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            background: rgba(0,0,0,0.8);
-            color: #ffd700;
-            padding: 4px 8px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: bold;
-            z-index: 2;
-        }
-
-        /* === BADGES SHOWCASE === */
-        .badges-showcase {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-            gap: 15px;
-            padding: 10px;
-        }
-        .badge-showcase-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 12px 8px;
-            background: linear-gradient(145deg, rgba(26, 26, 46, 0.8), rgba(18, 18, 26, 0.9));
-            border-radius: 12px;
-            border: 1px solid rgba(123, 44, 191, 0.2);
-            transition: all 0.3s ease;
-        }
-        .badge-showcase-item:hover {
-            transform: translateY(-5px);
-            border-color: rgba(255, 215, 0, 0.5);
-        }
-        .badge-name { margin-top: 8px; font-weight: 600; color: #ffd700; font-size: 11px; }
-        .badge-week { font-size: 9px; color: #7b2cbf; margin-top: 2px; }
-
-        /* === PLAYLIST, GC, HELPER ROLES === */
-        .playlist-card, .gc-card, .role-card {
-            background: linear-gradient(145deg, #1a1a2e, #12121a);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border: 1px solid rgba(123, 44, 191, 0.3);
-            transition: all 0.3s;
-        }
-        .playlist-card:hover, .role-card:hover { transform: translateX(5px); }
-        .gc-link-btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-            color: #fff;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        .gc-link-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(123, 44, 191, 0.4); }
-    `;
-    document.head.appendChild(style);
-}
-
-// ==================== ADMIN LOGIN (SINGLE VERSION) ====================
 function showAdminLogin() {
     if (!isAdminAgent()) { 
         showToast('Access denied.', 'error'); 
@@ -662,10 +341,7 @@ function showAdminLogin() {
     const modal = document.createElement('div');
     modal.className = 'admin-modal-overlay';
     modal.id = 'admin-modal';
-    
-    modal.onclick = function(e) {
-        if (e.target === modal) closeAdminModal();
-    };
+    modal.onclick = function(e) { if (e.target === modal) closeAdminModal(); };
     
     modal.innerHTML = `
         <div class="admin-modal" onclick="event.stopPropagation();">
@@ -681,9 +357,7 @@ function showAdminLogin() {
                 <div id="admin-error" class="admin-error"></div>
             </div>
             <div class="admin-modal-footer">
-                <button type="button" onclick="verifyAdminPassword();" class="btn-primary">
-                    🔓 Authenticate
-                </button>
+                <button type="button" onclick="verifyAdminPassword();" class="btn-primary">🔓 Authenticate</button>
             </div>
         </div>
     `;
@@ -691,34 +365,28 @@ function showAdminLogin() {
     document.body.appendChild(modal);
     
     setTimeout(() => {
-        const pwField = document.getElementById('admin-password');
+        const pwField = $('admin-password');
         if (pwField) {
             pwField.focus();
             pwField.onkeypress = function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    verifyAdminPassword();
-                }
+                if (e.key === 'Enter') { e.preventDefault(); verifyAdminPassword(); }
             };
         }
     }, 150);
 }
 
 function closeAdminModal() {
-    const modal = document.getElementById('admin-modal');
+    const modal = $('admin-modal');
     if (modal) modal.remove();
 }
 
 async function verifyAdminPassword() {
-    const passwordField = document.getElementById('admin-password');
+    const passwordField = $('admin-password');
     const password = passwordField?.value;
-    const errorEl = document.getElementById('admin-error');
+    const errorEl = $('admin-error');
     
     if (!password) {
-        if (errorEl) {
-            errorEl.textContent = '❌ Please enter password';
-            errorEl.classList.add('show');
-        }
+        if (errorEl) { errorEl.textContent = '❌ Please enter password'; errorEl.classList.add('show'); }
         return;
     }
     
@@ -730,61 +398,36 @@ async function verifyAdminPassword() {
     } else {
         try {
             const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password });
-            if (result.success) { 
-                verified = true; 
-                STATE.adminSession = result.sessionToken; 
-            }
-        } catch (e) {
-            console.log('Server verification failed:', e);
-        }
+            if (result.success) { verified = true; STATE.adminSession = result.sessionToken; }
+        } catch (e) { console.log('Server verification failed:', e); }
     }
 
     if (verified) {
         STATE.isAdmin = true;
         localStorage.setItem('adminSession', STATE.adminSession);
         localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
-        
         closeAdminModal();
         addAdminIndicator();
-        
         if (!STATE.week) { 
-            try { 
-                const w = await api('getAvailableWeeks'); 
-                STATE.week = w.current || w.weeks?.[0]; 
-            } catch(e) {} 
+            try { const w = await api('getAvailableWeeks'); STATE.week = w.current || w.weeks?.[0]; } catch(e) {} 
         }
-        
         showToast('Access Granted', 'success');
         setTimeout(() => showAdminPanel(), 100);
-        
     } else {
-        if (errorEl) { 
-            errorEl.textContent = '❌ Invalid password'; 
-            errorEl.classList.add('show');
-        }
+        if (errorEl) { errorEl.textContent = '❌ Invalid password'; errorEl.classList.add('show'); }
     }
 }
 
-// ==================== ADMIN PANEL (SINGLE VERSION) ====================
 function showAdminPanel() {
-    if (!STATE.isAdmin) {
-        showToast('Admin access required', 'error');
-        return;
-    }
-    
-    if (!STATE.week) {
-        STATE.week = STATE.weeks?.[0] || 'Week 1';
-    }
+    if (!STATE.isAdmin) { showToast('Admin access required', 'error'); return; }
+    if (!STATE.week) STATE.week = STATE.weeks?.[0] || 'Week 1';
     
     document.querySelectorAll('.admin-panel').forEach(p => p.remove());
 
     const panel = document.createElement('div');
     panel.className = 'admin-panel';
     panel.id = 'admin-panel';
-    
-    panel.addEventListener('click', function(e) {
-        e.stopPropagation();
-    }, true);
+    panel.addEventListener('click', e => e.stopPropagation(), true);
     
     panel.innerHTML = `
         <div class="admin-panel-header">
@@ -811,19 +454,11 @@ function showAdminPanel() {
     document.body.appendChild(panel);
     document.body.style.overflow = 'hidden';
     
-    const closeBtn = document.getElementById('admin-panel-close-btn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            closeAdminPanel();
-        }, { capture: true });
-    }
+    $('admin-panel-close-btn')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); closeAdminPanel(); }, { capture: true });
     
     panel.querySelectorAll('.admin-tab').forEach(tab => {
         tab.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
+            e.preventDefault(); e.stopPropagation();
             const tabName = this.dataset.tab;
             switchAdminTab(tabName);
             if (tabName === 'active') loadActiveTeamMissions();
@@ -831,33 +466,488 @@ function showAdminPanel() {
             if (tabName === 'history') loadMissionHistory();
         }, { capture: true });
     });
-    
-    console.log('✅ Admin panel opened');
 }
 
 function closeAdminPanel() {
-    const panel = document.getElementById('admin-panel');
-    if (panel) {
-        panel.remove();
-        document.body.style.overflow = '';
-        console.log('✅ Admin panel closed');
+    const panel = $('admin-panel');
+    if (panel) { panel.remove(); document.body.style.overflow = ''; }
+}
+
+function switchAdminTab(tabName) {
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`.admin-tab[data-tab="${tabName}"]`)?.classList.add('active');
+    $(`admin-tab-${tabName}`)?.classList.add('active');
+}
+
+function renderCreateMissionForm() {
+    return `
+        <div class="create-mission-form" onclick="event.stopPropagation();">
+            <div class="form-section">
+                <h4>Mission Type</h4>
+                <div class="mission-type-grid">
+                    ${Object.entries(CONFIG.MISSION_TYPES).map(([key, m], i) => `
+                        <div class="mission-type-option ${i === 0 ? 'selected' : ''}" data-type="${key}" onclick="event.stopPropagation(); selectMissionType('${key}');">
+                            <span>${m.icon}</span> <span>${m.name}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <input type="hidden" id="selected-mission-type" value="switch_app">
+            </div>
+            <div class="form-section">
+                <h4>Target Teams</h4>
+                <div class="team-checkboxes">
+                    ${Object.keys(CONFIG.TEAMS).map(team => `
+                        <label class="team-checkbox" onclick="event.stopPropagation();">
+                            <input type="checkbox" name="target-teams" value="${team}"> 
+                            <span class="team-name" style="color:${teamColor(team)}">${team}</span>
+                        </label>
+                    `).join('')}
+                </div>
+                <label onclick="event.stopPropagation();"><input type="checkbox" onchange="toggleAllTeams(this.checked)"> Select All</label>
+            </div>
+            <div class="form-section">
+                <h4>Mission Details</h4>
+                <input type="text" id="mission-title" class="form-input" placeholder="Mission Title" onclick="event.stopPropagation();">
+                <textarea id="mission-briefing" class="form-textarea" placeholder="Mission Briefing" onclick="event.stopPropagation();"></textarea>
+                <input type="text" id="target-track" class="form-input" placeholder="Target Track (optional)" onclick="event.stopPropagation();">
+                <input type="number" id="goal-target" class="form-input" value="100" placeholder="Goal Number" onclick="event.stopPropagation();">
+            </div>
+            <div class="form-actions">
+                <button type="button" onclick="event.stopPropagation(); createTeamMission();" class="btn-primary">🚀 Deploy Mission</button>
+            </div>
+            <div id="create-result" style="margin-top:10px;"></div>
+        </div>
+    `;
+}
+
+function selectMissionType(type) {
+    document.querySelectorAll('.mission-type-option').forEach(el => el.classList.remove('selected'));
+    document.querySelector(`.mission-type-option[data-type="${type}"]`)?.classList.add('selected');
+    const hiddenInput = $('selected-mission-type');
+    if (hiddenInput) hiddenInput.value = type;
+}
+
+function toggleAllTeams(checked) { 
+    document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = checked); 
+}
+
+async function createTeamMission() {
+    const type = $('selected-mission-type')?.value;
+    const title = $('mission-title')?.value.trim();
+    const briefing = $('mission-briefing')?.value.trim();
+    const targetTeams = Array.from(document.querySelectorAll('input[name="target-teams"]:checked')).map(cb => cb.value);
+    const targetTrack = $('target-track')?.value.trim();
+    const goalTarget = parseInt($('goal-target')?.value) || 100;
+    
+    if (!title) { showCreateResult('Please enter a mission title', true); return; }
+    if (targetTeams.length === 0) { showCreateResult('Please select at least one team', true); return; }
+    if (!briefing) { showCreateResult('Please enter a mission briefing', true); return; }
+    
+    loading(true);
+    try {
+        const res = await api('createTeamMission', { 
+            type, title, briefing, targetTeams: JSON.stringify(targetTeams), targetTrack, goalTarget, 
+            week: STATE.week, agentNo: STATE.agentNo, sessionToken: STATE.adminSession 
+        });
+        if (res.success) { 
+            showCreateResult('✅ Mission Deployed Successfully!', false);
+            $('mission-title').value = '';
+            $('mission-briefing').value = '';
+            $('target-track').value = '';
+            document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = false);
+            loadActiveTeamMissions();
+        } else { showCreateResult(res.error || 'Failed to create mission', true); }
+    } catch (e) { showCreateResult(e.message, true); } 
+    finally { loading(false); }
+}
+
+function showCreateResult(msg, isError) {
+    const el = $('create-result');
+    if (el) { 
+        el.textContent = msg; 
+        el.style.color = isError ? '#ff4444' : '#00ff88';
+        el.style.padding = '10px';
+        el.style.borderRadius = '8px';
+        el.style.background = isError ? 'rgba(255,68,68,0.1)' : 'rgba(0,255,136,0.1)';
     }
 }
 
-function closeSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        sidebar.classList.remove('open');
+async function loadActiveTeamMissions() {
+    const container = $('admin-tab-active');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-text">Loading missions...</div>';
+    try {
+        const res = await api('getTeamMissions', { status: 'active', week: STATE.week });
+        const missions = res.missions || [];
+        if (missions.length) {
+            container.innerHTML = missions.map(m => `
+                <div class="admin-mission-card" onclick="event.stopPropagation();">
+                    <div style="flex:1;">
+                        <div style="font-weight:600;color:#fff;">${sanitize(m.title)}</div>
+                        <div style="font-size:12px;color:#888;">Teams: ${(m.targetTeams || []).join(', ')}</div>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" onclick="event.stopPropagation(); adminCompleteMission('${m.id}');" style="background:#00aa55;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">✓ Complete</button>
+                        <button type="button" onclick="event.stopPropagation(); adminCancelMission('${m.id}');" style="background:#aa3333;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">✕ Cancel</button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p style="color:#888;text-align:center;padding:40px;">No active missions</p>';
+        }
+    } catch (e) { container.innerHTML = '<p style="color:#ff4444;text-align:center;">Error loading missions</p>'; }
+}
+
+async function loadMissionHistory() {
+    const container = $('admin-tab-history');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-text">Loading history...</div>';
+    try {
+        const res = await api('getTeamMissions', { status: 'all', week: STATE.week });
+        const missions = (res.missions || []).filter(m => m.status !== 'active');
+        if (missions.length) {
+            container.innerHTML = missions.map(m => `
+                <div style="padding:12px;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:#fff;">${sanitize(m.title)}</span>
+                    <span style="color:${m.status === 'completed' ? '#00ff88' : '#888'};font-size:12px;text-transform:uppercase;">${m.status}</span>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<p style="color:#888;text-align:center;padding:40px;">No mission history</p>';
+        }
+    } catch (e) { container.innerHTML = '<p style="color:#ff4444;text-align:center;">Error loading history</p>'; }
+}
+
+function renderAdminAssets() {
+    const container = $('admin-tab-assets');
+    if (!container) return;
+    const badges = CONFIG.BADGE_POOL;
+    container.innerHTML = `
+        <div style="margin-bottom:20px;">
+            <h4 style="color:#ffd700;margin-bottom:5px;">🎖️ Badge Preview (${badges.length} badges)</h4>
+            <p style="color:#888;font-size:12px;">Click to preview full size.</p>
+        </div>
+        <div class="assets-grid">
+            ${badges.map((url, index) => `
+                <div class="asset-chip" onclick="event.stopPropagation(); previewAsset('${url}', ${index + 1});">
+                    <div class="asset-chip-number">#${index + 1}</div>
+                    <div class="asset-chip-inner">
+                        <img src="${url}" alt="Badge ${index + 1}" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:24px;\\'>❌</div>'">
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function previewAsset(url, index) {
+    document.querySelectorAll('.asset-preview-modal').forEach(m => m.remove());
+    const modal = document.createElement('div');
+    modal.className = 'asset-preview-modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999999;cursor:pointer;';
+    modal.innerHTML = `
+        <div class="badge-circle holographic" style="width:200px;height:200px;" onclick="event.stopPropagation();">
+            <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+        </div>
+        <div style="margin-top:20px;color:#ffd700;font-size:20px;">Badge #${index}</div>
+        <div style="margin-top:10px;color:#888;font-size:14px;">Tap anywhere to close</div>
+    `;
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+}
+
+async function adminCompleteMission(id) {
+    const team = prompt('Enter Team Name to mark as complete:');
+    if (!team || !team.trim()) return;
+    loading(true);
+    try {
+        const res = await api('completeTeamMission', { missionId: id, team: team.trim(), agentNo: STATE.agentNo, sessionToken: STATE.adminSession });
+        if (res.success) { showToast('Mission completed for ' + team, 'success'); loadActiveTeamMissions(); }
+        else { showToast(res.error || 'Failed to complete mission', 'error'); }
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+    finally { loading(false); }
+}
+
+async function adminCancelMission(id) {
+    if (!confirm('Are you sure you want to cancel this mission?')) return;
+    loading(true);
+    try {
+        const res = await api('cancelTeamMission', { missionId: id, agentNo: STATE.agentNo, sessionToken: STATE.adminSession });
+        if (res.success) { showToast('Mission cancelled', 'success'); loadActiveTeamMissions(); }
+        else { showToast(res.error || 'Failed to cancel mission', 'error'); }
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+    finally { loading(false); }
+}
+
+// ==================== CSS ====================
+function ensureAppCSS() {
+    if ($('app-custom-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'app-custom-styles';
+    style.innerHTML = `
+        .admin-panel{position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;background:#0a0a0f!important;z-index:999999!important;display:flex!important;flex-direction:column!important}
+        .admin-panel-header{background:#1a1a2e;padding:15px;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center}
+        .admin-panel-content{flex:1;overflow-y:auto;padding:20px}
+        .admin-panel-tabs{display:flex;background:#12121a;padding:10px;gap:10px;overflow-x:auto}
+        .admin-tab{padding:8px 16px;border:1px solid #333;border-radius:20px;background:transparent;color:#888;cursor:pointer;white-space:nowrap;transition:all .3s}
+        .admin-tab:hover{background:rgba(123,44,191,.2);border-color:#7b2cbf}
+        .admin-tab.active{background:#7b2cbf;color:#fff;border-color:#7b2cbf}
+        .admin-tab-content{display:none}
+        .admin-tab-content.active{display:block}
+        .admin-mission-card{background:#1a1a2e;padding:15px;border-radius:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+        .admin-modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);z-index:999998;display:flex;align-items:center;justify-content:center}
+        .admin-modal{background:linear-gradient(145deg,#1a1a2e,#0a0a0f);border-radius:16px;width:90%;max-width:400px;border:1px solid #7b2cbf;box-shadow:0 0 50px rgba(123,44,191,.3)}
+        .admin-modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px;border-bottom:1px solid #333}
+        .admin-modal-header h3{color:#fff;margin:0}
+        .admin-modal-close{background:none;border:none;color:#888;font-size:28px;cursor:pointer;padding:0;line-height:1}
+        .admin-modal-body{padding:20px}
+        .admin-modal-footer{display:flex;gap:10px;padding:20px;border-top:1px solid #333;justify-content:flex-end}
+        .terminal-style{background:#0a0a0f;border:1px solid #333;border-radius:8px;padding:15px}
+        .terminal-label{color:#888;font-size:12px;display:block;margin-bottom:5px}
+        .terminal-input{width:100%;background:transparent;border:1px solid #444;border-radius:4px;padding:10px;color:#fff;font-family:monospace}
+        .admin-error{color:#ff4444;text-align:center;padding:10px;display:none}
+        .admin-error.show{display:block}
+        .create-mission-form{padding:10px 0}
+        .form-section{margin-bottom:20px}
+        .form-section h4{color:#fff;margin-bottom:10px;font-size:14px}
+        .form-input,.form-textarea{width:100%;background:#12121a;border:1px solid #333;border-radius:8px;padding:12px;color:#fff;margin-bottom:10px;font-size:14px}
+        .form-textarea{min-height:80px;resize:vertical}
+        .mission-type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+        .mission-type-option{padding:12px;background:#12121a;border:1px solid #333;border-radius:8px;cursor:pointer;text-align:center;color:#888;transition:all .3s}
+        .mission-type-option:hover{border-color:#7b2cbf}
+        .mission-type-option.selected{background:rgba(123,44,191,.2);border-color:#7b2cbf;color:#fff}
+        .team-checkboxes{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+        .team-checkbox{display:flex;align-items:center;gap:6px;cursor:pointer}
+        .form-actions{margin-top:20px}
+        .btn-primary{background:linear-gradient(135deg,#7b2cbf,#5a1f99);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:600;transition:all .3s}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 5px 20px rgba(123,44,191,.4)}
+        .btn-secondary{background:#333;color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer}
+        .loading-text{color:#888;text-align:center;padding:20px}
+        .badge-circle{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;background:#1a1a2e;transition:transform .3s,box-shadow .3s}
+        .badge-circle.holographic{background:linear-gradient(135deg,#1a1a2e,#2a2a3e);border:none!important;padding:3px}
+        .badge-circle.holographic::before{content:'';position:absolute;top:-3px;left:-3px;right:-3px;bottom:-3px;border-radius:50%;background:conic-gradient(from 0deg,#ffd700,#ff6b6b,#c56cf0,#7b2cbf,#00d4ff,#00ff88,#ffd700);z-index:-1;animation:holoSpin 4s linear infinite}
+        .badge-circle.holographic::after{content:'';position:absolute;top:3px;left:3px;right:3px;bottom:3px;border-radius:50%;background:#1a1a2e;z-index:-1}
+        .badge-circle.holographic{box-shadow:0 0 15px rgba(255,215,0,.4),0 0 30px rgba(123,44,191,.3),0 0 45px rgba(0,212,255,.2)}
+        .badge-circle:hover{transform:scale(1.1)}
+        @keyframes holoSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        .badge-circle img{width:100%;height:100%;object-fit:cover;border-radius:50%;position:relative;z-index:1}
+        .assets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:15px;padding:10px}
+        .asset-chip{position:relative;aspect-ratio:1;border-radius:16px;overflow:hidden;background:linear-gradient(145deg,#1a1a2e,#12121a);border:2px solid rgba(123,44,191,.3);cursor:pointer;transition:all .3s}
+        .asset-chip:hover{transform:translateY(-5px) scale(1.05);box-shadow:0 10px 30px rgba(123,44,191,.4)}
+        .asset-chip-inner{width:100%;height:100%;border-radius:14px;overflow:hidden;background:#1a1a2e;position:relative}
+        .asset-chip img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+        .asset-chip:hover img{transform:scale(1.1)}
+        .asset-chip-number{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.8);color:#ffd700;padding:4px 8px;border-radius:10px;font-size:11px;font-weight:bold;z-index:2}
+        .badges-showcase{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:15px;padding:10px}
+        .badge-showcase-item{display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 8px;background:linear-gradient(145deg,rgba(26,26,46,.8),rgba(18,18,26,.9));border-radius:12px;border:1px solid rgba(123,44,191,.2);transition:all .3s}
+        .badge-showcase-item:hover{transform:translateY(-5px);border-color:rgba(255,215,0,.5)}
+        .badge-name{margin-top:8px;font-weight:600;color:#ffd700;font-size:11px}
+        .badge-week{font-size:9px;color:#7b2cbf;margin-top:2px}
+        .playlist-card,.gc-card,.role-card{background:linear-gradient(145deg,#1a1a2e,#12121a);border-radius:12px;padding:15px;margin-bottom:10px;border:1px solid rgba(123,44,191,.3);transition:all .3s}
+        .playlist-card:hover,.role-card:hover{transform:translateX(5px)}
+        .gc-link-btn{display:inline-block;padding:10px 20px;background:linear-gradient(135deg,#7b2cbf,#5a1f99);color:#fff;border-radius:8px;text-decoration:none;font-size:14px;transition:all .3s}
+        .gc-link-btn:hover{transform:scale(1.05);box-shadow:0 5px 20px rgba(123,44,191,.4)}
+        .toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:10px;background:#1a1a2e;color:#fff;display:flex;align-items:center;gap:10px;z-index:9999999;opacity:0;transform:translateX(100px);transition:all .3s}
+        .toast.show{opacity:1;transform:translateX(0)}
+        .toast-success{border-left:4px solid #00ff88}
+        .toast-error{border-left:4px solid #ff4444}
+        .toast-info{border-left:4px solid #7b2cbf}
+    `;
+    document.head.appendChild(style);
+}
+
+// ==================== INITIALIZATION ====================
+function initApp() {
+    console.log('🚀 Starting App v5.0...');
+    ensureAppCSS(); 
+    loading(false);
+    setupLoginListeners();
+    loadAllAgents();
+
+    const saved = localStorage.getItem('spyAgent');
+    if (saved) {
+        STATE.agentNo = saved;
+        checkAdminStatus();
+        loadSeenResults();
+        loadDashboard();
     }
 }
 
-console.log('✅ Fixed CSS & Admin code ready to use');
+function loadSeenResults() {
+    try {
+        const saved = localStorage.getItem('seenResults_' + STATE.agentNo);
+        STATE.hasSeenResults = saved ? JSON.parse(saved) : {};
+    } catch (e) { STATE.hasSeenResults = {}; }
+}
+
+function markResultsSeen(week) {
+    STATE.hasSeenResults[week] = true;
+    localStorage.setItem('seenResults_' + STATE.agentNo, JSON.stringify(STATE.hasSeenResults));
+}
+
+function setupLoginListeners() {
+    const loginBtn = $('login-btn');
+    const findBtn = $('find-btn');
+    const agentInput = $('agent-input');
+    const instagramInput = $('instagram-input');
+    if (loginBtn) loginBtn.onclick = handleLogin;
+    if (findBtn) findBtn.onclick = handleFind;
+    if (agentInput) agentInput.onkeypress = e => { if (e.key === 'Enter') handleLogin(); };
+    if (instagramInput) instagramInput.onkeypress = e => { if (e.key === 'Enter') handleFind(); };
+}
+
+async function loadAllAgents() {
+    try { STATE.allAgents = (await api('getAllAgents')).agents || []; } 
+    catch (e) { STATE.allAgents = []; }
+}
+
+async function handleLogin() {
+    if (STATE.isLoading) return;
+    const agentInput = $('agent-input');
+    const agentNo = agentInput?.value.trim().toUpperCase();
+    if (!agentNo) { showResult('Enter Agent Number', true); return; }
+    loading(true);
+    try {
+        if (STATE.allAgents.length === 0) await loadAllAgents();
+        const found = STATE.allAgents.find(a => String(a.agentNo).trim().toUpperCase() === agentNo);
+        if (!found) throw new Error('Agent not found');
+        localStorage.setItem('spyAgent', found.agentNo);
+        STATE.agentNo = found.agentNo;
+        checkAdminStatus();
+        loadSeenResults();
+        await loadDashboard();
+    } catch (e) { showResult(e.message, true); } 
+    finally { loading(false); }
+}
+
+async function handleFind() {
+    if (STATE.isLoading) return;
+    const handle = $('instagram-input')?.value.trim().toLowerCase().replace('@', '');
+    if (!handle) { showResult('Enter Instagram', true); return; }
+    loading(true);
+    try {
+        if (STATE.allAgents.length === 0) await loadAllAgents();
+        const found = STATE.allAgents.find(a => String(a.instagram||a.ig||'').toLowerCase().replace('@','') === handle || String(a.name||'').toLowerCase().includes(handle));
+        if (!found) throw new Error('Not found');
+        showResult(`Agent ID: <strong>${found.agentNo}</strong>`, false);
+        if($('agent-input')) $('agent-input').value = found.agentNo;
+    } catch (e) { showResult(e.message, true); } 
+    finally { loading(false); }
+}
+
+async function loadDashboard() {
+    console.log('🏠 Loading dashboard...');
+    loading(true);
+    try {
+        const weeksRes = await api('getAvailableWeeks');
+        STATE.weeks = weeksRes.weeks || [];
+        STATE.week = weeksRes.current || STATE.weeks[0];
+        STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: STATE.week });
+        if (STATE.data?.lastUpdated) STATE.lastUpdated = STATE.data.lastUpdated;
+        await loadAllWeeksData();
+        
+        $('login-screen').classList.remove('active');
+        $('login-screen').style.display = 'none';
+        $('dashboard-screen').classList.add('active');
+        $('dashboard-screen').style.display = 'flex';
+        
+        setupDashboard();
+        await loadPage('home');
+        if (STATE.isAdmin) addAdminIndicator();
+    } catch (e) {
+        console.error('❌ Dashboard error:', e);
+        showToast('Error: ' + e.message, 'error');
+        showResult('Error: ' + e.message, true);
+        $('login-screen').classList.add('active');
+        $('login-screen').style.display = 'flex';
+        $('dashboard-screen').classList.remove('active');
+        $('dashboard-screen').style.display = 'none';
+    } finally { loading(false); }
+}
+
+async function loadAllWeeksData() {
+    try {
+        const result = await api('getAllWeeksStats', { agentNo: STATE.agentNo });
+        STATE.allWeeksData = result;
+    } catch (e) { STATE.allWeeksData = null; }
+}
+
+function setupDashboard() {
+    const p = STATE.data?.profile;
+    if (p) {
+        const color = teamColor(p.team);
+        const pfp = teamPfp(p.team);
+        const initial = (p.name || 'A')[0].toUpperCase();
+        ['agent', 'profile'].forEach(prefix => {
+            const avatar = $(prefix + '-avatar');
+            if (avatar) {
+                if (pfp) avatar.innerHTML = `<img src="${pfp}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                else { avatar.textContent = initial; avatar.style.background = color; }
+            }
+            if ($(prefix + '-name')) $(prefix + '-name').textContent = p.name || 'Agent';
+            if ($(prefix + '-team')) { $(prefix + '-team').textContent = p.team || 'Team'; $(prefix + '-team').style.color = color; }
+            if ($(prefix + '-id')) $(prefix + '-id').textContent = 'ID: ' + STATE.agentNo;
+        });
+    }
+    
+    const select = $('week-select');
+    if (select && STATE.weeks.length) {
+        select.innerHTML = STATE.weeks.map(w => `<option value="${w}" ${w === STATE.week ? 'selected' : ''}>${w}</option>`).join('');
+        select.onchange = async () => {
+            loading(true);
+            try {
+                STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: select.value });
+                STATE.week = select.value;
+                if (STATE.data?.lastUpdated) { STATE.lastUpdated = STATE.data.lastUpdated; updateTime(); }
+                await loadPage(STATE.page);
+            } catch (e) { showToast('Failed to load week', 'error'); } 
+            finally { loading(false); }
+        };
+    }
+    
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.onclick = null;
+        link.onclick = e => {
+            e.preventDefault(); e.stopPropagation();
+            const page = link.dataset.page;
+            if (page) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                loadPage(page);
+                closeSidebar();
+            }
+        };
+    });
+    
+    if (isAdminAgent()) addAdminIndicator();
+    
+    const menuBtn = $('menu-btn');
+    if (menuBtn) { menuBtn.onclick = null; menuBtn.onclick = e => { e.preventDefault(); e.stopPropagation(); $('sidebar')?.classList.add('open'); }; }
+    
+    const closeSidebarBtn = $('close-sidebar');
+    if (closeSidebarBtn) { closeSidebarBtn.onclick = null; closeSidebarBtn.onclick = e => { e.preventDefault(); e.stopPropagation(); closeSidebar(); }; }
+    
+    const logoutBtn = $('logout-btn');
+    if (logoutBtn) { logoutBtn.onclick = null; logoutBtn.onclick = e => { e.preventDefault(); e.stopPropagation(); logout(); }; }
+    
+    updateTime();
+}
+
+function logout() {
+    if (confirm('Logout?')) {
+        localStorage.removeItem('spyAgent');
+        localStorage.removeItem('adminSession');
+        localStorage.removeItem('adminExpiry');
+        location.reload();
+    }
+}
+
 // ==================== PAGE ROUTER ====================
 async function loadPage(page) {
     STATE.page = page;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     
-    // Create dynamic pages if they don't exist
     const dynamicPages = ['chat', 'playlists', 'gc-links', 'helper-roles'];
     dynamicPages.forEach(pageName => {
         if (page === pageName && !$(`page-${pageName}`)) {
@@ -902,11 +992,19 @@ async function loadPage(page) {
 // ==================== HOME RENDERER ====================
 async function renderHome() {
     const selectedWeek = STATE.week;
-    $('current-week').textContent = `Week: ${selectedWeek}`;
+    const weekEl = $('current-week');
+    if (weekEl) weekEl.textContent = `Week: ${selectedWeek}`;
     const guideHtml = renderGuide('home'); 
+    
     try {
-        const [summary, rankings, goals] = await Promise.all([api('getWeeklySummary', { week: selectedWeek }), api('getRankings', { week: selectedWeek, limit: 5 }), api('getGoalsProgress', { week: selectedWeek })]);
+        const [summary, rankings, goals] = await Promise.all([
+            api('getWeeklySummary', { week: selectedWeek }), 
+            api('getRankings', { week: selectedWeek, limit: 5 }), 
+            api('getGoalsProgress', { week: selectedWeek })
+        ]);
+        
         if (summary.lastUpdated) { STATE.lastUpdated = summary.lastUpdated; updateTime(); }
+        
         const team = STATE.data?.profile?.team;
         const teamData = summary.teams?.[team] || {};
         const myStats = STATE.data?.stats || {};
@@ -927,22 +1025,11 @@ async function renderHome() {
                             </div>
                         </div>
                         <div class="quick-stats-grid">
-                            <div class="quick-stat">
-                                <div class="quick-stat-value">${fmt(myStats.totalXP)}</div>
-                                <div class="quick-stat-label">XP</div>
-                            </div>
-                            <div class="quick-stat">
-                                <div class="quick-stat-value">${fmt(myStats.trackScrobbles || 0)}</div>
-                                <div class="quick-stat-label">Track Streams</div>
-                            </div>
-                            <div class="quick-stat">
-                                <div class="quick-stat-value">${fmt(myStats.albumScrobbles || 0)}</div>
-                                <div class="quick-stat-label">Album Streams</div>
-                            </div>
+                            <div class="quick-stat"><div class="quick-stat-value">${fmt(myStats.totalXP)}</div><div class="quick-stat-label">XP</div></div>
+                            <div class="quick-stat"><div class="quick-stat-value">${fmt(myStats.trackScrobbles || 0)}</div><div class="quick-stat-label">Track Streams</div></div>
+                            <div class="quick-stat"><div class="quick-stat-value">${fmt(myStats.albumScrobbles || 0)}</div><div class="quick-stat-label">Album Streams</div></div>
                         </div>
-                        <div class="battle-timer ${isCompleted ? 'ended' : ''}">
-                            ${isCompleted ? '🏆 Week Completed' : (daysLeft <= 1 ? '🚀 Final Day!' : `⏰ ${daysLeft} days left`)}
-                        </div>
+                        <div class="battle-timer ${isCompleted ? 'ended' : ''}">${isCompleted ? '🏆 Week Completed' : (daysLeft <= 1 ? '🚀 Final Day!' : `⏰ ${daysLeft} days left`)}</div>
                         ${isCompleted ? `<div class="results-alert" onclick="loadPage('summary')">🏆 View Final Results →</div>` : ''}
                         ${STATE.lastUpdated ? `<div class="last-updated-mini">Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
                     </div>
@@ -969,54 +1056,38 @@ async function renderHome() {
         if (missionCardsContainer) {
             missionCardsContainer.innerHTML = `
                 <div class="mission-card expanded" onclick="loadPage('goals')">
-                    <div class="mission-icon">🎵</div>
-                    <h3>Track Goals</h3>
+                    <div class="mission-icon">🎵</div><h3>Track Goals</h3>
                     <div class="mission-status ${teamData.trackGoalPassed ? 'complete' : ''}">${teamData.trackGoalPassed ? '✅ Complete' : '⏳ In Progress'}</div>
                     <div class="goals-list">${trackGoalsList.length ? trackGoalsList.map(g => `<div class="goal-mini ${g.done ? 'done' : ''}"><span class="goal-name">${sanitize(g.name)}</span><span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span></div>`).join('') : '<p class="no-goals">No track goals</p>'}</div>
                 </div>
                 <div class="mission-card expanded" onclick="loadPage('goals')">
-                    <div class="mission-icon">💿</div>
-                    <h3>Album Goals</h3>
+                    <div class="mission-icon">💿</div><h3>Album Goals</h3>
                     <div class="mission-status ${teamData.albumGoalPassed ? 'complete' : ''}">${teamData.albumGoalPassed ? '✅ Complete' : '⏳ In Progress'}</div>
                     <div class="goals-list">${albumGoalsList.length ? albumGoalsList.map(g => `<div class="goal-mini ${g.done ? 'done' : ''}"><span class="goal-name">${sanitize(g.name)}</span><span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span></div>`).join('') : '<p class="no-goals">No album goals</p>'}</div>
                 </div>
                 <div class="mission-card" onclick="loadPage('album2x')">
-                    <div class="mission-icon">✨</div>
-                    <h3>Album 2X</h3>
+                    <div class="mission-icon">✨</div><h3>Album 2X</h3>
                     <div class="mission-subtitle">${sanitize(CONFIG.TEAMS[team]?.album || team)}</div>
                     <div class="mission-status ${album2xStatus.passed ? 'complete' : ''}">${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}</div>
-                    <div class="mission-progress">
-                        <div class="progress-bar"><div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div></div>
-                        <span>${tracksCompleted2x}/${teamTracks.length} tracks</span>
-                    </div>
+                    <div class="mission-progress"><div class="progress-bar"><div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div></div><span>${tracksCompleted2x}/${teamTracks.length} tracks</span></div>
                 </div>
                 <div class="mission-card secret" onclick="loadPage('secret-missions')">
-                    <div class="mission-icon">🔒</div>
-                    <h3>Secret Missions</h3>
-                    <div class="mission-status">🕵️ Classified</div>
-                    <div class="mission-hint">Tap to view team missions</div>
+                    <div class="mission-icon">🔒</div><h3>Secret Missions</h3>
+                    <div class="mission-status">🕵️ Classified</div><div class="mission-hint">Tap to view team missions</div>
                 </div>
                 <div class="mission-card" onclick="loadPage('playlists')">
-                    <div class="mission-icon">🎵</div>
-                    <h3>Playlists</h3>
-                    <div class="mission-status" style="color:#ff4444;">⚠️ REQUIRED</div>
-                    <div class="mission-hint">Official streaming playlists</div>
+                    <div class="mission-icon">🎵</div><h3>Playlists</h3>
+                    <div class="mission-status" style="color:#ff4444;">⚠️ REQUIRED</div><div class="mission-hint">Official streaming playlists</div>
                 </div>
                 <div class="mission-card" onclick="loadPage('chat')">
-                    <div class="mission-icon">💬</div>
-                    <h3>Secret Comms</h3>
-                    <div class="mission-subtitle">HQ Encrypted Channel</div>
-                    <div class="mission-hint">Tap to join chat</div>
+                    <div class="mission-icon">💬</div><h3>Secret Comms</h3>
+                    <div class="mission-subtitle">HQ Encrypted Channel</div><div class="mission-hint">Tap to join chat</div>
                 </div>
                 <div class="mission-card" onclick="loadPage('gc-links')">
-                    <div class="mission-icon">👥</div>
-                    <h3>GC Links</h3>
-                    <div class="mission-hint">Instagram group chats</div>
+                    <div class="mission-icon">👥</div><h3>GC Links</h3><div class="mission-hint">Instagram group chats</div>
                 </div>
                 <div class="mission-card" onclick="loadPage('helper-roles')">
-                    <div class="mission-icon">🎖️</div>
-                    <h3>Helper Roles</h3>
-                    <div class="mission-hint">Join the Helper Army</div>
+                    <div class="mission-icon">🎖️</div><h3>Helper Roles</h3><div class="mission-hint">Join the Helper Army</div>
                 </div>
             `;
         }
@@ -1042,33 +1113,28 @@ async function renderHome() {
     } catch (e) { console.error(e); showToast('Failed to load home', 'error'); }
 }
 
-// ==================== DRAWER (All Weeks Badges + XP) ====================
+// ==================== DRAWER ====================
 async function renderDrawer() {
     const container = $('drawer-content');
     if (!container) return;
     const profile = STATE.data?.profile || {};
-    const isAdmin = String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
-        // Calculate totals from all weeks
+    const isAdmin = isAdminAgent();
+    
     let totalXP = 0;
     let allBadges = [];
     
-    if (STATE.allWeeksData && STATE.allWeeksData.weeks && STATE.allWeeksData.weeks.length > 0) {
+    if (STATE.allWeeksData?.weeks?.length > 0) {
         STATE.allWeeksData.weeks.forEach(weekData => {
             const weekXP = parseInt(weekData.stats?.totalXP) || 0;
             totalXP += weekXP;
-            
-            // Generate badges for this week
             const weekBadges = getLevelBadges(STATE.agentNo, weekXP, weekData.week);
             allBadges = allBadges.concat(weekBadges);
         });
     } else {
-        // Fallback to current week only
         const stats = STATE.data?.stats || {};
         totalXP = parseInt(stats.totalXP) || 0;
         allBadges = getLevelBadges(STATE.agentNo, totalXP, STATE.week);
     }
-    
-    const totalBadges = allBadges.length;
     
     container.innerHTML = `
         <div class="card">
@@ -1083,42 +1149,15 @@ async function renderDrawer() {
                 </div>
                 ${isAdmin ? `<button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">🔐 Access Mission Control</button>` : ''}
                 <div class="drawer-stats">
-                    <div class="drawer-stat">
-                        <span class="value">${fmt(totalXP)}</span>
-                        <span class="label">Total XP (All Weeks)</span>
-                    </div>
-                    <div class="drawer-stat">
-                        <span class="value">${totalBadges}</span>
-                        <span class="label">Badges (All Weeks)</span>
-                    </div>
+                    <div class="drawer-stat"><span class="value">${fmt(totalXP)}</span><span class="label">Total XP (All Weeks)</span></div>
+                    <div class="drawer-stat"><span class="value">${allBadges.length}</span><span class="label">Badges (All Weeks)</span></div>
                 </div>
             </div>
         </div>
-        
         <div class="card">
-            <div class="card-header">
-                <h3>🎖️ All Badges Collection (${totalBadges})</h3>
-            </div>
+            <div class="card-header"><h3>🎖️ All Badges Collection (${allBadges.length})</h3></div>
             <div class="card-body">
-                ${allBadges.length ? `
-                    <div class="badges-showcase">
-                        ${allBadges.map(b => `
-                            <div class="badge-showcase-item">
-                                <div class="badge-circle holographic">
-                                    <img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='❓';">
-                                </div>
-                                <div class="badge-name">${sanitize(b.name)}</div>
-                                <div class="badge-week">${sanitize(b.week)}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                ` : `
-                    <div class="empty-state" style="text-align:center; padding:40px; color:#777;">
-                        <div style="font-size:60px; margin-bottom:15px;">🔒</div>
-                        <h4 style="color:#fff; margin-bottom:8px;">No Badges Yet</h4>
-                        <p>Earn <strong style="color:#ffd700;">100 XP</strong> to unlock your first holographic badge!</p>
-                    </div>
-                `}
+                ${allBadges.length ? `<div class="badges-showcase">${allBadges.map(b => `<div class="badge-showcase-item"><div class="badge-circle holographic"><img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='❓';"></div><div class="badge-name">${sanitize(b.name)}</div><div class="badge-week">${sanitize(b.week)}</div></div>`).join('')}</div>` : `<div class="empty-state" style="text-align:center; padding:40px; color:#777;"><div style="font-size:60px; margin-bottom:15px;">🔒</div><h4 style="color:#fff; margin-bottom:8px;">No Badges Yet</h4><p>Earn <strong style="color:#ffd700;">100 XP</strong> to unlock your first holographic badge!</p></div>`}
             </div>
         </div>
     `;
@@ -1135,32 +1174,20 @@ function getLevelBadges(agentNo, totalXP, week = STATE.week) {
         const str = String(agentNo).toUpperCase();
         for (let i = 0; i < str.length; i++) seed += str.charCodeAt(i);
         seed += (level * 137);
-        // Add week-based offset for variety
-        if (week) {
-            for (let i = 0; i < week.length; i++) seed += week.charCodeAt(i);
-        }
+        if (week) { for (let i = 0; i < week.length; i++) seed += week.charCodeAt(i); }
         const index = seed % pool.length;
-        badges.push({ 
-            name: `Level ${level}`, 
-            description: `Unlocked at ${level * 100} XP`, 
-            imageUrl: pool[index], 
-            isLevelBadge: true,
-            week: week || 'Unknown'
-        });
+        badges.push({ name: `Level ${level}`, description: `Unlocked at ${level * 100} XP`, imageUrl: pool[index], isLevelBadge: true, week: week || 'Unknown' });
     }
     return badges.reverse();
 }
 
-// ==================== PROFILE (Active Week Badges Only) ====================
+// ==================== PROFILE ====================
 async function renderProfile() {
     const stats = STATE.data?.stats || {};
     const album2xStatus = STATE.data?.album2xStatus || {};
     const trackContributions = STATE.data?.trackContributions || {};
     const albumContributions = STATE.data?.albumContributions || {};
-    const currentWeekXP = stats.totalXP || 0;
-    
-    // Only show badges for active/current week
-    const currentWeekBadges = getLevelBadges(STATE.agentNo, currentWeekXP, STATE.week);
+    const currentWeekBadges = getLevelBadges(STATE.agentNo, stats.totalXP || 0, STATE.week);
     
     $('profile-stats').innerHTML = `
         <div class="stat-box"><div class="stat-value">${fmt(stats.totalXP)}</div><div class="stat-label">XP (${STATE.week})</div></div>
@@ -1172,26 +1199,11 @@ async function renderProfile() {
     `;
     
     $('profile-tracks').innerHTML = Object.keys(trackContributions).length ? Object.entries(trackContributions).sort((a, b) => b[1] - a[1]).map(([t, c]) => `<div class="contrib-item"><span>${sanitize(t)}</span><span>${fmt(c)} streams</span></div>`).join('') : '<p class="empty-text">No track data</p>';
-    
     $('profile-albums').innerHTML = Object.keys(albumContributions).length ? Object.entries(albumContributions).sort((a, b) => b[1] - a[1]).map(([a, c]) => `<div class="contrib-item"><span>${sanitize(a)}</span><span>${fmt(c)} streams</span></div>`).join('') : '<p class="empty-text">No album data</p>';
-    
-    // Badges Earned - Only Active Week
-    $('profile-badges').innerHTML = currentWeekBadges.length ? `
-        <div style="margin-bottom:10px;"><span style="color:#888;font-size:12px;">Badges earned in ${STATE.week}</span></div>
-        <div class="badges-grid">
-            ${currentWeekBadges.map(b => `
-                <div class="badge-item">
-                    <div class="badge-circle holographic" style="width:50px;height:50px;">
-                        <img src="${b.imageUrl}" onerror="this.parentElement.innerHTML='🎖️'">
-                    </div>
-                    <div class="badge-name">${sanitize(b.name)}</div>
-                </div>
-            `).join('')}
-        </div>
-    ` : '<p class="empty-text">No badges earned this week yet</p>';
+    $('profile-badges').innerHTML = currentWeekBadges.length ? `<div style="margin-bottom:10px;"><span style="color:#888;font-size:12px;">Badges earned in ${STATE.week}</span></div><div class="badges-grid">${currentWeekBadges.map(b => `<div class="badge-item"><div class="badge-circle holographic" style="width:50px;height:50px;"><img src="${b.imageUrl}" onerror="this.parentElement.innerHTML='🎖️'"></div><div class="badge-name">${sanitize(b.name)}</div></div>`).join('')}</div>` : '<p class="empty-text">No badges earned this week yet</p>';
 }
 
-// ==================== GOALS (Renamed to Team Goal Progress) ====================
+// ==================== GOALS ====================
 async function renderGoals() {
     const container = $('goals-content');
     const team = STATE.data?.profile?.team;
@@ -1199,20 +1211,14 @@ async function renderGoals() {
         const data = await api('getGoalsProgress', { week: STATE.week });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
         
-        let html = renderGuide('goals') + `
-            <div class="goals-header">
-                <h2 style="color:#fff;margin:0;">🎯 Team Goal Progress</h2>
-                <span class="week-badge">${STATE.week}</span>
-            </div>
-            <div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated || 'recently')}</div>
-        `;
+        let html = renderGuide('goals') + `<div class="goals-header"><h2 style="color:#fff;margin:0;">🎯 Team Goal Progress</h2><span class="week-badge">${STATE.week}</span></div><div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated || 'recently')}</div>`;
         
         const trackGoals = data.trackGoals || {};
         if (Object.keys(trackGoals).length) {
             html += `<div class="card"><div class="card-header"><h3>🎵 Track Goals</h3><span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span></div><div class="card-body">`;
             for (const [track, info] of Object.entries(trackGoals)) {
                 const tp = info.teams?.[team] || {};
-                const current = tp.current || 0; const goal = info.goal || 0;
+                const current = tp.current || 0, goal = info.goal || 0;
                 const done = tp.status === 'Completed' || current >= goal;
                 const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
                 html += `<div class="goal-item ${done ? 'completed' : ''}"><div class="goal-header"><span class="goal-name">${sanitize(track)}</span><span class="goal-status ${done ? 'complete' : ''}">${fmt(current)}/${fmt(goal)} streams ${done ? '✅' : ''}</span></div><div class="progress-bar"><div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%"></div></div></div>`;
@@ -1225,348 +1231,63 @@ async function renderGoals() {
             html += `<div class="card"><div class="card-header"><h3>💿 Album Goals</h3><span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span></div><div class="card-body">`;
             for (const [album, info] of Object.entries(albumGoals)) {
                 const ap = info.teams?.[team] || {};
-                const current = ap.current || 0; const goal = info.goal || 0;
+                const current = ap.current || 0, goal = info.goal || 0;
                 const done = ap.status === 'Completed' || current >= goal;
                 const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
                 html += `<div class="goal-item ${done ? 'completed' : ''}"><div class="goal-header"><span class="goal-name">${sanitize(album)}</span><span class="goal-status ${done ? 'complete' : ''}">${fmt(current)}/${fmt(goal)} streams ${done ? '✅' : ''}</span></div><div class="progress-bar"><div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%"></div></div></div>`;
             }
             html += '</div></div>';
         }
-        
         container.innerHTML = html || '<div class="card"><div class="card-body"><p class="empty-text">No goals set for this week</p></div></div>';
     } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load goals</p></div></div>'; }
 }
 
-// ==================== CHAT (With Rules) ====================
-async function renderChat() {
-    const container = document.getElementById('chat-content');
-    if (!container) return;
-    const team = STATE.data?.profile?.team || 'Unknown';
-    const name = sanitize(STATE.data?.profile?.name) || 'Agent';
-    const color = teamColor(team);
-    const chatUrl = `https://tlk.io/${CONFIG.CHAT_CHANNEL}`;
-    
-    container.innerHTML = `
-        ${renderGuide('chat')}
-        <div class="card" style="height: calc(100% - 150px); display: flex; flex-direction: column; margin-bottom: 0;">
-            <div class="card-header" style="border-bottom: 1px solid var(--border);">
-                <h3>💬 Secret Comms Channel</h3>
-                <div class="mission-hint">Encrypted Channel • Logged in as <span style="color:${color}">${name}</span></div>
-            </div>
-            <div class="card-body" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0f 100%);">
-                <div style="font-size: 60px; margin-bottom: 20px; animation: float 3s ease-in-out infinite;">🛰️</div>
-                <h2 style="color: var(--text-bright); margin-bottom: 10px;">Secure Link Established</h2>
-                <p style="color: var(--text-dim); max-width: 400px; margin-bottom: 30px; font-size: 14px;">
-                    To bypass ad-blockers and ensure transmission security, the comms channel must be opened in a secure popup link.
-                </p>
-                <a href="${chatUrl}" target="_blank" onclick="window.open(this.href, 'bts_chat', 'width=500,height=700'); return false;" class="btn-primary" style="padding: 15px 30px; font-size: 16px; border: 1px solid var(--purple-glow); box-shadow: 0 0 20px rgba(123, 44, 191, 0.3);">
-                    🚀 LAUNCH COMMS CHANNEL
-                </a>
-                <div style="margin-top: 30px; font-size: 11px; color: var(--text-muted);">
-                    Status: <span style="color: var(--success);">ONLINE</span> • Encryption: <span style="color: var(--success);">ACTIVE</span>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// ==================== PLAYLISTS ====================
-async function renderPlaylists() {
-    const container = document.getElementById('playlists-content');
-    if (!container) return;
-    
-    container.innerHTML = `
-        ${renderGuide('playlists')}
-        <div class="card">
-            <div class="card-header">
-                <h3>🎵 Official Streaming Playlists</h3>
-            </div>
-            <div class="card-body">
-                <div id="playlists-list" style="display:flex;flex-direction:column;gap:10px;">
-                    <div class="loading-text">Loading playlists...</div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    try {
-        const data = await api('getPlaylists');
-        const playlists = data.playlists || [];
-        
-        const listEl = document.getElementById('playlists-list');
-        if (playlists.length) {
-            listEl.innerHTML = playlists.map(pl => `
-                <div class="playlist-card">
-                    <a href="${sanitize(pl.link)}" target="_blank" class="playlist-link">
-                        <span class="playlist-icon">${getPlaylistIcon(pl.platform)}</span>
-                        <div>
-                            <div class="playlist-name">${sanitize(pl.name)}</div>
-                            <div class="playlist-type">${sanitize(pl.platform || 'Streaming')} • ${sanitize(pl.type || 'Playlist')}</div>
-                        </div>
-                    </a>
-                </div>
-            `).join('');
-        } else {
-            listEl.innerHTML = `
-                <div style="text-align:center;padding:40px;color:#888;">
-                    <div style="font-size:48px;margin-bottom:15px;">📭</div>
-                    <p>No playlists available yet</p>
-                    <p style="font-size:12px;">Check back later for official streaming playlists</p>
-                </div>
-            `;
-        }
-    } catch (e) {
-        document.getElementById('playlists-list').innerHTML = '<p style="color:red;">Failed to load playlists</p>';
-    }
-}
-
-function getPlaylistIcon(platform) {
-    const icons = {
-        'spotify': '💚',
-        'apple': '🍎',
-        'youtube': '🔴',
-        'amazon': '📦',
-        'deezer': '🎧'
-    };
-    return icons[(platform || '').toLowerCase()] || '🎵';
-}
-
-// ==================== GC LINKS ====================
-async function renderGCLinks() {
-    const container = document.getElementById('gc-links-content');
-    if (!container) return;
+// ==================== ALBUM 2X ====================
+async function renderAlbum2x() {
+    const container = $('album2x-content');
     const team = STATE.data?.profile?.team;
+    const album2xStatus = STATE.data?.album2xStatus || {};
+    const userTracks = album2xStatus.tracks || {};
+    const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
+    const albumName = CONFIG.TEAMS[team]?.album || team;
     
-    container.innerHTML = `
-        ${renderGuide('gc-links')}
-        
-        <div class="gc-card" style="border-color:${teamColor(team)}">
-            <h4 style="color:${teamColor(team)}">👥 Team ${team} GC</h4>
-            <p>For sending Spotify listening history screenshots every Sunday</p>
-            <a href="#" class="gc-link-btn" id="gc-team-link">Join Team GC →</a>
-        </div>
-        
-        <div class="gc-card">
-            <h4>🎵 Playlist GC</h4>
-            <p>If you need any more playlists or have playlist requests</p>
-            <a href="#" class="gc-link-btn" id="gc-pl-link">Join Playlist GC →</a>
-        </div>
-        
-        <div class="gc-card" style="border-color:#7b2cbf;">
-            <h4 style="color:#7b2cbf;">🌟 Main BTS Comeback Mission GC</h4>
-            <p>For effective communication only regarding the mission - ALL TEAMS</p>
-            <a href="#" class="gc-link-btn" id="gc-main-link">Join Main GC →</a>
-        </div>
-        
-        <div class="card" style="background:rgba(255,255,255,0.03);margin-top:20px;">
-            <div class="card-body" style="text-align:center;padding:20px;">
-                <p style="color:#888;font-size:13px;">
-                    💜 Don't worry if you're not added yet!<br>
-                    Just follow the goals displayed and we will add you soon.
-                </p>
-            </div>
-        </div>
-    `;
+    let completedCount = 0;
+    const trackResults = teamTracks.map(track => {
+        const count = userTracks[track] || 0;
+        const passed = count >= 2;
+        if (passed) completedCount++;
+        return { name: track, count, passed };
+    });
     
-    // Load actual GC links from backend
-    try {
-        const data = await api('getGCLinks');
-        const links = data.links || {};
-        
-        if (links.team && links.team[team]) {
-            document.getElementById('gc-team-link').href = links.team[team];
-        }
-        if (links.playlist) {
-            document.getElementById('gc-pl-link').href = links.playlist;
-        }
-        if (links.main) {
-            document.getElementById('gc-main-link').href = links.main;
-        }
-    } catch (e) {
-        console.log('Could not load GC links');
-    }
-}
-
-// ==================== HELPER ROLES ====================
-async function renderHelperRoles() {
-    const container = document.getElementById('helper-roles-content');
-    if (!container) return;
+    const allComplete = completedCount === trackResults.length && trackResults.length > 0;
+    const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
     
-    container.innerHTML = `
-        ${renderGuide('helper-roles')}
-        <div class="card">
-            <div class="card-header">
-                <h3>🎖️ Helper Army Roles</h3>
-                <span style="font-size:12px;color:#888;">Help HQ run the mission!</span>
-            </div>
-            <div class="card-body" id="roles-list">
-                <div class="loading-text">Loading roles...</div>
-            </div>
-        </div>
-        
-        <div class="card" style="background:linear-gradient(135deg, rgba(123,44,191,0.1), rgba(255,215,0,0.05));border-color:#7b2cbf;">
+    container.innerHTML = renderGuide('album2x') + `
+        <div class="card" style="border-color:${allComplete ? 'var(--success)' : teamColor(team)}">
             <div class="card-body" style="text-align:center;padding:30px;">
-                <div style="font-size:40px;margin-bottom:15px;">🚀</div>
-                <h4 style="color:#fff;margin-bottom:10px;">Want to Join the Helper Army?</h4>
-                <p style="color:#888;font-size:13px;">
-                    Contact Admin through Secret Comms or announcements.<br>
-                    More roles will be released depending on the need!
-                </p>
+                <div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div>
+                <h2 style="color:${teamColor(team)};margin-bottom:8px;">${sanitize(albumName)}</h2>
+                <p style="color:var(--text-dim);margin-bottom:20px;">Stream every track at least 2 times</p>
+                <div style="font-size:48px;font-weight:700;color:${allComplete ? 'var(--success)' : 'var(--purple-glow)'}">${completedCount}/${trackResults.length}</div>
+                <p style="color:var(--text-dim);">Tracks completed</p>
+                <div class="progress-bar" style="margin:20px auto;max-width:300px;height:12px;">
+                    <div class="progress-fill ${allComplete ? 'complete' : ''}" style="width:${pct}%;background:${allComplete ? 'var(--success)' : teamColor(team)}"></div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h3>📋 Track Checklist</h3></div>
+            <div class="card-body">
+                ${trackResults.map((t, i) => `
+                    <div class="track-item ${t.passed ? 'passed' : 'pending'}" style="border-left-color:${t.passed ? 'var(--success)' : 'var(--danger)'}">
+                        <span class="track-num">${i + 1}</span>
+                        <span class="track-name">${sanitize(t.name)}</span>
+                        <span class="track-status ${t.passed ? 'pass' : 'fail'}">${t.count}/2 ${t.passed ? '✅' : '❌'}</span>
+                    </div>
+                `).join('')}
             </div>
         </div>
     `;
-    
-    try {
-        const data = await api('getHelperRoles');
-        const roles = data.roles || [];
-        
-        const rolesListEl = document.getElementById('roles-list');
-        
-        if (roles.length) {
-            rolesListEl.innerHTML = roles.map(role => `
-                <div class="role-card">
-                    <div class="role-icon">${role.icon}</div>
-                    <div style="flex:1;">
-                        <div class="role-name">${sanitize(role.name)}</div>
-                        <div class="role-desc">${sanitize(role.description)}</div>
-                        ${role.agents && role.agents.length > 0 ? `
-                            <div class="role-agents" style="margin-top:8px;">
-                                <span style="color:#7b2cbf;font-size:11px;font-weight:600;">Assigned:</span>
-                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
-                                    ${role.agents.map(agent => `
-                                        <span class="agent-badge" style="background:rgba(123,44,191,0.2);color:#c9a0ff;padding:3px 8px;border-radius:12px;font-size:11px;">
-                                            👤 ${sanitize(agent.name)}
-                                        </span>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        ` : `
-                            <div style="margin-top:8px;font-size:11px;color:#666;">
-                                <span style="color:#ffd700;">⭐</span> Position open - Apply now!
-                            </div>
-                        `}
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            rolesListEl.innerHTML = '<p style="color:#888;text-align:center;">No roles defined yet</p>';
-        }
-    } catch (e) {
-        document.getElementById('roles-list').innerHTML = '<p style="color:red;">Failed to load roles</p>';
-    }
-}
-
-// ==================== ANNOUNCEMENTS ====================
-async function renderAnnouncements() {
-    const container = $('announcements-content');
-    container.innerHTML = renderGuide('announcements');
-    
-    try {
-        const data = await api('getAnnouncements', { week: STATE.week });
-        const list = data.announcements || [];
-        
-        container.innerHTML += list.length ? list.map(a => `
-            <div class="card announcement ${a.priority === 'high' ? 'urgent' : ''}">
-                <div class="card-body">
-                    <div class="announcement-header">
-                        <span class="announcement-date">${a.created ? new Date(a.created).toLocaleDateString() : ''}</span>
-                        ${a.priority === 'high' ? '<span class="urgent-badge">⚠️ IMPORTANT</span>' : ''}
-                    </div>
-                    <h3>${sanitize(a.title)}</h3>
-                    <p>${sanitize(a.message)}</p>
-                </div>
-            </div>
-        `).join('') : `
-            <div class="card">
-                <div class="card-body" style="text-align:center;padding:40px;">
-                    <div style="font-size:48px;margin-bottom:16px;">📢</div>
-                    <p style="color:var(--text-dim);">No announcements at this time</p>
-                    <p style="color:#666;font-size:12px;margin-top:10px;">Check back for important news from Admin!</p>
-                </div>
-            </div>
-        `;
-    } catch (e) { 
-        container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p></div></div>'; 
-    }
-}
-
-// ==================== SUMMARY (With Confetti) ====================
-async function renderSummary() {
-    const container = $('summary-content');
-    const selectedWeek = STATE.week;
-    const isCompleted = isWeekCompleted(selectedWeek);
-    
-    if (!isCompleted) {
-        const days = getDaysRemaining(selectedWeek);
-        container.innerHTML = `
-            <div class="card">
-                <div class="card-body" style="text-align:center;padding:60px 20px;">
-                    <div style="font-size:64px;margin-bottom:20px;">🔒</div>
-                    <h2>Summary Locked</h2>
-                    <p style="color:var(--text-dim);margin:16px 0;">Results for <strong>${selectedWeek}</strong> are not yet final.</p>
-                    <div class="countdown-box">
-                        <div class="countdown-value">${days}</div>
-                        <div class="countdown-label">day${days !== 1 ? 's' : ''} until results</div>
-                    </div>
-                    <button onclick="loadPage('home')" class="btn-primary" style="margin-top:20px;">View Live Progress →</button>
-                </div>
-            </div>
-        `;
-        return;
-    }
-    
-    try {
-        const [summary, winners] = await Promise.all([
-            api('getWeeklySummary', { week: selectedWeek }), 
-            api('getWeeklyWinners').catch(() => ({ winners: [] }))
-        ]);
-        
-        const teams = summary.teams || {};
-        const sorted = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
-        const actualWinner = sorted[0]?.[0] || summary.winner;
-        
-        container.innerHTML = `
-            <div class="summary-week-header">
-                <h2>📊 ${selectedWeek} Results</h2>
-                <p class="results-date">🏆 Battle Concluded</p>
-            </div>
-            
-            ${actualWinner ? `
-                <div class="card winner-card" style="border-color:${teamColor(actualWinner)};background:linear-gradient(135deg, ${teamColor(actualWinner)}22, #0a0a0f);">
-                    <div class="card-body" style="text-align:center;padding:40px;">
-                        <div style="font-size:80px;margin-bottom:16px;">🏆</div>
-                        <h2 style="color:${teamColor(actualWinner)};font-size:28px;">Team ${actualWinner} WINS!</h2>
-                        <p style="font-size:36px;color:#ffd700;margin-top:10px;">${fmt(teams[actualWinner]?.teamXP)} XP</p>
-                    </div>
-                </div>
-            ` : ''}
-            
-            <div class="card">
-                <div class="card-header"><h3>📊 Final Standings</h3></div>
-                <div class="card-body">
-                    ${sorted.map(([t, info], i) => `
-                        <div class="final-standing ${i===0?'winner':''}" style="border-left: 4px solid ${teamColor(t)};padding:15px;margin-bottom:10px;background:${i===0 ? teamColor(t)+'11' : 'transparent'};border-radius:8px;">
-                            <div style="display:flex;align-items:center;gap:15px;">
-                                <span style="font-size:24px;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</span>
-                                ${teamPfp(t) ? `<img src="${teamPfp(t)}" style="width:40px;height:40px;border-radius:50%;border:2px solid ${teamColor(t)}">` : ''}
-                                <div style="flex:1;">
-                                    <div style="color:${teamColor(t)};font-weight:600;font-size:16px;">${t}</div>
-                                    <div style="color:#888;font-size:12px;">${info.trackGoalPassed?'🎵✅':'🎵❌'} ${info.albumGoalPassed?'💿✅':'💿❌'} ${info.album2xPassed?'✨✅':'✨❌'}</div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div style="color:#ffd700;font-size:20px;font-weight:bold;">${fmt(info.teamXP)}</div>
-                                    <div style="color:#888;font-size:11px;">XP</div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-        
-    } catch (e) { 
-        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load summary</p></div></div>'; 
-    }
 }
 
 // ==================== RANKINGS ====================
@@ -1636,9 +1357,7 @@ async function renderOverallRankings() {
             ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
             ${rankingsHtml}
         `;
-    } catch (e) { 
-        container.innerHTML = '<p class="error-text">Failed to load overall rankings</p>'; 
-    }
+    } catch (e) { container.innerHTML = '<p class="error-text">Failed to load overall rankings</p>'; }
 }
 
 async function renderMyTeamRankings() {
@@ -1667,59 +1386,10 @@ async function renderMyTeamRankings() {
             ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
             ${rankingsHtml}
         `;
-    } catch (e) { 
-        container.innerHTML = '<p class="error-text">Failed to load team rankings.</p>'; 
-    }
+    } catch (e) { container.innerHTML = '<p class="error-text">Failed to load team rankings.</p>'; }
 }
 
-// ==================== OTHER RENDERERS ====================
-async function renderAlbum2x() {
-    const container = $('album2x-content');
-    const team = STATE.data?.profile?.team;
-    const album2xStatus = STATE.data?.album2xStatus || {};
-    const userTracks = album2xStatus.tracks || {};
-    const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
-    const albumName = CONFIG.TEAMS[team]?.album || team;
-    
-    let completedCount = 0;
-    const trackResults = teamTracks.map(track => {
-        const count = userTracks[track] || 0;
-        const passed = count >= 2;
-        if (passed) completedCount++;
-        return { name: track, count, passed };
-    });
-    
-    const allComplete = completedCount === trackResults.length && trackResults.length > 0;
-    const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
-    
-    container.innerHTML = renderGuide('album2x') + `
-        <div class="card" style="border-color:${allComplete ? 'var(--success)' : teamColor(team)}">
-            <div class="card-body" style="text-align:center;padding:30px;">
-                <div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div>
-                <h2 style="color:${teamColor(team)};margin-bottom:8px;">${sanitize(albumName)}</h2>
-                <p style="color:var(--text-dim);margin-bottom:20px;">Stream every track at least 2 times</p>
-                <div style="font-size:48px;font-weight:700;color:${allComplete ? 'var(--success)' : 'var(--purple-glow)'}">${completedCount}/${trackResults.length}</div>
-                <p style="color:var(--text-dim);">Tracks completed</p>
-                <div class="progress-bar" style="margin:20px auto;max-width:300px;height:12px;">
-                    <div class="progress-fill ${allComplete ? 'complete' : ''}" style="width:${pct}%;background:${allComplete ? 'var(--success)' : teamColor(team)}"></div>
-                </div>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-header"><h3>📋 Track Checklist</h3></div>
-            <div class="card-body">
-                ${trackResults.map((t, i) => `
-                    <div class="track-item ${t.passed ? 'passed' : 'pending'}" style="border-left-color:${t.passed ? 'var(--success)' : 'var(--danger)'}">
-                        <span class="track-num">${i + 1}</span>
-                        <span class="track-name">${sanitize(t.name)}</span>
-                        <span class="track-status ${t.passed ? 'pass' : 'fail'}">${t.count}/2 ${t.passed ? '✅' : '❌'}</span>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-}
-
+// ==================== TEAM LEVEL ====================
 async function renderTeamLevel() {
     const container = $('team-level-content');
     try {
@@ -1756,11 +1426,196 @@ async function renderTeamLevel() {
                 }).join('')}
             </div>
         `;
-    } catch (e) { 
-        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; 
-    }
+    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; }
 }
 
+// ==================== COMPARISON ====================
+async function renderComparison() {
+    const container = $('comparison-content');
+    if (!container) return;
+    
+    try {
+        const [comparison, goals, summary] = await Promise.all([
+            api('getTeamComparison', { week: STATE.week }), 
+            api('getGoalsProgress', { week: STATE.week }), 
+            api('getWeeklySummary', { week: STATE.week })
+        ]);
+        
+        if (comparison.lastUpdated) STATE.lastUpdated = comparison.lastUpdated;
+        const teams = (comparison.comparison || []).sort((a, b) => (b.teamXP || 0) - (a.teamXP || 0));
+        const maxXP = teams[0]?.teamXP || 1;
+        const trackGoals = goals.trackGoals || {};
+        const albumGoals = goals.albumGoals || {};
+        const teamNames = Object.keys(CONFIG.TEAMS);
+        
+        container.innerHTML = `
+            ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
+            <div class="card">
+                <div class="card-header"><h3>⚔️ Battle Standings (${STATE.week})</h3></div>
+                <div class="card-body">
+                    ${teams.map((t, i) => `
+                        <div class="comparison-item">
+                            <span class="comparison-rank">${i+1}</span>
+                            <span class="comparison-name" style="color:${teamColor(t.team)}">${t.team}</span>
+                            <div class="comparison-bar-container">
+                                <div class="progress-bar"><div class="progress-fill" style="width:${(t.teamXP/maxXP)*100}%;background:${teamColor(t.team)}"></div></div>
+                            </div>
+                            <span class="comparison-xp">${fmt(t.teamXP)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        
+        if (Object.keys(trackGoals).length) {
+            container.innerHTML += `
+                <div class="card">
+                    <div class="card-header"><h3>🎵 Track Goals</h3></div>
+                    <div class="card-body comparison-goals-section">
+                        ${Object.entries(trackGoals).map(([trackName, info]) => {
+                            const goal = info.goal || 0;
+                            return `
+                                <div class="goal-comparison-block">
+                                    <div class="goal-comparison-header">
+                                        <span class="goal-track-name">${sanitize(trackName)}</span>
+                                        <span class="goal-target">Goal: ${fmt(goal)} streams</span>
+                                    </div>
+                                    <div class="goal-team-progress">
+                                        ${teamNames.map(teamName => {
+                                            const tp = info.teams?.[teamName] || {};
+                                            const current = tp.current || 0;
+                                            const pct = goal > 0 ? Math.min((current/goal)*100, 100) : 0;
+                                            const done = current >= goal;
+                                            return `
+                                                <div class="team-progress-row ${done ? 'complete' : ''}">
+                                                    <span class="team-name-small" style="color:${teamColor(teamName)}">${teamName}</span>
+                                                    <div class="progress-bar-small"><div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(teamName)}"></div></div>
+                                                    <span class="progress-text">${fmt(current)}/${fmt(goal)}</span>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (Object.keys(albumGoals).length) {
+            container.innerHTML += `
+                <div class="card">
+                    <div class="card-header"><h3>💿 Album Goals</h3></div>
+                    <div class="card-body comparison-goals-section">
+                        ${Object.entries(albumGoals).map(([albumName, info]) => {
+                            const goal = info.goal || 0;
+                            return `
+                                <div class="goal-comparison-block">
+                                    <div class="goal-comparison-header">
+                                        <span class="goal-track-name">${sanitize(albumName)}</span>
+                                        <span class="goal-target">Goal: ${fmt(goal)} streams</span>
+                                    </div>
+                                    <div class="goal-team-progress">
+                                        ${teamNames.map(teamName => {
+                                            const ap = info.teams?.[teamName] || {};
+                                            const current = ap.current || 0;
+                                            const pct = goal > 0 ? Math.min((current/goal)*100, 100) : 0;
+                                            const done = current >= goal;
+                                            return `
+                                                <div class="team-progress-row ${done ? 'complete' : ''}">
+                                                    <span class="team-name-small" style="color:${teamColor(teamName)}">${teamName}</span>
+                                                    <div class="progress-bar-small"><div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(teamName)}"></div></div>
+                                                    <span class="progress-text">${fmt(current)}/${fmt(goal)}</span>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; }
+}
+
+// ==================== SUMMARY ====================
+async function renderSummary() {
+    const container = $('summary-content');
+    const selectedWeek = STATE.week;
+    const isCompleted = isWeekCompleted(selectedWeek);
+    
+    if (!isCompleted) {
+        const days = getDaysRemaining(selectedWeek);
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-body" style="text-align:center;padding:60px 20px;">
+                    <div style="font-size:64px;margin-bottom:20px;">🔒</div>
+                    <h2>Summary Locked</h2>
+                    <p style="color:var(--text-dim);margin:16px 0;">Results for <strong>${selectedWeek}</strong> are not yet final.</p>
+                    <div class="countdown-box">
+                        <div class="countdown-value">${days}</div>
+                        <div class="countdown-label">day${days !== 1 ? 's' : ''} until results</div>
+                    </div>
+                    <button onclick="loadPage('home')" class="btn-primary" style="margin-top:20px;">View Live Progress →</button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    try {
+        const [summary, winners] = await Promise.all([
+            api('getWeeklySummary', { week: selectedWeek }), 
+            api('getWeeklyWinners').catch(() => ({ winners: [] }))
+        ]);
+        
+        const teams = summary.teams || {};
+        const sorted = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
+        const actualWinner = sorted[0]?.[0] || summary.winner;
+        
+        container.innerHTML = `
+            <div class="summary-week-header">
+                <h2>📊 ${selectedWeek} Results</h2>
+                <p class="results-date">🏆 Battle Concluded</p>
+            </div>
+            ${actualWinner ? `
+                <div class="card winner-card" style="border-color:${teamColor(actualWinner)};background:linear-gradient(135deg, ${teamColor(actualWinner)}22, #0a0a0f);">
+                    <div class="card-body" style="text-align:center;padding:40px;">
+                        <div style="font-size:80px;margin-bottom:16px;">🏆</div>
+                        <h2 style="color:${teamColor(actualWinner)};font-size:28px;">Team ${actualWinner} WINS!</h2>
+                        <p style="font-size:36px;color:#ffd700;margin-top:10px;">${fmt(teams[actualWinner]?.teamXP)} XP</p>
+                    </div>
+                </div>
+            ` : ''}
+            <div class="card">
+                <div class="card-header"><h3>📊 Final Standings</h3></div>
+                <div class="card-body">
+                    ${sorted.map(([t, info], i) => `
+                        <div class="final-standing ${i===0?'winner':''}" style="border-left: 4px solid ${teamColor(t)};padding:15px;margin-bottom:10px;background:${i===0 ? teamColor(t)+'11' : 'transparent'};border-radius:8px;">
+                            <div style="display:flex;align-items:center;gap:15px;">
+                                <span style="font-size:24px;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</span>
+                                ${teamPfp(t) ? `<img src="${teamPfp(t)}" style="width:40px;height:40px;border-radius:50%;border:2px solid ${teamColor(t)}">` : ''}
+                                <div style="flex:1;">
+                                    <div style="color:${teamColor(t)};font-weight:600;font-size:16px;">${t}</div>
+                                    <div style="color:#888;font-size:12px;">${info.trackGoalPassed?'🎵✅':'🎵❌'} ${info.albumGoalPassed?'💿✅':'💿❌'} ${info.album2xPassed?'✨✅':'✨❌'}</div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="color:#ffd700;font-size:20px;font-weight:bold;">${fmt(info.teamXP)}</div>
+                                    <div style="color:#888;font-size:11px;">XP</div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load summary</p></div></div>'; }
+}
+
+// ==================== SECRET MISSIONS ====================
 async function renderSecretMissions() {
     const container = $('secret-missions-content');
     if (!container) return;
@@ -1811,12 +1666,7 @@ async function renderSecretMissions() {
             <div class="card">
                 <div class="card-header"><h3>🔒 Active Team Missions</h3></div>
                 <div class="card-body">
-                    ${activeMissions.length ? activeMissions.map(m => renderSecretMissionCard(m, myTeam, false)).join('') : `
-                        <div class="empty-missions">
-                            <div class="empty-icon">📭</div>
-                            <p>No active secret missions</p>
-                        </div>
-                    `}
+                    ${activeMissions.length ? activeMissions.map(m => renderSecretMissionCard(m, myTeam, false)).join('') : `<div class="empty-missions"><div class="empty-icon">📭</div><p>No active secret missions</p></div>`}
                 </div>
             </div>
             
@@ -1855,9 +1705,7 @@ async function renderSecretMissions() {
                 </div>
             ` : ''}
         `;
-    } catch (e) { 
-        container.innerHTML = '<div class="card"><div class="card-body error-state"><p>Failed to load secret missions.</p></div></div>'; 
-    }
+    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body error-state"><p>Failed to load secret missions.</p></div></div>'; }
 }
 
 function renderSecretMissionCard(mission, myTeam, isAssigned) {
@@ -1899,9 +1747,7 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
             ` : ''}
             <div class="smc-progress">
                 <div class="progress-header"><span>Team Progress</span><span>${myProgress}/${goalTarget}</span></div>
-                <div class="progress-bar">
-                    <div class="progress-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(myTeam)}"></div>
-                </div>
+                <div class="progress-bar"><div class="progress-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(myTeam)}"></div></div>
                 ${isComplete ? `<div class="progress-complete">✅ Mission Complete! +${mission.xpReward || 5} XP</div>` : `<div class="progress-remaining">${goalTarget - myProgress} more streams needed</div>`}
             </div>
             <div class="smc-footer"><span class="smc-reward">⭐ +${mission.xpReward || 5} XP</span></div>
@@ -1909,902 +1755,226 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
     `;
 }
 
-async function renderComparison() {
-    const container = $('comparison-content');
-    if (!container) return;
-    const weekToShow = STATE.week;
+// ==================== ANNOUNCEMENTS ====================
+async function renderAnnouncements() {
+    const container = $('announcements-content');
+    container.innerHTML = renderGuide('announcements');
     
     try {
-        const [comparison, goals, summary] = await Promise.all([
-            api('getTeamComparison', { week: weekToShow }), 
-            api('getGoalsProgress', { week: weekToShow }), 
-            api('getWeeklySummary', { week: weekToShow })
-        ]);
+        const data = await api('getAnnouncements', { week: STATE.week });
+        const list = data.announcements || [];
         
-        if (comparison.lastUpdated) STATE.lastUpdated = comparison.lastUpdated;
-        const teams = (comparison.comparison || []).sort((a, b) => (b.teamXP || 0) - (a.teamXP || 0));
-        const maxXP = teams[0]?.teamXP || 1;
-        const trackGoals = goals.trackGoals || {};
-        const albumGoals = goals.albumGoals || {};
-        const teamNames = Object.keys(CONFIG.TEAMS);
-        
-        container.innerHTML = `
-            ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
-            <div class="card">
-                <div class="card-header"><h3>⚔️ Battle Standings (${STATE.week})</h3></div>
+        container.innerHTML += list.length ? list.map(a => `
+            <div class="card announcement ${a.priority === 'high' ? 'urgent' : ''}">
                 <div class="card-body">
-                    ${teams.map((t, i) => `
-                        <div class="comparison-item">
-                            <span class="comparison-rank">${i+1}</span>
-                            <span class="comparison-name" style="color:${teamColor(t.team)}">${t.team}</span>
-                            <div class="comparison-bar-container">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width:${(t.teamXP/maxXP)*100}%;background:${teamColor(t.team)}"></div>
-                                </div>
-                            </div>
-                            <span class="comparison-xp">${fmt(t.teamXP)}</span>
-                        </div>
-                    `).join('')}
+                    <div class="announcement-header">
+                        <span class="announcement-date">${a.created ? new Date(a.created).toLocaleDateString() : ''}</span>
+                        ${a.priority === 'high' ? '<span class="urgent-badge">⚠️ IMPORTANT</span>' : ''}
+                    </div>
+                    <h3>${sanitize(a.title)}</h3>
+                    <p>${sanitize(a.message)}</p>
+                </div>
+            </div>
+        `).join('') : `
+            <div class="card">
+                <div class="card-body" style="text-align:center;padding:40px;">
+                    <div style="font-size:48px;margin-bottom:16px;">📢</div>
+                    <p style="color:var(--text-dim);">No announcements at this time</p>
+                    <p style="color:#666;font-size:12px;margin-top:10px;">Check back for important news from Admin!</p>
                 </div>
             </div>
         `;
-        
-        if (Object.keys(trackGoals).length) {
-            container.innerHTML += `
-                <div class="card">
-                    <div class="card-header"><h3>🎵 Track Goals</h3></div>
-                    <div class="card-body comparison-goals-section">
-                        ${Object.entries(trackGoals).map(([trackName, info]) => {
-                            const goal = info.goal || 0;
-                            return `
-                                <div class="goal-comparison-block">
-                                    <div class="goal-comparison-header">
-                                        <span class="goal-track-name">${sanitize(trackName)}</span>
-                                        <span class="goal-target">Goal: ${fmt(goal)} streams</span>
-                                    </div>
-                                    <div class="goal-team-progress">
-                                        ${teamNames.map(teamName => {
-                                            const tp = info.teams?.[teamName] || {};
-                                            const current = tp.current || 0;
-                                            const pct = goal > 0 ? Math.min((current/goal)*100, 100) : 0;
-                                            const done = current >= goal;
-                                            return `
-                                                <div class="team-progress-row ${done ? 'complete' : ''}">
-                                                    <span class="team-name-small" style="color:${teamColor(teamName)}">${teamName}</span>
-                                                    <div class="progress-bar-small">
-                                                        <div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(teamName)}"></div>
-                                                    </div>
-                                                    <span class="progress-text">${fmt(current)}/${fmt(goal)}</span>
-                                                </div>
-                                            `;
-                                        }).join('')}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-        }
-        
-        if (Object.keys(albumGoals).length) {
-            container.innerHTML += `
-                <div class="card">
-                    <div class="card-header"><h3>💿 Album Goals</h3></div>
-                    <div class="card-body comparison-goals-section">
-                        ${Object.entries(albumGoals).map(([albumName, info]) => {
-                            const goal = info.goal || 0;
-                            return `
-                                <div class="goal-comparison-block">
-                                    <div class="goal-comparison-header">
-                                        <span class="goal-track-name">${sanitize(albumName)}</span>
-                                        <span class="goal-target">Goal: ${fmt(goal)} streams</span>
-                                    </div>
-                                    <div class="goal-team-progress">
-                                        ${teamNames.map(teamName => {
-                                            const ap = info.teams?.[teamName] || {};
-                                            const current = ap.current || 0;
-                                            const pct = goal > 0 ? Math.min((current/goal)*100, 100) : 0;
-                                            const done = current >= goal;
-                                            return `
-                                                <div class="team-progress-row ${done ? 'complete' : ''}">
-                                                    <span class="team-name-small" style="color:${teamColor(teamName)}">${teamName}</span>
-                                                    <div class="progress-bar-small">
-                                                        <div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(teamName)}"></div>
-                                                    </div>
-                                                    <span class="progress-text">${fmt(current)}/${fmt(goal)}</span>
-                                                </div>
-                                            `;
-                                        }).join('')}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-        }
-    } catch (e) { 
-        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; 
-    }
-}
-// ==================== MISSING FUNCTIONS - PART 1 ====================
-
-// Check if current agent is admin
-function isAdminAgent() {
-    return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
+    } catch (e) { container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p></div></div>'; }
 }
 
-// Check admin status from localStorage
-function checkAdminStatus() {
-    const session = localStorage.getItem('adminSession');
-    const expiry = localStorage.getItem('adminExpiry');
-    
-    if (session && expiry && Date.now() < parseInt(expiry)) {
-        STATE.isAdmin = true;
-        STATE.adminSession = session;
-        addAdminIndicator();
-    } else {
-        STATE.isAdmin = false;
-        STATE.adminSession = null;
-        localStorage.removeItem('adminSession');
-        localStorage.removeItem('adminExpiry');
-    }
-}
-
-// Add admin indicator to UI
-function addAdminIndicator() {
-    if (!isAdminAgent()) return;
-    
-    // Remove existing indicator
-    document.querySelectorAll('.admin-indicator').forEach(el => el.remove());
-    
-    const indicator = document.createElement('div');
-    indicator.className = 'admin-indicator';
-    indicator.innerHTML = `
-        <style>
-            .admin-indicator {
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                color: #fff;
-                padding: 8px 16px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 600;
-                z-index: 9999;
-                cursor: pointer;
-                box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            .admin-indicator:hover {
-                transform: scale(1.05);
-            }
-        </style>
-        <span>🔐</span>
-        <span>ADMIN</span>
-    `;
-    indicator.onclick = () => {
-        if (STATE.isAdmin) {
-            showAdminPanel();
-        } else {
-            showAdminLogin();
-        }
-    };
-    document.body.appendChild(indicator);
-}
-
-// Setup login form listeners
-function setupLoginListeners() {
-    const loginForm = $('login-form');
-    const findBtn = $('find-btn');
-    const agentInput = $('agent-input');
-    
-    if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleLogin();
-        });
-    }
-    
-    if (findBtn) {
-        findBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleLogin();
-        });
-    }
-    
-    if (agentInput) {
-        agentInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleLogin();
-            }
-        });
-    }
-}
-
-// Handle login
-async function handleLogin() {
-    const agentInput = $('agent-input');
-    const agentNo = agentInput?.value?.trim()?.toUpperCase();
-    
-    if (!agentNo) {
-        showResult('Please enter your Agent ID', true);
-        return;
-    }
-    
-    loading(true);
-    
-    try {
-        // Verify agent exists
-        const data = await api('getAgentData', { agentNo, week: STATE.week || 'Week 1' });
-        
-        if (data.error) {
-            showResult(data.error, true);
-            return;
-        }
-        
-        if (!data.profile) {
-            showResult('Agent not found. Check your Agent ID.', true);
-            return;
-        }
-        
-        // Save and proceed
-        STATE.agentNo = agentNo;
-        STATE.data = data;
-        localStorage.setItem('spyAgent', agentNo);
-        
-        checkAdminStatus();
-        loadSeenResults();
-        showResult(`Welcome, Agent ${data.profile.name}!`, false);
-        
-        setTimeout(() => loadDashboard(), 500);
-        
-    } catch (e) {
-        console.error('Login error:', e);
-        showResult('Connection failed. Try again.', true);
-    } finally {
-        loading(false);
-    }
-}
-
-// Load all agents for autocomplete/search
-async function loadAllAgents() {
-    try {
-        const data = await api('getAllAgents');
-        STATE.allAgents = data.agents || [];
-    } catch (e) {
-        console.log('Could not load agents list');
-        STATE.allAgents = [];
-    }
-}
-
-// Load dashboard after login
-async function loadDashboard() {
-    loading(true);
-    
-    try {
-        // Get available weeks
-        const weeksData = await api('getAvailableWeeks');
-        STATE.weeks = weeksData.weeks || ['Week 1'];
-        STATE.week = weeksData.current || STATE.weeks[0];
-        
-        // Get agent data for current week
-        const agentData = await api('getAgentData', { 
-            agentNo: STATE.agentNo, 
-            week: STATE.week 
-        });
-        STATE.data = agentData;
-        
-        // Load all weeks data for drawer (badges from all weeks)
-        await loadAllWeeksData();
-        
-        // Hide login, show dashboard
-        const loginSection = $('login-section');
-        const dashboard = $('dashboard');
-        
-        if (loginSection) loginSection.style.display = 'none';
-        if (dashboard) {
-            dashboard.style.display = 'block';
-            dashboard.classList.add('active');
-        }
-        
-        // Setup navigation
-        setupNavigation();
-        
-        // Setup week selector
-        setupWeekSelector();
-        
-        // Load home page
-        await loadPage('home');
-        
-    } catch (e) {
-        console.error('Dashboard load error:', e);
-        showToast('Failed to load dashboard', 'error');
-    } finally {
-        loading(false);
-    }
-}
-
-// Load data from all weeks for drawer
-async function loadAllWeeksData() {
-    try {
-        const allData = await api('getAgentAllWeeks', { agentNo: STATE.agentNo });
-        STATE.allWeeksData = allData;
-    } catch (e) {
-        console.log('Could not load all weeks data');
-        STATE.allWeeksData = null;
-    }
-}
-
-// Setup navigation handlers
-function setupNavigation() {
-    // Bottom navigation
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const page = item.dataset.page;
-            if (page) {
-                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                item.classList.add('active');
-                loadPage(page);
-            }
-        });
-    });
-    
-    // Sidebar menu items
-    document.querySelectorAll('.sidebar-menu-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const page = item.dataset.page;
-            if (page) {
-                closeSidebar();
-                loadPage(page);
-            }
-        });
-    });
-    
-    // Hamburger menu
-    const hamburger = $('hamburger-btn') || document.querySelector('.hamburger');
-    if (hamburger) {
-        hamburger.addEventListener('click', () => {
-            const sidebar = $('sidebar');
-            if (sidebar) sidebar.classList.toggle('open');
-        });
-    }
-    
-    // Sidebar close button
-    const sidebarClose = $('sidebar-close');
-    if (sidebarClose) {
-        sidebarClose.addEventListener('click', closeSidebar);
-    }
-    
-    // Click outside sidebar to close
-    document.addEventListener('click', (e) => {
-        const sidebar = $('sidebar');
-        const hamburger = $('hamburger-btn') || document.querySelector('.hamburger');
-        if (sidebar && sidebar.classList.contains('open')) {
-            if (!sidebar.contains(e.target) && !hamburger?.contains(e.target)) {
-                closeSidebar();
-            }
-        }
-    });
-}
-
-// Setup week selector
-function setupWeekSelector() {
-    const weekSelector = $('week-selector');
-    if (weekSelector) {
-        weekSelector.innerHTML = STATE.weeks.map(w => 
-            `<option value="${w}" ${w === STATE.week ? 'selected' : ''}>${w}</option>`
-        ).join('');
-        
-        weekSelector.addEventListener('change', async (e) => {
-            STATE.week = e.target.value;
-            loading(true);
-            try {
-                const agentData = await api('getAgentData', { 
-                    agentNo: STATE.agentNo, 
-                    week: STATE.week 
-                });
-                STATE.data = agentData;
-                await loadPage(STATE.page);
-            } catch (err) {
-                showToast('Failed to switch week', 'error');
-            } finally {
-                loading(false);
-            }
-        });
-    }
-}
-
-// Logout function
-function logout() {
-    STATE.agentNo = null;
-    STATE.data = null;
-    STATE.isAdmin = false;
-    STATE.adminSession = null;
-    STATE.allWeeksData = null;
-    
-    localStorage.removeItem('spyAgent');
-    localStorage.removeItem('adminSession');
-    localStorage.removeItem('adminExpiry');
-    
-    // Remove admin indicator
-    document.querySelectorAll('.admin-indicator').forEach(el => el.remove());
-    
-    // Show login, hide dashboard
-    const loginSection = $('login-section');
-    const dashboard = $('dashboard');
-    
-    if (loginSection) loginSection.style.display = 'flex';
-    if (dashboard) {
-        dashboard.style.display = 'none';
-        dashboard.classList.remove('active');
-    }
-    
-    // Clear input
-    const agentInput = $('agent-input');
-    if (agentInput) agentInput.value = '';
-    
-    showToast('Logged out successfully', 'success');
-}
-
-function exitAdminMode() {
-    STATE.isAdmin = false;
-    STATE.adminSession = null;
-    localStorage.removeItem('adminSession');
-    localStorage.removeItem('adminExpiry');
-    
-    document.querySelectorAll('.admin-indicator').forEach(el => el.remove());
-    closeAdminPanel();
-    
-    showToast('Admin mode deactivated', 'info');
-}  
-
-// ==================== ADMIN PANEL FUNCTIONS ====================
-
-// Switch admin tabs
-function switchAdminTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll('.admin-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.tab === tabName);
-    });
-    
-    // Update tab content
-    document.querySelectorAll('.admin-tab-content').forEach(content => {
-        content.classList.toggle('active', content.id === `admin-tab-${tabName}`);
-    });
-}
-
-// Render create mission form
-function renderCreateMissionForm() {
-    const teams = Object.keys(CONFIG.TEAMS);
-    const missionTypes = CONFIG.MISSION_TYPES;
-    
-    return `
-        <div class="create-mission-form">
-            <div class="form-section">
-                <h4>Mission Type</h4>
-                <div class="mission-type-grid">
-                    ${Object.entries(missionTypes).map(([key, info]) => `
-                        <div class="mission-type-option" data-type="${key}" onclick="selectMissionType('${key}')">
-                            <div style="font-size:24px;">${info.icon}</div>
-                            <div style="font-size:12px;margin-top:5px;">${info.name}</div>
-                        </div>
-                    `).join('')}
-                </div>
-                <input type="hidden" id="mission-type" value="">
-            </div>
-            
-            <div class="form-section">
-                <h4>Mission Title</h4>
-                <input type="text" id="mission-title" class="form-input" placeholder="Enter mission title...">
-            </div>
-            
-            <div class="form-section">
-                <h4>Briefing / Instructions</h4>
-                <textarea id="mission-briefing" class="form-textarea" placeholder="Enter mission details..."></textarea>
-            </div>
-            
-            <div class="form-section">
-                <h4>Target Track (Optional)</h4>
-                <input type="text" id="mission-target" class="form-input" placeholder="Track name for streaming mission...">
-            </div>
-            
-            <div class="form-section">
-                <h4>Goal Target (Streams)</h4>
-                <input type="number" id="mission-goal" class="form-input" value="100" min="1">
-            </div>
-            
-            <div class="form-section">
-                <h4>XP Reward</h4>
-                <input type="number" id="mission-xp" class="form-input" value="5" min="1" max="25">
-            </div>
-            
-            <div class="form-section">
-                <h4>Assign to Teams</h4>
-                <div class="team-checkboxes">
-                    <label class="team-checkbox" onclick="toggleAllTeams(this)">
-                        <input type="checkbox" id="team-all" checked>
-                        <span>All Teams</span>
-                    </label>
-                    ${teams.map(t => `
-                        <label class="team-checkbox">
-                            <input type="checkbox" class="team-check" value="${t}" checked>
-                            <span style="color:${teamColor(t)}">${t}</span>
-                        </label>
-                    `).join('')}
-                </div>
-            </div>
-            
-            <div class="form-actions">
-                <button type="button" onclick="createTeamMission()" class="btn-primary" style="width:100%;">
-                    🚀 Deploy Mission
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-// Select mission type
-function selectMissionType(type) {
-    document.querySelectorAll('.mission-type-option').forEach(opt => {
-        opt.classList.toggle('selected', opt.dataset.type === type);
-    });
-    
-    const typeInput = document.getElementById('mission-type');
-    if (typeInput) typeInput.value = type;
-}
-
-// Toggle all teams checkbox
-function toggleAllTeams(el) {
-    const allCheckbox = el.querySelector('input');
-    const isChecked = allCheckbox?.checked;
-    
-    document.querySelectorAll('.team-check').forEach(cb => {
-        cb.checked = isChecked;
-    });
-}
-
-// Create team mission
-async function createTeamMission() {
-    const type = document.getElementById('mission-type')?.value;
-    const title = document.getElementById('mission-title')?.value?.trim();
-    const briefing = document.getElementById('mission-briefing')?.value?.trim();
-    const targetTrack = document.getElementById('mission-target')?.value?.trim();
-    const goalTarget = parseInt(document.getElementById('mission-goal')?.value) || 100;
-    const xpReward = parseInt(document.getElementById('mission-xp')?.value) || 5;
-    
-    const selectedTeams = [];
-    document.querySelectorAll('.team-check:checked').forEach(cb => {
-        selectedTeams.push(cb.value);
-    });
-    
-    if (!type) {
-        showToast('Please select a mission type', 'error');
-        return;
-    }
-    
-    if (!title) {
-        showToast('Please enter a mission title', 'error');
-        return;
-    }
-    
-    if (selectedTeams.length === 0) {
-        showToast('Please select at least one team', 'error');
-        return;
-    }
-    
-    loading(true);
-    
-    try {
-        const result = await api('createSecretMission', {
-            week: STATE.week,
-            type,
-            title,
-            briefing,
-            targetTrack,
-            goalTarget,
-            xpReward,
-            teams: selectedTeams,
-            createdBy: STATE.agentNo
-        });
-        
-        if (result.success) {
-            showToast('Mission deployed successfully!', 'success');
-            
-            // Reset form
-            document.getElementById('mission-title').value = '';
-            document.getElementById('mission-briefing').value = '';
-            document.getElementById('mission-target').value = '';
-            document.querySelectorAll('.mission-type-option').forEach(opt => opt.classList.remove('selected'));
-            document.getElementById('mission-type').value = '';
-            
-            // Switch to active tab
-            switchAdminTab('active');
-            loadActiveTeamMissions();
-        } else {
-            showToast(result.error || 'Failed to create mission', 'error');
-        }
-    } catch (e) {
-        console.error('Create mission error:', e);
-        showToast('Failed to create mission', 'error');
-    } finally {
-        loading(false);
-    }
-}
-
-// Load active team missions for admin panel
-async function loadActiveTeamMissions() {
-    const container = document.getElementById('admin-tab-active');
+// ==================== CHAT ====================
+async function renderChat() {
+    const container = $('chat-content');
     if (!container) return;
-    
-    container.innerHTML = '<div class="loading-text">Loading missions...</div>';
-    
-    try {
-        const data = await api('getAdminMissions', { week: STATE.week, status: 'active' });
-        const missions = data.missions || [];
-        
-        if (missions.length === 0) {
-            container.innerHTML = `
-                <div style="text-align:center;padding:40px;color:#888;">
-                    <div style="font-size:48px;margin-bottom:15px;">📭</div>
-                    <p>No active missions</p>
-                    <button onclick="switchAdminTab('create')" class="btn-primary" style="margin-top:15px;">
-                        + Create New Mission
-                    </button>
-                </div>
-            `;
-            return;
-        }
-        
-        container.innerHTML = missions.map(m => `
-            <div class="admin-mission-card">
-                <div style="flex:1;">
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-                        <span style="font-size:20px;">${CONFIG.MISSION_TYPES[m.type]?.icon || '🔒'}</span>
-                        <span style="color:#fff;font-weight:600;">${sanitize(m.title)}</span>
-                    </div>
-                    <div style="color:#888;font-size:12px;">
-                        Teams: ${(m.teams || []).join(', ')} | Goal: ${m.goalTarget} | XP: ${m.xpReward}
-                    </div>
-                </div>
-                <div style="display:flex;gap:8px;">
-                    <button onclick="adminCompleteMission('${m.id}')" class="btn-primary" style="padding:8px 12px;font-size:12px;">
-                        ✅ Complete
-                    </button>
-                    <button onclick="adminCancelMission('${m.id}')" class="btn-secondary" style="padding:8px 12px;font-size:12px;">
-                        ❌ Cancel
-                    </button>
-                </div>
-            </div>
-        `).join('');
-        
-    } catch (e) {
-        container.innerHTML = '<p style="color:red;text-align:center;">Failed to load missions</p>';
-    }
-}
-
-// Admin complete mission
-async function adminCompleteMission(missionId) {
-    if (!confirm('Mark this mission as completed for all teams?')) return;
-    
-    loading(true);
-    try {
-        const result = await api('completeMission', { 
-            missionId, 
-            week: STATE.week,
-            completedBy: STATE.agentNo 
-        });
-        
-        if (result.success) {
-            showToast('Mission completed!', 'success');
-            loadActiveTeamMissions();
-        } else {
-            showToast(result.error || 'Failed to complete mission', 'error');
-        }
-    } catch (e) {
-        showToast('Failed to complete mission', 'error');
-    } finally {
-        loading(false);
-    }
-}
-
-// Admin cancel mission
-async function adminCancelMission(missionId) {
-    if (!confirm('Are you sure you want to cancel this mission?')) return;
-    
-    loading(true);
-    try {
-        const result = await api('cancelMission', { 
-            missionId, 
-            week: STATE.week,
-            cancelledBy: STATE.agentNo 
-        });
-        
-        if (result.success) {
-            showToast('Mission cancelled', 'success');
-            loadActiveTeamMissions();
-        } else {
-            showToast(result.error || 'Failed to cancel mission', 'error');
-        }
-    } catch (e) {
-        showToast('Failed to cancel mission', 'error');
-    } finally {
-        loading(false);
-    }
-}
-
-// Load mission history for admin
-async function loadMissionHistory() {
-    const container = document.getElementById('admin-tab-history');
-    if (!container) return;
-    
-    container.innerHTML = '<div class="loading-text">Loading history...</div>';
-    
-    try {
-        const data = await api('getAdminMissions', { week: STATE.week, status: 'all' });
-        const missions = data.missions || [];
-        
-        if (missions.length === 0) {
-            container.innerHTML = '<p style="color:#888;text-align:center;padding:40px;">No mission history</p>';
-            return;
-        }
-        
-        container.innerHTML = missions.map(m => `
-            <div class="admin-mission-card" style="opacity:${m.status === 'completed' ? '0.7' : '1'}">
-                <div style="flex:1;">
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-                        <span style="font-size:20px;">${CONFIG.MISSION_TYPES[m.type]?.icon || '🔒'}</span>
-                        <span style="color:#fff;font-weight:600;">${sanitize(m.title)}</span>
-                        <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${m.status === 'completed' ? '#2ecc71' : m.status === 'cancelled' ? '#e74c3c' : '#7b2cbf'}22;color:${m.status === 'completed' ? '#2ecc71' : m.status === 'cancelled' ? '#e74c3c' : '#7b2cbf'};">
-                            ${m.status?.toUpperCase() || 'ACTIVE'}
-                        </span>
-                    </div>
-                    <div style="color:#888;font-size:12px;">
-                        Teams: ${(m.teams || []).join(', ')} | XP: ${m.xpReward}
-                    </div>
-                </div>
-            </div>
-        `).join('');
-        
-    } catch (e) {
-        container.innerHTML = '<p style="color:red;text-align:center;">Failed to load history</p>';
-    }
-}
-
-// Render admin assets (badge preview)
-function renderAdminAssets() {
-    const container = document.getElementById('admin-tab-assets');
-    if (!container) return;
-    
-    const pool = CONFIG.BADGE_POOL;
+    const team = STATE.data?.profile?.team || 'Unknown';
+    const name = sanitize(STATE.data?.profile?.name) || 'Agent';
+    const color = teamColor(team);
+    const chatUrl = `https://tlk.io/${CONFIG.CHAT_CHANNEL}`;
     
     container.innerHTML = `
-        <div style="padding:15px 0;">
-            <h4 style="color:#fff;margin-bottom:5px;">Badge Pool Preview</h4>
-            <p style="color:#888;font-size:12px;margin-bottom:20px;">
-                ${pool.length} badges available. Click to preview.
-            </p>
-            <div class="assets-grid">
-                ${pool.map((url, i) => `
-                    <div class="asset-chip" onclick="previewAsset('${url}', ${i + 1})">
-                        <div class="asset-chip-inner">
-                            <div class="asset-chip-number">#${i + 1}</div>
-                            <img src="${url}" onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:24px;\\'>❓</div>'">
+        ${renderGuide('chat')}
+        <div class="card" style="height: calc(100% - 150px); display: flex; flex-direction: column; margin-bottom: 0;">
+            <div class="card-header" style="border-bottom: 1px solid var(--border);">
+                <h3>💬 Secret Comms Channel</h3>
+                <div class="mission-hint">Encrypted Channel • Logged in as <span style="color:${color}">${name}</span></div>
+            </div>
+            <div class="card-body" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0f 100%);">
+                <div style="font-size: 60px; margin-bottom: 20px;">🛰️</div>
+                <h2 style="color: var(--text-bright); margin-bottom: 10px;">Secure Link Established</h2>
+                <p style="color: var(--text-dim); max-width: 400px; margin-bottom: 30px; font-size: 14px;">
+                    To bypass ad-blockers and ensure transmission security, the comms channel must be opened in a secure popup link.
+                </p>
+                <a href="${chatUrl}" target="_blank" onclick="window.open(this.href, 'bts_chat', 'width=500,height=700'); return false;" class="btn-primary" style="padding: 15px 30px; font-size: 16px; border: 1px solid var(--purple-glow); box-shadow: 0 0 20px rgba(123, 44, 191, 0.3);">
+                    🚀 LAUNCH COMMS CHANNEL
+                </a>
+                <div style="margin-top: 30px; font-size: 11px; color: var(--text-muted);">
+                    Status: <span style="color: var(--success);">ONLINE</span> • Encryption: <span style="color: var(--success);">ACTIVE</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ==================== PLAYLISTS ====================
+async function renderPlaylists() {
+    const container = $('playlists-content');
+    if (!container) return;
+    
+    container.innerHTML = `
+        ${renderGuide('playlists')}
+        <div class="card">
+            <div class="card-header"><h3>🎵 Official Streaming Playlists</h3></div>
+            <div class="card-body">
+                <div id="playlists-list" style="display:flex;flex-direction:column;gap:10px;">
+                    <div class="loading-text">Loading playlists...</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    try {
+        const data = await api('getPlaylists');
+        const playlists = data.playlists || [];
+        const listEl = $('playlists-list');
+        
+        if (playlists.length) {
+            listEl.innerHTML = playlists.map(pl => `
+                <div class="playlist-card">
+                    <a href="${sanitize(pl.link)}" target="_blank" class="playlist-link">
+                        <span class="playlist-icon">${getPlaylistIcon(pl.platform)}</span>
+                        <div>
+                            <div class="playlist-name">${sanitize(pl.name)}</div>
+                            <div class="playlist-type">${sanitize(pl.platform || 'Streaming')} • ${sanitize(pl.type || 'Playlist')}</div>
                         </div>
+                    </a>
+                </div>
+            `).join('');
+        } else {
+            listEl.innerHTML = `<div style="text-align:center;padding:40px;color:#888;"><div style="font-size:48px;margin-bottom:15px;">📭</div><p>No playlists available yet</p><p style="font-size:12px;">Check back later for official streaming playlists</p></div>`;
+        }
+    } catch (e) { $('playlists-list').innerHTML = '<p style="color:red;">Failed to load playlists</p>'; }
+}
+
+function getPlaylistIcon(platform) {
+    const icons = { 'spotify': '💚', 'apple': '🍎', 'youtube': '🔴', 'amazon': '📦', 'deezer': '🎧' };
+    return icons[(platform || '').toLowerCase()] || '🎵';
+}
+
+// ==================== GC LINKS ====================
+async function renderGCLinks() {
+    const container = $('gc-links-content');
+    if (!container) return;
+    const team = STATE.data?.profile?.team;
+    
+    container.innerHTML = `
+        ${renderGuide('gc-links')}
+        <div class="gc-card" style="border-color:${teamColor(team)}">
+            <h4 style="color:${teamColor(team)}">👥 Team ${team} GC</h4>
+            <p>For sending Spotify listening history screenshots every Sunday</p>
+            <a href="#" class="gc-link-btn" id="gc-team-link">Join Team GC →</a>
+        </div>
+        <div class="gc-card">
+            <h4>🎵 Playlist GC</h4>
+            <p>If you need any more playlists or have playlist requests</p>
+            <a href="#" class="gc-link-btn" id="gc-pl-link">Join Playlist GC →</a>
+        </div>
+        <div class="gc-card" style="border-color:#7b2cbf;">
+            <h4 style="color:#7b2cbf;">🌟 Main BTS Comeback Mission GC</h4>
+            <p>For effective communication only regarding the mission - ALL TEAMS</p>
+            <a href="#" class="gc-link-btn" id="gc-main-link">Join Main GC →</a>
+        </div>
+        <div class="card" style="background:rgba(255,255,255,0.03);margin-top:20px;">
+            <div class="card-body" style="text-align:center;padding:20px;">
+                <p style="color:#888;font-size:13px;">💜 Don't worry if you're not added yet!<br>Just follow the goals displayed and we will add you soon.</p>
+            </div>
+        </div>
+    `;
+    
+    try {
+        const data = await api('getGCLinks');
+        const links = data.links || {};
+        if (links.team && links.team[team]) $('gc-team-link').href = links.team[team];
+        if (links.playlist) $('gc-pl-link').href = links.playlist;
+        if (links.main) $('gc-main-link').href = links.main;
+    } catch (e) { console.log('Could not load GC links'); }
+}
+
+// ==================== HELPER ROLES ====================
+async function renderHelperRoles() {
+    const container = $('helper-roles-content');
+    if (!container) return;
+    
+    container.innerHTML = `
+        ${renderGuide('helper-roles')}
+        <div class="card">
+            <div class="card-header">
+                <h3>🎖️ Helper Army Roles</h3>
+                <span style="font-size:12px;color:#888;">Help HQ run the mission!</span>
+            </div>
+            <div class="card-body" id="roles-list"><div class="loading-text">Loading roles...</div></div>
+        </div>
+        <div class="card" style="background:linear-gradient(135deg, rgba(123,44,191,0.1), rgba(255,215,0,0.05));border-color:#7b2cbf;">
+            <div class="card-body" style="text-align:center;padding:30px;">
+                <div style="font-size:40px;margin-bottom:15px;">🚀</div>
+                <h4 style="color:#fff;margin-bottom:10px;">Want to Join the Helper Army?</h4>
+                <p style="color:#888;font-size:13px;">Contact Admin through Secret Comms or announcements.<br>More roles will be released depending on the need!</p>
+            </div>
+        </div>
+    `;
+    
+    try {
+        const data = await api('getHelperRoles');
+        const roles = data.roles || [];
+        const rolesListEl = $('roles-list');
+        
+        if (roles.length) {
+            rolesListEl.innerHTML = roles.map(role => `
+                <div class="role-card">
+                    <div class="role-icon">${role.icon}</div>
+                    <div style="flex:1;">
+                        <div class="role-name">${sanitize(role.name)}</div>
+                        <div class="role-desc">${sanitize(role.description)}</div>
+                        ${role.agents && role.agents.length > 0 ? `
+                            <div class="role-agents" style="margin-top:8px;">
+                                <span style="color:#7b2cbf;font-size:11px;font-weight:600;">Assigned:</span>
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+                                    ${role.agents.map(agent => `<span class="agent-badge" style="background:rgba(123,44,191,0.2);color:#c9a0ff;padding:3px 8px;border-radius:12px;font-size:11px;">👤 ${sanitize(agent.name)}</span>`).join('')}
+                                </div>
+                            </div>
+                        ` : `<div style="margin-top:8px;font-size:11px;color:#666;"><span style="color:#ffd700;">⭐</span> Position open - Apply now!</div>`}
                     </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
+                </div>
+            `).join('');
+        } else {
+            rolesListEl.innerHTML = '<p style="color:#888;text-align:center;">No roles defined yet</p>';
+        }
+    } catch (e) { $('roles-list').innerHTML = '<p style="color:red;">Failed to load roles</p>'; }
 }
 
-// Preview asset in modal
-function previewAsset(url, num) {
-    // Remove existing preview modal
-    document.querySelectorAll('.asset-preview-modal').forEach(m => m.remove());
-    
-    const modal = document.createElement('div');
-    modal.className = 'asset-preview-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.9);
-        z-index: 999999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-    `;
-    
-    modal.innerHTML = `
-        <div style="text-align:center;">
-            <div class="badge-circle holographic" style="width:150px;height:150px;margin:0 auto 20px;">
-                <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
-            </div>
-            <p style="color:#ffd700;font-size:18px;margin-bottom:5px;">Badge #${num}</p>
-            <p style="color:#888;font-size:12px;margin-bottom:20px;">Level ${num} Badge</p>
-            <button onclick="this.closest('.asset-preview-modal').remove()" class="btn-secondary">
-                Close
-            </button>
-        </div>
-    `;
-    
-    modal.onclick = (e) => {
-        if (e.target === modal) modal.remove();
-    };
-    
-    document.body.appendChild(modal);
-}
-
-// View week results
+// ==================== RESULTS POPUP ====================
 function viewResults(week) {
+    markResultsSeen(week);
+    dismissResultsUI();
     STATE.week = week;
     loadPage('summary');
 }
 
-// Dismiss results notification
 function dismissResults(week) {
     markResultsSeen(week);
-    const notification = document.querySelector(`.results-notification[data-week="${week}"]`);
-    if (notification) notification.remove();
+    dismissResultsUI();
 }
 
-// ==================== REFRESH & SYNC ====================
-
-// Refresh current page data
-async function refreshData() {
-    loading(true);
-    try {
-        const agentData = await api('getAgentData', { 
-            agentNo: STATE.agentNo, 
-            week: STATE.week 
-        });
-        STATE.data = agentData;
-        await loadPage(STATE.page);
-        showToast('Data refreshed', 'success');
-    } catch (e) {
-        showToast('Refresh failed', 'error');
-    } finally {
-        loading(false);
-    }
+function dismissResultsUI() {
+    const popup = $('results-popup');
+    const confetti = $('confetti-overlay');
+    if (popup) { popup.classList.remove('show'); setTimeout(() => popup.remove(), 500); }
+    if (confetti) confetti.remove();
 }
-
-// Auto-refresh timer (every 5 minutes)
-let refreshInterval = null;
-
-function startAutoRefresh() {
-    if (refreshInterval) clearInterval(refreshInterval);
-    refreshInterval = setInterval(() => {
-        if (STATE.agentNo && document.visibilityState === 'visible') {
-            refreshData();
-        }
-    }, 5 * 60 * 1000); // 5 minutes
-}
-
-function stopAutoRefresh() {
-    if (refreshInterval) {
-        clearInterval(refreshInterval);
-        refreshInterval = null;
-    }
-}
-
-// Visibility change handler
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && STATE.agentNo) {
-        // Refresh when returning to tab
-        refreshData();
-    }
-});
 
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
@@ -2826,8 +1996,5 @@ window.switchAdminTab = switchAdminTab;
 window.previewAsset = previewAsset;
 window.viewResults = viewResults;
 window.dismissResults = dismissResults;
-window.handleLogin = handleLogin;
-window.refreshData = refreshData;
-window.loadDashboard = loadDashboard;
 
-console.log('🎮 BTS Spy Battle v5.0 Loaded (Full Features)');
+console.log('🎮 BTS Spy Battle v5.0 Loaded');
