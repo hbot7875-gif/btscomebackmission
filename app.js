@@ -923,30 +923,49 @@ function renderAdminAssets() {
     container.innerHTML = `
         <div style="margin-bottom:20px;">
             <h4 style="color:#ffd700;margin-bottom:5px;">🎖️ Badge Pool Preview (${badges.length} badges)</h4>
-            <p style="color:#888;font-size:12px;">These badges are randomly assigned to agents based on their XP level.</p>
+            <p style="color:#888;font-size:12px;">This is exactly how agents will see their badges. Click any badge to preview full size.</p>
         </div>
-        <div class="assets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:12px;">
+        
+        <div class="badges-showcase" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:20px;padding:10px;">
             ${badges.map((url, index) => `
-                <div class="asset-chip" onclick="previewAsset('${url}', ${index + 1})" 
-                     style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#1a1a2e;border:2px solid #333;cursor:pointer;transition:all 0.3s;">
-                    <div style="position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.8);color:#ffd700;padding:2px 6px;border-radius:8px;font-size:10px;font-weight:bold;">
-                        #${index + 1}
+                <div class="badge-showcase-item" onclick="previewAsset('${url}', ${index + 1})" 
+                     style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:15px 10px;
+                            background:linear-gradient(145deg,rgba(26,26,46,0.8),rgba(18,18,26,0.9));
+                            border-radius:12px;border:1px solid rgba(123,44,191,0.2);cursor:pointer;transition:all 0.3s;">
+                    <div class="badge-circle holographic" style="width:70px;height:70px;">
+                        <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" 
+                             onerror="this.style.display='none';this.parentElement.innerHTML='❓';">
                     </div>
-                    <img src="${url}" style="width:100%;height:100%;object-fit:cover;" 
-                         onerror="this.style.display='none';this.parentElement.innerHTML+='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:24px;\\'>❌</div>'">
+                    <div style="margin-top:10px;font-weight:600;color:#ffd700;font-size:12px;">Level ${index + 1}</div>
+                    <div style="font-size:10px;color:#888;margin-top:2px;">Badge #${index + 1}</div>
                 </div>
             `).join('')}
         </div>
+        
         <div style="margin-top:25px;padding:15px;background:#1a1a2e;border-radius:8px;border:1px solid #333;">
             <h5 style="color:#fff;margin-bottom:10px;">ℹ️ How Badge Assignment Works</h5>
             <ul style="color:#888;font-size:12px;margin:0;padding-left:20px;line-height:1.8;">
-                <li>Agents earn 1 badge for every 100 XP</li>
-                <li>Badges are randomly selected from this pool</li>
-                <li>Each agent gets unique badges based on their Agent ID</li>
+                <li>Agents earn 1 badge for every <strong style="color:#ffd700;">100 XP</strong></li>
+                <li>Badges have the <strong style="color:#7b2cbf;">holographic spinning effect</strong></li>
+                <li>Each agent gets unique badges based on their Agent ID + Level</li>
                 <li>Add more badge URLs in <code style="background:#0a0a0f;padding:2px 6px;border-radius:4px;color:#00ff88;">CONFIG.BADGE_POOL</code></li>
             </ul>
         </div>
     `;
+    
+    // Add hover effect
+    container.querySelectorAll('.badge-showcase-item').forEach(item => {
+        item.onmouseenter = function() {
+            this.style.transform = 'translateY(-5px)';
+            this.style.borderColor = 'rgba(255, 215, 0, 0.5)';
+            this.style.boxShadow = '0 10px 30px rgba(123, 44, 191, 0.3)';
+        };
+        item.onmouseleave = function() {
+            this.style.transform = 'translateY(0)';
+            this.style.borderColor = 'rgba(123, 44, 191, 0.2)';
+            this.style.boxShadow = 'none';
+        };
+    });
 }
 
 function previewAsset(url, index) {
@@ -971,14 +990,113 @@ function previewAsset(url, index) {
     `;
     
     modal.innerHTML = `
-        <div class="badge-circle holographic" style="width:200px;height:200px;border-radius:50%;overflow:hidden;">
-            <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+        <style>
+            .preview-badge-circle {
+                width: 200px;
+                height: 200px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+                position: relative;
+                background: linear-gradient(135deg, #1a1a2e, #2a2a3e);
+                padding: 5px;
+                box-shadow: 0 0 30px rgba(255, 215, 0, 0.4), 
+                            0 0 60px rgba(123, 44, 191, 0.3), 
+                            0 0 90px rgba(0, 212, 255, 0.2);
+            }
+            
+            .preview-badge-circle::before {
+                content: '';
+                position: absolute;
+                top: -5px;
+                left: -5px;
+                right: -5px;
+                bottom: -5px;
+                border-radius: 50%;
+                background: conic-gradient(from 0deg, #ffd700, #ff6b6b, #c56cf0, #7b2cbf, #00d4ff, #00ff88, #ffd700);
+                z-index: -1;
+                animation: previewHoloSpin 3s linear infinite;
+            }
+            
+            .preview-badge-circle::after {
+                content: '';
+                position: absolute;
+                top: 5px;
+                left: 5px;
+                right: 5px;
+                bottom: 5px;
+                border-radius: 50%;
+                background: #1a1a2e;
+                z-index: -1;
+            }
+            
+            @keyframes previewHoloSpin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            .preview-badge-circle img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 50%;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .preview-glow {
+                position: absolute;
+                width: 250px;
+                height: 250px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(123,44,191,0.3) 0%, transparent 70%);
+                animation: previewPulse 2s ease-in-out infinite;
+            }
+            
+            @keyframes previewPulse {
+                0%, 100% { transform: scale(1); opacity: 0.5; }
+                50% { transform: scale(1.1); opacity: 0.8; }
+            }
+        </style>
+        
+        <div class="preview-glow"></div>
+        
+        <div class="preview-badge-circle">
+            <img src="${url}" onerror="this.parentElement.innerHTML='<div style=\\'font-size:60px;\\'>❓</div>'">
         </div>
-        <div style="margin-top:25px;color:#ffd700;font-size:24px;font-weight:bold;">Badge #${index}</div>
-        <div style="margin-top:10px;color:#888;font-size:14px;">Level ${index} Badge</div>
-        <button onclick="this.parentElement.remove()" class="btn-secondary" style="margin-top:25px;padding:12px 30px;">
-            Close Preview
-        </button>
+        
+        <div style="margin-top:30px;text-align:center;">
+            <div style="color:#ffd700;font-size:28px;font-weight:bold;text-shadow:0 0 20px rgba(255,215,0,0.5);">
+                Level ${index} Badge
+            </div>
+            <div style="color:#888;font-size:14px;margin-top:8px;">
+                Badge #${index} from pool
+            </div>
+            <div style="color:#7b2cbf;font-size:12px;margin-top:5px;">
+                ✨ Holographic Edition
+            </div>
+        </div>
+        
+        <div style="margin-top:30px;display:flex;gap:15px;">
+            <button onclick="event.stopPropagation(); navigatePreview(${index - 1})" 
+                    class="btn-secondary" style="padding:12px 20px;${index <= 1 ? 'opacity:0.3;pointer-events:none;' : ''}">
+                ← Previous
+            </button>
+            <button onclick="this.closest('.asset-preview-modal').remove()" 
+                    class="btn-primary" style="padding:12px 30px;">
+                Close
+            </button>
+            <button onclick="event.stopPropagation(); navigatePreview(${index + 1})" 
+                    class="btn-secondary" style="padding:12px 20px;${index >= (CONFIG.BADGE_POOL?.length || 0) ? 'opacity:0.3;pointer-events:none;' : ''}">
+                Next →
+            </button>
+        </div>
+        
+        <div style="margin-top:20px;color:#666;font-size:11px;">
+            Tap anywhere outside to close
+        </div>
     `;
     
     modal.onclick = function(e) {
@@ -986,6 +1104,18 @@ function previewAsset(url, index) {
     };
     
     document.body.appendChild(modal);
+}
+
+// Navigate between badge previews
+function navigatePreview(index) {
+    const badges = CONFIG.BADGE_POOL || [];
+    if (index < 1 || index > badges.length) return;
+    
+    const url = badges[index - 1];
+    if (url) {
+        document.querySelectorAll('.asset-preview-modal').forEach(m => m.remove());
+        previewAsset(url, index);
+    }
 }
 
 async function adminCompleteMission(id) {
@@ -2356,5 +2486,6 @@ window.dismissResults = dismissResults;
 window.loadActiveTeamMissions = loadActiveTeamMissions;
 window.loadMissionHistory = loadMissionHistory;
 window.renderAdminAssets = renderAdminAssets;
+window.navigatePreview = navigatePreview;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded');
