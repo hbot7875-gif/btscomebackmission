@@ -2028,6 +2028,792 @@ async function renderComparison() {
         container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; 
     }
 }
+// ==================== MISSING FUNCTIONS - PART 1 ====================
+
+// Check if current agent is admin
+function isAdminAgent() {
+    return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
+}
+
+// Check admin status from localStorage
+function checkAdminStatus() {
+    const session = localStorage.getItem('adminSession');
+    const expiry = localStorage.getItem('adminExpiry');
+    
+    if (session && expiry && Date.now() < parseInt(expiry)) {
+        STATE.isAdmin = true;
+        STATE.adminSession = session;
+        addAdminIndicator();
+    } else {
+        STATE.isAdmin = false;
+        STATE.adminSession = null;
+        localStorage.removeItem('adminSession');
+        localStorage.removeItem('adminExpiry');
+    }
+}
+
+// Add admin indicator to UI
+function addAdminIndicator() {
+    if (!isAdminAgent()) return;
+    
+    // Remove existing indicator
+    document.querySelectorAll('.admin-indicator').forEach(el => el.remove());
+    
+    const indicator = document.createElement('div');
+    indicator.className = 'admin-indicator';
+    indicator.innerHTML = `
+        <style>
+            .admin-indicator {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                color: #fff;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                z-index: 9999;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .admin-indicator:hover {
+                transform: scale(1.05);
+            }
+        </style>
+        <span>🔐</span>
+        <span>ADMIN</span>
+    `;
+    indicator.onclick = () => {
+        if (STATE.isAdmin) {
+            showAdminPanel();
+        } else {
+            showAdminLogin();
+        }
+    };
+    document.body.appendChild(indicator);
+}
+
+// Setup login form listeners
+function setupLoginListeners() {
+    const loginForm = $('login-form');
+    const findBtn = $('find-btn');
+    const agentInput = $('agent-input');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleLogin();
+        });
+    }
+    
+    if (findBtn) {
+        findBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleLogin();
+        });
+    }
+    
+    if (agentInput) {
+        agentInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleLogin();
+            }
+        });
+    }
+}
+
+// Handle login
+async function handleLogin() {
+    const agentInput = $('agent-input');
+    const agentNo = agentInput?.value?.trim()?.toUpperCase();
+    
+    if (!agentNo) {
+        showResult('Please enter your Agent ID', true);
+        return;
+    }
+    
+    loading(true);
+    
+    try {
+        // Verify agent exists
+        const data = await api('getAgentData', { agentNo, week: STATE.week || 'Week 1' });
+        
+        if (data.error) {
+            showResult(data.error, true);
+            return;
+        }
+        
+        if (!data.profile) {
+            showResult('Agent not found. Check your Agent ID.', true);
+            return;
+        }
+        
+        // Save and proceed
+        STATE.agentNo = agentNo;
+        STATE.data = data;
+        localStorage.setItem('spyAgent', agentNo);
+        
+        checkAdminStatus();
+        loadSeenResults();
+        showResult(`Welcome, Agent ${data.profile.name}!`, false);
+        
+        setTimeout(() => loadDashboard(), 500);
+        
+    } catch (e) {
+        console.error('Login error:', e);
+        showResult('Connection failed. Try again.', true);
+    } finally {
+        loading(false);
+    }
+}
+
+// Load all agents for autocomplete/search
+async function loadAllAgents() {
+    try {
+        const data = await api('getAllAgents');
+        STATE.allAgents = data.agents || [];
+    } catch (e) {
+        console.log('Could not load agents list');
+        STATE.allAgents = [];
+    }
+}
+
+// Load dashboard after login
+async function loadDashboard() {
+    loading(true);
+    
+    try {
+        // Get available weeks
+        const weeksData = await api('getAvailableWeeks');
+        STATE.weeks = weeksData.weeks || ['Week 1'];
+        STATE.week = weeksData.current || STATE.weeks[0];
+        
+        // Get agent data for current week
+        const agentData = await api('getAgentData', { 
+            agentNo: STATE.agentNo, 
+            week: STATE.week 
+        });
+        STATE.data = agentData;
+        
+        // Load all weeks data for drawer (badges from all weeks)
+        await loadAllWeeksData();
+        
+        // Hide login, show dashboard
+        const loginSection = $('login-section');
+        const dashboard = $('dashboard');
+        
+        if (loginSection) loginSection.style.display = 'none';
+        if (dashboard) {
+            dashboard.style.display = 'block';
+            dashboard.classList.add('active');
+        }
+        
+        // Setup navigation
+        setupNavigation();
+        
+        // Setup week selector
+        setupWeekSelector();
+        
+        // Load home page
+        await loadPage('home');
+        
+    } catch (e) {
+        console.error('Dashboard load error:', e);
+        showToast('Failed to load dashboard', 'error');
+    } finally {
+        loading(false);
+    }
+}
+
+// Load data from all weeks for drawer
+async function loadAllWeeksData() {
+    try {
+        const allData = await api('getAgentAllWeeks', { agentNo: STATE.agentNo });
+        STATE.allWeeksData = allData;
+    } catch (e) {
+        console.log('Could not load all weeks data');
+        STATE.allWeeksData = null;
+    }
+}
+
+// Setup navigation handlers
+function setupNavigation() {
+    // Bottom navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = item.dataset.page;
+            if (page) {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                loadPage(page);
+            }
+        });
+    });
+    
+    // Sidebar menu items
+    document.querySelectorAll('.sidebar-menu-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = item.dataset.page;
+            if (page) {
+                closeSidebar();
+                loadPage(page);
+            }
+        });
+    });
+    
+    // Hamburger menu
+    const hamburger = $('hamburger-btn') || document.querySelector('.hamburger');
+    if (hamburger) {
+        hamburger.addEventListener('click', () => {
+            const sidebar = $('sidebar');
+            if (sidebar) sidebar.classList.toggle('open');
+        });
+    }
+    
+    // Sidebar close button
+    const sidebarClose = $('sidebar-close');
+    if (sidebarClose) {
+        sidebarClose.addEventListener('click', closeSidebar);
+    }
+    
+    // Click outside sidebar to close
+    document.addEventListener('click', (e) => {
+        const sidebar = $('sidebar');
+        const hamburger = $('hamburger-btn') || document.querySelector('.hamburger');
+        if (sidebar && sidebar.classList.contains('open')) {
+            if (!sidebar.contains(e.target) && !hamburger?.contains(e.target)) {
+                closeSidebar();
+            }
+        }
+    });
+}
+
+// Setup week selector
+function setupWeekSelector() {
+    const weekSelector = $('week-selector');
+    if (weekSelector) {
+        weekSelector.innerHTML = STATE.weeks.map(w => 
+            `<option value="${w}" ${w === STATE.week ? 'selected' : ''}>${w}</option>`
+        ).join('');
+        
+        weekSelector.addEventListener('change', async (e) => {
+            STATE.week = e.target.value;
+            loading(true);
+            try {
+                const agentData = await api('getAgentData', { 
+                    agentNo: STATE.agentNo, 
+                    week: STATE.week 
+                });
+                STATE.data = agentData;
+                await loadPage(STATE.page);
+            } catch (err) {
+                showToast('Failed to switch week', 'error');
+            } finally {
+                loading(false);
+            }
+        });
+    }
+}
+
+// Logout function
+function logout() {
+    STATE.agentNo = null;
+    STATE.data = null;
+    STATE.isAdmin = false;
+    STATE.adminSession = null;
+    STATE.allWeeksData = null;
+    
+    localStorage.removeItem('spyAgent');
+    localStorage.removeItem('adminSession');
+    localStorage.removeItem('adminExpiry');
+    
+    // Remove admin indicator
+    document.querySelectorAll('.admin-indicator').forEach(el => el.remove());
+    
+    // Show login, hide dashboard
+    const loginSection = $('login-section');
+    const dashboard = $('dashboard');
+    
+    if (loginSection) loginSection.style.display = 'flex';
+    if (dashboard) {
+        dashboard.style.display = 'none';
+        dashboard.classList.remove('active');
+    }
+    
+    // Clear input
+    const agentInput = $('agent-input');
+    if (agentInput) agentInput.value = '';
+    
+    showToast('Logged out successfully', 'success');
+}
+
+// Exit admin mode
+function exitAdminMode() {
+    STATE.isAdmin = false;
+    STATE.adminSession = null;
+    localStorage.removeItem('adminSession');
+    localStorage.removeItem('adminExpiry');
+    
+    document.querySelectorAll('.admin-indicator').forEach(el => el.remove());
+    closeAdminPanel();
+    
+    showToast('Admin mode deactivated', 'info');
+}
+
+// ==================== ADMIN PANEL FUNCTIONS ====================
+
+// Switch admin tabs
+function switchAdminTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabName);
+    });
+    
+    // Update tab content
+    document.querySelectorAll('.admin-tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `admin-tab-${tabName}`);
+    });
+}
+
+// Render create mission form
+function renderCreateMissionForm() {
+    const teams = Object.keys(CONFIG.TEAMS);
+    const missionTypes = CONFIG.MISSION_TYPES;
+    
+    return `
+        <div class="create-mission-form">
+            <div class="form-section">
+                <h4>Mission Type</h4>
+                <div class="mission-type-grid">
+                    ${Object.entries(missionTypes).map(([key, info]) => `
+                        <div class="mission-type-option" data-type="${key}" onclick="selectMissionType('${key}')">
+                            <div style="font-size:24px;">${info.icon}</div>
+                            <div style="font-size:12px;margin-top:5px;">${info.name}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <input type="hidden" id="mission-type" value="">
+            </div>
+            
+            <div class="form-section">
+                <h4>Mission Title</h4>
+                <input type="text" id="mission-title" class="form-input" placeholder="Enter mission title...">
+            </div>
+            
+            <div class="form-section">
+                <h4>Briefing / Instructions</h4>
+                <textarea id="mission-briefing" class="form-textarea" placeholder="Enter mission details..."></textarea>
+            </div>
+            
+            <div class="form-section">
+                <h4>Target Track (Optional)</h4>
+                <input type="text" id="mission-target" class="form-input" placeholder="Track name for streaming mission...">
+            </div>
+            
+            <div class="form-section">
+                <h4>Goal Target (Streams)</h4>
+                <input type="number" id="mission-goal" class="form-input" value="100" min="1">
+            </div>
+            
+            <div class="form-section">
+                <h4>XP Reward</h4>
+                <input type="number" id="mission-xp" class="form-input" value="5" min="1" max="25">
+            </div>
+            
+            <div class="form-section">
+                <h4>Assign to Teams</h4>
+                <div class="team-checkboxes">
+                    <label class="team-checkbox" onclick="toggleAllTeams(this)">
+                        <input type="checkbox" id="team-all" checked>
+                        <span>All Teams</span>
+                    </label>
+                    ${teams.map(t => `
+                        <label class="team-checkbox">
+                            <input type="checkbox" class="team-check" value="${t}" checked>
+                            <span style="color:${teamColor(t)}">${t}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" onclick="createTeamMission()" class="btn-primary" style="width:100%;">
+                    🚀 Deploy Mission
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Select mission type
+function selectMissionType(type) {
+    document.querySelectorAll('.mission-type-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.type === type);
+    });
+    
+    const typeInput = document.getElementById('mission-type');
+    if (typeInput) typeInput.value = type;
+}
+
+// Toggle all teams checkbox
+function toggleAllTeams(el) {
+    const allCheckbox = el.querySelector('input');
+    const isChecked = allCheckbox?.checked;
+    
+    document.querySelectorAll('.team-check').forEach(cb => {
+        cb.checked = isChecked;
+    });
+}
+
+// Create team mission
+async function createTeamMission() {
+    const type = document.getElementById('mission-type')?.value;
+    const title = document.getElementById('mission-title')?.value?.trim();
+    const briefing = document.getElementById('mission-briefing')?.value?.trim();
+    const targetTrack = document.getElementById('mission-target')?.value?.trim();
+    const goalTarget = parseInt(document.getElementById('mission-goal')?.value) || 100;
+    const xpReward = parseInt(document.getElementById('mission-xp')?.value) || 5;
+    
+    const selectedTeams = [];
+    document.querySelectorAll('.team-check:checked').forEach(cb => {
+        selectedTeams.push(cb.value);
+    });
+    
+    if (!type) {
+        showToast('Please select a mission type', 'error');
+        return;
+    }
+    
+    if (!title) {
+        showToast('Please enter a mission title', 'error');
+        return;
+    }
+    
+    if (selectedTeams.length === 0) {
+        showToast('Please select at least one team', 'error');
+        return;
+    }
+    
+    loading(true);
+    
+    try {
+        const result = await api('createSecretMission', {
+            week: STATE.week,
+            type,
+            title,
+            briefing,
+            targetTrack,
+            goalTarget,
+            xpReward,
+            teams: selectedTeams,
+            createdBy: STATE.agentNo
+        });
+        
+        if (result.success) {
+            showToast('Mission deployed successfully!', 'success');
+            
+            // Reset form
+            document.getElementById('mission-title').value = '';
+            document.getElementById('mission-briefing').value = '';
+            document.getElementById('mission-target').value = '';
+            document.querySelectorAll('.mission-type-option').forEach(opt => opt.classList.remove('selected'));
+            document.getElementById('mission-type').value = '';
+            
+            // Switch to active tab
+            switchAdminTab('active');
+            loadActiveTeamMissions();
+        } else {
+            showToast(result.error || 'Failed to create mission', 'error');
+        }
+    } catch (e) {
+        console.error('Create mission error:', e);
+        showToast('Failed to create mission', 'error');
+    } finally {
+        loading(false);
+    }
+}
+
+// Load active team missions for admin panel
+async function loadActiveTeamMissions() {
+    const container = document.getElementById('admin-tab-active');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-text">Loading missions...</div>';
+    
+    try {
+        const data = await api('getAdminMissions', { week: STATE.week, status: 'active' });
+        const missions = data.missions || [];
+        
+        if (missions.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center;padding:40px;color:#888;">
+                    <div style="font-size:48px;margin-bottom:15px;">📭</div>
+                    <p>No active missions</p>
+                    <button onclick="switchAdminTab('create')" class="btn-primary" style="margin-top:15px;">
+                        + Create New Mission
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = missions.map(m => `
+            <div class="admin-mission-card">
+                <div style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+                        <span style="font-size:20px;">${CONFIG.MISSION_TYPES[m.type]?.icon || '🔒'}</span>
+                        <span style="color:#fff;font-weight:600;">${sanitize(m.title)}</span>
+                    </div>
+                    <div style="color:#888;font-size:12px;">
+                        Teams: ${(m.teams || []).join(', ')} | Goal: ${m.goalTarget} | XP: ${m.xpReward}
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="adminCompleteMission('${m.id}')" class="btn-primary" style="padding:8px 12px;font-size:12px;">
+                        ✅ Complete
+                    </button>
+                    <button onclick="adminCancelMission('${m.id}')" class="btn-secondary" style="padding:8px 12px;font-size:12px;">
+                        ❌ Cancel
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (e) {
+        container.innerHTML = '<p style="color:red;text-align:center;">Failed to load missions</p>';
+    }
+}
+
+// Admin complete mission
+async function adminCompleteMission(missionId) {
+    if (!confirm('Mark this mission as completed for all teams?')) return;
+    
+    loading(true);
+    try {
+        const result = await api('completeMission', { 
+            missionId, 
+            week: STATE.week,
+            completedBy: STATE.agentNo 
+        });
+        
+        if (result.success) {
+            showToast('Mission completed!', 'success');
+            loadActiveTeamMissions();
+        } else {
+            showToast(result.error || 'Failed to complete mission', 'error');
+        }
+    } catch (e) {
+        showToast('Failed to complete mission', 'error');
+    } finally {
+        loading(false);
+    }
+}
+
+// Admin cancel mission
+async function adminCancelMission(missionId) {
+    if (!confirm('Are you sure you want to cancel this mission?')) return;
+    
+    loading(true);
+    try {
+        const result = await api('cancelMission', { 
+            missionId, 
+            week: STATE.week,
+            cancelledBy: STATE.agentNo 
+        });
+        
+        if (result.success) {
+            showToast('Mission cancelled', 'success');
+            loadActiveTeamMissions();
+        } else {
+            showToast(result.error || 'Failed to cancel mission', 'error');
+        }
+    } catch (e) {
+        showToast('Failed to cancel mission', 'error');
+    } finally {
+        loading(false);
+    }
+}
+
+// Load mission history for admin
+async function loadMissionHistory() {
+    const container = document.getElementById('admin-tab-history');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-text">Loading history...</div>';
+    
+    try {
+        const data = await api('getAdminMissions', { week: STATE.week, status: 'all' });
+        const missions = data.missions || [];
+        
+        if (missions.length === 0) {
+            container.innerHTML = '<p style="color:#888;text-align:center;padding:40px;">No mission history</p>';
+            return;
+        }
+        
+        container.innerHTML = missions.map(m => `
+            <div class="admin-mission-card" style="opacity:${m.status === 'completed' ? '0.7' : '1'}">
+                <div style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+                        <span style="font-size:20px;">${CONFIG.MISSION_TYPES[m.type]?.icon || '🔒'}</span>
+                        <span style="color:#fff;font-weight:600;">${sanitize(m.title)}</span>
+                        <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${m.status === 'completed' ? '#2ecc71' : m.status === 'cancelled' ? '#e74c3c' : '#7b2cbf'}22;color:${m.status === 'completed' ? '#2ecc71' : m.status === 'cancelled' ? '#e74c3c' : '#7b2cbf'};">
+                            ${m.status?.toUpperCase() || 'ACTIVE'}
+                        </span>
+                    </div>
+                    <div style="color:#888;font-size:12px;">
+                        Teams: ${(m.teams || []).join(', ')} | XP: ${m.xpReward}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (e) {
+        container.innerHTML = '<p style="color:red;text-align:center;">Failed to load history</p>';
+    }
+}
+
+// Render admin assets (badge preview)
+function renderAdminAssets() {
+    const container = document.getElementById('admin-tab-assets');
+    if (!container) return;
+    
+    const pool = CONFIG.BADGE_POOL;
+    
+    container.innerHTML = `
+        <div style="padding:15px 0;">
+            <h4 style="color:#fff;margin-bottom:5px;">Badge Pool Preview</h4>
+            <p style="color:#888;font-size:12px;margin-bottom:20px;">
+                ${pool.length} badges available. Click to preview.
+            </p>
+            <div class="assets-grid">
+                ${pool.map((url, i) => `
+                    <div class="asset-chip" onclick="previewAsset('${url}', ${i + 1})">
+                        <div class="asset-chip-inner">
+                            <div class="asset-chip-number">#${i + 1}</div>
+                            <img src="${url}" onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:24px;\\'>❓</div>'">
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// Preview asset in modal
+function previewAsset(url, num) {
+    // Remove existing preview modal
+    document.querySelectorAll('.asset-preview-modal').forEach(m => m.remove());
+    
+    const modal = document.createElement('div');
+    modal.className = 'asset-preview-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    `;
+    
+    modal.innerHTML = `
+        <div style="text-align:center;">
+            <div class="badge-circle holographic" style="width:150px;height:150px;margin:0 auto 20px;">
+                <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+            </div>
+            <p style="color:#ffd700;font-size:18px;margin-bottom:5px;">Badge #${num}</p>
+            <p style="color:#888;font-size:12px;margin-bottom:20px;">Level ${num} Badge</p>
+            <button onclick="this.closest('.asset-preview-modal').remove()" class="btn-secondary">
+                Close
+            </button>
+        </div>
+    `;
+    
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+    };
+    
+    document.body.appendChild(modal);
+}
+
+// View week results
+function viewResults(week) {
+    STATE.week = week;
+    loadPage('summary');
+}
+
+// Dismiss results notification
+function dismissResults(week) {
+    markResultsSeen(week);
+    const notification = document.querySelector(`.results-notification[data-week="${week}"]`);
+    if (notification) notification.remove();
+}
+
+// ==================== REFRESH & SYNC ====================
+
+// Refresh current page data
+async function refreshData() {
+    loading(true);
+    try {
+        const agentData = await api('getAgentData', { 
+            agentNo: STATE.agentNo, 
+            week: STATE.week 
+        });
+        STATE.data = agentData;
+        await loadPage(STATE.page);
+        showToast('Data refreshed', 'success');
+    } catch (e) {
+        showToast('Refresh failed', 'error');
+    } finally {
+        loading(false);
+    }
+}
+
+// Auto-refresh timer (every 5 minutes)
+let refreshInterval = null;
+
+function startAutoRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(() => {
+        if (STATE.agentNo && document.visibilityState === 'visible') {
+            refreshData();
+        }
+    }, 5 * 60 * 1000); // 5 minutes
+}
+
+function stopAutoRefresh() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
+}
+
+// Visibility change handler
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && STATE.agentNo) {
+        // Refresh when returning to tab
+        refreshData();
+    }
+});
+
+// ==================== ADDITIONAL EXPORTS ====================
+
+window.handleLogin = handleLogin;
+window.refreshData = refreshData;
+window.loadDashboard = loadDashboard;
+
+console.log('✅ BTS Spy Battle v5.0 - All functions loaded');
 
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
