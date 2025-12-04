@@ -2354,7 +2354,6 @@ function logout() {
     showToast('Logged out successfully', 'success');
 }
 
-// Exit admin mode
 function exitAdminMode() {
     STATE.isAdmin = false;
     STATE.adminSession = null;
@@ -2365,7 +2364,7 @@ function exitAdminMode() {
     closeAdminPanel();
     
     showToast('Admin mode deactivated', 'info');
-}
+}  
 
 // ==================== ADMIN PANEL FUNCTIONS ====================
 
