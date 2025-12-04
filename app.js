@@ -177,7 +177,7 @@ const PAGE_GUIDES = {
     'home': { 
         icon: '🏠', 
         title: 'Welcome to Headquarters!', 
-        text: "You will receive missions every week. BTS Comeback is REAL - let's stream like our life depends on it! 💜" 
+        text: "You will receive missions every week. BTS Comeback is REAL - let's stream like our life depends on it! 💜\n\n🤫 Pro tip: Don't reveal your Agent ID to others - keep the mystery alive!" 
     },
     'goals': { 
         icon: '🎯', 
@@ -187,7 +187,8 @@ const PAGE_GUIDES = {
     'album2x': { 
         icon: '🎧', 
         title: 'The 2X Challenge', 
-        text: "Listen to every song on this album at least 2 times." 
+        text: "Listen to every song on this album at least 2 times.\n\n⚠️ IMPORTANT: EVERYONE in your team must complete this for the team to pass!\n\n🎖️ Complete this challenge to earn a special badge!",
+        isWarning: false
     },
     'secret-missions': { 
         icon: '🕵️', 
@@ -197,12 +198,12 @@ const PAGE_GUIDES = {
     'team-level': { 
         icon: '🚀', 
         title: 'Leveling Up', 
-        text: "Complete Track, Album, and 2X missions to level up your team and earn badges." 
+        text: "Complete Track, Album, and 2X missions to level up your team and earn badges.\n\n🏆 If your team WINS the week, all team members get a special Winner Badge!" 
     },
     'rankings': { 
         icon: '🏆', 
         title: 'Friendly Competition', 
-        text: "We are one big team. Rankings are just for fun and motivation!" 
+        text: "We are one big team. Rankings are just for fun and motivation!\n\n🤫 Remember: Keep your Agent ID secret to make it more mysterious!" 
     },
     'playlists': {
         icon: '⚠️',
@@ -218,7 +219,7 @@ const PAGE_GUIDES = {
     'chat': {
         icon: '💬',
         title: 'Secret Comms Channel',
-        text: "Chat anonymously with fellow agents. Shy to ask something? Ask here - no judgments! Remember, you were once a baby ARMY too, so help others out. Coordinate missions, share tips, vent if needed. Be kind - we're ONE team! 💜 (Keep personal info private)",
+        text: "Chat anonymously with fellow agents. Be kind - we're ONE team! 💜\n\n🤫 Use your codename, NOT your Agent ID - keep your identity secret!",
         isWarning: false
     },
     'gc-links': {
@@ -230,6 +231,11 @@ const PAGE_GUIDES = {
         icon: '🎖️',
         title: 'Helper Army Roles',
         text: "Want to help HQ? Check available roles below. More roles coming based on mission needs!"
+    },
+    'drawer': {
+        icon: '🎖️',
+        title: 'Your Badge Collection',
+        text: "Earn badges by:\n• Every 50 XP = 1 Badge 🎖️\n• Complete Album 2X = Special Badge ✨\n• Team Wins Week = Winner Badge 🏆"
     }
 };
 
@@ -1604,24 +1610,37 @@ async function renderHome() {
 async function renderDrawer() {
     const container = $('drawer-content');
     if (!container) return;
+    
     const profile = STATE.data?.profile || {};
     const isAdmin = isAdminAgent();
+    const album2xStatus = STATE.data?.album2xStatus || {};
     
+    // Calculate totals from all weeks
     let totalXP = 0;
     let allBadges = [];
+    let specialBadges = [];
     
     if (STATE.allWeeksData?.weeks?.length > 0) {
         STATE.allWeeksData.weeks.forEach(weekData => {
             const weekXP = parseInt(weekData.stats?.totalXP) || 0;
             totalXP += weekXP;
+            
+            // XP badges for this week
             const weekBadges = getLevelBadges(STATE.agentNo, weekXP, weekData.week);
             allBadges = allBadges.concat(weekBadges);
+            
+            // Special badges for this week
+            const weekSpecial = getSpecialBadges(STATE.agentNo, weekData.week);
+            specialBadges = specialBadges.concat(weekSpecial);
         });
     } else {
         const stats = STATE.data?.stats || {};
         totalXP = parseInt(stats.totalXP) || 0;
         allBadges = getLevelBadges(STATE.agentNo, totalXP, STATE.week);
+        specialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
     }
+    
+    const totalBadgeCount = allBadges.length + specialBadges.length;
     
     container.innerHTML = `
         <div class="card">
@@ -1631,43 +1650,102 @@ async function renderDrawer() {
                     <div class="drawer-info">
                         <div class="drawer-name">${sanitize(profile.name)}</div>
                         <div class="drawer-team" style="color:${teamColor(profile.team)}">Team ${profile.team}</div>
-                        <div class="drawer-id">Agent #${STATE.agentNo}</div>
+                        <div class="drawer-id" style="color:#666;font-size:11px;">
+                            🤫 Agent ID is secret!
+                        </div>
                     </div>
                 </div>
+                
                 ${isAdmin ? `<button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">🔐 Access Mission Control</button>` : ''}
+                
                 <div class="drawer-stats">
-                    <div class="drawer-stat"><span class="value">${fmt(totalXP)}</span><span class="label">Total XP (All Weeks)</span></div>
-                    <div class="drawer-stat"><span class="value">${allBadges.length}</span><span class="label">Badges (All Weeks)</span></div>
+                    <div class="drawer-stat">
+                        <span class="value">${fmt(totalXP)}</span>
+                        <span class="label">Total XP</span>
+                    </div>
+                    <div class="drawer-stat">
+                        <span class="value">${totalBadgeCount}</span>
+                        <span class="label">Badges</span>
+                    </div>
                 </div>
             </div>
         </div>
+        
+        <!-- Badge Rules Card -->
+        <div class="card" style="background: rgba(255,215,0,0.05); border-color: rgba(255,215,0,0.2);">
+            <div class="card-body" style="padding: 15px;">
+                <h4 style="color: #ffd700; margin: 0 0 12px 0; font-size: 13px;">🎖️ How to Earn Badges</h4>
+                <div style="display: grid; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
+                        <span style="font-size: 16px;">⭐</span>
+                        <span>Every <strong style="color:#ffd700;">50 XP</strong> = 1 Badge</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
+                        <span style="font-size: 16px;">✨</span>
+                        <span>Complete <strong style="color:#7b2cbf;">Album 2X</strong> = Special Badge</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
+                        <span style="font-size: 16px;">🏆</span>
+                        <span><strong style="color:#00ff88;">Team Wins</strong> = Winner Badge for all!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Special Achievement Badges -->
+        ${specialBadges.length ? `
+            <div class="card">
+                <div class="card-header">
+                    <h3>🏆 Achievement Badges (${specialBadges.length})</h3>
+                </div>
+                <div class="card-body">
+                    <div class="badges-showcase">
+                        ${specialBadges.map(b => `
+                            <div class="badge-showcase-item" style="border-color: ${b.type === 'winner' ? '#ffd700' : '#7b2cbf'};">
+                                <div class="badge-circle holographic" style="width:65px;height:65px;">
+                                    <img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='${b.icon || '🎖️'}';">
+                                </div>
+                                <div style="margin-top:8px;">
+                                    <div style="font-size:11px;font-weight:600;color:${b.type === 'winner' ? '#ffd700' : '#7b2cbf'};">${b.icon || ''} ${sanitize(b.name)}</div>
+                                    <div style="font-size:9px;color:#888;margin-top:2px;">${sanitize(b.description)}</div>
+                                    <div style="font-size:9px;color:#666;margin-top:2px;">${sanitize(b.week)}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        ` : ''}
+        
+        <!-- XP Badges Collection -->
         <div class="card">
-            <div class="card-header"><h3>🎖️ All Badges Collection (${allBadges.length})</h3></div>
+            <div class="card-header">
+                <h3>⭐ XP Badges (${allBadges.length})</h3>
+            </div>
             <div class="card-body">
-                ${allBadges.length ? `<div class="badges-showcase">${allBadges.map(b => `<div class="badge-showcase-item"><div class="badge-circle holographic"><img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='❓';"></div><div class="badge-name">${sanitize(b.name)}</div><div class="badge-week">${sanitize(b.week)}</div></div>`).join('')}</div>` : `<div class="empty-state" style="text-align:center; padding:40px; color:#777;"><div style="font-size:60px; margin-bottom:15px;">🔒</div><h4 style="color:#fff; margin-bottom:8px;">No Badges Yet</h4><p>Earn <strong style="color:#ffd700;">100 XP</strong> to unlock your first holographic badge!</p></div>`}
+                ${allBadges.length ? `
+                    <div class="badges-showcase">
+                        ${allBadges.map(b => `
+                            <div class="badge-showcase-item">
+                                <div class="badge-circle holographic">
+                                    <img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='❓';">
+                                </div>
+                                <div class="badge-name">${sanitize(b.name)}</div>
+                                <div class="badge-week">${sanitize(b.week)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div class="empty-state" style="text-align:center; padding:40px; color:#777;">
+                        <div style="font-size:60px; margin-bottom:15px;">🔒</div>
+                        <h4 style="color:#fff; margin-bottom:8px;">No XP Badges Yet</h4>
+                        <p>Earn <strong style="color:#ffd700;">50 XP</strong> to unlock your first badge!</p>
+                    </div>
+                `}
             </div>
         </div>
     `;
 }
-
-function getLevelBadges(agentNo, totalXP, week = STATE.week) {
-    const pool = CONFIG.BADGE_POOL;
-    if (!pool || pool.length === 0) return [];
-    const xp = parseInt(totalXP) || 0;
-    const currentLevel = Math.floor(xp / 100);
-    const badges = [];
-    for (let level = 1; level <= currentLevel; level++) {
-        let seed = 0;
-        const str = String(agentNo).toUpperCase();
-        for (let i = 0; i < str.length; i++) seed += str.charCodeAt(i);
-        seed += (level * 137);
-        if (week) { for (let i = 0; i < week.length; i++) seed += week.charCodeAt(i); }
-        const index = seed % pool.length;
-        badges.push({ name: `Level ${level}`, description: `Unlocked at ${level * 100} XP`, imageUrl: pool[index], isLevelBadge: true, week: week || 'Unknown' });
-    }
-    return badges.reverse();
-}
-
 // ==================== PROFILE ====================
 async function renderProfile() {
     const stats = STATE.data?.stats || {};
@@ -1749,29 +1827,118 @@ async function renderAlbum2x() {
     const allComplete = completedCount === trackResults.length && trackResults.length > 0;
     const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
     
-    container.innerHTML = renderGuide('album2x') + `
+    container.innerHTML = `
+        <!-- Guide with Important Notice -->
+        <div class="card guide-card" style="background: rgba(255, 68, 68, 0.1); border-left: 3px solid #ff6b6b; margin-bottom: 20px;">
+            <div class="card-body" style="display: flex; gap: 15px; align-items: flex-start; padding: 15px;">
+                <div style="font-size: 24px;">⚠️</div>
+                <div>
+                    <h4 style="margin: 0 0 5px 0; color: #ff6b6b; font-size: 14px;">TEAM MISSION - Everyone Must Complete!</h4>
+                    <p style="margin: 0; color: #aaa; font-size: 13px; line-height: 1.5;">
+                        For your team to pass this mission, <strong style="color:#fff;">EVERY agent</strong> in your team must stream each track at least 2 times.
+                        <br><br>
+                        <span style="color:#ffd700;">🎖️ Reward:</span> Complete this to earn a special <strong style="color:#7b2cbf;">2X Master Badge!</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Progress Card -->
         <div class="card" style="border-color:${allComplete ? 'var(--success)' : teamColor(team)}">
             <div class="card-body" style="text-align:center;padding:30px;">
                 <div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div>
                 <h2 style="color:${teamColor(team)};margin-bottom:8px;">${sanitize(albumName)}</h2>
                 <p style="color:var(--text-dim);margin-bottom:20px;">Stream every track at least 2 times</p>
+                
                 <div style="font-size:48px;font-weight:700;color:${allComplete ? 'var(--success)' : 'var(--purple-glow)'}">${completedCount}/${trackResults.length}</div>
                 <p style="color:var(--text-dim);">Tracks completed</p>
+                
                 <div class="progress-bar" style="margin:20px auto;max-width:300px;height:12px;">
                     <div class="progress-fill ${allComplete ? 'complete' : ''}" style="width:${pct}%;background:${allComplete ? 'var(--success)' : teamColor(team)}"></div>
                 </div>
+                
+                ${allComplete ? `
+                    <div style="
+                        margin-top: 20px;
+                        padding: 15px;
+                        background: rgba(0,255,136,0.1);
+                        border: 1px solid rgba(0,255,136,0.3);
+                        border-radius: 10px;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 10px;
+                    ">
+                        <span style="font-size: 24px;">🎖️</span>
+                        <div style="text-align: left;">
+                            <div style="color: #00ff88; font-weight: 600; font-size: 14px;">Badge Unlocked!</div>
+                            <div style="color: #888; font-size: 11px;">2X Master Badge earned</div>
+                        </div>
+                    </div>
+                ` : `
+                    <div style="
+                        margin-top: 20px;
+                        padding: 12px 20px;
+                        background: rgba(123,44,191,0.1);
+                        border: 1px solid rgba(123,44,191,0.3);
+                        border-radius: 8px;
+                        display: inline-block;
+                    ">
+                        <span style="color: #888; font-size: 12px;">
+                            🎖️ Complete all tracks to earn the <span style="color:#7b2cbf;font-weight:600;">2X Master Badge</span>
+                        </span>
+                    </div>
+                `}
             </div>
         </div>
+        
+        <!-- Track Checklist -->
         <div class="card">
             <div class="card-header"><h3>📋 Track Checklist</h3></div>
             <div class="card-body">
                 ${trackResults.map((t, i) => `
-                    <div class="track-item ${t.passed ? 'passed' : 'pending'}" style="border-left-color:${t.passed ? 'var(--success)' : 'var(--danger)'}">
-                        <span class="track-num">${i + 1}</span>
-                        <span class="track-name">${sanitize(t.name)}</span>
-                        <span class="track-status ${t.passed ? 'pass' : 'fail'}">${t.count}/2 ${t.passed ? '✅' : '❌'}</span>
+                    <div class="track-item ${t.passed ? 'passed' : 'pending'}" style="
+                        display: flex;
+                        align-items: center;
+                        padding: 12px;
+                        margin-bottom: 8px;
+                        background: ${t.passed ? 'rgba(0,255,136,0.05)' : 'rgba(255,255,255,0.02)'};
+                        border-left: 3px solid ${t.passed ? 'var(--success)' : 'var(--danger)'};
+                        border-radius: 6px;
+                    ">
+                        <span class="track-num" style="
+                            width: 24px;
+                            height: 24px;
+                            background: ${t.passed ? 'var(--success)' : '#333'};
+                            color: ${t.passed ? '#000' : '#888'};
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 11px;
+                            font-weight: bold;
+                            margin-right: 12px;
+                        ">${i + 1}</span>
+                        <span class="track-name" style="flex:1;color:#fff;font-size:13px;">${sanitize(t.name)}</span>
+                        <span class="track-status" style="
+                            padding: 4px 10px;
+                            border-radius: 12px;
+                            font-size: 11px;
+                            font-weight: 600;
+                            background: ${t.passed ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)'};
+                            color: ${t.passed ? '#00ff88' : '#ff6b6b'};
+                        ">${t.count}/2 ${t.passed ? '✅' : ''}</span>
                     </div>
                 `).join('')}
+            </div>
+        </div>
+        
+        <!-- Team Status Note -->
+        <div class="card" style="background: rgba(255,255,255,0.02);">
+            <div class="card-body" style="text-align:center;padding:20px;">
+                <p style="color:#888;font-size:12px;margin:0;">
+                    💜 Help your teammates complete this challenge too!<br>
+                    <span style="color:#666;font-size:11px;">The whole team needs to pass for the mission to succeed.</span>
+                </p>
             </div>
         </div>
     `;
@@ -1885,18 +2052,48 @@ async function renderTeamLevel() {
         const myTeam = STATE.data?.profile?.team;
         if (summary.lastUpdated) STATE.lastUpdated = summary.lastUpdated;
         const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
+        const isCompleted = isWeekCompleted(STATE.week);
+        const leadingTeam = sortedTeams[0]?.[0];
         
-        container.innerHTML = renderGuide('team-level') + `
-            <div class="team-level-header"><h2>Team Levels</h2><span class="week-badge">${STATE.week}</span></div>
+        container.innerHTML = `
+            ${renderGuide('team-level')}
+            
+            <!-- Winner Badge Info -->
+            <div class="card" style="background: rgba(255,215,0,0.05); border-color: rgba(255,215,0,0.2); margin-bottom: 20px;">
+                <div class="card-body" style="padding: 15px; text-align: center;">
+                    <div style="font-size: 32px; margin-bottom: 10px;">🏆</div>
+                    <h4 style="color: #ffd700; margin: 0 0 8px 0; font-size: 14px;">Weekly Winner Reward</h4>
+                    <p style="color: #888; font-size: 12px; margin: 0;">
+                        The team with the most XP at week's end wins!<br>
+                        <strong style="color: #fff;">All members</strong> of the winning team get a special <strong style="color: #ffd700;">Champion Badge</strong>! 🎖️
+                    </p>
+                    ${!isCompleted && leadingTeam ? `
+                        <div style="margin-top: 12px; padding: 8px 16px; background: rgba(123,44,191,0.1); border-radius: 20px; display: inline-block;">
+                            <span style="color: #888; font-size: 11px;">Currently Leading: </span>
+                            <span style="color: ${teamColor(leadingTeam)}; font-weight: 600;">${leadingTeam}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+            
+            <div class="team-level-header">
+                <h2>Team Levels</h2>
+                <span class="week-badge">${STATE.week}</span>
+            </div>
+            
             ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
+            
             <div class="team-level-grid">
                 ${sortedTeams.map(([t, info], index) => { 
-                    const isMyTeam = t === myTeam; 
+                    const isMyTeam = t === myTeam;
+                    const isLeading = index === 0;
                     const tColor = teamColor(t);
                     const missions = (info.trackGoalPassed ? 1 : 0) + (info.albumGoalPassed ? 1 : 0) + (info.album2xPassed ? 1 : 0); 
+                    
                     return `
-                        <div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="border-color:${tColor}">
+                        <div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="border-color:${tColor};${isLeading ? 'box-shadow: 0 0 20px rgba(255,215,0,0.2);' : ''}">
                             ${isMyTeam ? '<div class="my-team-badge">Your Team</div>' : ''}
+                            ${isLeading && !isCompleted ? '<div style="position:absolute;top:10px;right:10px;font-size:16px;">👑</div>' : ''}
                             ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${tColor}">` : ''}
                             <div class="team-level-name" style="color:${tColor}">${t}</div>
                             <div class="team-level-num">${info.level || 1}</div>
@@ -1913,7 +2110,9 @@ async function renderTeamLevel() {
                 }).join('')}
             </div>
         `;
-    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; }
+    } catch (e) { 
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; 
+    }
 }
 
 // ==================== COMPARISON ====================
@@ -2417,6 +2616,122 @@ async function renderChat() {
             }
         </style>
     `;
+}
+function showChatRules(callback = null) {
+    document.querySelectorAll('.chat-rules-modal').forEach(m => m.remove());
+    
+    const modal = document.createElement('div');
+    modal.className = 'chat-rules-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: linear-gradient(145deg, #1a1a2e, #0a0a0f);
+            border-radius: 16px;
+            max-width: 400px;
+            width: 100%;
+            border: 1px solid #7b2cbf;
+            max-height: 80vh;
+            overflow-y: auto;
+        ">
+            <div style="padding: 20px; border-bottom: 1px solid #333; text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 10px;">🛰️</div>
+                <h3 style="color: #fff; margin: 0;">Comms Channel Rules</h3>
+            </div>
+            
+            <div style="padding: 20px;">
+                <!-- Secret Identity Warning -->
+                <div style="
+                    background: rgba(255,215,0,0.1);
+                    border: 1px solid rgba(255,215,0,0.3);
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin-bottom: 20px;
+                    text-align: center;
+                ">
+                    <span style="font-size: 20px;">🤫</span>
+                    <div style="color: #ffd700; font-size: 13px; font-weight: 600; margin-top: 5px;">
+                        Keep Your Agent ID SECRET!
+                    </div>
+                    <div style="color: #888; font-size: 11px; margin-top: 3px;">
+                        Use your codename only - it's more fun this way!
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: #00ff88; margin: 0 0 10px 0; font-size: 13px;">✅ DO:</h4>
+                    <ul style="color: #aaa; font-size: 12px; margin: 0; padding-left: 20px; line-height: 1.8;">
+                        <li>Use your <strong>codename</strong> (not Agent ID!)</li>
+                        <li>Help fellow agents with questions</li>
+                        <li>Share streaming tips & motivation</li>
+                        <li>Coordinate team efforts</li>
+                        <li>Be respectful to everyone</li>
+                    </ul>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: #ff4444; margin: 0 0 10px 0; font-size: 13px;">❌ DON'T:</h4>
+                    <ul style="color: #aaa; font-size: 12px; margin: 0; padding-left: 20px; line-height: 1.8;">
+                        <li><strong>Reveal your Agent ID</strong> - keep it secret!</li>
+                        <li>Share personal info (name, phone, address)</li>
+                        <li>Spam or flood the chat</li>
+                        <li>Be rude to other agents</li>
+                        <li>Discuss off-topic content</li>
+                    </ul>
+                </div>
+                
+                <div style="
+                    background: rgba(123,44,191,0.1);
+                    border: 1px solid rgba(123,44,191,0.3);
+                    border-radius: 8px;
+                    padding: 12px;
+                    text-align: center;
+                ">
+                    <span style="color: #7b2cbf; font-size: 12px;">
+                        💜 Remember: We're ONE ARMY, different teams!
+                    </span>
+                </div>
+            </div>
+            
+            <div style="padding: 15px 20px; border-top: 1px solid #333; display: flex; gap: 10px;">
+                <button onclick="this.closest('.chat-rules-modal').remove()" 
+                        style="flex: 1; padding: 12px; background: #333; border: none; color: #fff; border-radius: 8px; cursor: pointer;">
+                    Close
+                </button>
+                ${callback ? `
+                    <button onclick="acceptRulesAndOpenChat()" 
+                            style="flex: 2; padding: 12px; background: linear-gradient(135deg, #7b2cbf, #5a1f99); border: none; color: #fff; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        I Understand - Open Chat
+                    </button>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    if (callback) {
+        window.acceptRulesAndOpenChat = function() {
+            document.querySelectorAll('.chat-rules-modal').forEach(m => m.remove());
+            callback();
+        };
+    }
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) modal.remove();
+    };
+    
+    document.body.appendChild(modal);
 }
 // ==================== PLAYLISTS ====================
 async function renderPlaylists() {
