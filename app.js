@@ -2913,5 +2913,7 @@ window.loadActiveTeamMissions = loadActiveTeamMissions;
 window.loadMissionHistory = loadMissionHistory;
 window.renderAdminAssets = renderAdminAssets;
 window.navigatePreview = navigatePreview;
+window.openChat = openChat;
+window.showChatRules = showChatRules;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded');
