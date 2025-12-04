@@ -920,45 +920,32 @@ function showAdminLogin() {
         return; 
     }
     
-    // Close sidebar first
     closeSidebar();
-    
-    // Remove any existing modals
     document.querySelectorAll('.admin-modal-overlay, .modal-overlay, #admin-modal').forEach(m => m.remove());
     
     const modal = document.createElement('div');
-    modal.className = 'admin-modal-overlay';  // ✅ Matches your CSS
+    modal.className = 'admin-modal-overlay';  // ✅ Fixed CSS class
     modal.id = 'admin-modal';
     
     modal.onclick = function(e) {
-        if (e.target === modal) {
-            closeAdminModal();
-        }
+        if (e.target === modal) closeAdminModal();
     };
     
     modal.innerHTML = `
         <div class="admin-modal" onclick="event.stopPropagation();">
             <div class="admin-modal-header">
                 <h3>Admin Access</h3>
-                <button class="admin-modal-close" type="button" onclick="event.stopPropagation(); closeAdminModal();">×</button>
+                <button class="admin-modal-close" type="button" onclick="closeAdminModal();">×</button>
             </div>
             <div class="admin-modal-body">
-                <div class="admin-welcome">
-                    <p>Welcome, Commander</p>
-                    <p class="admin-note">Enter credentials to access Mission Control</p>
-                </div>
                 <div class="terminal-style">
-                    <div class="terminal-line">AUTHENTICATION REQUIRED</div>
                     <label class="terminal-label">PASSWORD:</label>
-                    <input type="password" id="admin-password" class="terminal-input" placeholder="Enter access code..." autocomplete="off">
+                    <input type="password" id="admin-password" class="terminal-input" autocomplete="off">
                 </div>
                 <div id="admin-error" class="admin-error"></div>
             </div>
             <div class="admin-modal-footer">
-                <button type="button" onclick="event.stopPropagation(); closeAdminModal();" class="btn-secondary">
-                    Cancel
-                </button>
-                <button type="button" onclick="event.stopPropagation(); verifyAdminPassword();" class="btn-primary">
+                <button type="button" onclick="verifyAdminPassword();" class="btn-primary">
                     🔓 Authenticate
                 </button>
             </div>
@@ -967,7 +954,6 @@ function showAdminLogin() {
     
     document.body.appendChild(modal);
     
-    // Focus password field
     setTimeout(() => {
         const pwField = document.getElementById('admin-password');
         if (pwField) {
@@ -975,7 +961,6 @@ function showAdminLogin() {
             pwField.onkeypress = function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    e.stopPropagation();
                     verifyAdminPassword();
                 }
             };
@@ -1051,33 +1036,25 @@ async function verifyAdminPassword() {
     }
 }
 
-// ==================== ADMIN PANEL (FIXED) ====================
 function showAdminPanel() {
-    console.log('🎛️ showAdminPanel called');
-    
-    // Remove any existing panels first
-    const existingPanel = document.getElementById('admin-panel');
-    if (existingPanel) {
-        console.log('Removing existing panel');
-        existingPanel.remove();
+    if (!STATE.isAdmin) {
+        showToast('Admin access required', 'error');
+        return;
     }
+    
+    if (!STATE.week) {
+        STATE.week = STATE.weeks?.[0] || 'Week 1';
+    }
+    
+    document.querySelectorAll('.admin-panel').forEach(p => p.remove());
 
     const panel = document.createElement('div');
     panel.className = 'admin-panel';
     panel.id = 'admin-panel';
     
-    // CRITICAL: Stop ALL event propagation
     panel.addEventListener('click', function(e) {
         e.stopPropagation();
     }, true);
-    
-    panel.addEventListener('mousedown', function(e) {
-        e.stopPropagation();
-    }, true);
-    
-    panel.addEventListener('touchstart', function(e) {
-        e.stopPropagation();
-    }, { passive: true, capture: true });
     
     panel.innerHTML = `
         <div class="admin-panel-header">
@@ -1085,7 +1062,7 @@ function showAdminPanel() {
                 <h3 style="margin:0; color:#fff;">🎛️ Mission Control</h3>
                 <p style="margin:5px 0 0; color:#888; font-size:12px;">${STATE.week || 'Current Week'}</p>
             </div>
-            <button type="button" id="admin-panel-close-btn" class="panel-close" style="background:none; border:none; color:#fff; font-size:28px; cursor:pointer; padding:5px 15px; border-radius:8px;">×</button>
+            <button type="button" id="admin-panel-close-btn" class="panel-close" style="background:none; border:none; color:#fff; font-size:28px; cursor:pointer; padding:5px 15px;">×</button>
         </div>
         <div class="admin-panel-tabs">
             <button type="button" class="admin-tab active" data-tab="create">Create Mission</button>
@@ -1102,19 +1079,17 @@ function showAdminPanel() {
     `;
     
     document.body.appendChild(panel);
+    document.body.style.overflow = 'hidden';
     
-    // Setup close button with dedicated handler
     const closeBtn = document.getElementById('admin-panel-close-btn');
     if (closeBtn) {
         closeBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
             closeAdminPanel();
         }, { capture: true });
     }
     
-    // Setup tab handlers
     panel.querySelectorAll('.admin-tab').forEach(tab => {
         tab.addEventListener('click', function(e) {
             e.preventDefault();
@@ -1126,6 +1101,7 @@ function showAdminPanel() {
             if (tabName === 'history') loadMissionHistory();
         }, { capture: true });
     });
+}
     
     // Prevent body scroll when panel is open
     document.body.style.overflow = 'hidden';
