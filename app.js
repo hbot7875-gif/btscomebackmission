@@ -746,7 +746,7 @@ function showAdminLogin() {
     };
     
     modal.innerHTML = `
-        <div class="modal admin-modal" onclick="event.stopPropagation();">
+        <div class="admin-modal" onclick="event.stopPropagation();">
             <div class="modal-header">
                 <h3>🔐 Admin Access</h3>
                 <button class="modal-close" type="button" onclick="event.stopPropagation(); closeAdminModal();">×</button>
