@@ -2807,14 +2807,6 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
-// ==================== ADDITIONAL EXPORTS ====================
-
-window.handleLogin = handleLogin;
-window.refreshData = refreshData;
-window.loadDashboard = loadDashboard;
-
-console.log('✅ BTS Spy Battle v5.0 - All functions loaded');
-
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
@@ -2835,5 +2827,8 @@ window.switchAdminTab = switchAdminTab;
 window.previewAsset = previewAsset;
 window.viewResults = viewResults;
 window.dismissResults = dismissResults;
+window.handleLogin = handleLogin;
+window.refreshData = refreshData;
+window.loadDashboard = loadDashboard;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded (Full Features)');
