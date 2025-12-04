@@ -418,16 +418,21 @@ async function verifyAdminPassword() {
     }
 }
 
+// ==================== ADMIN PANEL FUNCTIONS ====================
+
 function showAdminPanel() {
-    if (!STATE.isAdmin) { showToast('Admin access required', 'error'); return; }
+    if (!STATE.isAdmin) { 
+        showToast('Admin access required', 'error'); 
+        return; 
+    }
     if (!STATE.week) STATE.week = STATE.weeks?.[0] || 'Week 1';
     
+    // Remove existing panels
     document.querySelectorAll('.admin-panel').forEach(p => p.remove());
 
     const panel = document.createElement('div');
     panel.className = 'admin-panel';
     panel.id = 'admin-panel';
-    panel.addEventListener('click', e => e.stopPropagation(), true);
     
     panel.innerHTML = `
         <div class="admin-panel-header">
@@ -437,249 +442,601 @@ function showAdminPanel() {
             </div>
             <button type="button" id="admin-panel-close-btn" style="background:none; border:none; color:#fff; font-size:28px; cursor:pointer; padding:5px 15px;">×</button>
         </div>
-        <div class="admin-panel-tabs">
+        <div class="admin-panel-tabs" id="admin-tabs-container">
             <button type="button" class="admin-tab active" data-tab="create">Create Mission</button>
             <button type="button" class="admin-tab" data-tab="active">Active</button>
             <button type="button" class="admin-tab" data-tab="assets">Badge Preview</button>
             <button type="button" class="admin-tab" data-tab="history">History</button>
         </div>
-        <div class="admin-panel-content">
-            <div id="admin-tab-create" class="admin-tab-content active">${renderCreateMissionForm()}</div>
-            <div id="admin-tab-active" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
-            <div id="admin-tab-assets" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
-            <div id="admin-tab-history" class="admin-tab-content"><div class="loading-text">Loading...</div></div>
+        <div class="admin-panel-content" id="admin-panel-body">
+            <div id="admin-tab-create" class="admin-tab-content active"></div>
+            <div id="admin-tab-active" class="admin-tab-content"></div>
+            <div id="admin-tab-assets" class="admin-tab-content"></div>
+            <div id="admin-tab-history" class="admin-tab-content"></div>
         </div>
     `;
     
     document.body.appendChild(panel);
     document.body.style.overflow = 'hidden';
     
-    $('admin-panel-close-btn')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); closeAdminPanel(); }, { capture: true });
+    // Close button
+    document.getElementById('admin-panel-close-btn').onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeAdminPanel();
+    };
     
-    panel.querySelectorAll('.admin-tab').forEach(tab => {
-        tab.addEventListener('click', function(e) {
-            e.preventDefault(); e.stopPropagation();
+    // Tab click handlers
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             const tabName = this.dataset.tab;
+            console.log('🔄 Switching to tab:', tabName);
             switchAdminTab(tabName);
-            if (tabName === 'active') loadActiveTeamMissions();
-            if (tabName === 'assets') renderAdminAssets();
-            if (tabName === 'history') loadMissionHistory();
-        }, { capture: true });
+        };
     });
+    
+    // Load initial tab content
+    renderCreateMissionForm();
+    
+    console.log('✅ Admin panel opened');
 }
 
 function closeAdminPanel() {
-    const panel = $('admin-panel');
-    if (panel) { panel.remove(); document.body.style.overflow = ''; }
+    const panel = document.getElementById('admin-panel');
+    if (panel) { 
+        panel.remove(); 
+        document.body.style.overflow = ''; 
+        console.log('✅ Admin panel closed');
+    }
 }
 
 function switchAdminTab(tabName) {
-    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
-    document.querySelector(`.admin-tab[data-tab="${tabName}"]`)?.classList.add('active');
-    $(`admin-tab-${tabName}`)?.classList.add('active');
+    console.log('📑 Switching tab to:', tabName);
+    
+    // Update tab buttons
+    document.querySelectorAll('.admin-tab').forEach(t => {
+        t.classList.remove('active');
+        if (t.dataset.tab === tabName) t.classList.add('active');
+    });
+    
+    // Update tab content visibility
+    document.querySelectorAll('.admin-tab-content').forEach(c => {
+        c.classList.remove('active');
+        c.style.display = 'none';
+    });
+    
+    const activeContent = document.getElementById(`admin-tab-${tabName}`);
+    if (activeContent) {
+        activeContent.classList.add('active');
+        activeContent.style.display = 'block';
+    }
+    
+    // Load content based on tab
+    switch(tabName) {
+        case 'create':
+            renderCreateMissionForm();
+            break;
+        case 'active':
+            loadActiveTeamMissions();
+            break;
+        case 'assets':
+            renderAdminAssets();
+            break;
+        case 'history':
+            loadMissionHistory();
+            break;
+    }
 }
 
 function renderCreateMissionForm() {
-    return `
-        <div class="create-mission-form" onclick="event.stopPropagation();">
+    const container = document.getElementById('admin-tab-create');
+    if (!container) {
+        console.error('❌ Create tab container not found');
+        return;
+    }
+    
+    // Get mission types from CONFIG or use defaults
+    const missionTypes = CONFIG.MISSION_TYPES || {
+        'switch_app': { icon: '📱', name: 'Switch App' },
+        'filler': { icon: '🎵', name: 'Filler/Old Songs' },
+        'stream': { icon: '▶️', name: 'Stream Target' },
+        'custom': { icon: '⭐', name: 'Custom Party' }
+    };
+    
+    const teams = CONFIG.TEAMS || {};
+    
+    container.innerHTML = `
+        <div class="create-mission-form">
             <div class="form-section">
-                <h4>Mission Type</h4>
-                <div class="mission-type-grid">
-                    ${Object.entries(CONFIG.MISSION_TYPES).map(([key, m], i) => `
-                        <div class="mission-type-option ${i === 0 ? 'selected' : ''}" data-type="${key}" onclick="event.stopPropagation(); selectMissionType('${key}');">
-                            <span>${m.icon}</span> <span>${m.name}</span>
+                <h4 style="color:#fff;margin-bottom:15px;">Mission Type</h4>
+                <div class="mission-type-grid" id="mission-type-grid">
+                    ${Object.entries(missionTypes).map(([key, m], i) => `
+                        <div class="mission-type-option ${i === 0 ? 'selected' : ''}" 
+                             data-type="${key}" 
+                             id="mission-type-${key}">
+                            <span style="font-size:24px;">${m.icon}</span>
+                            <span style="font-size:12px;margin-top:5px;">${m.name}</span>
                         </div>
                     `).join('')}
                 </div>
-                <input type="hidden" id="selected-mission-type" value="switch_app">
+                <input type="hidden" id="selected-mission-type" value="${Object.keys(missionTypes)[0] || 'switch_app'}">
             </div>
+            
             <div class="form-section">
-                <h4>Target Teams</h4>
-                <div class="team-checkboxes">
-                    ${Object.keys(CONFIG.TEAMS).map(team => `
-                        <label class="team-checkbox" onclick="event.stopPropagation();">
+                <h4 style="color:#fff;margin-bottom:15px;">Target Teams</h4>
+                <div class="team-checkboxes" id="team-checkboxes">
+                    <label class="team-checkbox" style="margin-bottom:10px;">
+                        <input type="checkbox" id="select-all-teams"> 
+                        <span style="color:#ffd700;font-weight:bold;">Select All Teams</span>
+                    </label>
+                    ${Object.keys(teams).map(team => `
+                        <label class="team-checkbox">
                             <input type="checkbox" name="target-teams" value="${team}"> 
-                            <span class="team-name" style="color:${teamColor(team)}">${team}</span>
+                            <span style="color:${teamColor(team)}">${team}</span>
                         </label>
                     `).join('')}
                 </div>
-                <label onclick="event.stopPropagation();"><input type="checkbox" onchange="toggleAllTeams(this.checked)"> Select All</label>
             </div>
+            
             <div class="form-section">
-                <h4>Mission Details</h4>
-                <input type="text" id="mission-title" class="form-input" placeholder="Mission Title" onclick="event.stopPropagation();">
-                <textarea id="mission-briefing" class="form-textarea" placeholder="Mission Briefing" onclick="event.stopPropagation();"></textarea>
-                <input type="text" id="target-track" class="form-input" placeholder="Target Track (optional)" onclick="event.stopPropagation();">
-                <input type="number" id="goal-target" class="form-input" value="100" placeholder="Goal Number" onclick="event.stopPropagation();">
+                <h4 style="color:#fff;margin-bottom:15px;">Mission Details</h4>
+                <input type="text" id="mission-title" class="form-input" placeholder="Mission Title...">
+                <textarea id="mission-briefing" class="form-textarea" placeholder="Mission Briefing / Instructions..."></textarea>
+                <input type="text" id="target-track" class="form-input" placeholder="Target Track (optional)">
+                <div style="display:flex;gap:10px;">
+                    <div style="flex:1;">
+                        <label style="color:#888;font-size:12px;">Goal Target</label>
+                        <input type="number" id="goal-target" class="form-input" value="100" min="1">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="color:#888;font-size:12px;">XP Reward</label>
+                        <input type="number" id="xp-reward" class="form-input" value="5" min="1" max="50">
+                    </div>
+                </div>
             </div>
+            
             <div class="form-actions">
-                <button type="button" onclick="event.stopPropagation(); createTeamMission();" class="btn-primary">🚀 Deploy Mission</button>
+                <button type="button" id="deploy-mission-btn" class="btn-primary" style="width:100%;padding:15px;">
+                    🚀 Deploy Mission
+                </button>
             </div>
-            <div id="create-result" style="margin-top:10px;"></div>
+            <div id="create-result" style="margin-top:15px;text-align:center;"></div>
         </div>
     `;
+    
+    // Setup mission type click handlers
+    document.querySelectorAll('.mission-type-option').forEach(option => {
+        option.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const type = this.dataset.type;
+            console.log('🎯 Selected mission type:', type);
+            selectMissionType(type);
+        };
+    });
+    
+    // Setup select all teams
+    const selectAllCheckbox = document.getElementById('select-all-teams');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.onchange = function() {
+            const isChecked = this.checked;
+            document.querySelectorAll('input[name="target-teams"]').forEach(cb => {
+                cb.checked = isChecked;
+            });
+        };
+    }
+    
+    // Setup deploy button
+    const deployBtn = document.getElementById('deploy-mission-btn');
+    if (deployBtn) {
+        deployBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            createTeamMission();
+        };
+    }
+    
+    console.log('✅ Create mission form rendered');
 }
 
 function selectMissionType(type) {
-    document.querySelectorAll('.mission-type-option').forEach(el => el.classList.remove('selected'));
-    document.querySelector(`.mission-type-option[data-type="${type}"]`)?.classList.add('selected');
-    const hiddenInput = $('selected-mission-type');
-    if (hiddenInput) hiddenInput.value = type;
+    console.log('🎯 Selecting mission type:', type);
+    
+    // Remove selected from all
+    document.querySelectorAll('.mission-type-option').forEach(el => {
+        el.classList.remove('selected');
+        el.style.background = '#12121a';
+        el.style.borderColor = '#333';
+        el.style.color = '#888';
+    });
+    
+    // Add selected to clicked one
+    const selected = document.querySelector(`.mission-type-option[data-type="${type}"]`);
+    if (selected) {
+        selected.classList.add('selected');
+        selected.style.background = 'rgba(123, 44, 191, 0.2)';
+        selected.style.borderColor = '#7b2cbf';
+        selected.style.color = '#fff';
+    }
+    
+    // Update hidden input
+    const hiddenInput = document.getElementById('selected-mission-type');
+    if (hiddenInput) {
+        hiddenInput.value = type;
+        console.log('✅ Mission type set to:', type);
+    }
 }
 
 function toggleAllTeams(checked) { 
-    document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = checked); 
+    document.querySelectorAll('input[name="target-teams"]').forEach(cb => {
+        cb.checked = checked;
+    }); 
 }
 
 async function createTeamMission() {
-    const type = $('selected-mission-type')?.value;
-    const title = $('mission-title')?.value.trim();
-    const briefing = $('mission-briefing')?.value.trim();
-    const targetTeams = Array.from(document.querySelectorAll('input[name="target-teams"]:checked')).map(cb => cb.value);
-    const targetTrack = $('target-track')?.value.trim();
-    const goalTarget = parseInt($('goal-target')?.value) || 100;
+    const type = document.getElementById('selected-mission-type')?.value;
+    const title = document.getElementById('mission-title')?.value?.trim();
+    const briefing = document.getElementById('mission-briefing')?.value?.trim();
+    const targetTrack = document.getElementById('target-track')?.value?.trim();
+    const goalTarget = parseInt(document.getElementById('goal-target')?.value) || 100;
+    const xpReward = parseInt(document.getElementById('xp-reward')?.value) || 5;
     
-    if (!title) { showCreateResult('Please enter a mission title', true); return; }
-    if (targetTeams.length === 0) { showCreateResult('Please select at least one team', true); return; }
-    if (!briefing) { showCreateResult('Please enter a mission briefing', true); return; }
+    const targetTeams = [];
+    document.querySelectorAll('input[name="target-teams"]:checked').forEach(cb => {
+        targetTeams.push(cb.value);
+    });
+    
+    console.log('📤 Creating mission:', { type, title, targetTeams, goalTarget });
+    
+    // Validation
+    if (!title) { 
+        showCreateResult('❌ Please enter a mission title', true); 
+        return; 
+    }
+    if (targetTeams.length === 0) { 
+        showCreateResult('❌ Please select at least one team', true); 
+        return; 
+    }
+    if (!briefing) { 
+        showCreateResult('❌ Please enter a mission briefing', true); 
+        return; 
+    }
     
     loading(true);
     try {
         const res = await api('createTeamMission', { 
-            type, title, briefing, targetTeams: JSON.stringify(targetTeams), targetTrack, goalTarget, 
-            week: STATE.week, agentNo: STATE.agentNo, sessionToken: STATE.adminSession 
+            type, 
+            title, 
+            briefing, 
+            targetTeams: JSON.stringify(targetTeams), 
+            targetTrack, 
+            goalTarget,
+            xpReward,
+            week: STATE.week, 
+            agentNo: STATE.agentNo, 
+            sessionToken: STATE.adminSession 
         });
+        
         if (res.success) { 
             showCreateResult('✅ Mission Deployed Successfully!', false);
-            $('mission-title').value = '';
-            $('mission-briefing').value = '';
-            $('target-track').value = '';
+            // Clear form
+            document.getElementById('mission-title').value = '';
+            document.getElementById('mission-briefing').value = '';
+            document.getElementById('target-track').value = '';
+            document.getElementById('goal-target').value = '100';
+            document.getElementById('xp-reward').value = '5';
             document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = false);
-            loadActiveTeamMissions();
-        } else { showCreateResult(res.error || 'Failed to create mission', true); }
-    } catch (e) { showCreateResult(e.message, true); } 
-    finally { loading(false); }
+            document.getElementById('select-all-teams').checked = false;
+            
+            // Refresh active missions tab
+            setTimeout(() => {
+                switchAdminTab('active');
+            }, 1500);
+        } else { 
+            showCreateResult('❌ ' + (res.error || 'Failed to create mission'), true); 
+        }
+    } catch (e) { 
+        console.error('Create mission error:', e);
+        showCreateResult('❌ ' + e.message, true); 
+    } finally { 
+        loading(false); 
+    }
 }
 
 function showCreateResult(msg, isError) {
-    const el = $('create-result');
+    const el = document.getElementById('create-result');
     if (el) { 
-        el.textContent = msg; 
+        el.innerHTML = msg;
         el.style.color = isError ? '#ff4444' : '#00ff88';
-        el.style.padding = '10px';
+        el.style.padding = '15px';
         el.style.borderRadius = '8px';
         el.style.background = isError ? 'rgba(255,68,68,0.1)' : 'rgba(0,255,136,0.1)';
+        el.style.border = `1px solid ${isError ? '#ff4444' : '#00ff88'}`;
+        
+        // Auto hide after 5 seconds
+        setTimeout(() => {
+            el.innerHTML = '';
+            el.style.padding = '0';
+            el.style.background = 'transparent';
+            el.style.border = 'none';
+        }, 5000);
     }
 }
 
 async function loadActiveTeamMissions() {
-    const container = $('admin-tab-active');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-text">Loading missions...</div>';
+    const container = document.getElementById('admin-tab-active');
+    if (!container) {
+        console.error('❌ Active tab container not found');
+        return;
+    }
+    
+    container.innerHTML = '<div class="loading-text" style="padding:40px;text-align:center;">⏳ Loading active missions...</div>';
+    
     try {
+        console.log('📥 Loading active missions for week:', STATE.week);
         const res = await api('getTeamMissions', { status: 'active', week: STATE.week });
         const missions = res.missions || [];
-        if (missions.length) {
-            container.innerHTML = missions.map(m => `
-                <div class="admin-mission-card" onclick="event.stopPropagation();">
-                    <div style="flex:1;">
-                        <div style="font-weight:600;color:#fff;">${sanitize(m.title)}</div>
-                        <div style="font-size:12px;color:#888;">Teams: ${(m.targetTeams || []).join(', ')}</div>
-                    </div>
-                    <div style="display:flex;gap:8px;">
-                        <button type="button" onclick="event.stopPropagation(); adminCompleteMission('${m.id}');" style="background:#00aa55;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">✓ Complete</button>
-                        <button type="button" onclick="event.stopPropagation(); adminCancelMission('${m.id}');" style="background:#aa3333;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">✕ Cancel</button>
-                    </div>
+        
+        console.log('📋 Active missions:', missions.length);
+        
+        if (missions.length > 0) {
+            container.innerHTML = `
+                <div style="margin-bottom:15px;">
+                    <h4 style="color:#fff;margin:0;">Active Missions (${missions.length})</h4>
                 </div>
-            `).join('');
+                ${missions.map(m => `
+                    <div class="admin-mission-card" style="margin-bottom:10px;">
+                        <div style="flex:1;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">
+                                <span style="font-size:20px;">${CONFIG.MISSION_TYPES?.[m.type]?.icon || '🎯'}</span>
+                                <span style="font-weight:600;color:#fff;">${sanitize(m.title)}</span>
+                            </div>
+                            <div style="font-size:12px;color:#888;">
+                                Teams: ${(m.targetTeams || []).join(', ')} | Goal: ${m.goalTarget || 100}
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button type="button" onclick="adminCompleteMission('${m.id}')" 
+                                    style="background:#00aa55;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:12px;">
+                                ✓ Complete
+                            </button>
+                            <button type="button" onclick="adminCancelMission('${m.id}')" 
+                                    style="background:#aa3333;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:12px;">
+                                ✕ Cancel
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
         } else {
-            container.innerHTML = '<p style="color:#888;text-align:center;padding:40px;">No active missions</p>';
+            container.innerHTML = `
+                <div style="text-align:center;padding:60px 20px;">
+                    <div style="font-size:64px;margin-bottom:20px;">📭</div>
+                    <h3 style="color:#fff;margin-bottom:10px;">No Active Missions</h3>
+                    <p style="color:#888;margin-bottom:20px;">Create a new mission to get started!</p>
+                    <button onclick="switchAdminTab('create')" class="btn-primary">
+                        + Create New Mission
+                    </button>
+                </div>
+            `;
         }
-    } catch (e) { container.innerHTML = '<p style="color:#ff4444;text-align:center;">Error loading missions</p>'; }
+    } catch (e) { 
+        console.error('❌ Error loading active missions:', e);
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px;">
+                <p style="color:#ff4444;">❌ Error loading missions</p>
+                <p style="color:#888;font-size:12px;">${e.message}</p>
+                <button onclick="loadActiveTeamMissions()" class="btn-secondary" style="margin-top:15px;">
+                    🔄 Retry
+                </button>
+            </div>
+        `; 
+    }
 }
 
 async function loadMissionHistory() {
-    const container = $('admin-tab-history');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-text">Loading history...</div>';
+    const container = document.getElementById('admin-tab-history');
+    if (!container) {
+        console.error('❌ History tab container not found');
+        return;
+    }
+    
+    container.innerHTML = '<div class="loading-text" style="padding:40px;text-align:center;">⏳ Loading mission history...</div>';
+    
     try {
+        console.log('📥 Loading mission history for week:', STATE.week);
         const res = await api('getTeamMissions', { status: 'all', week: STATE.week });
-        const missions = (res.missions || []).filter(m => m.status !== 'active');
-        if (missions.length) {
-            container.innerHTML = missions.map(m => `
-                <div style="padding:12px;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center;">
-                    <span style="color:#fff;">${sanitize(m.title)}</span>
-                    <span style="color:${m.status === 'completed' ? '#00ff88' : '#888'};font-size:12px;text-transform:uppercase;">${m.status}</span>
+        const allMissions = res.missions || [];
+        const missions = allMissions.filter(m => m.status !== 'active');
+        
+        console.log('📜 History missions:', missions.length);
+        
+        if (missions.length > 0) {
+            container.innerHTML = `
+                <div style="margin-bottom:15px;">
+                    <h4 style="color:#fff;margin:0;">Mission History (${missions.length})</h4>
                 </div>
-            `).join('');
+                ${missions.map(m => `
+                    <div style="padding:15px;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:20px;">${CONFIG.MISSION_TYPES?.[m.type]?.icon || '🎯'}</span>
+                            <div>
+                                <div style="color:#fff;font-weight:500;">${sanitize(m.title)}</div>
+                                <div style="color:#666;font-size:11px;">Teams: ${(m.targetTeams || []).join(', ')}</div>
+                            </div>
+                        </div>
+                        <span style="padding:4px 12px;border-radius:12px;font-size:11px;text-transform:uppercase;
+                                     background:${m.status === 'completed' ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)'};
+                                     color:${m.status === 'completed' ? '#00ff88' : '#ff4444'};">
+                            ${m.status || 'unknown'}
+                        </span>
+                    </div>
+                `).join('')}
+            `;
         } else {
-            container.innerHTML = '<p style="color:#888;text-align:center;padding:40px;">No mission history</p>';
+            container.innerHTML = `
+                <div style="text-align:center;padding:60px 20px;">
+                    <div style="font-size:64px;margin-bottom:20px;">📜</div>
+                    <h3 style="color:#fff;margin-bottom:10px;">No Mission History</h3>
+                    <p style="color:#888;">Completed and cancelled missions will appear here.</p>
+                </div>
+            `;
         }
-    } catch (e) { container.innerHTML = '<p style="color:#ff4444;text-align:center;">Error loading history</p>'; }
+    } catch (e) { 
+        console.error('❌ Error loading history:', e);
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px;">
+                <p style="color:#ff4444;">❌ Error loading history</p>
+                <p style="color:#888;font-size:12px;">${e.message}</p>
+                <button onclick="loadMissionHistory()" class="btn-secondary" style="margin-top:15px;">
+                    🔄 Retry
+                </button>
+            </div>
+        `; 
+    }
 }
 
 function renderAdminAssets() {
-    const container = $('admin-tab-assets');
-    if (!container) return;
-    const badges = CONFIG.BADGE_POOL;
+    const container = document.getElementById('admin-tab-assets');
+    if (!container) {
+        console.error('❌ Assets tab container not found');
+        return;
+    }
+    
+    const badges = CONFIG.BADGE_POOL || [];
+    
+    console.log('🎖️ Rendering badge pool:', badges.length, 'badges');
+    
+    if (badges.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center;padding:60px 20px;">
+                <div style="font-size:64px;margin-bottom:20px;">🎖️</div>
+                <h3 style="color:#fff;margin-bottom:10px;">No Badges Configured</h3>
+                <p style="color:#888;">Add badge URLs to CONFIG.BADGE_POOL in config.js</p>
+            </div>
+        `;
+        return;
+    }
+    
     container.innerHTML = `
         <div style="margin-bottom:20px;">
-            <h4 style="color:#ffd700;margin-bottom:5px;">🎖️ Badge Preview (${badges.length} badges)</h4>
-            <p style="color:#888;font-size:12px;">Click to preview full size.</p>
+            <h4 style="color:#ffd700;margin-bottom:5px;">🎖️ Badge Pool Preview (${badges.length} badges)</h4>
+            <p style="color:#888;font-size:12px;">These badges are randomly assigned to agents based on their XP level.</p>
         </div>
-        <div class="assets-grid">
+        <div class="assets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:12px;">
             ${badges.map((url, index) => `
-                <div class="asset-chip" onclick="event.stopPropagation(); previewAsset('${url}', ${index + 1});">
-                    <div class="asset-chip-number">#${index + 1}</div>
-                    <div class="asset-chip-inner">
-                        <img src="${url}" alt="Badge ${index + 1}" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:24px;\\'>❌</div>'">
+                <div class="asset-chip" onclick="previewAsset('${url}', ${index + 1})" 
+                     style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#1a1a2e;border:2px solid #333;cursor:pointer;transition:all 0.3s;">
+                    <div style="position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.8);color:#ffd700;padding:2px 6px;border-radius:8px;font-size:10px;font-weight:bold;">
+                        #${index + 1}
                     </div>
+                    <img src="${url}" style="width:100%;height:100%;object-fit:cover;" 
+                         onerror="this.style.display='none';this.parentElement.innerHTML+='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:24px;\\'>❌</div>'">
                 </div>
             `).join('')}
+        </div>
+        <div style="margin-top:25px;padding:15px;background:#1a1a2e;border-radius:8px;border:1px solid #333;">
+            <h5 style="color:#fff;margin-bottom:10px;">ℹ️ How Badge Assignment Works</h5>
+            <ul style="color:#888;font-size:12px;margin:0;padding-left:20px;line-height:1.8;">
+                <li>Agents earn 1 badge for every 100 XP</li>
+                <li>Badges are randomly selected from this pool</li>
+                <li>Each agent gets unique badges based on their Agent ID</li>
+                <li>Add more badge URLs in <code style="background:#0a0a0f;padding:2px 6px;border-radius:4px;color:#00ff88;">CONFIG.BADGE_POOL</code></li>
+            </ul>
         </div>
     `;
 }
 
 function previewAsset(url, index) {
+    // Remove existing preview
     document.querySelectorAll('.asset-preview-modal').forEach(m => m.remove());
+    
     const modal = document.createElement('div');
     modal.className = 'asset-preview-modal';
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999999;cursor:pointer;';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.95);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999999;
+        cursor: pointer;
+    `;
+    
     modal.innerHTML = `
-        <div class="badge-circle holographic" style="width:200px;height:200px;" onclick="event.stopPropagation();">
+        <div class="badge-circle holographic" style="width:200px;height:200px;border-radius:50%;overflow:hidden;">
             <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
         </div>
-        <div style="margin-top:20px;color:#ffd700;font-size:20px;">Badge #${index}</div>
-        <div style="margin-top:10px;color:#888;font-size:14px;">Tap anywhere to close</div>
+        <div style="margin-top:25px;color:#ffd700;font-size:24px;font-weight:bold;">Badge #${index}</div>
+        <div style="margin-top:10px;color:#888;font-size:14px;">Level ${index} Badge</div>
+        <button onclick="this.parentElement.remove()" class="btn-secondary" style="margin-top:25px;padding:12px 30px;">
+            Close Preview
+        </button>
     `;
-    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+    
+    modal.onclick = function(e) {
+        if (e.target === modal) modal.remove();
+    };
+    
     document.body.appendChild(modal);
 }
 
 async function adminCompleteMission(id) {
-    const team = prompt('Enter Team Name to mark as complete:');
+    const team = prompt('Enter Team Name to mark as complete (or "all" for all teams):');
     if (!team || !team.trim()) return;
+    
     loading(true);
     try {
-        const res = await api('completeTeamMission', { missionId: id, team: team.trim(), agentNo: STATE.agentNo, sessionToken: STATE.adminSession });
-        if (res.success) { showToast('Mission completed for ' + team, 'success'); loadActiveTeamMissions(); }
-        else { showToast(res.error || 'Failed to complete mission', 'error'); }
-    } catch (e) { showToast('Error: ' + e.message, 'error'); }
-    finally { loading(false); }
+        const res = await api('completeTeamMission', { 
+            missionId: id, 
+            team: team.trim(), 
+            agentNo: STATE.agentNo, 
+            sessionToken: STATE.adminSession 
+        });
+        
+        if (res.success) { 
+            showToast('✅ Mission completed for ' + team, 'success'); 
+            loadActiveTeamMissions(); 
+        } else { 
+            showToast('❌ ' + (res.error || 'Failed to complete mission'), 'error'); 
+        }
+    } catch (e) { 
+        showToast('❌ Error: ' + e.message, 'error'); 
+    } finally { 
+        loading(false); 
+    }
 }
 
 async function adminCancelMission(id) {
     if (!confirm('Are you sure you want to cancel this mission?')) return;
+    
     loading(true);
     try {
-        const res = await api('cancelTeamMission', { missionId: id, agentNo: STATE.agentNo, sessionToken: STATE.adminSession });
-        if (res.success) { showToast('Mission cancelled', 'success'); loadActiveTeamMissions(); }
-        else { showToast(res.error || 'Failed to cancel mission', 'error'); }
-    } catch (e) { showToast('Error: ' + e.message, 'error'); }
-    finally { loading(false); }
+        const res = await api('cancelTeamMission', { 
+            missionId: id, 
+            agentNo: STATE.agentNo, 
+            sessionToken: STATE.adminSession 
+        });
+        
+        if (res.success) { 
+            showToast('✅ Mission cancelled', 'success'); 
+            loadActiveTeamMissions(); 
+        } else { 
+            showToast('❌ ' + (res.error || 'Failed to cancel mission'), 'error'); 
+        }
+    } catch (e) { 
+        showToast('❌ Error: ' + e.message, 'error'); 
+    } finally { 
+        loading(false); 
+    }
 }
-
 // ==================== CSS ====================
 function ensureAppCSS() {
     if ($('app-custom-styles')) return;
@@ -1996,5 +2353,8 @@ window.switchAdminTab = switchAdminTab;
 window.previewAsset = previewAsset;
 window.viewResults = viewResults;
 window.dismissResults = dismissResults;
+window.loadActiveTeamMissions = loadActiveTeamMissions;
+window.loadMissionHistory = loadMissionHistory;
+window.renderAdminAssets = renderAdminAssets;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded');
