@@ -300,7 +300,7 @@ function markResultsSeen(week) {
     localStorage.setItem('seenResults_' + STATE.agentNo, JSON.stringify(STATE.hasSeenResults));
 }
 
-// === APP CSS ===
+// === APP CSS (CORRECTED) ===
 function ensureAppCSS() {
     if (document.getElementById('app-custom-styles')) return;
     const style = document.createElement('style');
@@ -328,6 +328,155 @@ function ensureAppCSS() {
         .admin-tab-content.active { display: block; }
         .admin-mission-card { background: #1a1a2e; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
 
+        /* === ADMIN LOGIN MODAL === */
+        .admin-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 999998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .admin-modal {
+            background: linear-gradient(145deg, #1a1a2e, #0a0a0f);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid #7b2cbf;
+            box-shadow: 0 0 50px rgba(123, 44, 191, 0.3);
+        }
+        .admin-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #333;
+        }
+        .admin-modal-header h3 { color: #fff; margin: 0; }
+        .admin-modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .admin-modal-body { padding: 20px; }
+        .terminal-style {
+            background: #0a0a0f;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .terminal-label { color: #888; font-size: 12px; display: block; margin-bottom: 5px; }
+        .terminal-input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            color: #fff;
+            font-family: monospace;
+        }
+        .admin-error {
+            color: #ff4444;
+            text-align: center;
+            padding: 10px;
+            display: none;
+        }
+        .admin-error.show { display: block; }
+        .admin-modal-footer {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid #333;
+            justify-content: flex-end;
+        }
+
+        /* === FORM ELEMENTS === */
+        .create-mission-form { padding: 10px 0; }
+        .form-section { margin-bottom: 20px; }
+        .form-section h4 { color: #fff; margin-bottom: 10px; font-size: 14px; }
+        .form-input, .form-textarea {
+            width: 100%;
+            background: #12121a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .form-textarea { min-height: 80px; resize: vertical; }
+        .mission-type-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .mission-type-option {
+            padding: 12px;
+            background: #12121a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            color: #888;
+            transition: all 0.3s;
+        }
+        .mission-type-option:hover { border-color: #7b2cbf; }
+        .mission-type-option.selected {
+            background: rgba(123, 44, 191, 0.2);
+            border-color: #7b2cbf;
+            color: #fff;
+        }
+        .team-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .team-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .form-actions { margin-top: 20px; }
+
+        /* === BUTTONS === */
+        .btn-primary {
+            background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(123, 44, 191, 0.4);
+        }
+        .btn-secondary {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .loading-text {
+            color: #888;
+            text-align: center;
+            padding: 20px;
+        }
+
         /* === HOLOGRAPHIC BADGE RING === */
         .badge-circle {
             width: 70px;
@@ -341,13 +490,11 @@ function ensureAppCSS() {
             background: #1a1a2e;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        
         .badge-circle.holographic {
             background: linear-gradient(135deg, #1a1a2e, #2a2a3e);
             border: none !important;
             padding: 3px;
         }
-        
         .badge-circle.holographic::before {
             content: '';
             position: absolute;
@@ -360,7 +507,6 @@ function ensureAppCSS() {
             z-index: -1;
             animation: holoSpin 4s linear infinite;
         }
-        
         .badge-circle.holographic::after {
             content: '';
             position: absolute;
@@ -372,20 +518,14 @@ function ensureAppCSS() {
             background: #1a1a2e;
             z-index: -1;
         }
-        
         .badge-circle.holographic {
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.4), 0 0 30px rgba(123, 44, 191, 0.3), 0 0 45px rgba(0, 212, 255, 0.2);
         }
-        
-        .badge-circle:hover {
-            transform: scale(1.1);
-        }
-        
+        .badge-circle:hover { transform: scale(1.1); }
         @keyframes holoSpin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
         .badge-circle img {
             width: 100%;
             height: 100%;
@@ -402,7 +542,6 @@ function ensureAppCSS() {
             gap: 15px;
             padding: 10px;
         }
-        
         .asset-chip {
             position: relative;
             aspect-ratio: 1;
@@ -413,7 +552,6 @@ function ensureAppCSS() {
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
         .asset-chip::before {
             content: '';
             position: absolute;
@@ -428,11 +566,7 @@ function ensureAppCSS() {
             animation: holoSpin 4s linear infinite;
             transition: opacity 0.3s;
         }
-        
-        .asset-chip:hover::before {
-            opacity: 1;
-        }
-        
+        .asset-chip:hover::before { opacity: 1; }
         .asset-chip-inner {
             width: 100%;
             height: 100%;
@@ -441,23 +575,17 @@ function ensureAppCSS() {
             background: #1a1a2e;
             position: relative;
         }
-        
         .asset-chip img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             transition: transform 0.3s ease;
         }
-        
         .asset-chip:hover {
             transform: translateY(-5px) scale(1.05);
             box-shadow: 0 10px 30px rgba(123, 44, 191, 0.4);
         }
-        
-        .asset-chip:hover img {
-            transform: scale(1.1);
-        }
-        
+        .asset-chip:hover img { transform: scale(1.1); }
         .asset-chip-number {
             position: absolute;
             top: 8px;
@@ -471,16 +599,6 @@ function ensureAppCSS() {
             z-index: 2;
         }
 
-        /* === GLOBAL IMAGE HOVER EFFECTS === */
-        .team-level-pfp, .standing-pfp, .quick-pfp, .drawer-pfp, .intel-pfp, .secret-team-pfp {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .team-level-pfp:hover, .standing-pfp:hover, .quick-pfp:hover, .drawer-pfp:hover, .intel-pfp:hover, .secret-team-pfp:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 20px rgba(123, 44, 191, 0.5);
-        }
-
         /* === BADGES SHOWCASE === */
         .badges-showcase {
             display: grid;
@@ -488,7 +606,6 @@ function ensureAppCSS() {
             gap: 15px;
             padding: 10px;
         }
-        
         .badge-showcase-item {
             display: flex;
             flex-direction: column;
@@ -500,87 +617,15 @@ function ensureAppCSS() {
             border: 1px solid rgba(123, 44, 191, 0.2);
             transition: all 0.3s ease;
         }
-        
         .badge-showcase-item:hover {
             transform: translateY(-5px);
             border-color: rgba(255, 215, 0, 0.5);
         }
-        
         .badge-name { margin-top: 8px; font-weight: 600; color: #ffd700; font-size: 11px; }
-        .badge-desc { font-size: 9px; color: #888; margin-top: 2px; }
         .badge-week { font-size: 9px; color: #7b2cbf; margin-top: 2px; }
 
-        /* === CONFETTI CELEBRATION === */
-        .confetti-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 99999;
-            overflow: hidden;
-        }
-        
-        .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            opacity: 0;
-            animation: confettiFall 3s ease-out forwards;
-        }
-        
-        @keyframes confettiFall {
-            0% { opacity: 1; transform: translateY(-100px) rotate(0deg); }
-            100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
-        }
-        
-        .balloon {
-            position: absolute;
-            font-size: 40px;
-            animation: balloonFloat 4s ease-out forwards;
-        }
-        
-        @keyframes balloonFloat {
-            0% { opacity: 1; transform: translateY(100vh) scale(0.5); }
-            50% { opacity: 1; transform: translateY(30vh) scale(1); }
-            100% { opacity: 0; transform: translateY(-20vh) scale(1.2); }
-        }
-
-        /* === RESULTS POPUP === */
-        .results-popup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.95);
-            z-index: 999998;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.5s;
-        }
-        
-        .results-popup.show { opacity: 1; }
-        
-        .results-popup-content {
-            background: linear-gradient(145deg, #1a1a2e, #0a0a0f);
-            border-radius: 24px;
-            padding: 40px;
-            text-align: center;
-            max-width: 90%;
-            border: 2px solid #ffd700;
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
-            transform: scale(0.8);
-            transition: transform 0.5s;
-        }
-        
-        .results-popup.show .results-popup-content { transform: scale(1); }
-
-        /* === PLAYLIST CARDS === */
-        .playlist-card {
+        /* === PLAYLIST, GC, HELPER ROLES === */
+        .playlist-card, .gc-card, .role-card {
             background: linear-gradient(145deg, #1a1a2e, #12121a);
             border-radius: 12px;
             padding: 15px;
@@ -588,35 +633,7 @@ function ensureAppCSS() {
             border: 1px solid rgba(123, 44, 191, 0.3);
             transition: all 0.3s;
         }
-        
-        .playlist-card:hover {
-            border-color: #7b2cbf;
-            transform: translateX(5px);
-        }
-        
-        .playlist-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-            color: #fff;
-        }
-        
-        .playlist-icon { font-size: 24px; }
-        .playlist-name { font-weight: 600; }
-        .playlist-type { font-size: 12px; color: #888; }
-
-        /* === GC LINKS === */
-        .gc-card {
-            background: linear-gradient(145deg, #1a1a2e, #12121a);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border: 1px solid rgba(123, 44, 191, 0.3);
-        }
-        
-        .gc-card h4 { color: #fff; margin-bottom: 8px; }
-        .gc-card p { color: #888; font-size: 12px; margin-bottom: 12px; }
+        .playlist-card:hover, .role-card:hover { transform: translateX(5px); }
         .gc-link-btn {
             display: inline-block;
             padding: 10px 20px;
@@ -628,292 +645,11 @@ function ensureAppCSS() {
             transition: all 0.3s;
         }
         .gc-link-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(123, 44, 191, 0.4); }
-
-        /* === HELPER ROLES === */
-        .role-card {
-            background: linear-gradient(145deg, #1a1a2e, #12121a);
-            border-radius: 12px;
-            padding: 15px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 10px;
-            border: 1px solid rgba(123, 44, 191, 0.2);
-            transition: all 0.3s;
-        }
-        
-        .role-card:hover { border-color: #7b2cbf; transform: translateX(5px); }
-        .role-icon { font-size: 32px; }
-        .role-name { font-weight: 600; color: #fff; }
-        .role-desc { font-size: 12px; color: #888; }
     `;
     document.head.appendChild(style);
 }
-// Add after the existing admin panel styles:
 
-/* === ADMIN LOGIN MODAL === */
-.admin-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.9);
-    z-index: 999998;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.admin-modal {
-    background: linear-gradient(145deg, #1a1a2e, #0a0a0f);
-    border-radius: 16px;
-    width: 90%;
-    max-width: 400px;
-    border: 1px solid #7b2cbf;
-    box-shadow: 0 0 50px rgba(123, 44, 191, 0.3);
-}
-
-.admin-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid #333;
-}
-
-.admin-modal-header h3 { color: #fff; margin: 0; }
-
-.admin-modal-close {
-    background: none;
-    border: none;
-    color: #888;
-    font-size: 28px;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-}
-
-.admin-modal-body { padding: 20px; }
-
-.admin-welcome { text-align: center; margin-bottom: 20px; }
-.admin-welcome p { color: #ffd700; font-size: 18px; margin: 0; }
-.admin-note { color: #888 !important; font-size: 12px !important; margin-top: 5px !important; }
-
-.terminal-style {
-    background: #0a0a0f;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 15px;
-}
-
-.terminal-line { color: #00ff88; font-family: monospace; margin-bottom: 10px; }
-.terminal-label { color: #888; font-size: 12px; display: block; margin-bottom: 5px; }
-
-.terminal-input {
-    width: 100%;
-    background: transparent;
-    border: 1px solid #444;
-    border-radius: 4px;
-    padding: 10px;
-    color: #fff;
-    font-family: monospace;
-}
-
-.admin-error {
-    color: #ff4444;
-    text-align: center;
-    padding: 10px;
-    display: none;
-}
-
-.admin-error.show { display: block; }
-
-.admin-modal-footer {
-    display: flex;
-    gap: 10px;
-    padding: 20px;
-    border-top: 1px solid #333;
-    justify-content: flex-end;
-}
-
-/* === FORM ELEMENTS === */
-.create-mission-form { padding: 10px 0; }
-
-.form-section {
-    margin-bottom: 20px;
-}
-
-.form-section h4 {
-    color: #fff;
-    margin-bottom: 10px;
-    font-size: 14px;
-}
-
-.form-input, .form-textarea {
-    width: 100%;
-    background: #12121a;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 12px;
-    color: #fff;
-    margin-bottom: 10px;
-    font-size: 14px;
-}
-
-.form-textarea {
-    min-height: 80px;
-    resize: vertical;
-}
-
-.mission-type-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-}
-
-.mission-type-option {
-    padding: 12px;
-    background: #12121a;
-    border: 1px solid #333;
-    border-radius: 8px;
-    cursor: pointer;
-    text-align: center;
-    color: #888;
-    transition: all 0.3s;
-}
-
-.mission-type-option:hover { border-color: #7b2cbf; }
-.mission-type-option.selected {
-    background: rgba(123, 44, 191, 0.2);
-    border-color: #7b2cbf;
-    color: #fff;
-}
-
-.team-checkboxes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.team-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-}
-
-.form-actions {
-    margin-top: 20px;
-}
-
-/* === BUTTONS === */
-.btn-primary {
-    background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-    color: #fff;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.3s;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(123, 44, 191, 0.4);
-}
-
-.btn-secondary {
-    background: #333;
-    color: #fff;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-.loading-text {
-    color: #888;
-    text-align: center;
-    padding: 20px;
-}
-
-function setupLoginListeners() {
-    const loginBtn = $('login-btn');
-    const findBtn = $('find-btn');
-    const agentInput = $('agent-input');
-    const instagramInput = $('instagram-input');
-    if (loginBtn) loginBtn.onclick = handleLogin;
-    if (findBtn) findBtn.onclick = handleFind;
-    if (agentInput) agentInput.onkeypress = e => { if (e.key === 'Enter') handleLogin(); };
-    if (instagramInput) instagramInput.onkeypress = e => { if (e.key === 'Enter') handleFind(); };
-}
-
-async function loadAllAgents() {
-    try { STATE.allAgents = (await api('getAllAgents')).agents || []; } catch (e) { STATE.allAgents = []; }
-}
-
-async function handleLogin() {
-    if (STATE.isLoading) return;
-    const agentInput = $('agent-input');
-    const agentNo = agentInput?.value.trim().toUpperCase();
-    if (!agentNo) { showResult('Enter Agent Number', true); return; }
-    loading(true);
-    try {
-        if (STATE.allAgents.length === 0) await loadAllAgents();
-        const found = STATE.allAgents.find(a => String(a.agentNo).trim().toUpperCase() === agentNo);
-        if (!found) throw new Error('Agent not found');
-        localStorage.setItem('spyAgent', found.agentNo);
-        STATE.agentNo = found.agentNo;
-        checkAdminStatus();
-        loadSeenResults();
-        await loadDashboard();
-    } catch (e) { showResult(e.message, true); } finally { loading(false); }
-}
-
-async function handleFind() {
-    if (STATE.isLoading) return;
-    const handle = $('instagram-input')?.value.trim().toLowerCase().replace('@', '');
-    if (!handle) { showResult('Enter Instagram', true); return; }
-    loading(true);
-    try {
-        if (STATE.allAgents.length === 0) await loadAllAgents();
-        const found = STATE.allAgents.find(a => String(a.instagram||a.ig||'').toLowerCase().replace('@','') === handle || String(a.name||'').toLowerCase().includes(handle));
-        if (!found) throw new Error('Not found');
-        showResult(`Agent ID: <strong>${found.agentNo}</strong>`, false);
-        if($('agent-input')) $('agent-input').value = found.agentNo;
-    } catch (e) { showResult(e.message, true); } finally { loading(false); }
-}
-
-// ==================== ADMIN LOGIC ====================
-function checkAdminStatus() {
-    if (String(STATE.agentNo).toUpperCase() !== String(CONFIG.ADMIN_AGENT_NO).toUpperCase()) { STATE.isAdmin = false; return; }
-    const savedSession = localStorage.getItem('adminSession');
-    const savedExpiry = localStorage.getItem('adminExpiry');
-    if (savedSession && savedExpiry && Date.now() < parseInt(savedExpiry)) {
-        STATE.isAdmin = true;
-        STATE.adminSession = savedSession;
-        localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
-    } else {
-        STATE.isAdmin = false;
-    }
-}
-
-function isAdminAgent() {
-    return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
-}
-
-function exitAdminMode() {
-    STATE.isAdmin = false;
-    STATE.adminSession = null;
-    localStorage.removeItem('adminSession');
-    localStorage.removeItem('adminExpiry');
-    location.reload();
-}
-
-// ==================== ADMIN LOGIN ====================
+// ==================== ADMIN LOGIN (SINGLE VERSION) ====================
 function showAdminLogin() {
     if (!isAdminAgent()) { 
         showToast('Access denied.', 'error'); 
@@ -921,10 +657,10 @@ function showAdminLogin() {
     }
     
     closeSidebar();
-    document.querySelectorAll('.admin-modal-overlay, .modal-overlay, #admin-modal').forEach(m => m.remove());
+    document.querySelectorAll('.admin-modal-overlay, #admin-modal').forEach(m => m.remove());
     
     const modal = document.createElement('div');
-    modal.className = 'admin-modal-overlay';  // ✅ Fixed CSS class
+    modal.className = 'admin-modal-overlay';
     modal.id = 'admin-modal';
     
     modal.onclick = function(e) {
@@ -934,7 +670,7 @@ function showAdminLogin() {
     modal.innerHTML = `
         <div class="admin-modal" onclick="event.stopPropagation();">
             <div class="admin-modal-header">
-                <h3>Admin Access</h3>
+                <h3>🔐 Admin Access</h3>
                 <button class="admin-modal-close" type="button" onclick="closeAdminModal();">×</button>
             </div>
             <div class="admin-modal-body">
@@ -970,9 +706,7 @@ function showAdminLogin() {
 
 function closeAdminModal() {
     const modal = document.getElementById('admin-modal');
-    if (modal) {
-        modal.remove();
-    }
+    if (modal) modal.remove();
 }
 
 async function verifyAdminPassword() {
@@ -983,19 +717,17 @@ async function verifyAdminPassword() {
     if (!password) {
         if (errorEl) {
             errorEl.textContent = '❌ Please enter password';
-            errorEl.classList.add('show');  // ✅ Use class instead of style
+            errorEl.classList.add('show');
         }
         return;
     }
     
     let verified = false;
     
-    // Check local password first
     if (password === CONFIG.ADMIN_PASSWORD) {
         verified = true;
         STATE.adminSession = 'local_' + Date.now();
     } else {
-        // Try server verification
         try {
             const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password });
             if (result.success) { 
@@ -1023,19 +755,17 @@ async function verifyAdminPassword() {
         }
         
         showToast('Access Granted', 'success');
-        
-        setTimeout(() => {
-            showAdminPanel();
-        }, 100);
+        setTimeout(() => showAdminPanel(), 100);
         
     } else {
         if (errorEl) { 
             errorEl.textContent = '❌ Invalid password'; 
-            errorEl.classList.add('show');  // ✅ Use class
+            errorEl.classList.add('show');
         }
     }
 }
 
+// ==================== ADMIN PANEL (SINGLE VERSION) ====================
 function showAdminPanel() {
     if (!STATE.isAdmin) {
         showToast('Admin access required', 'error');
@@ -1062,7 +792,7 @@ function showAdminPanel() {
                 <h3 style="margin:0; color:#fff;">🎛️ Mission Control</h3>
                 <p style="margin:5px 0 0; color:#888; font-size:12px;">${STATE.week || 'Current Week'}</p>
             </div>
-            <button type="button" id="admin-panel-close-btn" class="panel-close" style="background:none; border:none; color:#fff; font-size:28px; cursor:pointer; padding:5px 15px;">×</button>
+            <button type="button" id="admin-panel-close-btn" style="background:none; border:none; color:#fff; font-size:28px; cursor:pointer; padding:5px 15px;">×</button>
         </div>
         <div class="admin-panel-tabs">
             <button type="button" class="admin-tab active" data-tab="create">Create Mission</button>
@@ -1101,17 +831,11 @@ function showAdminPanel() {
             if (tabName === 'history') loadMissionHistory();
         }, { capture: true });
     });
-}
     
-    // Prevent body scroll when panel is open
-    document.body.style.overflow = 'hidden';
-    
-    console.log('✅ Admin panel opened successfully');
+    console.log('✅ Admin panel opened');
 }
 
-// SINGLE closeAdminPanel function - removed duplicate
 function closeAdminPanel() {
-    console.log('🔒 closeAdminPanel called');
     const panel = document.getElementById('admin-panel');
     if (panel) {
         panel.remove();
@@ -1120,647 +844,14 @@ function closeAdminPanel() {
     }
 }
 
-function switchAdminTab(tabName) {
-    // Remove active from all tabs
-    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
-    
-    // Add active to selected
-    const selectedTab = document.querySelector(`.admin-tab[data-tab="${tabName}"]`);
-    const selectedContent = document.getElementById(`admin-tab-${tabName}`);
-    
-    if (selectedTab) selectedTab.classList.add('active');
-    if (selectedContent) selectedContent.classList.add('active');
-}
-function renderCreateMissionForm() {
-    return `
-        <div class="create-mission-form" onclick="event.stopPropagation();">
-            <div class="form-section">
-                <h4>Mission Type</h4>
-                <div class="mission-type-grid">
-                    ${Object.entries(CONFIG.MISSION_TYPES).map(([key, m], i) => `
-                        <div class="mission-type-option ${i === 0 ? 'selected' : ''}" 
-                             data-type="${key}" 
-                             onclick="event.stopPropagation(); selectMissionType('${key}');">
-                            <span>${m.icon}</span> 
-                            <span>${m.name}</span>
-                        </div>
-                    `).join('')}
-                </div>
-                <input type="hidden" id="selected-mission-type" value="switch_app">
-            </div>
-            
-            <div class="form-section">
-                <h4>Target Teams</h4>
-                <div class="team-checkboxes">
-                    ${Object.keys(CONFIG.TEAMS).map(team => `
-                        <label class="team-checkbox" onclick="event.stopPropagation();">
-                            <input type="checkbox" name="target-teams" value="${team}"> 
-                            <span class="team-name" style="color:${teamColor(team)}">${team}</span>
-                        </label>
-                    `).join('')}
-                </div>
-                <label onclick="event.stopPropagation();">
-                    <input type="checkbox" onchange="toggleAllTeams(this.checked)"> Select All
-                </label>
-            </div>
-            
-            <div class="form-section">
-                <h4>Mission Details</h4>
-                <input type="text" id="mission-title" class="form-input" placeholder="Mission Title" onclick="event.stopPropagation();">
-                <textarea id="mission-briefing" class="form-textarea" placeholder="Mission Briefing" onclick="event.stopPropagation();"></textarea>
-                <input type="text" id="target-track" class="form-input" placeholder="Target Track (optional)" onclick="event.stopPropagation();">
-                <input type="number" id="goal-target" class="form-input" value="100" placeholder="Goal Number" onclick="event.stopPropagation();">
-            </div>
-            
-            <div class="form-actions">
-                <button type="button" onclick="event.stopPropagation(); createTeamMission();" class="btn-primary">
-                    🚀 Deploy Mission
-                </button>
-            </div>
-            <div id="create-result" style="margin-top:10px;"></div>
-        </div>
-    `;
-}
-
-function selectMissionType(type) {
-    document.querySelectorAll('.mission-type-option').forEach(el => el.classList.remove('selected'));
-    const selected = document.querySelector(`.mission-type-option[data-type="${type}"]`);
-    if (selected) selected.classList.add('selected');
-    
-    const hiddenInput = document.getElementById('selected-mission-type');
-    if (hiddenInput) hiddenInput.value = type;
-}
-
-function toggleAllTeams(checked) { 
-    document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = checked); 
-}
-
-async function createTeamMission() {
-    const type = document.getElementById('selected-mission-type')?.value;
-    const title = document.getElementById('mission-title')?.value.trim();
-    const briefing = document.getElementById('mission-briefing')?.value.trim();
-    const targetTeams = Array.from(document.querySelectorAll('input[name="target-teams"]:checked')).map(cb => cb.value);
-    const targetTrack = document.getElementById('target-track')?.value.trim();
-    const goalTarget = parseInt(document.getElementById('goal-target')?.value) || 100;
-    
-    if (!title) {
-        showCreateResult('Please enter a mission title', true);
-        return;
-    }
-    if (targetTeams.length === 0) {
-        showCreateResult('Please select at least one team', true);
-        return;
-    }
-    if (!briefing) {
-        showCreateResult('Please enter a mission briefing', true);
-        return;
-    }
-    
-    loading(true);
-    try {
-        const res = await api('createTeamMission', { 
-            type, 
-            title, 
-            briefing, 
-            targetTeams: JSON.stringify(targetTeams), 
-            targetTrack, 
-            goalTarget, 
-            week: STATE.week, 
-            agentNo: STATE.agentNo, 
-            sessionToken: STATE.adminSession 
-        });
-        
-        if (res.success) { 
-            showCreateResult('✅ Mission Deployed Successfully!', false);
-            // Clear form
-            document.getElementById('mission-title').value = '';
-            document.getElementById('mission-briefing').value = '';
-            document.getElementById('target-track').value = '';
-            document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = false);
-            // Refresh active missions
-            loadActiveTeamMissions();
-        } else { 
-            showCreateResult(res.error || 'Failed to create mission', true); 
-        }
-    } catch (e) { 
-        showCreateResult(e.message, true); 
-    } finally { 
-        loading(false); 
-    }
-}
-
-function showCreateResult(msg, isError) {
-    const el = document.getElementById('create-result');
-    if (el) { 
-        el.textContent = msg; 
-        el.style.color = isError ? '#ff4444' : '#00ff88';
-        el.style.padding = '10px';
-        el.style.borderRadius = '8px';
-        el.style.background = isError ? 'rgba(255,68,68,0.1)' : 'rgba(0,255,136,0.1)';
-    }
-}
-
-async function loadActiveTeamMissions() {
-    const container = document.getElementById('admin-tab-active');
-    if (!container) return;
-    
-    container.innerHTML = '<div class="loading-text">Loading missions...</div>';
-    
-    try {
-        const res = await api('getTeamMissions', { status: 'active', week: STATE.week });
-        const missions = res.missions || [];
-        
-        if (missions.length) {
-            container.innerHTML = missions.map(m => `
-                <div class="admin-mission-card" onclick="event.stopPropagation();">
-                    <div style="flex:1;">
-                        <div style="font-weight:600;color:#fff;">${sanitize(m.title)}</div>
-                        <div style="font-size:12px;color:#888;">Teams: ${(m.targetTeams || []).join(', ')}</div>
-                    </div>
-                    <div style="display:flex;gap:8px;">
-                        <button type="button" onclick="event.stopPropagation(); adminCompleteMission('${m.id}');" class="btn-sm" style="background:#00aa55;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
-                            ✓ Complete
-                        </button>
-                        <button type="button" onclick="event.stopPropagation(); adminCancelMission('${m.id}');" class="btn-sm" style="background:#aa3333;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
-                            ✕ Cancel
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            container.innerHTML = '<p style="color:#888;text-align:center;padding:40px;">No active missions</p>';
-        }
-    } catch (e) { 
-        container.innerHTML = '<p style="color:#ff4444;text-align:center;">Error loading missions</p>'; 
-    }
-}
-
-async function loadMissionHistory() {
-    const container = document.getElementById('admin-tab-history');
-    if (!container) return;
-    
-    container.innerHTML = '<div class="loading-text">Loading history...</div>';
-    
-    try {
-        const res = await api('getTeamMissions', { status: 'all', week: STATE.week });
-        const missions = (res.missions || []).filter(m => m.status !== 'active');
-        
-        if (missions.length) {
-            container.innerHTML = missions.map(m => `
-                <div style="padding:12px;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center;">
-                    <span style="color:#fff;">${sanitize(m.title)}</span>
-                    <span style="color:${m.status === 'completed' ? '#00ff88' : '#888'};font-size:12px;text-transform:uppercase;">
-                        ${m.status}
-                    </span>
-                </div>
-            `).join('');
-        } else {
-            container.innerHTML = '<p style="color:#888;text-align:center;padding:40px;">No mission history</p>';
-        }
-    } catch (e) { 
-        container.innerHTML = '<p style="color:#ff4444;text-align:center;">Error loading history</p>'; 
-    }
-}
-
-function renderAdminAssets() {
-    const container = document.getElementById('admin-tab-assets');
-    if (!container) return;
-    
-    const badges = CONFIG.BADGE_POOL;
-    
-    container.innerHTML = `
-        <div style="margin-bottom:20px;">
-            <h4 style="color:#ffd700;margin-bottom:5px;">🎖️ Badge Preview (${badges.length} badges)</h4>
-            <p style="color:#888;font-size:12px;">This is how agents will see their badges. Click to preview full size.</p>
-        </div>
-        <div class="assets-grid">
-            ${badges.map((url, index) => `
-                <div class="asset-chip" onclick="event.stopPropagation(); previewAsset('${url}', ${index + 1});">
-                    <div class="asset-chip-number">#${index + 1}</div>
-                    <div class="asset-chip-inner">
-                        <img src="${url}" alt="Badge ${index + 1}" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;font-size:24px;\\'>❌</div>'">
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-        <div style="margin-top:20px;padding:15px;background:#1a1a2e;border-radius:8px;">
-            <h5 style="color:#fff;margin-bottom:10px;">To remove a badge:</h5>
-            <p style="color:#888;font-size:12px;">Add the badge number to EXCLUDE_BADGES in CONFIG:</p>
-            <code style="background:#0a0a0f;padding:10px;display:block;border-radius:4px;color:#00ff88;font-size:11px;margin-top:10px;">EXCLUDE_BADGES: [5, 12, 23], // Example</code>
-        </div>
-    `;
-}
-
-function previewAsset(url, index) {
-    // Remove existing preview modals
-    document.querySelectorAll('.asset-preview-modal').forEach(m => m.remove());
-    
-    const modal = document.createElement('div');
-    modal.className = 'asset-preview-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.95);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 99999999;
-        cursor: pointer;
-    `;
-    
-    modal.innerHTML = `
-        <div class="badge-circle holographic" style="width:200px;height:200px;" onclick="event.stopPropagation();">
-            <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
-        </div>
-        <div style="margin-top:20px;color:#ffd700;font-size:20px;">Badge #${index}</div>
-        <div style="margin-top:10px;color:#888;font-size:14px;">Tap anywhere to close</div>
-    `;
-    
-    modal.onclick = function(e) {
-        if (e.target === modal) {
-            modal.remove();
-        }
-    };
-    
-    document.body.appendChild(modal);
-}
-
-async function adminCompleteMission(id) {
-    const team = prompt('Enter Team Name to mark as complete:');
-    if (!team || !team.trim()) return;
-    
-    loading(true);
-    try {
-        const res = await api('completeTeamMission', { 
-            missionId: id, 
-            team: team.trim(), 
-            agentNo: STATE.agentNo, 
-            sessionToken: STATE.adminSession 
-        });
-        
-        if (res.success) {
-            showToast('Mission completed for ' + team, 'success');
-            loadActiveTeamMissions();
-        } else {
-            showToast(res.error || 'Failed to complete mission', 'error');
-        }
-    } catch (e) {
-        showToast('Error: ' + e.message, 'error');
-    } finally {
-        loading(false);
-    }
-}
-
-async function adminCancelMission(id) {
-    if (!confirm('Are you sure you want to cancel this mission?')) return;
-    
-    loading(true);
-    try {
-        const res = await api('cancelTeamMission', { 
-            missionId: id, 
-            agentNo: STATE.agentNo, 
-            sessionToken: STATE.adminSession 
-        });
-        
-        if (res.success) {
-            showToast('Mission cancelled', 'success');
-            loadActiveTeamMissions();
-        } else {
-            showToast(res.error || 'Failed to cancel mission', 'error');
-        }
-    } catch (e) {
-        showToast('Error: ' + e.message, 'error');
-    } finally {
-        loading(false);
-    }
-}
-
-// ==================== ADMIN INDICATOR ====================
-// ==================== ADMIN INDICATOR (COMPLETELY FIXED) ====================
-function addAdminIndicator() {
-    // Remove any existing admin links to prevent duplicates
-    document.querySelectorAll('.admin-nav-link').forEach(el => el.remove());
-    
-    // Use the dedicated admin container in HTML
-    let container = document.getElementById('nav-admin-container');
-    
-    // Fallback to nav-links if container doesn't exist
-    if (!container) {
-        container = document.querySelector('.nav-links');
-    }
-    
-    if (!container) {
-        console.warn('Could not find container for admin button');
-        return;
-    }
-    
-    const link = document.createElement('a');
-    link.href = '#';
-    link.className = 'nav-link admin-nav-link';
-    link.innerHTML = '<span class="nav-icon">🎛️</span><span class="nav-text">Admin Panel</span>';
-    
-    // Use a named function for the click handler
-    link.addEventListener('click', function handleAdminClick(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        
-        console.log('🔐 Admin button clicked');
-        
-        // Close sidebar first
-        closeSidebar();
-        
-        // Use requestAnimationFrame for better timing
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                if (STATE.isAdmin) {
-                    if (!document.getElementById('admin-panel')) {
-                        console.log('Opening admin panel...');
-                        showAdminPanel();
-                    } else {
-                        console.log('Admin panel already open');
-                    }
-                } else {
-                    if (!document.getElementById('admin-modal')) {
-                        console.log('Opening admin login...');
-                        showAdminLogin();
-                    } else {
-                        console.log('Admin modal already open');
-                    }
-                }
-            }, 100);
-        });
-        
-        return false;
-    }, { capture: true });
-    
-    container.appendChild(link);
-    console.log('✅ Admin indicator added');
-}
-
-async function loadDashboard() {
-    console.log('🏠 Loading dashboard...');
-    console.log('📌 Agent No:', STATE.agentNo);
-    console.log('📌 API URL:', CONFIG.API_URL);
-    
-    loading(true);
-    try {
-        // Step 1: Get weeks
-        console.log('⏳ Fetching available weeks...');
-        const weeksRes = await api('getAvailableWeeks');
-        console.log('✅ Weeks response:', weeksRes);
-        
-        STATE.weeks = weeksRes.weeks || [];
-        STATE.week = weeksRes.current || STATE.weeks[0];
-        console.log('📌 Selected week:', STATE.week);
-        
-        // Step 2: Get agent data
-        console.log('⏳ Fetching agent data...');
-        STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: STATE.week });
-        console.log('✅ Agent data:', STATE.data);
-        
-        if (STATE.data?.lastUpdated) STATE.lastUpdated = STATE.data.lastUpdated;
-        
-        // Step 3: Load all weeks data
-        console.log('⏳ Loading all weeks data...');
-        await loadAllWeeksData();
-        console.log('✅ All weeks data loaded');
-        
-        // Show dashboard
-        $('login-screen').classList.remove('active');
-        $('login-screen').style.display = 'none';
-        $('dashboard-screen').classList.add('active');
-        $('dashboard-screen').style.display = 'flex';
-        
-        setupDashboard();
-        await loadPage('home');
-        
-        if (STATE.isAdmin) addAdminIndicator();
-        setTimeout(() => checkForResultsPopup(), 1000);
-        
-    } catch (e) {
-        console.error('❌ Dashboard error:', e);
-        console.error('❌ Error message:', e.message);
-        console.error('❌ Error stack:', e.stack);
-        
-        showToast('Error: ' + e.message, 'error');
-        showResult('Error: ' + e.message, true);
-        
-        const loginScreen = $('login-screen');
-        const dashboardScreen = $('dashboard-screen');
-        
-        if (loginScreen) {
-            loginScreen.classList.add('active');
-            loginScreen.style.display = 'flex';
-        }
-        if (dashboardScreen) {
-            dashboardScreen.classList.remove('active');
-            dashboardScreen.style.display = 'none';
-        }
-    } finally { 
-        loading(false); 
-    }
-}
-
-async function loadAllWeeksData() {
-    try {
-        const result = await api('getAllWeeksStats', { agentNo: STATE.agentNo });
-        STATE.allWeeksData = result;
-    } catch (e) {
-        console.log('Could not load all weeks data');
-        STATE.allWeeksData = null;
-    }
-}
-
-function checkForResultsPopup() {
-    // Check each completed week
-    STATE.weeks.forEach(week => {
-        if (isWeekCompleted(week) && !STATE.hasSeenResults[week]) {
-            showResultsPopup(week);
-        }
-    });
-}
-
-function showResultsPopup(week) {
-    // Create confetti and balloons
-    const overlay = document.createElement('div');
-    overlay.className = 'confetti-overlay';
-    overlay.id = 'confetti-overlay';
-    
-    // Add confetti
-    const colors = ['#ffd700', '#ff6b6b', '#7b2cbf', '#00d4ff', '#00ff88', '#ff4081'];
-    for (let i = 0; i < 100; i++) {
-        const confetti = document.createElement('div');
-        confetti.className = 'confetti';
-        confetti.style.left = Math.random() * 100 + '%';
-        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-        confetti.style.animationDelay = Math.random() * 2 + 's';
-        confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-        overlay.appendChild(confetti);
-    }
-    
-    // Add balloons
-    const balloons = ['🎈', '🎉', '🎊', '🏆', '⭐', '💜'];
-    for (let i = 0; i < 10; i++) {
-        const balloon = document.createElement('div');
-        balloon.className = 'balloon';
-        balloon.textContent = balloons[Math.floor(Math.random() * balloons.length)];
-        balloon.style.left = Math.random() * 100 + '%';
-        balloon.style.animationDelay = Math.random() * 1 + 's';
-        overlay.appendChild(balloon);
-    }
-    
-    document.body.appendChild(overlay);
-    
-    // Create popup
-    const popup = document.createElement('div');
-    popup.className = 'results-popup';
-    popup.id = 'results-popup';
-    popup.innerHTML = `
-        <div class="results-popup-content">
-            <div style="font-size:80px;margin-bottom:20px;">🏆</div>
-            <h2 style="color:#ffd700;font-size:24px;margin-bottom:10px;">${week} Results Are In!</h2>
-            <p style="color:#888;margin-bottom:30px;">The battle has concluded. View the final standings!</p>
-            <div style="display:flex;gap:15px;justify-content:center;">
-                <button onclick="viewResults('${week}')" class="btn-primary" style="padding:12px 24px;">View Results 🎉</button>
-                <button onclick="dismissResults('${week}')" style="padding:12px 24px;background:#333;border:none;color:#fff;border-radius:8px;cursor:pointer;">Later</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(popup);
-    
-    setTimeout(() => popup.classList.add('show'), 100);
-}
-
-function viewResults(week) {
-    markResultsSeen(week);
-    dismissResultsUI();
-    STATE.week = week;
-    loadPage('summary');
-}
-
-function dismissResults(week) {
-    markResultsSeen(week);
-    dismissResultsUI();
-}
-
-function dismissResultsUI() {
-    const popup = $('results-popup');
-    const confetti = $('confetti-overlay');
-    if (popup) { popup.classList.remove('show'); setTimeout(() => popup.remove(), 500); }
-    if (confetti) confetti.remove();
-}
-
-function setupDashboard() {
-    const p = STATE.data?.profile;
-    if (p) {
-        const color = teamColor(p.team);
-        const pfp = teamPfp(p.team);
-        const initial = (p.name || 'A')[0].toUpperCase();
-        ['agent', 'profile'].forEach(prefix => {
-            const avatar = $(prefix + '-avatar');
-            if (avatar) {
-                if (pfp) avatar.innerHTML = `<img src="${pfp}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-                else { avatar.textContent = initial; avatar.style.background = color; }
-            }
-            if ($(prefix + '-name')) $(prefix + '-name').textContent = p.name || 'Agent';
-            if ($(prefix + '-team')) { $(prefix + '-team').textContent = p.team || 'Team'; $(prefix + '-team').style.color = color; }
-            if ($(prefix + '-id')) $(prefix + '-id').textContent = 'ID: ' + STATE.agentNo;
-        });
-    }
-    
-    const select = $('week-select');
-    if (select && STATE.weeks.length) {
-        select.innerHTML = STATE.weeks.map(w => `<option value="${w}" ${w === STATE.week ? 'selected' : ''}>${w}</option>`).join('');
-        select.onchange = async () => {
-            loading(true);
-            try {
-                STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: select.value });
-                STATE.week = select.value;
-                if (STATE.data?.lastUpdated) { STATE.lastUpdated = STATE.data.lastUpdated; updateTime(); }
-                await loadPage(STATE.page);
-            } catch (e) { showToast('Failed to load week', 'error'); } finally { loading(false); }
-        };
-    }
-    
-    // Nav links
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.onclick = null;
-        link.onclick = e => {
-            e.preventDefault();
-            e.stopPropagation();
-            const page = link.dataset.page;
-            if (page) {
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-                loadPage(page);
-                closeSidebar();
-            }
-        };
-    });
-    
-    // Menu button
-    const menuBtn = $('menu-btn');
-    if (menuBtn) {
-        menuBtn.onclick = null;
-        menuBtn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            $('sidebar')?.classList.add('open');
-        };
-    }
-    
-    // Close sidebar button
-    const closeSidebarBtn = $('close-sidebar');
-    if (closeSidebarBtn) {
-        closeSidebarBtn.onclick = null;
-        closeSidebarBtn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            closeSidebar();
-        };
-    }
-    
-    // ⭐ FIX: Sidebar overlay - DON'T close admin panel
-    const sidebarOverlay = $('sidebar-overlay');
-    if (sidebarOverlay) {
-        sidebarOverlay.onclick = null;
-        sidebarOverlay.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // Only close sidebar, NOT the admin panel
-            closeSidebar();
-        };
-    }
-    
-    // Logout button
-    const logoutBtn = $('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.onclick = null;
-        logoutBtn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            logout();
-        };
-    }
-    
-    // Add admin indicator if admin
-    if (isAdminAgent()) addAdminIndicator();
-    
-    updateTime();
-}
 function closeSidebar() {
-    const sidebar = $('sidebar');
+    const sidebar = document.getElementById('sidebar');
     if (sidebar) {
         sidebar.classList.remove('open');
     }
-    // DON'T do anything else here that might interfere
 }
+
+console.log('✅ Fixed CSS & Admin code ready to use');
 // ==================== PAGE ROUTER ====================
 async function loadPage(page) {
     STATE.page = page;
