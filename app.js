@@ -2689,128 +2689,90 @@ async function renderChat() {
     const chatUrl = `https://tlk.io/${CONFIG.CHAT_CHANNEL}`;
     
     container.innerHTML = `
-        <div class="chat-page">
-            <!-- Compact Guide -->
-            <div style="
-                background: rgba(123, 44, 191, 0.1);
-                border-left: 3px solid #7b2cbf;
-                border-radius: 8px;
-                padding: 12px 15px;
-                margin-bottom: 15px;
-                display: flex;
-                align-items: flex-start;
-                gap: 12px;
-            ">
-                <span style="font-size: 20px;">💬</span>
-                <div style="flex: 1;">
-                    <div style="color: #fff; font-size: 13px; font-weight: 600; margin-bottom: 4px;">Secret Comms Channel</div>
-                    <div style="color: #888; font-size: 11px; line-height: 1.4;">
-                        Chat anonymously with fellow agents. 🤫 Use your codename, NOT your Agent ID!
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chat Launch Card -->
-            <div class="card" style="border-color: #7b2cbf; overflow: hidden;">
+        <!-- Main Chat Card - Compact -->
+        <div class="card" style="border-color: #7b2cbf;">
+            <div style="padding: 25px 20px; text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 12px;">🛰️</div>
+                
+                <!-- Status Badge -->
                 <div style="
-                    background: radial-gradient(ellipse at top, rgba(123,44,191,0.15) 0%, transparent 60%);
-                    padding: 30px 20px;
-                    text-align: center;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    background: rgba(0,255,136,0.1);
+                    padding: 4px 12px;
+                    border-radius: 15px;
+                    margin-bottom: 12px;
                 ">
-                    <div style="font-size: 50px; margin-bottom: 15px;">🛰️</div>
-                    
-                    <!-- Status -->
-                    <div style="
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 8px;
-                        background: rgba(0,255,136,0.1);
-                        border: 1px solid rgba(0,255,136,0.3);
-                        padding: 6px 14px;
-                        border-radius: 20px;
-                        margin-bottom: 15px;
-                    ">
-                        <span style="width: 8px; height: 8px; background: #00ff88; border-radius: 50%;"></span>
-                        <span style="color: #00ff88; font-size: 11px; font-weight: 600;">SECURE CHANNEL ONLINE</span>
-                    </div>
-                    
-                    <h3 style="color: #fff; margin: 0 0 8px 0; font-size: 18px;">HQ Encrypted Channel</h3>
-                    <p style="color: #888; font-size: 12px; margin: 0 0 20px 0;">
-                        Logged in as <span style="color: ${color}; font-weight: 600;">${name}</span> • Team ${team}
-                    </p>
-                    
-                    <!-- Launch Button -->
-                    <button onclick="openChat('${chatUrl}', '${name}')" style="
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 10px;
-                        padding: 14px 28px;
-                        background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                        color: #fff;
-                        border: none;
-                        border-radius: 10px;
-                        font-weight: 600;
-                        font-size: 14px;
-                        cursor: pointer;
-                        box-shadow: 0 4px 20px rgba(123, 44, 191, 0.4);
-                        transition: all 0.3s;
-                    ">
-                        🚀 LAUNCH COMMS
-                    </button>
+                    <span style="width:6px;height:6px;background:#00ff88;border-radius:50%;"></span>
+                    <span style="color:#00ff88;font-size:10px;font-weight:600;">ONLINE</span>
                 </div>
                 
-                <!-- Footer Info -->
-                <div style="
-                    background: rgba(0,0,0,0.3);
-                    padding: 12px 20px;
-                    display: flex;
-                    justify-content: center;
-                    gap: 20px;
-                    border-top: 1px solid #2a2a4a;
-                ">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="color: #00ff88; font-size: 10px;">●</span>
-                        <span style="color: #666; font-size: 11px;">Encryption: Active</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="color: #ffd700; font-size: 10px;">●</span>
-                        <span style="color: #666; font-size: 11px;">Opens in popup</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- View Rules Button -->
-            <div style="text-align: center; margin-top: 15px;">
-                <button onclick="showChatRules()" style="
-                    background: transparent;
-                    border: 1px solid #444;
-                    color: #888;
-                    padding: 10px 20px;
+                <h3 style="color: #fff; margin: 0 0 5px 0; font-size: 16px;">Secret Comms Channel</h3>
+                <p style="color: #888; font-size: 11px; margin: 0 0 15px 0;">
+                    Agent <span style="color:${color};font-weight:600;">${name}</span> • Team ${team}
+                </p>
+                
+                <!-- Launch Button -->
+                <button onclick="openChat('${chatUrl}', '${name}')" style="
+                    padding: 12px 24px;
+                    background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                    color: #fff;
+                    border: none;
                     border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 13px;
                     cursor: pointer;
-                    font-size: 12px;
-                    transition: all 0.3s;
-                ">📋 View Chat Rules</button>
-            </div>
-            
-            <!-- Quick Info -->
-            <div class="card" style="margin-top: 15px; padding: 15px;">
-                <h4 style="color: #fff; margin: 0 0 12px 0; font-size: 13px;">💬 What is this channel for?</h4>
-                <div style="display: grid; gap: 8px;">
-                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
-                        <span>🎯</span> <span>Coordinate with other agents anonymously</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
-                        <span>❓</span> <span>Ask questions about missions & goals</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
-                        <span>🔥</span> <span>Motivate each other during streaming</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
-                        <span>📢</span> <span>Rant if you want</span>
-                    </div>
+                    box-shadow: 0 4px 15px rgba(123, 44, 191, 0.3);
+                ">🚀 Launch Comms</button>
+                
+                <!-- View Rules Link -->
+                <div style="margin-top: 12px;">
+                    <span onclick="showChatRules()" style="color:#888;font-size:11px;cursor:pointer;text-decoration:underline;">
+                        📋 View Rules
+                    </span>
                 </div>
             </div>
+            
+            <!-- Quick Info - Compact Grid -->
+            <div style="
+                background: rgba(0,0,0,0.2);
+                padding: 12px 15px;
+                border-top: 1px solid #2a2a4a;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            ">
+                <div style="display:flex;align-items:center;gap:8px;color:#888;font-size:11px;">
+                    <span>🎯</span><span>Coordinate missions</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;color:#888;font-size:11px;">
+                    <span>❓</span><span>Ask questions</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;color:#888;font-size:11px;">
+                    <span>🔥</span><span>Motivate others</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;color:#888;font-size:11px;">
+                    <span>💬</span><span>Rant if you want</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Warning - Compact -->
+        <div style="
+            margin-top: 12px;
+            padding: 10px 15px;
+            background: rgba(255,215,0,0.05);
+            border: 1px solid rgba(255,215,0,0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        ">
+            <span style="font-size:16px;">🤫</span>
+            <span style="color:#888;font-size:11px;">
+                Use your <strong style="color:#ffd700;">codename only</strong> - keep Agent ID secret!
+            </span>
         </div>
     `;
 }
