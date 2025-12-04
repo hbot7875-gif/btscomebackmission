@@ -2798,7 +2798,7 @@ async function renderChat() {
                 <h4 style="color: #fff; margin: 0 0 12px 0; font-size: 13px;">💬 What is this channel for?</h4>
                 <div style="display: grid; gap: 8px;">
                     <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
-                        <span>🎯</span> <span>Coordinate streaming efforts in real-time</span>
+                        <span>🎯</span> <span>Coordinate with other agents anonymously</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
                         <span>❓</span> <span>Ask questions about missions & goals</span>
@@ -2807,7 +2807,7 @@ async function renderChat() {
                         <span>🔥</span> <span>Motivate each other during streaming</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
-                        <span>📢</span> <span>Get urgent updates from HQ</span>
+                        <span>📢</span> <span>Rant if you want</span>
                     </div>
                 </div>
             </div>
@@ -2825,11 +2825,11 @@ function openChat(url, nickname) {
         // First time - show rules first, then open chat
         showChatRules(function() {
             localStorage.setItem('chatRulesSeen_' + STATE.agentNo, 'true');
-            window.open(url, 'bts_chat', 'width=500,height=700');
+            window.open(url, 'bts_chat', 'width=50,height=70');
         });
     } else {
         // Already seen rules - open chat directly
-        window.open(url, 'bts_chat', 'width=500,height=700');
+        window.open(url, 'bts_chat', 'width=50,height=70');
     }
 }
 
@@ -2909,10 +2909,9 @@ function showChatRules(callback) {
                     <ul style="color: #aaa; font-size: 12px; margin: 0; padding-left: 20px; line-height: 2;">
                         <li><strong style="color:#ff6b6b;">Reveal your Agent ID</strong> - keep it secret!</li>
                         <li>Share personal info (real name, phone, address)</li>
-                        <li>Spam or flood the chat</li>
+                        <li>Spam the chat</li>
                         <li>Be rude to other agents</li>
                         <li>Discuss off-topic content</li>
-                        <li>Share illegal streaming methods</li>
                     </ul>
                 </div>
                 
