@@ -730,16 +730,17 @@ function showAdminLogin() {
         return; 
     }
     
-    // Remove any existing modals first
-    document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+    // Close sidebar first
+    closeSidebar();
+    
+    // Remove any existing modals
+    document.querySelectorAll('.admin-modal-overlay, .modal-overlay, #admin-modal').forEach(m => m.remove());
     
     const modal = document.createElement('div');
-    modal.className = 'admin-modal-overlay';
+    modal.className = 'admin-modal-overlay';  // ✅ Matches your CSS
     modal.id = 'admin-modal';
     
-    // Stop propagation on the modal itself
     modal.onclick = function(e) {
-        // Only close if clicking the overlay background, not the modal content
         if (e.target === modal) {
             closeAdminModal();
         }
@@ -747,20 +748,28 @@ function showAdminLogin() {
     
     modal.innerHTML = `
         <div class="admin-modal" onclick="event.stopPropagation();">
-            <div class="modal-header">
-                <h3>🔐 Admin Access</h3>
-                <button class="modal-close" type="button" onclick="event.stopPropagation(); closeAdminModal();">×</button>
+            <div class="admin-modal-header">
+                <h3>Admin Access</h3>
+                <button class="admin-modal-close" type="button" onclick="event.stopPropagation(); closeAdminModal();">×</button>
             </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>PASSWORD:</label>
-                    <input type="password" id="admin-password" class="form-input" autocomplete="off">
+            <div class="admin-modal-body">
+                <div class="admin-welcome">
+                    <p>Welcome, Commander</p>
+                    <p class="admin-note">Enter credentials to access Mission Control</p>
+                </div>
+                <div class="terminal-style">
+                    <div class="terminal-line">AUTHENTICATION REQUIRED</div>
+                    <label class="terminal-label">PASSWORD:</label>
+                    <input type="password" id="admin-password" class="terminal-input" placeholder="Enter access code..." autocomplete="off">
                 </div>
                 <div id="admin-error" class="admin-error"></div>
             </div>
-            <div class="modal-footer">
-                <button type="button" onclick="event.stopPropagation(); verifyAdminPassword();" class="btn-primary" id="admin-verify-btn">
-                    Authenticate
+            <div class="admin-modal-footer">
+                <button type="button" onclick="event.stopPropagation(); closeAdminModal();" class="btn-secondary">
+                    Cancel
+                </button>
+                <button type="button" onclick="event.stopPropagation(); verifyAdminPassword();" class="btn-primary">
+                    🔓 Authenticate
                 </button>
             </div>
         </div>
@@ -768,12 +777,11 @@ function showAdminLogin() {
     
     document.body.appendChild(modal);
     
-    // Focus password field after a short delay
+    // Focus password field
     setTimeout(() => {
         const pwField = document.getElementById('admin-password');
         if (pwField) {
             pwField.focus();
-            // Add enter key handler
             pwField.onkeypress = function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -795,12 +803,12 @@ function closeAdminModal() {
 async function verifyAdminPassword() {
     const passwordField = document.getElementById('admin-password');
     const password = passwordField?.value;
+    const errorEl = document.getElementById('admin-error');
     
     if (!password) {
-        const err = document.getElementById('admin-error');
-        if (err) {
-            err.textContent = '❌ Please enter password';
-            err.style.display = 'block';
+        if (errorEl) {
+            errorEl.textContent = '❌ Please enter password';
+            errorEl.classList.add('show');  // ✅ Use class instead of style
         }
         return;
     }
@@ -829,13 +837,9 @@ async function verifyAdminPassword() {
         localStorage.setItem('adminSession', STATE.adminSession);
         localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
         
-        // Close modal first
         closeAdminModal();
-        
-        // Add admin indicator
         addAdminIndicator();
         
-        // Ensure week is set
         if (!STATE.week) { 
             try { 
                 const w = await api('getAvailableWeeks'); 
@@ -845,16 +849,14 @@ async function verifyAdminPassword() {
         
         showToast('Access Granted', 'success');
         
-        // Open admin panel after a short delay
         setTimeout(() => {
             showAdminPanel();
         }, 100);
         
     } else {
-        const err = document.getElementById('admin-error');
-        if (err) { 
-            err.textContent = '❌ Invalid password'; 
-            err.style.display = 'block';
+        if (errorEl) { 
+            errorEl.textContent = '❌ Invalid password'; 
+            errorEl.classList.add('show');  // ✅ Use class
         }
     }
 }
