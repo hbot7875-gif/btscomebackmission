@@ -282,6 +282,120 @@ async function api(action, params = {}) {
     }
 }
 
+// ==================== BADGE FUNCTIONS ====================
+
+function getLevelBadges(agentNo, totalXP, week = STATE.week) {
+    const pool = CONFIG.BADGE_POOL || [];
+    if (!pool || pool.length === 0) return [];
+    
+    const badges = [];
+    const xp = parseInt(totalXP) || 0;
+    
+    // Every 50 XP = 1 Badge
+    const badgeCount = Math.floor(xp / 50);
+    
+    for (let level = 1; level <= badgeCount; level++) {
+        // Generate unique but consistent badge for each agent + level
+        let seed = 0;
+        const str = String(agentNo).toUpperCase();
+        for (let i = 0; i < str.length; i++) {
+            seed += str.charCodeAt(i);
+        }
+        seed += (level * 137);
+        
+        // Add week-based offset for variety
+        if (week) {
+            for (let i = 0; i < week.length; i++) {
+                seed += week.charCodeAt(i);
+            }
+        }
+        
+        const index = seed % pool.length;
+        
+        badges.push({ 
+            name: `${level * 50} XP`, 
+            description: `Earned at ${level * 50} XP`, 
+            imageUrl: pool[index], 
+            type: 'xp',
+            week: week || 'Unknown'
+        });
+    }
+    
+    return badges.reverse(); // Most recent first
+}
+
+function getSpecialBadges(agentNo, week = STATE.week) {
+    const pool = CONFIG.BADGE_POOL || [];
+    if (!pool || pool.length === 0) return [];
+    
+    const badges = [];
+    const album2xStatus = STATE.data?.album2xStatus || {};
+    const profile = STATE.data?.profile || {};
+    
+    // === ALBUM 2X COMPLETION BADGE ===
+    if (album2xStatus.passed) {
+        let seed = 0;
+        const str = String(agentNo).toUpperCase() + '_2X_' + week;
+        for (let i = 0; i < str.length; i++) {
+            seed += str.charCodeAt(i);
+        }
+        const index = seed % pool.length;
+        
+        badges.push({
+            name: '2X Master',
+            description: `Completed Album 2X Challenge`,
+            imageUrl: pool[index],
+            type: 'achievement',
+            icon: '✨',
+            week: week
+        });
+    }
+    
+    // === TEAM WINNER BADGE ===
+    const teamWinBadge = checkTeamWinnerBadge(agentNo, profile.team, week);
+    if (teamWinBadge) {
+        badges.push(teamWinBadge);
+    }
+    
+    return badges;
+}
+
+function checkTeamWinnerBadge(agentNo, team, week) {
+    const pool = CONFIG.BADGE_POOL || [];
+    if (!pool || pool.length === 0 || !team) return null;
+    
+    // Check from allWeeksData if available
+    if (STATE.allWeeksData?.weeks) {
+        const weekData = STATE.allWeeksData.weeks.find(w => w.week === week);
+        if (weekData?.winner === team) {
+            let seed = 0;
+            const str = String(agentNo).toUpperCase() + '_WINNER_' + week;
+            for (let i = 0; i < str.length; i++) {
+                seed += str.charCodeAt(i);
+            }
+            const index = seed % pool.length;
+            
+            return {
+                name: '🏆 Champion',
+                description: `Team ${team} won ${week}!`,
+                imageUrl: pool[index],
+                type: 'winner',
+                icon: '🏆',
+                week: week
+            };
+        }
+    }
+    
+    return null;
+}
+
+function getAllBadges(agentNo, totalXP, week = STATE.week) {
+    const xpBadges = getLevelBadges(agentNo, totalXP, week);
+    const specialBadges = getSpecialBadges(agentNo, week);
+    
+    // Special badges first, then XP badges
+    return [...specialBadges, ...xpBadges];
+}
 // ==================== ADMIN FUNCTIONS ====================
 function isAdminAgent() {
     return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
@@ -1617,8 +1731,8 @@ async function renderDrawer() {
     
     // Calculate totals from all weeks
     let totalXP = 0;
-    let allBadges = [];
-    let specialBadges = [];
+    let allXpBadges = [];
+    let allSpecialBadges = [];
     
     if (STATE.allWeeksData?.weeks?.length > 0) {
         STATE.allWeeksData.weeks.forEach(weekData => {
@@ -1627,45 +1741,54 @@ async function renderDrawer() {
             
             // XP badges for this week
             const weekBadges = getLevelBadges(STATE.agentNo, weekXP, weekData.week);
-            allBadges = allBadges.concat(weekBadges);
-            
-            // Special badges for this week
-            const weekSpecial = getSpecialBadges(STATE.agentNo, weekData.week);
-            specialBadges = specialBadges.concat(weekSpecial);
+            allXpBadges = allXpBadges.concat(weekBadges);
         });
+        
+        // Special badges (check current data)
+        allSpecialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
     } else {
+        // Fallback to current week only
         const stats = STATE.data?.stats || {};
         totalXP = parseInt(stats.totalXP) || 0;
-        allBadges = getLevelBadges(STATE.agentNo, totalXP, STATE.week);
-        specialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
+        allXpBadges = getLevelBadges(STATE.agentNo, totalXP, STATE.week);
+        allSpecialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
     }
     
-    const totalBadgeCount = allBadges.length + specialBadges.length;
+    const totalBadgeCount = allXpBadges.length + allSpecialBadges.length;
     
     container.innerHTML = `
+        <!-- Profile Card -->
         <div class="card">
             <div class="card-body">
-                <div class="drawer-header">
-                    ${teamPfp(profile.team) ? `<img src="${teamPfp(profile.team)}" class="drawer-pfp" style="border-color:${teamColor(profile.team)}">` : ''}
-                    <div class="drawer-info">
-                        <div class="drawer-name">${sanitize(profile.name)}</div>
-                        <div class="drawer-team" style="color:${teamColor(profile.team)}">Team ${profile.team}</div>
-                        <div class="drawer-id" style="color:#666;font-size:11px;">
-                            🤫 Agent ID is secret!
+                <div class="drawer-header" style="display:flex;align-items:center;gap:15px;margin-bottom:15px;">
+                    ${teamPfp(profile.team) ? `
+                        <img src="${teamPfp(profile.team)}" class="drawer-pfp" style="width:60px;height:60px;border-radius:50%;border:3px solid ${teamColor(profile.team)};">
+                    ` : `
+                        <div style="width:60px;height:60px;border-radius:50%;background:${teamColor(profile.team)};display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;">
+                            ${(profile.name || 'A')[0].toUpperCase()}
                         </div>
+                    `}
+                    <div class="drawer-info">
+                        <div class="drawer-name" style="color:#fff;font-size:18px;font-weight:600;">${sanitize(profile.name)}</div>
+                        <div class="drawer-team" style="color:${teamColor(profile.team)};font-size:13px;">Team ${profile.team}</div>
+                        <div style="color:#666;font-size:11px;margin-top:3px;">🤫 Agent ID is secret!</div>
                     </div>
                 </div>
                 
-                ${isAdmin ? `<button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">🔐 Access Mission Control</button>` : ''}
+                ${isAdmin ? `
+                    <button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">
+                        🔐 Access Mission Control
+                    </button>
+                ` : ''}
                 
-                <div class="drawer-stats">
-                    <div class="drawer-stat">
-                        <span class="value">${fmt(totalXP)}</span>
-                        <span class="label">Total XP</span>
+                <div class="drawer-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px;">
+                    <div class="drawer-stat" style="background:rgba(255,255,255,0.03);padding:15px;border-radius:10px;text-align:center;">
+                        <span class="value" style="display:block;font-size:24px;font-weight:700;color:#ffd700;">${fmt(totalXP)}</span>
+                        <span class="label" style="font-size:11px;color:#888;">Total XP</span>
                     </div>
-                    <div class="drawer-stat">
-                        <span class="value">${totalBadgeCount}</span>
-                        <span class="label">Badges</span>
+                    <div class="drawer-stat" style="background:rgba(255,255,255,0.03);padding:15px;border-radius:10px;text-align:center;">
+                        <span class="value" style="display:block;font-size:24px;font-weight:700;color:#7b2cbf;">${totalBadgeCount}</span>
+                        <span class="label" style="font-size:11px;color:#888;">Badges</span>
                     </div>
                 </div>
             </div>
@@ -1693,21 +1816,28 @@ async function renderDrawer() {
         </div>
         
         <!-- Special Achievement Badges -->
-        ${specialBadges.length ? `
+        ${allSpecialBadges.length ? `
             <div class="card">
-                <div class="card-header">
-                    <h3>🏆 Achievement Badges (${specialBadges.length})</h3>
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                    <h3 style="margin:0;font-size:14px;">🏆 Achievement Badges</h3>
+                    <span style="color:#888;font-size:12px;">${allSpecialBadges.length}</span>
                 </div>
                 <div class="card-body">
-                    <div class="badges-showcase">
-                        ${specialBadges.map(b => `
-                            <div class="badge-showcase-item" style="border-color: ${b.type === 'winner' ? '#ffd700' : '#7b2cbf'};">
-                                <div class="badge-circle holographic" style="width:65px;height:65px;">
-                                    <img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='${b.icon || '🎖️'}';">
+                    <div class="badges-showcase" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:15px;">
+                        ${allSpecialBadges.map(b => `
+                            <div class="badge-showcase-item" style="
+                                display:flex;flex-direction:column;align-items:center;text-align:center;
+                                padding:12px 8px;background:linear-gradient(145deg,rgba(26,26,46,0.8),rgba(18,18,26,0.9));
+                                border-radius:12px;border:1px solid ${b.type === 'winner' ? 'rgba(255,215,0,0.3)' : 'rgba(123,44,191,0.3)'};
+                            ">
+                                <div class="badge-circle holographic" style="width:60px;height:60px;">
+                                    <img src="${b.imageUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" 
+                                         onerror="this.style.display='none';this.parentElement.innerHTML='${b.icon || '🎖️'}';">
                                 </div>
                                 <div style="margin-top:8px;">
-                                    <div style="font-size:11px;font-weight:600;color:${b.type === 'winner' ? '#ffd700' : '#7b2cbf'};">${b.icon || ''} ${sanitize(b.name)}</div>
-                                    <div style="font-size:9px;color:#888;margin-top:2px;">${sanitize(b.description)}</div>
+                                    <div style="font-size:11px;font-weight:600;color:${b.type === 'winner' ? '#ffd700' : '#7b2cbf'};">
+                                        ${b.icon || ''} ${sanitize(b.name)}
+                                    </div>
                                     <div style="font-size:9px;color:#666;margin-top:2px;">${sanitize(b.week)}</div>
                                 </div>
                             </div>
@@ -1719,55 +1849,130 @@ async function renderDrawer() {
         
         <!-- XP Badges Collection -->
         <div class="card">
-            <div class="card-header">
-                <h3>⭐ XP Badges (${allBadges.length})</h3>
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="margin:0;font-size:14px;">⭐ XP Badges</h3>
+                <span style="color:#888;font-size:12px;">${allXpBadges.length}</span>
             </div>
             <div class="card-body">
-                ${allBadges.length ? `
-                    <div class="badges-showcase">
-                        ${allBadges.map(b => `
-                            <div class="badge-showcase-item">
-                                <div class="badge-circle holographic">
-                                    <img src="${b.imageUrl}" onerror="this.style.display='none';this.parentElement.innerHTML='❓';">
+                ${allXpBadges.length ? `
+                    <div class="badges-showcase" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:12px;">
+                        ${allXpBadges.map(b => `
+                            <div class="badge-showcase-item" style="
+                                display:flex;flex-direction:column;align-items:center;text-align:center;
+                                padding:10px 6px;background:linear-gradient(145deg,rgba(26,26,46,0.8),rgba(18,18,26,0.9));
+                                border-radius:10px;border:1px solid rgba(123,44,191,0.2);
+                            ">
+                                <div class="badge-circle holographic" style="width:50px;height:50px;">
+                                    <img src="${b.imageUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" 
+                                         onerror="this.style.display='none';this.parentElement.innerHTML='❓';">
                                 </div>
-                                <div class="badge-name">${sanitize(b.name)}</div>
-                                <div class="badge-week">${sanitize(b.week)}</div>
+                                <div style="margin-top:6px;font-size:10px;color:#ffd700;font-weight:600;">${sanitize(b.name)}</div>
+                                <div style="font-size:8px;color:#666;">${sanitize(b.week)}</div>
                             </div>
                         `).join('')}
                     </div>
                 ` : `
                     <div class="empty-state" style="text-align:center; padding:40px; color:#777;">
-                        <div style="font-size:60px; margin-bottom:15px;">🔒</div>
+                        <div style="font-size:50px; margin-bottom:15px;">🔒</div>
                         <h4 style="color:#fff; margin-bottom:8px;">No XP Badges Yet</h4>
-                        <p>Earn <strong style="color:#ffd700;">50 XP</strong> to unlock your first badge!</p>
+                        <p style="margin:0;font-size:13px;">Earn <strong style="color:#ffd700;">50 XP</strong> to unlock your first badge!</p>
                     </div>
                 `}
             </div>
+        </div>
+        
+        <!-- Logout Button -->
+        <div style="margin-top:20px;padding:0 10px;">
+            <button onclick="logout()" style="
+                width:100%;
+                padding:14px;
+                background:rgba(255,68,68,0.1);
+                border:1px solid rgba(255,68,68,0.3);
+                color:#ff6b6b;
+                border-radius:10px;
+                cursor:pointer;
+                font-size:14px;
+                transition:all 0.3s;
+            ">
+                🚪 Logout
+            </button>
         </div>
     `;
 }
 // ==================== PROFILE ====================
 async function renderProfile() {
+    const container = $('profile-stats');
+    if (!container) return;
+    
     const stats = STATE.data?.stats || {};
     const album2xStatus = STATE.data?.album2xStatus || {};
     const trackContributions = STATE.data?.trackContributions || {};
     const albumContributions = STATE.data?.albumContributions || {};
-    const currentWeekBadges = getLevelBadges(STATE.agentNo, stats.totalXP || 0, STATE.week);
+    const currentWeekXP = stats.totalXP || 0;
     
-    $('profile-stats').innerHTML = `
+    // Get badges for current week
+    const xpBadges = getLevelBadges(STATE.agentNo, currentWeekXP, STATE.week);
+    const specialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
+    const allCurrentBadges = [...specialBadges, ...xpBadges];
+    
+    container.innerHTML = `
         <div class="stat-box"><div class="stat-value">${fmt(stats.totalXP)}</div><div class="stat-label">XP (${STATE.week})</div></div>
         <div class="stat-box"><div class="stat-value">#${STATE.data?.rank || 'N/A'}</div><div class="stat-label">Rank</div></div>
         <div class="stat-box"><div class="stat-value">#${STATE.data?.teamRank || 'N/A'}</div><div class="stat-label">Team Rank</div></div>
         <div class="stat-box"><div class="stat-value">${fmt(stats.trackScrobbles)}</div><div class="stat-label">Track Streams</div></div>
         <div class="stat-box"><div class="stat-value">${fmt(stats.albumScrobbles)}</div><div class="stat-label">Album Streams</div></div>
-        <div class="stat-box"><div class="stat-value">${album2xStatus.passed ? '✅' : '❌'}</div><div class="stat-label">2X</div></div>
+        <div class="stat-box"><div class="stat-value">${album2xStatus.passed ? '✅' : '❌'}</div><div class="stat-label">2X Done</div></div>
     `;
     
-    $('profile-tracks').innerHTML = Object.keys(trackContributions).length ? Object.entries(trackContributions).sort((a, b) => b[1] - a[1]).map(([t, c]) => `<div class="contrib-item"><span>${sanitize(t)}</span><span>${fmt(c)} streams</span></div>`).join('') : '<p class="empty-text">No track data</p>';
-    $('profile-albums').innerHTML = Object.keys(albumContributions).length ? Object.entries(albumContributions).sort((a, b) => b[1] - a[1]).map(([a, c]) => `<div class="contrib-item"><span>${sanitize(a)}</span><span>${fmt(c)} streams</span></div>`).join('') : '<p class="empty-text">No album data</p>';
-    $('profile-badges').innerHTML = currentWeekBadges.length ? `<div style="margin-bottom:10px;"><span style="color:#888;font-size:12px;">Badges earned in ${STATE.week}</span></div><div class="badges-grid">${currentWeekBadges.map(b => `<div class="badge-item"><div class="badge-circle holographic" style="width:50px;height:50px;"><img src="${b.imageUrl}" onerror="this.parentElement.innerHTML='🎖️'"></div><div class="badge-name">${sanitize(b.name)}</div></div>`).join('')}</div>` : '<p class="empty-text">No badges earned this week yet</p>';
+    // Track contributions
+    const tracksContainer = $('profile-tracks');
+    if (tracksContainer) {
+        tracksContainer.innerHTML = Object.keys(trackContributions).length 
+            ? Object.entries(trackContributions)
+                .sort((a, b) => b[1] - a[1])
+                .map(([t, c]) => `<div class="contrib-item"><span>${sanitize(t)}</span><span>${fmt(c)} streams</span></div>`)
+                .join('') 
+            : '<p class="empty-text">No track data yet</p>';
+    }
+    
+    // Album contributions
+    const albumsContainer = $('profile-albums');
+    if (albumsContainer) {
+        albumsContainer.innerHTML = Object.keys(albumContributions).length 
+            ? Object.entries(albumContributions)
+                .sort((a, b) => b[1] - a[1])
+                .map(([a, c]) => `<div class="contrib-item"><span>${sanitize(a)}</span><span>${fmt(c)} streams</span></div>`)
+                .join('') 
+            : '<p class="empty-text">No album data yet</p>';
+    }
+    
+    // Badges
+    const badgesContainer = $('profile-badges');
+    if (badgesContainer) {
+        badgesContainer.innerHTML = allCurrentBadges.length ? `
+            <div style="margin-bottom:12px;">
+                <span style="color:#888;font-size:12px;">Badges earned in ${STATE.week}</span>
+            </div>
+            <div class="badges-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:12px;">
+                ${allCurrentBadges.map(b => `
+                    <div class="badge-item" style="text-align:center;">
+                        <div class="badge-circle holographic" style="width:55px;height:55px;margin:0 auto;">
+                            <img src="${b.imageUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.innerHTML='${b.icon || '🎖️'}';">
+                        </div>
+                        <div style="margin-top:6px;font-size:10px;color:${b.type === 'winner' ? '#ffd700' : b.type === 'achievement' ? '#7b2cbf' : '#888'};">
+                            ${b.type === 'achievement' ? '✨ ' : b.type === 'winner' ? '🏆 ' : ''}${sanitize(b.name)}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : `
+            <div class="empty-state" style="text-align:center; padding:30px; color:#777;">
+                <div style="font-size:40px; margin-bottom:10px;">🔒</div>
+                <p style="margin:0;">Earn <strong style="color:#ffd700;">50 XP</strong> to unlock your first badge!</p>
+            </div>
+        `;
+    }
 }
-
 // ==================== GOALS ====================
 async function renderGoals() {
     const container = $('goals-content');
@@ -2473,7 +2678,7 @@ async function renderAnnouncements() {
     } catch (e) { container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p></div></div>'; }
 }
 
-// ==================== CHAT (FIXED - No Empty Space) ====================
+// ==================== CHAT ====================
 async function renderChat() {
     const container = $('chat-content');
     if (!container) return;
@@ -2486,7 +2691,7 @@ async function renderChat() {
     container.innerHTML = `
         <div class="chat-page">
             <!-- Compact Guide -->
-            <div class="chat-guide" style="
+            <div style="
                 background: rgba(123, 44, 191, 0.1);
                 border-left: 3px solid #7b2cbf;
                 border-radius: 8px;
@@ -2500,24 +2705,19 @@ async function renderChat() {
                 <div style="flex: 1;">
                     <div style="color: #fff; font-size: 13px; font-weight: 600; margin-bottom: 4px;">Secret Comms Channel</div>
                     <div style="color: #888; font-size: 11px; line-height: 1.4;">
-                        Chat anonymously with fellow agents. Be kind - we're ONE team! 💜
+                        Chat anonymously with fellow agents. 🤫 Use your codename, NOT your Agent ID!
                     </div>
                 </div>
             </div>
 
-            <!-- Chat Launch Card - Compact -->
+            <!-- Chat Launch Card -->
             <div class="card" style="border-color: #7b2cbf; overflow: hidden;">
                 <div style="
                     background: radial-gradient(ellipse at top, rgba(123,44,191,0.15) 0%, transparent 60%);
                     padding: 30px 20px;
                     text-align: center;
                 ">
-                    <!-- Satellite Icon -->
-                    <div style="
-                        font-size: 50px;
-                        margin-bottom: 15px;
-                        animation: float 3s ease-in-out infinite;
-                    ">🛰️</div>
+                    <div style="font-size: 50px; margin-bottom: 15px;">🛰️</div>
                     
                     <!-- Status -->
                     <div style="
@@ -2530,44 +2730,33 @@ async function renderChat() {
                         border-radius: 20px;
                         margin-bottom: 15px;
                     ">
-                        <span style="
-                            width: 8px;
-                            height: 8px;
-                            background: #00ff88;
-                            border-radius: 50%;
-                            animation: pulse 1.5s infinite;
-                        "></span>
+                        <span style="width: 8px; height: 8px; background: #00ff88; border-radius: 50%;"></span>
                         <span style="color: #00ff88; font-size: 11px; font-weight: 600;">SECURE CHANNEL ONLINE</span>
                     </div>
                     
-                    <!-- Title -->
                     <h3 style="color: #fff; margin: 0 0 8px 0; font-size: 18px;">HQ Encrypted Channel</h3>
                     <p style="color: #888; font-size: 12px; margin: 0 0 20px 0;">
                         Logged in as <span style="color: ${color}; font-weight: 600;">${name}</span> • Team ${team}
                     </p>
                     
                     <!-- Launch Button -->
-                    <a href="${chatUrl}" target="_blank" 
-                       onclick="window.open(this.href, 'bts_chat', 'width=500,height=700'); return false;" 
-                       style="
-                           display: inline-flex;
-                           align-items: center;
-                           gap: 10px;
-                           padding: 14px 28px;
-                           background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                           color: #fff;
-                           text-decoration: none;
-                           border-radius: 10px;
-                           font-weight: 600;
-                           font-size: 14px;
-                           border: 1px solid rgba(255,255,255,0.1);
-                           box-shadow: 0 4px 20px rgba(123, 44, 191, 0.4);
-                           transition: all 0.3s;
-                       "
-                       onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 25px rgba(123,44,191,0.5)';"
-                       onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 20px rgba(123,44,191,0.4)';">
+                    <button onclick="openChat('${chatUrl}', '${name}')" style="
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 14px 28px;
+                        background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                        color: #fff;
+                        border: none;
+                        border-radius: 10px;
+                        font-weight: 600;
+                        font-size: 14px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 20px rgba(123, 44, 191, 0.4);
+                        transition: all 0.3s;
+                    ">
                         🚀 LAUNCH COMMS
-                    </a>
+                    </button>
                 </div>
                 
                 <!-- Footer Info -->
@@ -2590,34 +2779,62 @@ async function renderChat() {
                 </div>
             </div>
             
-            <!-- Quick Rules - Compact -->
-            <div style="
-                margin-top: 15px;
-                padding: 15px;
-                background: rgba(255,255,255,0.02);
-                border-radius: 10px;
-                border: 1px solid #2a2a4a;
-            ">
-                <div style="color: #888; font-size: 11px; text-align: center; line-height: 1.6;">
-                    <span style="color: #ffd700;">📋 Rules:</span> 
-                    Be respectful • No personal info • Help baby ARMYs • Stay on topic
+            <!-- View Rules Button -->
+            <div style="text-align: center; margin-top: 15px;">
+                <button onclick="showChatRules()" style="
+                    background: transparent;
+                    border: 1px solid #444;
+                    color: #888;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    transition: all 0.3s;
+                ">📋 View Chat Rules</button>
+            </div>
+            
+            <!-- Quick Info -->
+            <div class="card" style="margin-top: 15px; padding: 15px;">
+                <h4 style="color: #fff; margin: 0 0 12px 0; font-size: 13px;">💬 What is this channel for?</h4>
+                <div style="display: grid; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
+                        <span>🎯</span> <span>Coordinate streaming efforts in real-time</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
+                        <span>❓</span> <span>Ask questions about missions & goals</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
+                        <span>🔥</span> <span>Motivate each other during streaming</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
+                        <span>📢</span> <span>Get urgent updates from HQ</span>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <style>
-            @keyframes float {
-                0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-10px); }
-            }
-            @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
-            }
-        </style>
     `;
 }
-function showChatRules(callback = null) {
+
+// ==================== CHAT HELPER FUNCTIONS ====================
+
+function openChat(url, nickname) {
+    // Check if user has seen rules before
+    const hasSeenRules = localStorage.getItem('chatRulesSeen_' + STATE.agentNo);
+    
+    if (!hasSeenRules) {
+        // First time - show rules first, then open chat
+        showChatRules(function() {
+            localStorage.setItem('chatRulesSeen_' + STATE.agentNo, 'true');
+            window.open(url, 'bts_chat', 'width=500,height=700');
+        });
+    } else {
+        // Already seen rules - open chat directly
+        window.open(url, 'bts_chat', 'width=500,height=700');
+    }
+}
+
+function showChatRules(callback) {
+    // Remove any existing modal
     document.querySelectorAll('.chat-rules-modal').forEach(m => m.remove());
     
     const modal = document.createElement('div');
@@ -2636,6 +2853,8 @@ function showChatRules(callback = null) {
         padding: 20px;
     `;
     
+    const hasCallback = typeof callback === 'function';
+    
     modal.innerHTML = `
         <div style="
             background: linear-gradient(145deg, #1a1a2e, #0a0a0f);
@@ -2643,9 +2862,10 @@ function showChatRules(callback = null) {
             max-width: 400px;
             width: 100%;
             border: 1px solid #7b2cbf;
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
         ">
+            <!-- Header -->
             <div style="padding: 20px; border-bottom: 1px solid #333; text-align: center;">
                 <div style="font-size: 40px; margin-bottom: 10px;">🛰️</div>
                 <h3 style="color: #fff; margin: 0;">Comms Channel Rules</h3>
@@ -2656,82 +2876,125 @@ function showChatRules(callback = null) {
                 <div style="
                     background: rgba(255,215,0,0.1);
                     border: 1px solid rgba(255,215,0,0.3);
-                    border-radius: 8px;
-                    padding: 12px;
+                    border-radius: 10px;
+                    padding: 15px;
                     margin-bottom: 20px;
                     text-align: center;
                 ">
-                    <span style="font-size: 20px;">🤫</span>
-                    <div style="color: #ffd700; font-size: 13px; font-weight: 600; margin-top: 5px;">
+                    <span style="font-size: 24px;">🤫</span>
+                    <div style="color: #ffd700; font-size: 14px; font-weight: 600; margin-top: 8px;">
                         Keep Your Agent ID SECRET!
                     </div>
-                    <div style="color: #888; font-size: 11px; margin-top: 3px;">
+                    <div style="color: #888; font-size: 12px; margin-top: 5px;">
                         Use your codename only - it's more fun this way!
                     </div>
                 </div>
                 
+                <!-- DO Rules -->
                 <div style="margin-bottom: 20px;">
-                    <h4 style="color: #00ff88; margin: 0 0 10px 0; font-size: 13px;">✅ DO:</h4>
-                    <ul style="color: #aaa; font-size: 12px; margin: 0; padding-left: 20px; line-height: 1.8;">
-                        <li>Use your <strong>codename</strong> (not Agent ID!)</li>
+                    <h4 style="color: #00ff88; margin: 0 0 12px 0; font-size: 14px;">✅ DO:</h4>
+                    <ul style="color: #aaa; font-size: 12px; margin: 0; padding-left: 20px; line-height: 2;">
+                        <li>Use your <strong style="color:#fff;">codename</strong> (not Agent ID!)</li>
                         <li>Help fellow agents with questions</li>
                         <li>Share streaming tips & motivation</li>
                         <li>Coordinate team efforts</li>
                         <li>Be respectful to everyone</li>
+                        <li>Remember - you were a baby ARMY once too! 💜</li>
                     </ul>
                 </div>
                 
+                <!-- DON'T Rules -->
                 <div style="margin-bottom: 20px;">
-                    <h4 style="color: #ff4444; margin: 0 0 10px 0; font-size: 13px;">❌ DON'T:</h4>
-                    <ul style="color: #aaa; font-size: 12px; margin: 0; padding-left: 20px; line-height: 1.8;">
-                        <li><strong>Reveal your Agent ID</strong> - keep it secret!</li>
-                        <li>Share personal info (name, phone, address)</li>
+                    <h4 style="color: #ff4444; margin: 0 0 12px 0; font-size: 14px;">❌ DON'T:</h4>
+                    <ul style="color: #aaa; font-size: 12px; margin: 0; padding-left: 20px; line-height: 2;">
+                        <li><strong style="color:#ff6b6b;">Reveal your Agent ID</strong> - keep it secret!</li>
+                        <li>Share personal info (real name, phone, address)</li>
                         <li>Spam or flood the chat</li>
                         <li>Be rude to other agents</li>
                         <li>Discuss off-topic content</li>
+                        <li>Share illegal streaming methods</li>
                     </ul>
                 </div>
                 
+                <!-- Reminder -->
                 <div style="
                     background: rgba(123,44,191,0.1);
                     border: 1px solid rgba(123,44,191,0.3);
-                    border-radius: 8px;
+                    border-radius: 10px;
                     padding: 12px;
                     text-align: center;
                 ">
-                    <span style="color: #7b2cbf; font-size: 12px;">
-                        💜 Remember: We're ONE ARMY, different teams!
+                    <span style="color: #b366f9; font-size: 13px;">
+                        💜 We're ONE ARMY, different teams!<br>
+                        <span style="font-size: 11px; color: #888;">Help each other succeed.</span>
                     </span>
                 </div>
             </div>
             
+            <!-- Footer Buttons -->
             <div style="padding: 15px 20px; border-top: 1px solid #333; display: flex; gap: 10px;">
-                <button onclick="this.closest('.chat-rules-modal').remove()" 
-                        style="flex: 1; padding: 12px; background: #333; border: none; color: #fff; border-radius: 8px; cursor: pointer;">
-                    Close
-                </button>
-                ${callback ? `
-                    <button onclick="acceptRulesAndOpenChat()" 
-                            style="flex: 2; padding: 12px; background: linear-gradient(135deg, #7b2cbf, #5a1f99); border: none; color: #fff; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                        I Understand - Open Chat
-                    </button>
-                ` : ''}
+                ${hasCallback ? `
+                    <button id="chat-rules-cancel" style="
+                        flex: 1;
+                        padding: 12px;
+                        background: #333;
+                        border: none;
+                        color: #fff;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 13px;
+                    ">Cancel</button>
+                    <button id="chat-rules-accept" style="
+                        flex: 2;
+                        padding: 12px;
+                        background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                        border: none;
+                        color: #fff;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        font-size: 13px;
+                    ">I Understand - Open Chat 🚀</button>
+                ` : `
+                    <button id="chat-rules-close" style="
+                        flex: 1;
+                        padding: 12px;
+                        background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                        border: none;
+                        color: #fff;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        font-size: 13px;
+                    ">Got it! 👍</button>
+                `}
             </div>
         </div>
     `;
     
-    if (callback) {
-        window.acceptRulesAndOpenChat = function() {
-            document.querySelectorAll('.chat-rules-modal').forEach(m => m.remove());
+    document.body.appendChild(modal);
+    
+    // Button event handlers
+    if (hasCallback) {
+        document.getElementById('chat-rules-cancel').onclick = function() {
+            modal.remove();
+        };
+        document.getElementById('chat-rules-accept').onclick = function() {
+            modal.remove();
             callback();
+        };
+    } else {
+        document.getElementById('chat-rules-close').onclick = function() {
+            modal.remove();
         };
     }
     
+    // Close on outside click
     modal.onclick = function(e) {
-        if (e.target === modal) modal.remove();
+        if (e.target === modal) {
+            modal.remove();
+        }
     };
-    
-    document.body.appendChild(modal);
 }
 // ==================== PLAYLISTS ====================
 async function renderPlaylists() {
@@ -2835,7 +3098,7 @@ async function renderHelperRoles() {
             <div class="card-body" style="text-align:center;padding:30px;">
                 <div style="font-size:40px;margin-bottom:15px;">🚀</div>
                 <h4 style="color:#fff;margin-bottom:10px;">Want to Join the Helper Army?</h4>
-                <p style="color:#888;font-size:13px;">Contact Admin through Secret Comms or announcements.<br>More roles will be released depending on the need!</p>
+                <p style="color:#888;font-size:13px;">Contact Admin through insta or Secret Comms.<br>More roles will be released depending on the need!</p>
             </div>
         </div>
     `;
