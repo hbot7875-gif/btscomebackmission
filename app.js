@@ -649,6 +649,196 @@ function ensureAppCSS() {
     `;
     document.head.appendChild(style);
 }
+// Add after the existing admin panel styles:
+
+/* === ADMIN LOGIN MODAL === */
+.admin-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 999998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-modal {
+    background: linear-gradient(145deg, #1a1a2e, #0a0a0f);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    border: 1px solid #7b2cbf;
+    box-shadow: 0 0 50px rgba(123, 44, 191, 0.3);
+}
+
+.admin-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #333;
+}
+
+.admin-modal-header h3 { color: #fff; margin: 0; }
+
+.admin-modal-close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.admin-modal-body { padding: 20px; }
+
+.admin-welcome { text-align: center; margin-bottom: 20px; }
+.admin-welcome p { color: #ffd700; font-size: 18px; margin: 0; }
+.admin-note { color: #888 !important; font-size: 12px !important; margin-top: 5px !important; }
+
+.terminal-style {
+    background: #0a0a0f;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.terminal-line { color: #00ff88; font-family: monospace; margin-bottom: 10px; }
+.terminal-label { color: #888; font-size: 12px; display: block; margin-bottom: 5px; }
+
+.terminal-input {
+    width: 100%;
+    background: transparent;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 10px;
+    color: #fff;
+    font-family: monospace;
+}
+
+.admin-error {
+    color: #ff4444;
+    text-align: center;
+    padding: 10px;
+    display: none;
+}
+
+.admin-error.show { display: block; }
+
+.admin-modal-footer {
+    display: flex;
+    gap: 10px;
+    padding: 20px;
+    border-top: 1px solid #333;
+    justify-content: flex-end;
+}
+
+/* === FORM ELEMENTS === */
+.create-mission-form { padding: 10px 0; }
+
+.form-section {
+    margin-bottom: 20px;
+}
+
+.form-section h4 {
+    color: #fff;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.form-input, .form-textarea {
+    width: 100%;
+    background: #12121a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px;
+    color: #fff;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.form-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.mission-type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.mission-type-option {
+    padding: 12px;
+    background: #12121a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    color: #888;
+    transition: all 0.3s;
+}
+
+.mission-type-option:hover { border-color: #7b2cbf; }
+.mission-type-option.selected {
+    background: rgba(123, 44, 191, 0.2);
+    border-color: #7b2cbf;
+    color: #fff;
+}
+
+.team-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.team-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.form-actions {
+    margin-top: 20px;
+}
+
+/* === BUTTONS === */
+.btn-primary {
+    background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(123, 44, 191, 0.4);
+}
+
+.btn-secondary {
+    background: #333;
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.loading-text {
+    color: #888;
+    text-align: center;
+    padding: 20px;
+}
 
 function setupLoginListeners() {
     const loginBtn = $('login-btn');
