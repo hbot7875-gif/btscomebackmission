@@ -2274,39 +2274,150 @@ async function renderAnnouncements() {
     } catch (e) { container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p></div></div>'; }
 }
 
-// ==================== CHAT ====================
+// ==================== CHAT (FIXED - No Empty Space) ====================
 async function renderChat() {
     const container = $('chat-content');
     if (!container) return;
+    
     const team = STATE.data?.profile?.team || 'Unknown';
     const name = sanitize(STATE.data?.profile?.name) || 'Agent';
     const color = teamColor(team);
     const chatUrl = `https://tlk.io/${CONFIG.CHAT_CHANNEL}`;
     
     container.innerHTML = `
-        ${renderGuide('chat')}
-        <div class="card" style="height: calc(100% - 150px); display: flex; flex-direction: column; margin-bottom: 0;">
-            <div class="card-header" style="border-bottom: 1px solid var(--border);">
-                <h3>💬 Secret Comms Channel</h3>
-                <div class="mission-hint">Encrypted Channel • Logged in as <span style="color:${color}">${name}</span></div>
+        <div class="chat-page">
+            <!-- Compact Guide -->
+            <div class="chat-guide" style="
+                background: rgba(123, 44, 191, 0.1);
+                border-left: 3px solid #7b2cbf;
+                border-radius: 8px;
+                padding: 12px 15px;
+                margin-bottom: 15px;
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+            ">
+                <span style="font-size: 20px;">💬</span>
+                <div style="flex: 1;">
+                    <div style="color: #fff; font-size: 13px; font-weight: 600; margin-bottom: 4px;">Secret Comms Channel</div>
+                    <div style="color: #888; font-size: 11px; line-height: 1.4;">
+                        Chat anonymously with fellow agents. Be kind - we're ONE team! 💜
+                    </div>
+                </div>
             </div>
-            <div class="card-body" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0f 100%);">
-                <div style="font-size: 60px; margin-bottom: 20px;">🛰️</div>
-                <h2 style="color: var(--text-bright); margin-bottom: 10px;">Secure Link Established</h2>
-                <p style="color: var(--text-dim); max-width: 400px; margin-bottom: 30px; font-size: 14px;">
-                    To bypass ad-blockers and ensure transmission security, the comms channel must be opened in a secure popup link.
-                </p>
-                <a href="${chatUrl}" target="_blank" onclick="window.open(this.href, 'bts_chat', 'width=500,height=700'); return false;" class="btn-primary" style="padding: 15px 30px; font-size: 16px; border: 1px solid var(--purple-glow); box-shadow: 0 0 20px rgba(123, 44, 191, 0.3);">
-                    🚀 LAUNCH COMMS CHANNEL
-                </a>
-                <div style="margin-top: 30px; font-size: 11px; color: var(--text-muted);">
-                    Status: <span style="color: var(--success);">ONLINE</span> • Encryption: <span style="color: var(--success);">ACTIVE</span>
+
+            <!-- Chat Launch Card - Compact -->
+            <div class="card" style="border-color: #7b2cbf; overflow: hidden;">
+                <div style="
+                    background: radial-gradient(ellipse at top, rgba(123,44,191,0.15) 0%, transparent 60%);
+                    padding: 30px 20px;
+                    text-align: center;
+                ">
+                    <!-- Satellite Icon -->
+                    <div style="
+                        font-size: 50px;
+                        margin-bottom: 15px;
+                        animation: float 3s ease-in-out infinite;
+                    ">🛰️</div>
+                    
+                    <!-- Status -->
+                    <div style="
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        background: rgba(0,255,136,0.1);
+                        border: 1px solid rgba(0,255,136,0.3);
+                        padding: 6px 14px;
+                        border-radius: 20px;
+                        margin-bottom: 15px;
+                    ">
+                        <span style="
+                            width: 8px;
+                            height: 8px;
+                            background: #00ff88;
+                            border-radius: 50%;
+                            animation: pulse 1.5s infinite;
+                        "></span>
+                        <span style="color: #00ff88; font-size: 11px; font-weight: 600;">SECURE CHANNEL ONLINE</span>
+                    </div>
+                    
+                    <!-- Title -->
+                    <h3 style="color: #fff; margin: 0 0 8px 0; font-size: 18px;">HQ Encrypted Channel</h3>
+                    <p style="color: #888; font-size: 12px; margin: 0 0 20px 0;">
+                        Logged in as <span style="color: ${color}; font-weight: 600;">${name}</span> • Team ${team}
+                    </p>
+                    
+                    <!-- Launch Button -->
+                    <a href="${chatUrl}" target="_blank" 
+                       onclick="window.open(this.href, 'bts_chat', 'width=500,height=700'); return false;" 
+                       style="
+                           display: inline-flex;
+                           align-items: center;
+                           gap: 10px;
+                           padding: 14px 28px;
+                           background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                           color: #fff;
+                           text-decoration: none;
+                           border-radius: 10px;
+                           font-weight: 600;
+                           font-size: 14px;
+                           border: 1px solid rgba(255,255,255,0.1);
+                           box-shadow: 0 4px 20px rgba(123, 44, 191, 0.4);
+                           transition: all 0.3s;
+                       "
+                       onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 25px rgba(123,44,191,0.5)';"
+                       onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 20px rgba(123,44,191,0.4)';">
+                        🚀 LAUNCH COMMS
+                    </a>
+                </div>
+                
+                <!-- Footer Info -->
+                <div style="
+                    background: rgba(0,0,0,0.3);
+                    padding: 12px 20px;
+                    display: flex;
+                    justify-content: center;
+                    gap: 20px;
+                    border-top: 1px solid #2a2a4a;
+                ">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="color: #00ff88; font-size: 10px;">●</span>
+                        <span style="color: #666; font-size: 11px;">Encryption: Active</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="color: #ffd700; font-size: 10px;">●</span>
+                        <span style="color: #666; font-size: 11px;">Opens in popup</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Rules - Compact -->
+            <div style="
+                margin-top: 15px;
+                padding: 15px;
+                background: rgba(255,255,255,0.02);
+                border-radius: 10px;
+                border: 1px solid #2a2a4a;
+            ">
+                <div style="color: #888; font-size: 11px; text-align: center; line-height: 1.6;">
+                    <span style="color: #ffd700;">📋 Rules:</span> 
+                    Be respectful • No personal info • Help baby ARMYs • Stay on topic
                 </div>
             </div>
         </div>
+        
+        <style>
+            @keyframes float {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-10px); }
+            }
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+        </style>
     `;
 }
-
 // ==================== PLAYLISTS ====================
 async function renderPlaylists() {
     const container = $('playlists-content');
