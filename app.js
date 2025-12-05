@@ -1933,18 +1933,24 @@ async function loadDashboard() {
         $('dashboard-screen').classList.add('active');
         $('dashboard-screen').style.display = 'flex';
         
-        setupDashboard();
-        await loadPage('home');
-        if (STATE.isAdmin) addAdminIndicator();
-    } catch (e) {
-        console.error('❌ Dashboard error:', e);
-        showToast('Error: ' + e.message, 'error');
-        showResult('Error: ' + e.message, true);
-        $('login-screen').classList.add('active');
-        $('login-screen').style.display = 'flex';
-        $('dashboard-screen').classList.remove('active');
-        $('dashboard-screen').style.display = 'none';
-    } finally { loading(false); }
+        try {
+    setupDashboard();
+    await loadPage('home');
+    if (STATE.isAdmin) addAdminIndicator();
+} catch (e) {
+    console.error('❌ Dashboard error:', e);
+    showToast('Error: ' + e.message, 'error');
+    showResult('Error: ' + e.message, true);
+    
+    const loginScreen = $('login-screen');
+    const dashboardScreen = $('dashboard-screen');
+    
+    loginScreen.classList.add('active');
+    loginScreen.style.display = 'flex';
+    dashboardScreen.classList.remove('active');
+    dashboardScreen.style.display = 'none';
+} finally {
+    loading(false);
 }
 
 async function loadAllWeeksData() {
