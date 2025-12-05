@@ -2231,153 +2231,15 @@ async function renderDrawer() {
     const totalBadgeCount = allXpBadges.length + allSpecialBadges.length;
     
     container.innerHTML = `
-        <!-- Profile Card -->
-        <div class="card">
-            <div class="card-body">
-                <div class="drawer-header" style="display:flex;align-items:center;gap:15px;margin-bottom:15px;">
-                    ${teamPfp(profile.team) ? `
-                        <img src="${teamPfp(profile.team)}" class="drawer-pfp" style="width:60px;height:60px;border-radius:50%;border:3px solid ${teamColor(profile.team)};">
-                    ` : `
-                        <div style="width:60px;height:60px;border-radius:50%;background:${teamColor(profile.team)};display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;">
-                            ${(profile.name || 'A')[0].toUpperCase()}
-                        </div>
-                    `}
-                    <div class="drawer-info">
-                        <div class="drawer-name" style="color:#fff;font-size:18px;font-weight:600;">${sanitize(profile.name)}</div>
-                        <div class="drawer-team" style="color:${teamColor(profile.team)};font-size:13px;">Team ${profile.team}</div>
-                        <div style="color:#666;font-size:11px;margin-top:3px;">🤫 Agent ID is secret!</div>
-                    </div>
-                </div>
-                
-                ${isAdmin ? `
-                    <button onclick="showAdminLogin()" class="btn-primary" style="width:100%; margin: 10px 0;">
-                        🔐 Access Mission Control
-                    </button>
-                ` : ''}
-                
-                <div class="drawer-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px;">
-                    <div class="drawer-stat" style="background:rgba(255,255,255,0.03);padding:15px;border-radius:10px;text-align:center;">
-                        <span class="value" style="display:block;font-size:24px;font-weight:700;color:#ffd700;">${fmt(totalXP)}</span>
-                        <span class="label" style="font-size:11px;color:#888;">Total XP</span>
-                    </div>
-                    <div class="drawer-stat" style="background:rgba(255,255,255,0.03);padding:15px;border-radius:10px;text-align:center;">
-                        <span class="value" style="display:block;font-size:24px;font-weight:700;color:#7b2cbf;">${totalBadgeCount}</span>
-                        <span class="label" style="font-size:11px;color:#888;">Badges</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Badge Rules Card -->
-        <div class="card" style="background: rgba(255,215,0,0.05); border-color: rgba(255,215,0,0.2);">
-            <div class="card-body" style="padding: 15px;">
-                <h4 style="color: #ffd700; margin: 0 0 12px 0; font-size: 13px;">🎖️ How to Earn Badges</h4>
-                <div style="display: grid; gap: 8px;">
-                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
-                        <span style="font-size: 16px;">⭐</span>
-                        <span>Every <strong style="color:#ffd700;">50 XP</strong> = 1 Badge</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
-                        <span style="font-size: 16px;">✨</span>
-                        <span>Complete <strong style="color:#7b2cbf;">Album 2X</strong> = Special Badge</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px; color: #aaa; font-size: 12px;">
-                        <span style="font-size: 16px;">🏆</span>
-                        <span><strong style="color:#00ff88;">Team Wins</strong> = Winner Badge for all!</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Special Achievement Badges -->
-        ${allSpecialBadges.length ? `
-            <div class="card">
-                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                    <h3 style="margin:0;font-size:14px;">🏆 Achievement Badges</h3>
-                    <span style="color:#888;font-size:12px;">${allSpecialBadges.length}</span>
-                </div>
-                <div class="card-body">
-                    <div class="badges-showcase" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:15px;">
-                        ${allSpecialBadges.map(b => `
-                            <div class="badge-showcase-item" style="
-                                display:flex;flex-direction:column;align-items:center;text-align:center;
-                                padding:12px 8px;background:linear-gradient(145deg,rgba(26,26,46,0.8),rgba(18,18,26,0.9));
-                                border-radius:12px;border:1px solid ${b.type === 'winner' ? 'rgba(255,215,0,0.3)' : 'rgba(123,44,191,0.3)'};
-                            ">
-                                <div class="badge-circle holographic" style="width:60px;height:60px;">
-                                    <img src="${b.imageUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" 
-                                         onerror="this.style.display='none';this.parentElement.innerHTML='${b.icon || '🎖️'}';">
-                                </div>
-                                <div style="margin-top:8px;">
-                                    <div style="font-size:11px;font-weight:600;color:${b.type === 'winner' ? '#ffd700' : '#7b2cbf'};">
-                                        ${b.icon || ''} ${sanitize(b.name)}
-                                    </div>
-                                    <div style="font-size:9px;color:#666;margin-top:2px;">${sanitize(b.week)}</div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        ` : ''}
-        
-        <!-- XP Badges Collection -->
-        <div class="card">
-            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                <h3 style="margin:0;font-size:14px;">⭐ XP Badges</h3>
-                <span style="color:#888;font-size:12px;">${allXpBadges.length}</span>
-            </div>
-            <div class="card-body">
-                ${allXpBadges.length ? `
-                    <div class="badges-showcase" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:12px;">
-                        ${allXpBadges.map(b => `
-                            <div class="badge-showcase-item" style="
-                                display:flex;flex-direction:column;align-items:center;text-align:center;
-                                padding:10px 6px;background:linear-gradient(145deg,rgba(26,26,46,0.8),rgba(18,18,26,0.9));
-                                border-radius:10px;border:1px solid rgba(123,44,191,0.2);
-                            ">
-                                <div class="badge-circle holographic" style="width:50px;height:50px;">
-                                    <img src="${b.imageUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" 
-                                         onerror="this.style.display='none';this.parentElement.innerHTML='❓';">
-                                </div>
-                                <div style="margin-top:6px;font-size:10px;color:#ffd700;font-weight:600;">${sanitize(b.name)}</div>
-                                <div style="font-size:8px;color:#666;">${sanitize(b.week)}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                ` : `
-                    <div class="empty-state" style="text-align:center; padding:40px; color:#777;">
-                        <div style="font-size:50px; margin-bottom:15px;">🔒</div>
-                        <h4 style="color:#fff; margin-bottom:8px;">No XP Badges Yet</h4>
-                        <p style="margin:0;font-size:13px;">Earn <strong style="color:#ffd700;">50 XP</strong> to unlock your first badge!</p>
-                    </div>
-                `}
-            </div>
-        </div>
-        
-        <!-- Logout Button -->
-        <div style="margin-top:20px;padding:0 10px;">
-            <button onclick="logout()" style="
-                width:100%;
-                padding:14px;
-                background:rgba(255,68,68,0.1);
-                border:1px solid rgba(255,68,68,0.3);
-                color:#ff6b6b;
-                border-radius:10px;
-                cursor:pointer;
-                font-size:14px;
-                transition:all 0.3s;
-            ">
-                🚪 Logout
-            </button>
-        </div>
+        <!-- ... all the HTML template ... -->
     `;
-}
+    
+    // ✅ MOVED INSIDE THE FUNCTION (before the closing brace)
     const currentXP = parseInt(STATE.data?.stats?.totalXP) || 0;
     STATE.lastChecked.badges = Math.floor(currentXP / 50);
     STATE.lastChecked.album2xBadge = STATE.data?.album2xStatus?.passed || false;
     saveNotificationState();
-}
+}  // ← Only ONE closing brace
 // ==================== PROFILE ====================
 async function renderProfile() {
     const container = $('profile-stats');
@@ -3381,7 +3243,15 @@ async function renderSecretMissions() {
                 </div>
             ` : ''}
         `;
-    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body error-state"><p>Failed to load secret missions.</p></div></div>'; }
+        
+        // ✅ Moved INSIDE try block where 'activeMissions' is accessible
+        STATE.lastChecked.missions = activeMissions.length;
+        saveNotificationState();
+        
+    } catch (e) {
+        console.error('Failed to load secret missions:', e);
+        container.innerHTML = '<div class="card"><div class="card-body error-state"><p>Failed to load secret missions.</p></div></div>';
+    }
 }
 
 function renderSecretMissionCard(mission, myTeam, isAssigned) {
@@ -3429,9 +3299,6 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
             <div class="smc-footer"><span class="smc-reward">⭐ +${mission.xpReward || 5} XP</span></div>
         </div>
     `;
-}
-    STATE.lastChecked.missions = activeMissions.length;
-    saveNotificationState();
 }
 // ==================== ANNOUNCEMENTS ====================
 async function renderAnnouncements() {
@@ -3787,17 +3654,21 @@ async function renderPlaylists() {
         } else {
             listEl.innerHTML = `<div style="text-align:center;padding:40px;color:#888;"><div style="font-size:48px;margin-bottom:15px;">📭</div><p>No playlists available yet</p><p style="font-size:12px;">Check back later for official streaming playlists</p></div>`;
         }
-    } catch (e) { $('playlists-list').innerHTML = '<p style="color:red;">Failed to load playlists</p>'; }
+        
+        // ✅ Moved INSIDE try block where 'playlists' is accessible
+        STATE.lastChecked.playlists = playlists.length;
+        saveNotificationState();
+        
+    } catch (e) {
+        console.error('Failed to load playlists:', e);
+        $('playlists-list').innerHTML = '<p style="color:red;">Failed to load playlists</p>';
+    }
 }
 
 function getPlaylistIcon(platform) {
     const icons = { 'spotify': '💚', 'apple': '🍎', 'youtube': '🔴', 'amazon': '📦', 'deezer': '🎧' };
     return icons[(platform || '').toLowerCase()] || '🎵';
 }
-    STATE.lastChecked.playlists = playlists.length;
-    saveNotificationState();
-}
-
 // ==================== GC LINKS ====================
 async function renderGCLinks() {
     const container = $('gc-links-content');
