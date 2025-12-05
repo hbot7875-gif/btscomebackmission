@@ -1885,33 +1885,43 @@ async function handleFind() {
     finally { loading(false); }
 }
 
+let notificationInterval = null;
+
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
     loading(true);
+    
+    // Clear previous interval if exists
+    if (notificationInterval) {
+        clearInterval(notificationInterval);
+        notificationInterval = null;
+    }
+    
     try {
         const weeksRes = await api('getAvailableWeeks');
         STATE.weeks = weeksRes.weeks || [];
         STATE.week = weeksRes.current || STATE.weeks[0];
         STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: STATE.week });
+        
         if (STATE.data?.lastUpdated) STATE.lastUpdated = STATE.data.lastUpdated;
+        
         await loadAllWeeksData();
-                // ===== LOAD NOTIFICATION STATE =====
         loadNotificationState();
         
+        // Switch screens
         $('login-screen').classList.remove('active');
         $('login-screen').style.display = 'none';
         $('dashboard-screen').classList.add('active');
         $('dashboard-screen').style.display = 'flex';
         
+        // Setup dashboard
         setupDashboard();
         await loadPage('home');
         preloadDashboardData();
         
-        // ===== CHECK FOR NOTIFICATIONS =====
+        // Check for notifications
         setTimeout(() => checkNotifications(), 1000);
-        
-        // ===== CHECK PERIODICALLY (every 5 minutes) =====
-        setInterval(() => checkNotifications(), 5 * 60 * 1000);
+        notificationInterval = setInterval(() => checkNotifications(), 5 * 60 * 1000);
         
         if (STATE.isAdmin) addAdminIndicator();
         
@@ -1919,6 +1929,8 @@ async function loadDashboard() {
         console.error('❌ Dashboard error:', e);
         showToast('Error: ' + e.message, 'error');
         showResult('Error: ' + e.message, true);
+        
+        // Show login screen on error
         $('login-screen').classList.add('active');
         $('login-screen').style.display = 'flex';
         $('dashboard-screen').classList.remove('active');
@@ -1927,32 +1939,8 @@ async function loadDashboard() {
         loading(false); 
     }
 }
-        
-        $('login-screen').classList.remove('active');
-        $('login-screen').style.display = 'none';
-        $('dashboard-screen').classList.add('active');
-        $('dashboard-screen').style.display = 'flex';
-        
-        try {
-    setupDashboard();
-    await loadPage('home');
-    if (STATE.isAdmin) addAdminIndicator();
-} catch (e) {
-    console.error('❌ Dashboard error:', e);
-    showToast('Error: ' + e.message, 'error');
-    showResult('Error: ' + e.message, true);
-    
-    const loginScreen = $('login-screen');
-    const dashboardScreen = $('dashboard-screen');
-    
-    loginScreen.classList.add('active');
-    loginScreen.style.display = 'flex';
-    dashboardScreen.classList.remove('active');
-    dashboardScreen.style.display = 'none';
-} finally {
-    loading(false);
-}
 
+// ✅ DELETE everything after this point that was orphaned
 async function loadAllWeeksData() {
     try {
         const result = await api('getAllWeeksStats', { agentNo: STATE.agentNo });
