@@ -84,7 +84,7 @@ const CONFIG = {
         CHALLENGE_NAME: "4X",       // "2X", "4X", "5X"
         BADGE_NAME: "4X Master",
         BADGE_DESCRIPTION: "Completed Album 4X Challenge"
-    }, 
+};     
 // ==================== STATE ====================
 const STATE = {
     agentNo: null,
