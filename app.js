@@ -40,10 +40,10 @@ const CONFIG = {
     // ===== ALBUM CHALLENGE SETTINGS =====
     // 🎯 Change these to switch from 2X to 4X!
     ALBUM_CHALLENGE: {
-        REQUIRED_STREAMS: 2,
-        CHALLENGE_NAME: "2X",
-        BADGE_NAME: "2X Master",
-        BADGE_DESCRIPTION: "Completed Album 2X Challenge"
+        REQUIRED_STREAMS: 4,
+        CHALLENGE_NAME: "4X",
+        BADGE_NAME: "4X Master",
+        BADGE_DESCRIPTION: "Completed Album 4X Challenge"
     },
     
     TEAMS: {
