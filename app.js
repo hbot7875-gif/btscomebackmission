@@ -302,6 +302,14 @@ async function api(action, params = {}) {
         throw e;
     }
 }
+function preloadDashboardData() {
+    // Fire background API calls to cache data
+    if (STATE.week) {
+        api('getRankings', { week: STATE.week, limit: 50 }).catch(() => {});
+        api('getGoalsProgress', { week: STATE.week }).catch(() => {});
+        api('getWeeklySummary', { week: STATE.week }).catch(() => {});
+    }
+}
 // ==================== NOTIFICATION SYSTEM ====================
 
 // Load saved notification state
@@ -2228,12 +2236,12 @@ async function renderDrawer() {
         <!-- ... all the HTML template ... -->
     `;
     
-    // ✅ MOVED INSIDE THE FUNCTION (before the closing brace)
+    
     const currentXP = parseInt(STATE.data?.stats?.totalXP) || 0;
     STATE.lastChecked.badges = Math.floor(currentXP / 50);
     STATE.lastChecked.album2xBadge = STATE.data?.album2xStatus?.passed || false;
     saveNotificationState();
-}  // ← Only ONE closing brace
+}  
 // ==================== PROFILE ====================
 async function renderProfile() {
     const container = $('profile-stats');
