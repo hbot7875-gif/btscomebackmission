@@ -545,16 +545,34 @@ function updateNotificationBadge() {
     
     if (count > 0) {
         if (!badge) {
-            // Create badge if doesn't exist
-            const header = document.querySelector('.app-header');
+            // Try multiple possible header selectors
+            const header = document.querySelector('.app-header') || 
+                          document.querySelector('header') || 
+                          document.querySelector('.header') ||
+                          document.querySelector('#header') ||
+                          document.querySelector('.dashboard-header') ||
+                          document.querySelector('.top-bar');
+            
             if (header) {
                 badge = document.createElement('div');
                 badge.id = 'notification-badge';
                 badge.className = 'notification-badge';
                 badge.onclick = () => showNotificationCenter();
+                header.style.position = 'relative'; // Ensure positioning works
                 header.appendChild(badge);
+                console.log('✅ Badge added to header');
+            } else {
+                // Fallback: Add to body as fixed element
+                badge = document.createElement('div');
+                badge.id = 'notification-badge';
+                badge.className = 'notification-badge';
+                badge.style.cssText = 'position:fixed;top:15px;right:15px;z-index:9999;';
+                badge.onclick = () => showNotificationCenter();
+                document.body.appendChild(badge);
+                console.log('✅ Badge added to body (fixed position)');
             }
         }
+        
         if (badge) {
             badge.innerHTML = `🔔 <span class="badge-count">${count}</span>`;
             badge.style.display = 'flex';
