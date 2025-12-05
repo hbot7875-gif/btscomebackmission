@@ -1627,7 +1627,7 @@ async function renderHome() {
                         <div class="quick-header">
                             ${teamPfp(team) ? `<img src="${teamPfp(team)}" class="quick-pfp" style="border-color:${teamColor(team)}">` : ''}
                             <div class="quick-info">
-                                <div class="quick-name">Welcome, @${sanitize(agentName)}!</div>
+                                <div class="quick-name">Welcome, ${sanitize(agentName)}!</div>
                                 <div class="quick-team" style="color:${teamColor(team)}">Team ${team} • Rank #${STATE.data?.rank || 'N/A'}</div>
                             </div>
                         </div>
