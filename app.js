@@ -2221,6 +2221,8 @@ async function renderDrawer() {
     if (!container) return;
     
     const profile = STATE.data?.profile || {};
+    const stats = STATE.data?.stats || {};
+    const team = profile.team || 'Unknown';
     const isAdmin = isAdminAgent();
     const album2xStatus = STATE.data?.album2xStatus || {};
     
@@ -2233,34 +2235,214 @@ async function renderDrawer() {
         STATE.allWeeksData.weeks.forEach(weekData => {
             const weekXP = parseInt(weekData.stats?.totalXP) || 0;
             totalXP += weekXP;
-            
-            // XP badges for this week
             const weekBadges = getLevelBadges(STATE.agentNo, weekXP, weekData.week);
             allXpBadges = allXpBadges.concat(weekBadges);
         });
-        
-        // Special badges (check current data)
         allSpecialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
     } else {
-        // Fallback to current week only
-        const stats = STATE.data?.stats || {};
         totalXP = parseInt(stats.totalXP) || 0;
         allXpBadges = getLevelBadges(STATE.agentNo, totalXP, STATE.week);
         allSpecialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
     }
     
-    const totalBadgeCount = allXpBadges.length + allSpecialBadges.length;
+    const allBadges = [...allSpecialBadges, ...allXpBadges];
+    const totalBadgeCount = allBadges.length;
     
     container.innerHTML = `
-        <!-- ... all the HTML template ... -->
+        <!-- Agent Profile Card -->
+        <div class="card" style="border-color: ${teamColor(team)}; margin-bottom: 20px;">
+            <div class="card-body" style="text-align: center; padding: 30px;">
+                <div style="
+                    width: 100px;
+                    height: 100px;
+                    border-radius: 50%;
+                    margin: 0 auto 15px;
+                    border: 3px solid ${teamColor(team)};
+                    overflow: hidden;
+                    background: ${teamColor(team)}22;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 40px;
+                ">
+                    ${teamPfp(team) ? `<img src="${teamPfp(team)}" style="width:100%;height:100%;object-fit:cover;">` : (profile.name || 'A')[0].toUpperCase()}
+                </div>
+                <h2 style="color: #fff; margin: 0 0 5px 0;">${sanitize(profile.name || 'Agent')}</h2>
+                <p style="color: ${teamColor(team)}; margin: 0 0 5px 0; font-weight: 600;">Team ${team}</p>
+                <p style="color: #888; margin: 0; font-size: 12px;">Agent ID: ${STATE.agentNo}</p>
+                
+                ${isAdmin ? `
+                    <div style="
+                        margin-top: 15px;
+                        padding: 8px 16px;
+                        background: linear-gradient(135deg, #ffd700, #ff8c00);
+                        color: #000;
+                        border-radius: 20px;
+                        font-size: 12px;
+                        font-weight: bold;
+                        display: inline-block;
+                    ">👑 ADMIN</div>
+                ` : ''}
+            </div>
+        </div>
+        
+        <!-- Stats Summary -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+                <h3 style="margin: 0;">📊 Your Stats</h3>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
+                    <div style="padding: 15px; background: rgba(255,215,0,0.1); border-radius: 12px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #ffd700;">${fmt(totalXP)}</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 5px;">Total XP</div>
+                    </div>
+                    <div style="padding: 15px; background: rgba(123,44,191,0.1); border-radius: 12px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #7b2cbf;">#${STATE.data?.rank || 'N/A'}</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 5px;">Rank</div>
+                    </div>
+                    <div style="padding: 15px; background: rgba(0,255,136,0.1); border-radius: 12px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #00ff88;">${totalBadgeCount}</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 5px;">Badges</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; display: flex; justify-content: space-between;">
+                        <span style="color: #888;">🎵 Tracks</span>
+                        <span style="color: #fff; font-weight: 600;">${fmt(stats.trackScrobbles || 0)}</span>
+                    </div>
+                    <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; display: flex; justify-content: space-between;">
+                        <span style="color: #888;">💿 Albums</span>
+                        <span style="color: #fff; font-weight: 600;">${fmt(stats.albumScrobbles || 0)}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Badges Section -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">🎖️ Your Badges</h3>
+                <span style="color: #ffd700; font-size: 12px;">${totalBadgeCount} earned</span>
+            </div>
+            <div class="card-body">
+                ${allBadges.length > 0 ? `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 15px;">
+                        ${allBadges.map(badge => `
+                            <div style="text-align: center;">
+                                <div class="badge-circle holographic" style="
+                                    width: 60px;
+                                    height: 60px;
+                                    margin: 0 auto;
+                                    border-radius: 50%;
+                                    overflow: hidden;
+                                    border: 2px solid ${badge.type === 'achievement' ? '#7b2cbf' : '#ffd700'};
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    background: rgba(123,44,191,0.1);
+                                ">
+                                    ${badge.imageUrl ? `
+                                        <img src="${badge.imageUrl}" style="width:100%;height:100%;object-fit:cover;" 
+                                             onerror="this.style.display='none';this.parentElement.innerHTML='${badge.icon || '🎖️'}';">
+                                    ` : `<span style="font-size:28px;">${badge.icon || '🎖️'}</span>`}
+                                </div>
+                                <div style="margin-top: 8px; font-size: 10px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sanitize(badge.name)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">🔒</div>
+                        <p style="color: #888; margin: 0;">Earn <strong style="color: #ffd700;">50 XP</strong> to unlock your first badge!</p>
+                        <p style="color: #666; font-size: 12px; margin-top: 10px;">Keep streaming to collect badges!</p>
+                    </div>
+                `}
+            </div>
+        </div>
+        
+        <!-- Album Challenge Status -->
+        <div class="card" style="border-color: ${album2xStatus.passed ? '#00ff88' : '#7b2cbf'}; margin-bottom: 20px;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">✨ ${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Challenge</h3>
+                <span style="
+                    padding: 4px 12px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    background: ${album2xStatus.passed ? 'rgba(0,255,136,0.1)' : 'rgba(123,44,191,0.1)'};
+                    color: ${album2xStatus.passed ? '#00ff88' : '#7b2cbf'};
+                    border: 1px solid ${album2xStatus.passed ? 'rgba(0,255,136,0.3)' : 'rgba(123,44,191,0.3)'};
+                ">${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}</span>
+            </div>
+            <div class="card-body" style="text-align: center; padding: 25px;">
+                <div style="font-size: 40px; margin-bottom: 10px;">${album2xStatus.passed ? '🎉' : '🎯'}</div>
+                <p style="color: #888; margin: 0 0 15px 0;">
+                    ${album2xStatus.passed 
+                        ? `You earned the <strong style="color: #7b2cbf;">${CONFIG.ALBUM_CHALLENGE.BADGE_NAME}</strong> badge!`
+                        : `Stream each track ${CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS}X to earn a special badge!`
+                    }
+                </p>
+                <button onclick="loadPage('album2x')" class="btn-secondary" style="padding: 10px 25px;">
+                    View Progress →
+                </button>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+                <h3 style="margin: 0;">⚡ Quick Actions</h3>
+            </div>
+            <div class="card-body" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                <button onclick="loadPage('profile')" class="btn-secondary" style="padding: 12px; font-size: 12px;">
+                    👤 Profile
+                </button>
+                <button onclick="loadPage('rankings')" class="btn-secondary" style="padding: 12px; font-size: 12px;">
+                    🏆 Rankings
+                </button>
+                <button onclick="loadPage('goals')" class="btn-secondary" style="padding: 12px; font-size: 12px;">
+                    🎯 Goals
+                </button>
+                <button onclick="loadPage('secret-missions')" class="btn-secondary" style="padding: 12px; font-size: 12px;">
+                    🕵️ Missions
+                </button>
+            </div>
+        </div>
+        
+        ${isAdmin ? `
+            <!-- Admin Section -->
+            <div class="card" style="border-color: #ffd700;">
+                <div class="card-header" style="background: rgba(255,215,0,0.05);">
+                    <h3 style="margin: 0; color: #ffd700;">👑 Admin Controls</h3>
+                </div>
+                <div class="card-body">
+                    <button onclick="showAdminPanel()" class="btn-primary" style="
+                        width: 100%; 
+                        padding: 15px; 
+                        background: linear-gradient(135deg, #ffd700, #ff8c00); 
+                        color: #000;
+                        font-weight: bold;
+                    ">
+                        🎛️ Open Mission Control
+                    </button>
+                </div>
+            </div>
+        ` : ''}
+        
+        <!-- App Info -->
+        <div style="text-align: center; padding: 20px; color: #444; font-size: 11px;">
+            <p style="margin: 0;">BTS Spy Battle v5.0</p>
+            <p style="margin: 5px 0 0 0;">💜 Fighting! 💜</p>
+        </div>
     `;
     
-    
-    const currentXP = parseInt(STATE.data?.stats?.totalXP) || 0;
+    // Update notification state
+    const currentXP = parseInt(stats.totalXP) || 0;
     STATE.lastChecked.badges = Math.floor(currentXP / 50);
-    STATE.lastChecked.album2xBadge = STATE.data?.album2xStatus?.passed || false;
+    STATE.lastChecked.album2xBadge = album2xStatus.passed || false;
     saveNotificationState();
-}  
+}
 // ==================== PROFILE ====================
 async function renderProfile() {
     const container = $('profile-stats');
