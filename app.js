@@ -241,7 +241,7 @@ const PAGE_GUIDES = {
         icon: '🎖️',
         title: 'Your Badge Collection',
         text: "Earn badges by:\n• Every 50 XP = 1 Badge 🎖️\n• Complete Album 2X = Special Badge ✨\n• Team Wins Week = Winner Badge 🏆"
-    }
+    },
 };
 
 function renderGuide(pageName) {
