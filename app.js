@@ -542,40 +542,44 @@ function updateNotificationBadge() {
     
     if (count > 0) {
         if (!badge) {
-            // Try multiple possible header selectors
-            const header = document.querySelector('.app-header') || 
-                          document.querySelector('header') || 
-                          document.querySelector('.header') ||
-                          document.querySelector('#header') ||
-                          document.querySelector('.dashboard-header') ||
-                          document.querySelector('.top-bar');
+            // Create badge
+            badge = document.createElement('div');
+            badge.id = 'notification-badge';
+            badge.className = 'notification-badge';
+            badge.onclick = () => showNotificationCenter();
             
-            if (header) {
-                badge = document.createElement('div');
-                badge.id = 'notification-badge';
-                badge.className = 'notification-badge';
-                badge.onclick = () => showNotificationCenter();
-                header.style.position = 'relative'; // Ensure positioning works
-                header.appendChild(badge);
-                console.log('✅ Badge added to header');
-            } else {
-                // Fallback: Add to body as fixed element
-                badge = document.createElement('div');
-                badge.id = 'notification-badge';
-                badge.className = 'notification-badge';
-                badge.style.cssText = 'position:fixed;top:15px;right:15px;z-index:9999;';
-                badge.onclick = () => showNotificationCenter();
-                document.body.appendChild(badge);
-                console.log('✅ Badge added to body (fixed position)');
-            }
+            // Add directly to body with fixed position
+            badge.style.cssText = `
+                position: fixed !important;
+                top: 15px !important;
+                right: 70px !important;
+                z-index: 999999 !important;
+                background: linear-gradient(135deg, #ff4444, #cc0000);
+                color: #fff;
+                padding: 8px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                animation: pulse 2s infinite;
+                border: 1px solid rgba(255,68,68,0.5);
+                box-shadow: 0 4px 15px rgba(255,68,68,0.3);
+            `;
+            
+            document.body.appendChild(badge);
+            console.log('✅ Notification badge created');
         }
         
-        if (badge) {
-            badge.innerHTML = `🔔 <span class="badge-count">${count}</span>`;
-            badge.style.display = 'flex';
-        }
+        badge.innerHTML = `🔔 <span class="badge-count">${count}</span>`;
+        badge.style.display = 'flex';
+        console.log('🔔 Badge updated:', count, 'notifications');
+        
     } else {
-        if (badge) badge.style.display = 'none';
+        if (badge) {
+            badge.style.display = 'none';
+        }
     }
 }
 
