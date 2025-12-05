@@ -80,10 +80,10 @@ const CONFIG = {
     }
 };
     ALBUM_CHALLENGE: {
-        REQUIRED_STREAMS: 2,        // Must match backend!
-        CHALLENGE_NAME: "2X",       // "2X", "4X", "5X"
-        BADGE_NAME: "2X Master",
-        BADGE_DESCRIPTION: "Completed Album 2X Challenge"
+        REQUIRED_STREAMS: 4,        // Must match backend!
+        CHALLENGE_NAME: "4X",       // "2X", "4X", "5X"
+        BADGE_NAME: "4X Master",
+        BADGE_DESCRIPTION: "Completed Album 4X Challenge"
     }, 
 // ==================== STATE ====================
 const STATE = {
