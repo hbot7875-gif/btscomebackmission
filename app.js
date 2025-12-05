@@ -18,28 +18,7 @@ const CONFIG = {
         'Week 3': '2025-12-27',
         'Week 4': '2026-01-03'
     },
-    // Create badge directly on body
-const testBadge = document.createElement('div');
-testBadge.innerHTML = '🔔 <span style="background:#fff;color:red;padding:2px 6px;border-radius:10px;margin-left:5px;">3</span>';
-testBadge.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: linear-gradient(135deg, #ff4444, #cc0000);
-    color: white;
-    padding: 10px 15px;
-    border-radius: 20px;
-    font-size: 14px;
-    z-index: 999999;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-`;
-testBadge.onclick = () => alert('Badge clicked!');
-document.body.appendChild(testBadge);
-    // Chat Settings
-    CHAT_CHANNEL: 'bts-comeback-mission-hq', 
-
+    
     // ===== BADGE CONFIGURATION =====
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
     TOTAL_BADGE_IMAGES: 49,
