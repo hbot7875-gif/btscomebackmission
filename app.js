@@ -3462,12 +3462,15 @@ async function renderAnnouncements() {
                 </div>
             </div>
         `;
-    } catch (e) { container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p></div></div>'; }
+        
+        // ✅ Moved INSIDE the try block
+        STATE.lastChecked.announcements = Date.now();
+        saveNotificationState();
+        
+    } catch (e) {
+        container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p></div></div>';
+    }
 }
-STATE.lastChecked.announcements = Date.now();
-    saveNotificationState();
-}
-
 // ==================== CHAT ====================
 async function renderChat() {
     const container = $('chat-content');
