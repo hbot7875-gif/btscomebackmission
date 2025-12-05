@@ -195,10 +195,10 @@ const PAGE_GUIDES = {
         title: 'Classified Tasks', 
         text: "Bonus XP tasks from HQ. Complete them for extra team XP!" 
     },
-    'team-level': { 
+     'team-level': { 
         icon: '🚀', 
-        title: 'Leveling Up', 
-        text: "Complete Track, Album, and 2X missions to level up your team and earn badges.\n\n🏆 If your team WINS the week, all team members get a special Winner Badge!" 
+        title: 'Leveling Up & Winning', 
+        text: "To WIN the week, your team must:\n1️⃣ Complete ALL 3 missions (Track + Album + 2X)\n2️⃣ Have the highest XP among eligible teams\n\n🏆 Winner team members all get a Champion Badge!" 
     },
     'rankings': { 
         icon: '🏆', 
@@ -2032,6 +2032,27 @@ async function renderAlbum2x() {
     const allComplete = completedCount === trackResults.length && trackResults.length > 0;
     const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
     
+    // Fetch team 2X status to show who missed
+    let teamMembersStatus = [];
+    let teamPassed = 0;
+    let teamFailed = 0;
+    
+    try {
+        const album2xData = await api('getAlbum2xStatus', { week: STATE.week, team: team });
+        const teamData = album2xData.teams?.[team] || {};
+        teamMembersStatus = teamData.members || [];
+        teamPassed = teamData.passed || 0;
+        teamFailed = teamData.failed || 0;
+    } catch (e) {
+        console.log('Could not fetch team 2X status:', e);
+    }
+    
+    // Separate passed and failed members
+    const passedMembers = teamMembersStatus.filter(m => m.passed);
+    const failedMembers = teamMembersStatus.filter(m => !m.passed);
+    const totalMembers = teamMembersStatus.length;
+    const teamAllComplete = failedMembers.length === 0 && totalMembers > 0;
+    
     container.innerHTML = `
         <!-- Guide with Important Notice -->
         <div class="card guide-card" style="background: rgba(255, 68, 68, 0.1); border-left: 3px solid #ff6b6b; margin-bottom: 20px;">
@@ -2048,8 +2069,19 @@ async function renderAlbum2x() {
             </div>
         </div>
         
-        <!-- Progress Card -->
+        <!-- Your Personal Progress Card -->
         <div class="card" style="border-color:${allComplete ? 'var(--success)' : teamColor(team)}">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="margin:0;">📊 Your Progress</h3>
+                <span class="status-badge" style="
+                    padding: 4px 12px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    background: ${allComplete ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};
+                    color: ${allComplete ? '#00ff88' : '#ffa500'};
+                    border: 1px solid ${allComplete ? 'rgba(0,255,136,0.3)' : 'rgba(255,165,0,0.3)'};
+                ">${allComplete ? '✅ Complete' : '⏳ In Progress'}</span>
+            </div>
             <div class="card-body" style="text-align:center;padding:30px;">
                 <div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div>
                 <h2 style="color:${teamColor(team)};margin-bottom:8px;">${sanitize(albumName)}</h2>
@@ -2098,7 +2130,7 @@ async function renderAlbum2x() {
         
         <!-- Track Checklist -->
         <div class="card">
-            <div class="card-header"><h3>📋 Track Checklist</h3></div>
+            <div class="card-header"><h3>📋 Your Track Checklist</h3></div>
             <div class="card-body">
                 ${trackResults.map((t, i) => `
                     <div class="track-item ${t.passed ? 'passed' : 'pending'}" style="
@@ -2137,18 +2169,166 @@ async function renderAlbum2x() {
             </div>
         </div>
         
+        <!-- TEAM STATUS SECTION -->
+        <div class="card" style="border-color: ${teamAllComplete ? '#00ff88' : '#ff6b6b'}; margin-top: 20px;">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="margin:0;">👥 Team ${team} Status</h3>
+                <span style="
+                    padding: 4px 12px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    background: ${teamAllComplete ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)'};
+                    color: ${teamAllComplete ? '#00ff88' : '#ff6b6b'};
+                    border: 1px solid ${teamAllComplete ? 'rgba(0,255,136,0.3)' : 'rgba(255,68,68,0.3)'};
+                ">${teamAllComplete ? '✅ Team Passed!' : `❌ ${failedMembers.length} Missing`}</span>
+            </div>
+            <div class="card-body">
+                <!-- Team Progress Bar -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                        <span style="color:#888;font-size:12px;">Team Completion</span>
+                        <span style="color:#fff;font-size:12px;font-weight:600;">${teamPassed}/${totalMembers} agents</span>
+                    </div>
+                    <div class="progress-bar" style="height:10px;">
+                        <div class="progress-fill ${teamAllComplete ? 'complete' : ''}" style="
+                            width:${totalMembers > 0 ? (teamPassed/totalMembers)*100 : 0}%;
+                            background:${teamAllComplete ? '#00ff88' : teamColor(team)};
+                        "></div>
+                    </div>
+                </div>
+                
+                ${failedMembers.length > 0 ? `
+                    <!-- WHO MISSED 2X - IMPORTANT SECTION -->
+                    <div style="
+                        background: rgba(255,68,68,0.08);
+                        border: 1px solid rgba(255,68,68,0.2);
+                        border-radius: 12px;
+                        padding: 15px;
+                        margin-bottom: 15px;
+                    ">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                            <span style="font-size:20px;">🚨</span>
+                            <div>
+                                <div style="color:#ff6b6b;font-weight:600;font-size:14px;">Agents Who Need to Complete 2X</div>
+                                <div style="color:#888;font-size:11px;">Help remind them! The team needs everyone.</div>
+                            </div>
+                        </div>
+                        
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                            ${failedMembers.map(m => `
+                                <div style="
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    padding: 8px 12px;
+                                    background: rgba(255,68,68,0.1);
+                                    border: 1px solid rgba(255,68,68,0.2);
+                                    border-radius: 8px;
+                                ">
+                                    <span style="font-size:14px;">❌</span>
+                                    <span style="color:#fff;font-size:12px;">${sanitize(m.name)}</span>
+                                    ${String(m.agentNo) === String(STATE.agentNo) ? `
+                                        <span style="
+                                            background:#ff6b6b;
+                                            color:#000;
+                                            padding:2px 6px;
+                                            border-radius:4px;
+                                            font-size:9px;
+                                            font-weight:bold;
+                                        ">YOU</span>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div style="
+                            margin-top: 12px;
+                            padding: 10px;
+                            background: rgba(255,165,0,0.1);
+                            border-radius: 8px;
+                            text-align: center;
+                        ">
+                            <span style="color:#ffa500;font-size:11px;">
+                                💬 Gently remind them in the team GC or Secret Comms!
+                            </span>
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${passedMembers.length > 0 ? `
+                    <!-- Agents Who Completed -->
+                    <div style="
+                        background: rgba(0,255,136,0.05);
+                        border: 1px solid rgba(0,255,136,0.1);
+                        border-radius: 12px;
+                        padding: 15px;
+                    ">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                            <span style="font-size:20px;">🎉</span>
+                            <div>
+                                <div style="color:#00ff88;font-weight:600;font-size:14px;">Agents Who Completed 2X</div>
+                                <div style="color:#888;font-size:11px;">${passedMembers.length} agent${passedMembers.length !== 1 ? 's' : ''} done!</div>
+                            </div>
+                        </div>
+                        
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                            ${passedMembers.slice(0, 20).map(m => `
+                                <div style="
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 6px;
+                                    padding: 6px 10px;
+                                    background: rgba(0,255,136,0.1);
+                                    border: 1px solid rgba(0,255,136,0.15);
+                                    border-radius: 6px;
+                                ">
+                                    <span style="font-size:12px;">✅</span>
+                                    <span style="color:#ccc;font-size:11px;">${sanitize(m.name)}</span>
+                                    ${String(m.agentNo) === String(STATE.agentNo) ? `
+                                        <span style="
+                                            background:#00ff88;
+                                            color:#000;
+                                            padding:2px 6px;
+                                            border-radius:4px;
+                                            font-size:9px;
+                                            font-weight:bold;
+                                        ">YOU</span>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                            ${passedMembers.length > 20 ? `
+                                <div style="color:#888;font-size:11px;padding:6px;">
+                                    +${passedMembers.length - 20} more...
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+        
         <!-- Team Status Note -->
-        <div class="card" style="background: rgba(255,255,255,0.02);">
+        <div class="card" style="background: rgba(255,255,255,0.02); margin-top: 15px;">
             <div class="card-body" style="text-align:center;padding:20px;">
-                <p style="color:#888;font-size:12px;margin:0;">
-                    💜 Help your teammates complete this challenge too!<br>
-                    <span style="color:#666;font-size:11px;">The whole team needs to pass for the mission to succeed.</span>
-                </p>
+                ${teamAllComplete ? `
+                    <div style="font-size:40px;margin-bottom:10px;">🎊</div>
+                    <p style="color:#00ff88;font-size:14px;font-weight:600;margin:0 0 5px 0;">
+                        Amazing! Your entire team completed the 2X Challenge!
+                    </p>
+                    <p style="color:#888;font-size:12px;margin:0;">
+                        This mission is PASSED! 🎖️
+                    </p>
+                ` : `
+                    <p style="color:#888;font-size:12px;margin:0;">
+                        💜 Help your teammates complete this challenge!<br>
+                        <span style="color:#ff6b6b;font-weight:600;">${failedMembers.length} agent${failedMembers.length !== 1 ? 's' : ''}</span> still need${failedMembers.length === 1 ? 's' : ''} to finish for the team to pass.
+                    </p>
+                `}
             </div>
         </div>
     `;
 }
-
 // ==================== RANKINGS ====================
 async function renderRankings() {
     const container = $('rankings-list');
@@ -2258,26 +2438,120 @@ async function renderTeamLevel() {
         if (summary.lastUpdated) STATE.lastUpdated = summary.lastUpdated;
         const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
         const isCompleted = isWeekCompleted(STATE.week);
+        
+        // Find teams that completed all missions
+        const teamsWithAllMissions = sortedTeams.filter(([t, info]) => 
+            info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed
+        );
+        
+        // Winner is the team with highest XP that completed ALL missions
+        const winnerTeam = teamsWithAllMissions.length > 0 ? teamsWithAllMissions[0][0] : null;
         const leadingTeam = sortedTeams[0]?.[0];
+        const leadingHasAllMissions = teamsWithAllMissions.some(([t]) => t === leadingTeam);
         
         container.innerHTML = `
             ${renderGuide('team-level')}
             
-            <!-- Winner Badge Info -->
-            <div class="card" style="background: rgba(255,215,0,0.05); border-color: rgba(255,215,0,0.2); margin-bottom: 20px;">
-                <div class="card-body" style="padding: 15px; text-align: center;">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🏆</div>
-                    <h4 style="color: #ffd700; margin: 0 0 8px 0; font-size: 14px;">Weekly Winner Reward</h4>
-                    <p style="color: #888; font-size: 12px; margin: 0;">
-                        The team with the most XP at week's end wins!<br>
-                        <strong style="color: #fff;">All members</strong> of the winning team get a special <strong style="color: #ffd700;">Champion Badge</strong>! 🎖️
-                    </p>
-                    ${!isCompleted && leadingTeam ? `
-                        <div style="margin-top: 12px; padding: 8px 16px; background: rgba(123,44,191,0.1); border-radius: 20px; display: inline-block;">
-                            <span style="color: #888; font-size: 11px;">Currently Leading: </span>
-                            <span style="color: ${teamColor(leadingTeam)}; font-weight: 600;">${leadingTeam}</span>
+            <!-- Winner Rules Explanation -->
+            <div class="card" style="background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(123,44,191,0.05)); border-color: rgba(255,215,0,0.3); margin-bottom: 20px;">
+                <div class="card-body" style="padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <div style="font-size: 36px; margin-bottom: 8px;">🏆</div>
+                        <h4 style="color: #ffd700; margin: 0; font-size: 16px;">How to Win the Week</h4>
+                    </div>
+                    
+                    <div style="
+                        background: rgba(0,0,0,0.2);
+                        border-radius: 12px;
+                        padding: 15px;
+                        margin-bottom: 15px;
+                    ">
+                        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+                            <span style="font-size: 20px;">1️⃣</span>
+                            <div>
+                                <div style="color: #fff; font-size: 13px; font-weight: 600;">Complete ALL 3 Missions</div>
+                                <div style="color: #888; font-size: 11px; margin-top: 3px;">
+                                    🎵 Track Goals + 💿 Album Goals + ✨ Album 2X
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <span style="font-size: 20px;">2️⃣</span>
+                            <div>
+                                <div style="color: #fff; font-size: 13px; font-weight: 600;">Have the Highest XP</div>
+                                <div style="color: #888; font-size: 11px; margin-top: 3px;">
+                                    Among teams that completed all missions
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="
+                        background: rgba(255,68,68,0.1);
+                        border: 1px solid rgba(255,68,68,0.2);
+                        border-radius: 8px;
+                        padding: 10px 12px;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    ">
+                        <span style="font-size: 18px;">⚠️</span>
+                        <span style="color: #ff6b6b; font-size: 12px;">
+                            <strong>Important:</strong> A team with high XP but incomplete missions <strong>CANNOT</strong> win!
+                        </span>
+                    </div>
+                    
+                    ${!isCompleted ? `
+                        <div style="margin-top: 15px; text-align: center;">
+                            ${winnerTeam ? `
+                                <div style="
+                                    display: inline-flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    padding: 8px 16px;
+                                    background: rgba(0,255,136,0.1);
+                                    border: 1px solid rgba(0,255,136,0.3);
+                                    border-radius: 20px;
+                                ">
+                                    <span style="color: #00ff88; font-size: 12px;">👑 Currently Winning:</span>
+                                    <span style="color: ${teamColor(winnerTeam)}; font-weight: 600;">${winnerTeam}</span>
+                                </div>
+                            ` : leadingTeam ? `
+                                <div style="
+                                    display: inline-flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    padding: 8px 16px;
+                                    background: rgba(255,165,0,0.1);
+                                    border: 1px solid rgba(255,165,0,0.3);
+                                    border-radius: 20px;
+                                ">
+                                    <span style="color: #ffa500; font-size: 12px;">⚡ Leading in XP:</span>
+                                    <span style="color: ${teamColor(leadingTeam)}; font-weight: 600;">${leadingTeam}</span>
+                                    <span style="color: #888; font-size: 10px;">(needs all missions)</span>
+                                </div>
+                            ` : `
+                                <div style="color: #888; font-size: 12px;">
+                                    No team has completed all missions yet
+                                </div>
+                            `}
                         </div>
                     ` : ''}
+                </div>
+            </div>
+            
+            <!-- Winner Badge Reward -->
+            <div class="card" style="background: rgba(123,44,191,0.05); border-color: rgba(123,44,191,0.2); margin-bottom: 20px;">
+                <div class="card-body" style="padding: 15px; text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+                        <span style="font-size: 28px;">🎖️</span>
+                        <div style="text-align: left;">
+                            <div style="color: #fff; font-size: 13px; font-weight: 600;">Winner Reward</div>
+                            <div style="color: #888; font-size: 11px;">
+                                All members of the winning team get a special <span style="color: #ffd700;">Champion Badge</span>!
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -2291,15 +2565,20 @@ async function renderTeamLevel() {
             <div class="team-level-grid">
                 ${sortedTeams.map(([t, info], index) => { 
                     const isMyTeam = t === myTeam;
-                    const isLeading = index === 0;
+                    const hasAllMissions = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
+                    const isCurrentWinner = t === winnerTeam;
                     const tColor = teamColor(t);
                     const missions = (info.trackGoalPassed ? 1 : 0) + (info.albumGoalPassed ? 1 : 0) + (info.album2xPassed ? 1 : 0); 
                     
                     return `
-                        <div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="border-color:${tColor};${isLeading ? 'box-shadow: 0 0 20px rgba(255,215,0,0.2);' : ''}">
+                        <div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="
+                            border-color:${tColor};
+                            ${isCurrentWinner ? 'box-shadow: 0 0 25px rgba(255,215,0,0.3); border-color: #ffd700;' : ''}
+                        ">
                             ${isMyTeam ? '<div class="my-team-badge">Your Team</div>' : ''}
-                            ${isLeading && !isCompleted ? '<div style="position:absolute;top:10px;right:10px;font-size:16px;">👑</div>' : ''}
-                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${tColor}">` : ''}
+                            ${isCurrentWinner && !isCompleted ? '<div style="position:absolute;top:10px;right:10px;font-size:20px;" title="Currently Winning">👑</div>' : ''}
+                            ${!hasAllMissions && index === 0 ? '<div style="position:absolute;top:10px;right:10px;font-size:14px;color:#ffa500;" title="Highest XP but missing missions">⚡</div>' : ''}
+                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${isCurrentWinner ? '#ffd700' : tColor}">` : ''}
                             <div class="team-level-name" style="color:${tColor}">${t}</div>
                             <div class="team-level-num">${info.level || 1}</div>
                             <div class="team-level-label">LEVEL</div>
@@ -2309,13 +2588,36 @@ async function renderTeamLevel() {
                                 <div class="mission-check" title="Album Goals">${info.albumGoalPassed ? '💿✅' : '💿❌'}</div>
                                 <div class="mission-check" title="Album 2X">${info.album2xPassed ? '✨✅' : '✨❌'}</div>
                             </div>
-                            <div class="team-level-status ${missions === 3 ? 'complete' : ''}">${missions}/3 missions</div>
+                            <div class="team-level-status ${missions === 3 ? 'complete' : ''}" style="${isCurrentWinner ? 'color:#ffd700;' : ''}">
+                                ${isCurrentWinner ? '👑 Winning!' : `${missions}/3 missions`}
+                            </div>
                         </div>
                     `; 
                 }).join('')}
             </div>
+            
+            <!-- Mission Status Legend -->
+            <div class="card" style="margin-top: 20px; background: rgba(255,255,255,0.02);">
+                <div class="card-body" style="padding: 15px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; text-align: center;">
+                        <div>
+                            <span style="font-size: 18px;">👑</span>
+                            <div style="color: #888; font-size: 10px; margin-top: 4px;">Currently Winning</div>
+                        </div>
+                        <div>
+                            <span style="font-size: 18px;">⚡</span>
+                            <div style="color: #888; font-size: 10px; margin-top: 4px;">High XP, Missing Missions</div>
+                        </div>
+                        <div>
+                            <span style="font-size: 18px;">✅✅✅</span>
+                            <div style="color: #888; font-size: 10px; margin-top: 4px;">All Missions Complete</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
     } catch (e) { 
+        console.error('Team level error:', e);
         container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; 
     }
 }
