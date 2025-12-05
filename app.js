@@ -79,7 +79,12 @@ const CONFIG = {
         'custom': { name: 'Custom Task', icon: '⭐', description: 'Special instruction from Admin.' }
     }
 };
-
+    ALBUM_CHALLENGE: {
+        REQUIRED_STREAMS: 2,        // Must match backend!
+        CHALLENGE_NAME: "2X",       // "2X", "4X", "5X"
+        BADGE_NAME: "2X Master",
+        BADGE_DESCRIPTION: "Completed Album 2X Challenge"
+    }, 
 // ==================== STATE ====================
 const STATE = {
     agentNo: null,
@@ -184,10 +189,10 @@ const PAGE_GUIDES = {
         title: 'Team Goal Progress', 
         text: "Focus on these tracks. Don't loop one track - variety is key!" 
     },
-    'album2x': { 
+   'album2x': { 
         icon: '🎧', 
-        title: 'The 2X Challenge', 
-        text: "Listen to every song on this album at least 2 times.\n\n⚠️ IMPORTANT: EVERYONE in your team must complete this for the team to pass!\n\n🎖️ Complete this challenge to earn a special badge!",
+        title: `The ${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Challenge`,
+        text: `Listen to every song on this album at least ${CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS} times.\n\n⚠️ IMPORTANT: EVERYONE in your team must complete this for the team to pass!\n\n🎖️ Complete this challenge to earn a special badge!`,
         isWarning: false
     },
     'secret-missions': { 
@@ -332,18 +337,22 @@ function getSpecialBadges(agentNo, week = STATE.week) {
     const album2xStatus = STATE.data?.album2xStatus || {};
     const profile = STATE.data?.profile || {};
     
-    // === ALBUM 2X COMPLETION BADGE ===
+    // ✅ Use configurable badge name
+    const BADGE_NAME = CONFIG.ALBUM_CHALLENGE.BADGE_NAME;
+    const BADGE_DESC = CONFIG.ALBUM_CHALLENGE.BADGE_DESCRIPTION;
+    
+    // === ALBUM CHALLENGE COMPLETION BADGE ===
     if (album2xStatus.passed) {
         let seed = 0;
-        const str = String(agentNo).toUpperCase() + '_2X_' + week;
+        const str = String(agentNo).toUpperCase() + '_ALBUM_' + week;
         for (let i = 0; i < str.length; i++) {
             seed += str.charCodeAt(i);
         }
         const index = seed % pool.length;
         
         badges.push({
-            name: '2X Master',
-            description: `Completed Album 2X Challenge`,
+            name: BADGE_NAME,
+            description: BADGE_DESC,
             imageUrl: pool[index],
             type: 'achievement',
             icon: '✨',
@@ -2012,7 +2021,7 @@ async function renderGoals() {
     } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load goals</p></div></div>'; }
 }
 
-// ==================== ALBUM 2X ====================
+// ==================== ALBUM CHALLENGE (Configurable) ====================
 async function renderAlbum2x() {
     const container = $('album2x-content');
     const team = STATE.data?.profile?.team;
@@ -2021,10 +2030,15 @@ async function renderAlbum2x() {
     const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
     const albumName = CONFIG.TEAMS[team]?.album || team;
     
+    // ✅ Use configurable settings
+    const REQUIRED = CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS;
+    const CHALLENGE_NAME = CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME;
+    const BADGE_NAME = CONFIG.ALBUM_CHALLENGE.BADGE_NAME;
+    
     let completedCount = 0;
     const trackResults = teamTracks.map(track => {
         const count = userTracks[track] || 0;
-        const passed = count >= 2;
+        const passed = count >= REQUIRED;
         if (passed) completedCount++;
         return { name: track, count, passed };
     });
@@ -2032,7 +2046,7 @@ async function renderAlbum2x() {
     const allComplete = completedCount === trackResults.length && trackResults.length > 0;
     const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
     
-    // Fetch team 2X status to show who missed
+    // Fetch team status
     let teamMembersStatus = [];
     let teamPassed = 0;
     let teamFailed = 0;
@@ -2044,10 +2058,9 @@ async function renderAlbum2x() {
         teamPassed = teamData.passed || 0;
         teamFailed = teamData.failed || 0;
     } catch (e) {
-        console.log('Could not fetch team 2X status:', e);
+        console.log('Could not fetch team status:', e);
     }
     
-    // Separate passed and failed members
     const passedMembers = teamMembersStatus.filter(m => m.passed);
     const failedMembers = teamMembersStatus.filter(m => !m.passed);
     const totalMembers = teamMembersStatus.length;
@@ -2061,9 +2074,9 @@ async function renderAlbum2x() {
                 <div>
                     <h4 style="margin: 0 0 5px 0; color: #ff6b6b; font-size: 14px;">TEAM MISSION - Everyone Must Complete!</h4>
                     <p style="margin: 0; color: #aaa; font-size: 13px; line-height: 1.5;">
-                        For your team to pass this mission, <strong style="color:#fff;">EVERY agent</strong> in your team must stream each track at least 2 times.
+                        For your team to pass this mission, <strong style="color:#fff;">EVERY agent</strong> must stream each track at least <strong style="color:#ffd700;">${REQUIRED} times</strong>.
                         <br><br>
-                        <span style="color:#ffd700;">🎖️ Reward:</span> Complete this to earn a special <strong style="color:#7b2cbf;">2X Master Badge!</strong>
+                        <span style="color:#ffd700;">🎖️ Reward:</span> Complete this to earn a special <strong style="color:#7b2cbf;">${BADGE_NAME} Badge!</strong>
                     </p>
                 </div>
             </div>
@@ -2072,7 +2085,7 @@ async function renderAlbum2x() {
         <!-- Your Personal Progress Card -->
         <div class="card" style="border-color:${allComplete ? 'var(--success)' : teamColor(team)}">
             <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                <h3 style="margin:0;">📊 Your Progress</h3>
+                <h3 style="margin:0;">📊 Your ${CHALLENGE_NAME} Progress</h3>
                 <span class="status-badge" style="
                     padding: 4px 12px;
                     border-radius: 12px;
@@ -2085,7 +2098,7 @@ async function renderAlbum2x() {
             <div class="card-body" style="text-align:center;padding:30px;">
                 <div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div>
                 <h2 style="color:${teamColor(team)};margin-bottom:8px;">${sanitize(albumName)}</h2>
-                <p style="color:var(--text-dim);margin-bottom:20px;">Stream every track at least 2 times</p>
+                <p style="color:var(--text-dim);margin-bottom:20px;">Stream every track at least <strong>${REQUIRED} times</strong></p>
                 
                 <div style="font-size:48px;font-weight:700;color:${allComplete ? 'var(--success)' : 'var(--purple-glow)'}">${completedCount}/${trackResults.length}</div>
                 <p style="color:var(--text-dim);">Tracks completed</p>
@@ -2108,7 +2121,7 @@ async function renderAlbum2x() {
                         <span style="font-size: 24px;">🎖️</span>
                         <div style="text-align: left;">
                             <div style="color: #00ff88; font-weight: 600; font-size: 14px;">Badge Unlocked!</div>
-                            <div style="color: #888; font-size: 11px;">2X Master Badge earned</div>
+                            <div style="color: #888; font-size: 11px;">${BADGE_NAME} Badge earned</div>
                         </div>
                     </div>
                 ` : `
@@ -2121,7 +2134,7 @@ async function renderAlbum2x() {
                         display: inline-block;
                     ">
                         <span style="color: #888; font-size: 12px;">
-                            🎖️ Complete all tracks to earn the <span style="color:#7b2cbf;font-weight:600;">2X Master Badge</span>
+                            🎖️ Complete all tracks to earn the <span style="color:#7b2cbf;font-weight:600;">${BADGE_NAME} Badge</span>
                         </span>
                     </div>
                 `}
@@ -2163,7 +2176,7 @@ async function renderAlbum2x() {
                             font-weight: 600;
                             background: ${t.passed ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)'};
                             color: ${t.passed ? '#00ff88' : '#ff6b6b'};
-                        ">${t.count}/2 ${t.passed ? '✅' : ''}</span>
+                        ">${t.count}/${REQUIRED} ${t.passed ? '✅' : ''}</span>
                     </div>
                 `).join('')}
             </div>
@@ -2187,7 +2200,7 @@ async function renderAlbum2x() {
                 <!-- Team Progress Bar -->
                 <div style="margin-bottom: 20px;">
                     <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                        <span style="color:#888;font-size:12px;">Team Completion</span>
+                        <span style="color:#888;font-size:12px;">Team ${CHALLENGE_NAME} Completion</span>
                         <span style="color:#fff;font-size:12px;font-weight:600;">${teamPassed}/${totalMembers} agents</span>
                     </div>
                     <div class="progress-bar" style="height:10px;">
@@ -2199,7 +2212,7 @@ async function renderAlbum2x() {
                 </div>
                 
                 ${failedMembers.length > 0 ? `
-                    <!-- WHO MISSED 2X - IMPORTANT SECTION -->
+                    <!-- WHO MISSED - IMPORTANT SECTION -->
                     <div style="
                         background: rgba(255,68,68,0.08);
                         border: 1px solid rgba(255,68,68,0.2);
@@ -2210,7 +2223,7 @@ async function renderAlbum2x() {
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
                             <span style="font-size:20px;">🚨</span>
                             <div>
-                                <div style="color:#ff6b6b;font-weight:600;font-size:14px;">Agents Who Need to Complete 2X</div>
+                                <div style="color:#ff6b6b;font-weight:600;font-size:14px;">Agents Who Need to Complete ${CHALLENGE_NAME}</div>
                                 <div style="color:#888;font-size:11px;">Help remind them! The team needs everyone.</div>
                             </div>
                         </div>
@@ -2267,7 +2280,7 @@ async function renderAlbum2x() {
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
                             <span style="font-size:20px;">🎉</span>
                             <div>
-                                <div style="color:#00ff88;font-weight:600;font-size:14px;">Agents Who Completed 2X</div>
+                                <div style="color:#00ff88;font-weight:600;font-size:14px;">Agents Who Completed ${CHALLENGE_NAME}</div>
                                 <div style="color:#888;font-size:11px;">${passedMembers.length} agent${passedMembers.length !== 1 ? 's' : ''} done!</div>
                             </div>
                         </div>
@@ -2314,7 +2327,7 @@ async function renderAlbum2x() {
                 ${teamAllComplete ? `
                     <div style="font-size:40px;margin-bottom:10px;">🎊</div>
                     <p style="color:#00ff88;font-size:14px;font-weight:600;margin:0 0 5px 0;">
-                        Amazing! Your entire team completed the 2X Challenge!
+                        Amazing! Your entire team completed the ${CHALLENGE_NAME} Challenge!
                     </p>
                     <p style="color:#888;font-size:12px;margin:0;">
                         This mission is PASSED! 🎖️
