@@ -25,7 +25,7 @@ const CONFIG = {
     // ===== BADGE CONFIGURATION =====
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
     TOTAL_BADGE_IMAGES: 49,
-    EXCLUDE_BADGES: [], // Add badge numbers to exclude: [5, 12, 23]
+    EXCLUDE_BADGES: [],
     
     get BADGE_POOL() {
         const pool = [];
@@ -35,6 +35,15 @@ const CONFIG = {
             }
         }
         return pool;
+    },
+    
+    // ===== ALBUM CHALLENGE SETTINGS =====
+    // 🎯 Change these to switch from 2X to 4X!
+    ALBUM_CHALLENGE: {
+        REQUIRED_STREAMS: 2,
+        CHALLENGE_NAME: "2X",
+        BADGE_NAME: "2X Master",
+        BADGE_DESCRIPTION: "Completed Album 2X Challenge"
     },
     
     TEAMS: {
@@ -69,7 +78,11 @@ const CONFIG = {
         { id: 'attendance', name: 'Attendance Taker', icon: '📋', description: 'Tracks agent participation weekly' }
     ],
     
-    SECRET_MISSIONS: { xpPerMission: 5, maxMissionsPerTeam: 5, maxTeamBonus: 25 },
+    SECRET_MISSIONS: { 
+        xpPerMission: 5, 
+        maxMissionsPerTeam: 5, 
+        maxTeamBonus: 25 
+    },
     
     MISSION_TYPES: {
         'switch_app': { name: 'Switch App', icon: '🔄', description: 'Switch to YouTube/Apple Music for 1 hour.' },
@@ -79,12 +92,6 @@ const CONFIG = {
         'custom': { name: 'Custom Task', icon: '⭐', description: 'Special instruction from Admin.' }
     }
 };
-    ALBUM_CHALLENGE: {
-        REQUIRED_STREAMS: 4,        // Must match backend!
-        CHALLENGE_NAME: "4X",       // "2X", "4X", "5X"
-        BADGE_NAME: "4X Master",
-        BADGE_DESCRIPTION: "Completed Album 4X Challenge"
-};     
 // ==================== STATE ====================
 const STATE = {
     agentNo: null,
