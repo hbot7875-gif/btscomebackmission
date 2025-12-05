@@ -105,7 +105,16 @@ const STATE = {
     isAdmin: false,
     adminSession: null,
     lastUpdated: null,
-    hasSeenResults: {}
+    hasSeenResults: {},
+    
+    // ===== NOTIFICATION STATE =====
+    notifications: [],
+    lastChecked: {
+        badges: 0,
+        announcements: null,
+        playlists: 0,
+        missions: 0
+    }
 };
 
 // ==================== HELPERS ====================
@@ -292,6 +301,423 @@ async function api(action, params = {}) {
         console.error('API Error:', e);
         throw e;
     }
+}
+// ==================== NOTIFICATION SYSTEM ====================
+
+// Load saved notification state
+function loadNotificationState() {
+    try {
+        const saved = localStorage.getItem('notificationState_' + STATE.agentNo);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            STATE.lastChecked = parsed.lastChecked || STATE.lastChecked;
+        }
+    } catch (e) {
+        console.log('Could not load notification state');
+    }
+}
+
+// Save notification state
+function saveNotificationState() {
+    try {
+        localStorage.setItem('notificationState_' + STATE.agentNo, JSON.stringify({
+            lastChecked: STATE.lastChecked
+        }));
+    } catch (e) {
+        console.log('Could not save notification state');
+    }
+}
+
+// Check for new notifications
+async function checkNotifications() {
+    const notifications = [];
+    
+    try {
+        // Check for new badges
+        const badgeNotif = await checkNewBadges();
+        if (badgeNotif) notifications.push(badgeNotif);
+        
+        // Check for new announcements
+        const announcementNotif = await checkNewAnnouncements();
+        if (announcementNotif) notifications.push(announcementNotif);
+        
+        // Check for new playlists
+        const playlistNotif = await checkNewPlaylists();
+        if (playlistNotif) notifications.push(playlistNotif);
+        
+        // Check for new secret missions
+        const missionNotif = await checkNewMissions();
+        if (missionNotif) notifications.push(missionNotif);
+        
+        // Check if week results are ready
+        const resultsNotif = checkWeekResults();
+        if (resultsNotif) notifications.push(resultsNotif);
+        
+        // Update notification badge count
+        STATE.notifications = notifications;
+        updateNotificationBadge();
+        
+        // Show popup for important notifications
+        if (notifications.length > 0) {
+            showNotificationPopup(notifications);
+        }
+        
+    } catch (e) {
+        console.log('Error checking notifications:', e);
+    }
+}
+
+// Check for new badges
+async function checkNewBadges() {
+    const stats = STATE.data?.stats || {};
+    const currentXP = parseInt(stats.totalXP) || 0;
+    const currentBadgeCount = Math.floor(currentXP / 50);
+    const lastBadgeCount = STATE.lastChecked.badges || 0;
+    
+    if (currentBadgeCount > lastBadgeCount) {
+        const newBadges = currentBadgeCount - lastBadgeCount;
+        return {
+            type: 'badge',
+            icon: '🎖️',
+            title: 'New Badge Earned!',
+            message: `You earned ${newBadges} new badge${newBadges > 1 ? 's' : ''}!`,
+            action: () => loadPage('drawer'),
+            actionText: 'View Badges'
+        };
+    }
+    
+    // Check for special badges (2X completion)
+    const album2xStatus = STATE.data?.album2xStatus || {};
+    if (album2xStatus.passed && !STATE.lastChecked.album2xBadge) {
+        return {
+            type: 'badge',
+            icon: '✨',
+            title: `${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Master Badge!`,
+            message: `You completed the Album ${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Challenge!`,
+            action: () => loadPage('drawer'),
+            actionText: 'View Badge'
+        };
+    }
+    
+    return null;
+}
+
+// Check for new announcements
+async function checkNewAnnouncements() {
+    try {
+        const data = await api('getAnnouncements', { week: STATE.week });
+        const announcements = data.announcements || [];
+        
+        if (announcements.length === 0) return null;
+        
+        // Get latest announcement
+        const latest = announcements.sort((a, b) => 
+            new Date(b.created) - new Date(a.created)
+        )[0];
+        
+        const latestDate = new Date(latest.created).getTime();
+        const lastCheckedDate = STATE.lastChecked.announcements || 0;
+        
+        if (latestDate > lastCheckedDate) {
+            return {
+                type: 'announcement',
+                icon: '📢',
+                title: 'New Announcement!',
+                message: latest.title,
+                action: () => loadPage('announcements'),
+                actionText: 'Read Now',
+                priority: latest.priority
+            };
+        }
+    } catch (e) {
+        console.log('Could not check announcements');
+    }
+    return null;
+}
+
+// Check for new playlists
+async function checkNewPlaylists() {
+    try {
+        const data = await api('getPlaylists');
+        const playlists = data.playlists || [];
+        const currentCount = playlists.length;
+        const lastCount = STATE.lastChecked.playlists || 0;
+        
+        if (currentCount > lastCount && lastCount > 0) {
+            const newCount = currentCount - lastCount;
+            return {
+                type: 'playlist',
+                icon: '🎵',
+                title: 'New Playlist Added!',
+                message: `${newCount} new playlist${newCount > 1 ? 's' : ''} available!`,
+                action: () => loadPage('playlists'),
+                actionText: 'View Playlists'
+            };
+        }
+    } catch (e) {
+        console.log('Could not check playlists');
+    }
+    return null;
+}
+
+// Check for new secret missions
+async function checkNewMissions() {
+    try {
+        const team = STATE.data?.profile?.team;
+        if (!team) return null;
+        
+        const data = await api('getTeamSecretMissions', { 
+            team: team, 
+            agentNo: STATE.agentNo, 
+            week: STATE.week 
+        });
+        
+        const activeMissions = data.active || [];
+        const myAssigned = data.myAssigned || [];
+        const currentCount = activeMissions.length;
+        const lastCount = STATE.lastChecked.missions || 0;
+        
+        // Priority: Check if YOU are assigned to a new mission
+        if (myAssigned.length > 0) {
+            const latestAssigned = myAssigned[0];
+            return {
+                type: 'mission',
+                icon: '🎯',
+                title: 'Mission Assigned to YOU!',
+                message: latestAssigned.title,
+                action: () => loadPage('secret-missions'),
+                actionText: 'View Mission',
+                priority: 'high'
+            };
+        }
+        
+        // Check for new team missions
+        if (currentCount > lastCount && lastCount > 0) {
+            return {
+                type: 'mission',
+                icon: '🕵️',
+                title: 'New Team Mission!',
+                message: `Your team has a new secret mission!`,
+                action: () => loadPage('secret-missions'),
+                actionText: 'View Missions'
+            };
+        }
+    } catch (e) {
+        console.log('Could not check missions');
+    }
+    return null;
+}
+
+// Check if week results are ready
+function checkWeekResults() {
+    // Check all weeks for completed ones not yet seen
+    for (const week of STATE.weeks) {
+        if (isWeekCompleted(week) && !STATE.hasSeenResults[week]) {
+            return {
+                type: 'results',
+                icon: '🏆',
+                title: 'Week Results Ready!',
+                message: `${week} has ended. See the final standings!`,
+                action: () => {
+                    STATE.week = week;
+                    loadPage('summary');
+                },
+                actionText: 'View Results',
+                priority: 'high'
+            };
+        }
+    }
+    return null;
+}
+
+// Update notification badge in header
+function updateNotificationBadge() {
+    const count = STATE.notifications.length;
+    let badge = document.getElementById('notification-badge');
+    
+    if (count > 0) {
+        if (!badge) {
+            // Create badge if doesn't exist
+            const header = document.querySelector('.app-header');
+            if (header) {
+                badge = document.createElement('div');
+                badge.id = 'notification-badge';
+                badge.className = 'notification-badge';
+                badge.onclick = () => showNotificationCenter();
+                header.appendChild(badge);
+            }
+        }
+        if (badge) {
+            badge.innerHTML = `🔔 <span class="badge-count">${count}</span>`;
+            badge.style.display = 'flex';
+        }
+    } else {
+        if (badge) badge.style.display = 'none';
+    }
+}
+
+// Show notification popup
+function showNotificationPopup(notifications) {
+    // Remove existing popup
+    document.querySelectorAll('.notification-popup').forEach(p => p.remove());
+    
+    // Get highest priority notification
+    const highPriority = notifications.find(n => n.priority === 'high');
+    const notif = highPriority || notifications[0];
+    
+    const popup = document.createElement('div');
+    popup.className = 'notification-popup';
+    popup.innerHTML = `
+        <div class="notif-popup-content">
+            <div class="notif-popup-icon">${notif.icon}</div>
+            <div class="notif-popup-text">
+                <div class="notif-popup-title">${notif.title}</div>
+                <div class="notif-popup-message">${sanitize(notif.message)}</div>
+            </div>
+            <button class="notif-popup-close" onclick="this.closest('.notification-popup').remove()">×</button>
+        </div>
+        <div class="notif-popup-actions">
+            <button class="notif-action-btn" onclick="handleNotificationAction(0)">${notif.actionText}</button>
+            ${notifications.length > 1 ? `<span class="notif-more">+${notifications.length - 1} more</span>` : ''}
+        </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    // Animate in
+    setTimeout(() => popup.classList.add('show'), 10);
+    
+    // Auto dismiss after 8 seconds
+    setTimeout(() => {
+        popup.classList.remove('show');
+        setTimeout(() => popup.remove(), 300);
+    }, 8000);
+}
+
+// Handle notification action click
+function handleNotificationAction(index) {
+    const notif = STATE.notifications[index];
+    if (notif && notif.action) {
+        // Mark as seen based on type
+        markNotificationSeen(notif);
+        
+        // Remove popup
+        document.querySelectorAll('.notification-popup').forEach(p => p.remove());
+        
+        // Execute action
+        notif.action();
+    }
+}
+
+// Mark notification as seen
+function markNotificationSeen(notif) {
+    switch (notif.type) {
+        case 'badge':
+            const currentXP = parseInt(STATE.data?.stats?.totalXP) || 0;
+            STATE.lastChecked.badges = Math.floor(currentXP / 50);
+            if (notif.title.includes('Master')) {
+                STATE.lastChecked.album2xBadge = true;
+            }
+            break;
+        case 'announcement':
+            STATE.lastChecked.announcements = Date.now();
+            break;
+        case 'playlist':
+            // Will be updated on next check
+            break;
+        case 'mission':
+            // Will be updated on next check
+            break;
+        case 'results':
+            markResultsSeen(STATE.week);
+            break;
+    }
+    
+    saveNotificationState();
+    
+    // Remove from current notifications
+    STATE.notifications = STATE.notifications.filter(n => n !== notif);
+    updateNotificationBadge();
+}
+
+// Show notification center (all notifications)
+function showNotificationCenter() {
+    document.querySelectorAll('.notification-center').forEach(c => c.remove());
+    
+    const center = document.createElement('div');
+    center.className = 'notification-center';
+    center.innerHTML = `
+        <div class="notif-center-overlay" onclick="this.closest('.notification-center').remove()"></div>
+        <div class="notif-center-panel">
+            <div class="notif-center-header">
+                <h3>🔔 Notifications</h3>
+                <button onclick="this.closest('.notification-center').remove()">×</button>
+            </div>
+            <div class="notif-center-list">
+                ${STATE.notifications.length > 0 ? STATE.notifications.map((n, i) => `
+                    <div class="notif-center-item ${n.priority === 'high' ? 'high-priority' : ''}" onclick="handleNotificationAction(${i})">
+                        <span class="notif-item-icon">${n.icon}</span>
+                        <div class="notif-item-content">
+                            <div class="notif-item-title">${n.title}</div>
+                            <div class="notif-item-message">${sanitize(n.message)}</div>
+                        </div>
+                        <span class="notif-item-arrow">→</span>
+                    </div>
+                `).join('') : `
+                    <div class="notif-empty">
+                        <div style="font-size:48px;margin-bottom:15px;">✨</div>
+                        <p>No new notifications!</p>
+                        <p style="font-size:12px;color:#666;">You're all caught up.</p>
+                    </div>
+                `}
+            </div>
+            ${STATE.notifications.length > 0 ? `
+                <div class="notif-center-footer">
+                    <button onclick="clearAllNotifications()" class="btn-secondary">Clear All</button>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    document.body.appendChild(center);
+    setTimeout(() => center.classList.add('show'), 10);
+}
+
+// Clear all notifications
+function clearAllNotifications() {
+    STATE.notifications.forEach(n => markNotificationSeen(n));
+    STATE.notifications = [];
+    updateNotificationBadge();
+    document.querySelectorAll('.notification-center').forEach(c => c.remove());
+    showToast('All notifications cleared', 'success');
+}
+
+// Update last checked counts (call after viewing pages)
+function updateLastCheckedCounts() {
+    // Update playlist count
+    api('getPlaylists').then(data => {
+        STATE.lastChecked.playlists = (data.playlists || []).length;
+        saveNotificationState();
+    }).catch(() => {});
+    
+    // Update mission count
+    const team = STATE.data?.profile?.team;
+    if (team) {
+        api('getTeamSecretMissions', { team, agentNo: STATE.agentNo, week: STATE.week })
+        .then(data => {
+            STATE.lastChecked.missions = (data.active || []).length;
+            saveNotificationState();
+        }).catch(() => {});
+    }
+    
+    // Update badge count
+    const currentXP = parseInt(STATE.data?.stats?.totalXP) || 0;
+    STATE.lastChecked.badges = Math.floor(currentXP / 50);
+    
+    // Update announcements
+    STATE.lastChecked.announcements = Date.now();
+    
+    saveNotificationState();
 }
 
 // ==================== BADGE FUNCTIONS ====================
@@ -1469,6 +1895,38 @@ async function loadDashboard() {
         STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: STATE.week });
         if (STATE.data?.lastUpdated) STATE.lastUpdated = STATE.data.lastUpdated;
         await loadAllWeeksData();
+                // ===== LOAD NOTIFICATION STATE =====
+        loadNotificationState();
+        
+        $('login-screen').classList.remove('active');
+        $('login-screen').style.display = 'none';
+        $('dashboard-screen').classList.add('active');
+        $('dashboard-screen').style.display = 'flex';
+        
+        setupDashboard();
+        await loadPage('home');
+        preloadDashboardData();
+        
+        // ===== CHECK FOR NOTIFICATIONS =====
+        setTimeout(() => checkNotifications(), 1000);
+        
+        // ===== CHECK PERIODICALLY (every 5 minutes) =====
+        setInterval(() => checkNotifications(), 5 * 60 * 1000);
+        
+        if (STATE.isAdmin) addAdminIndicator();
+        
+    } catch (e) {
+        console.error('❌ Dashboard error:', e);
+        showToast('Error: ' + e.message, 'error');
+        showResult('Error: ' + e.message, true);
+        $('login-screen').classList.add('active');
+        $('login-screen').style.display = 'flex';
+        $('dashboard-screen').classList.remove('active');
+        $('dashboard-screen').style.display = 'none';
+    } finally { 
+        loading(false); 
+    }
+}
         
         $('login-screen').classList.remove('active');
         $('login-screen').style.display = 'none';
@@ -1914,6 +2372,11 @@ async function renderDrawer() {
             </button>
         </div>
     `;
+}
+    const currentXP = parseInt(STATE.data?.stats?.totalXP) || 0;
+    STATE.lastChecked.badges = Math.floor(currentXP / 50);
+    STATE.lastChecked.album2xBadge = STATE.data?.album2xStatus?.passed || false;
+    saveNotificationState();
 }
 // ==================== PROFILE ====================
 async function renderProfile() {
@@ -2967,7 +3430,9 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
         </div>
     `;
 }
-
+    STATE.lastChecked.missions = activeMissions.length;
+    saveNotificationState();
+}
 // ==================== ANNOUNCEMENTS ====================
 async function renderAnnouncements() {
     const container = $('announcements-content');
@@ -2998,6 +3463,9 @@ async function renderAnnouncements() {
             </div>
         `;
     } catch (e) { container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p></div></div>'; }
+}
+STATE.lastChecked.announcements = Date.now();
+    saveNotificationState();
 }
 
 // ==================== CHAT ====================
@@ -3323,6 +3791,9 @@ function getPlaylistIcon(platform) {
     const icons = { 'spotify': '💚', 'apple': '🍎', 'youtube': '🔴', 'amazon': '📦', 'deezer': '🎧' };
     return icons[(platform || '').toLowerCase()] || '🎵';
 }
+    STATE.lastChecked.playlists = playlists.length;
+    saveNotificationState();
+}
 
 // ==================== GC LINKS ====================
 async function renderGCLinks() {
@@ -3461,5 +3932,9 @@ window.renderAdminAssets = renderAdminAssets;
 window.navigatePreview = navigatePreview;
 window.openChat = openChat;
 window.showChatRules = showChatRules;
+window.handleNotificationAction = handleNotificationAction;
+window.showNotificationCenter = showNotificationCenter;
+window.clearAllNotifications = clearAllNotifications;
+window.checkNotifications = checkNotifications;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded');
