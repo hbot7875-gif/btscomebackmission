@@ -3836,8 +3836,8 @@ async function renderSummary() {
             
             <!-- Action Button -->
             <div class="summary-actions">
-                <button onclick="loadPage('ranking')" class="btn-secondary">
-                    👥 View ranking
+                <button onclick="loadPage('rankings')" class="btn-secondary">
+                    👥 View rankings
                 </button>
                 <button onclick="loadPage('home')" class="btn-primary">
                     🏠 Back to Home
