@@ -1833,9 +1833,311 @@ function ensureAppCSS() {
     document.head.appendChild(style);
 }
 
+// ==================== CLIENT-SIDE ROUTING ====================
+
+/**
+ * Route definitions - maps URL hash to internal page names
+ */
+const ROUTES = {
+    '': 'home',
+    'home': 'home',
+    'profile': 'profile',
+    'goals': 'goals',
+    'album2x': 'album2x',
+    'missions': 'secret-missions',
+    'secret-missions': 'secret-missions',
+    'team-level': 'team-level',
+    'rankings': 'rankings',
+    'comparison': 'comparison',
+    'playlists': 'playlists',
+    'announcements': 'announcements',
+    'chat': 'chat',
+    'gc-links': 'gc-links',
+    'helper-roles': 'helper-roles',
+    'drawer': 'drawer',
+    'summary': 'summary',
+    'login': 'login'
+};
+
+/**
+ * Reverse mapping: page names to URL routes
+ */
+const PAGE_TO_ROUTE = {
+    'home': 'home',
+    'profile': 'profile',
+    'goals': 'goals',
+    'album2x': 'album2x',
+    'secret-missions': 'missions',
+    'team-level': 'team-level',
+    'rankings': 'rankings',
+    'comparison': 'comparison',
+    'playlists': 'playlists',
+    'announcements': 'announcements',
+    'chat': 'chat',
+    'gc-links': 'gc-links',
+    'helper-roles': 'helper-roles',
+    'drawer': 'drawer',
+    'summary': 'summary',
+    'login': 'login'
+};
+
+/**
+ * Router state
+ */
+const ROUTER = {
+    isNavigating: false,
+    lastRoute: null,
+    initialized: false
+};
+
+/**
+ * Get current route from URL hash
+ */
+function getCurrentRoute() {
+    const hash = window.location.hash.slice(1); // Remove #
+    const path = hash.startsWith('/') ? hash.slice(1) : hash;
+    return path.split('?')[0] || 'home';
+}
+
+/**
+ * Get page name from route
+ */
+function getPageFromRoute(route) {
+    return ROUTES[route] || route || 'home';
+}
+
+/**
+ * Get route from page name
+ */
+function getRouteFromPage(pageName) {
+    return PAGE_TO_ROUTE[pageName] || pageName || 'home';
+}
+
+/**
+ * Build full URL with hash
+ */
+function buildHashUrl(route) {
+    return '#/' + (route || 'home');
+}
+
+/**
+ * Navigate to a route (updates URL and renders page)
+ */
+function navigateTo(route, options = {}) {
+    const { replace = false, skipRender = false } = options;
+    
+    if (ROUTER.isNavigating) return;
+    
+    const pageName = getPageFromRoute(route);
+    const newUrl = buildHashUrl(route);
+    
+    // Don't navigate to same route unless forced
+    if (!options.force && ROUTER.lastRoute === route && ROUTER.initialized) {
+        return;
+    }
+    
+    ROUTER.isNavigating = true;
+    ROUTER.lastRoute = route;
+    
+    // Update browser history
+    const stateObj = { 
+        page: pageName, 
+        route: route,
+        timestamp: Date.now() 
+    };
+    
+    if (replace) {
+        history.replaceState(stateObj, '', newUrl);
+    } else {
+        history.pushState(stateObj, '', newUrl);
+    }
+    
+    // Render the page
+    if (!skipRender) {
+        renderPageByRoute(pageName);
+    }
+    
+    ROUTER.isNavigating = false;
+}
+
+/**
+ * Handle browser back/forward buttons
+ */
+window.addEventListener('popstate', (event) => {
+    if (ROUTER.isNavigating) return;
+    if (!ROUTER.initialized) return;
+    if (!STATE.agentNo) return; // Not logged in
+    
+    let pageName;
+    
+    if (event.state && event.state.page) {
+        pageName = event.state.page;
+        ROUTER.lastRoute = event.state.route;
+    } else {
+        const route = getCurrentRoute();
+        pageName = getPageFromRoute(route);
+        ROUTER.lastRoute = route;
+    }
+    
+    // Show back indicator
+    showBackIndicator();
+    
+    // Render the page
+    renderPageByRoute(pageName);
+});
+
+/**
+ * Render page by route (internal use)
+ */
+async function renderPageByRoute(pageName) {
+    // If not logged in, only allow login page
+    if (!STATE.agentNo && pageName !== 'login') {
+        return;
+    }
+    
+    STATE.page = pageName;
+    
+    // Update active nav link
+    updateActiveNavLink(pageName);
+    
+    // Close sidebar
+    closeSidebar();
+    
+    // Show the page element
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    
+    // Create dynamic pages if needed
+    const dynamicPages = ['chat', 'playlists', 'gc-links', 'helper-roles'];
+    dynamicPages.forEach(pName => {
+        if (pageName === pName && !$(`page-${pName}`)) {
+            const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
+            if (mainContent) {
+                const newPage = document.createElement('section');
+                newPage.id = `page-${pName}`;
+                newPage.className = 'page';
+                newPage.innerHTML = `<div id="${pName}-content"></div>`;
+                mainContent.appendChild(newPage);
+            }
+        }
+    });
+
+    const el = $('page-' + pageName);
+    if (el) el.classList.add('active');
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    
+    loading(true);
+    try {
+        switch(pageName) {
+            case 'home': await renderHome(); break;
+            case 'profile': await renderProfile(); break;
+            case 'rankings': await renderRankings(); break;
+            case 'goals': await renderGoals(); break;
+            case 'album2x': await renderAlbum2x(); break;
+            case 'team-level': await renderTeamLevel(); break;
+            case 'comparison': await renderComparison(); break;
+            case 'summary': await renderSummary(); break;
+            case 'drawer': await renderDrawer(); break;
+            case 'announcements': await renderAnnouncements(); break;
+            case 'secret-missions': await renderSecretMissions(); break;
+            case 'chat': await renderChat(); break;
+            case 'playlists': await renderPlaylists(); break;
+            case 'gc-links': await renderGCLinks(); break;
+            case 'helper-roles': await renderHelperRoles(); break;
+        }
+    } catch (e) {
+        console.error('Page render error:', e);
+        if (el) el.innerHTML = `<div class="error-page"><h3>Failed to load</h3><p>${sanitize(e.message)}</p><button onclick="loadPage('${pageName}')" class="btn-primary">Retry</button></div>`;
+    } finally { 
+        loading(false); 
+    }
+}
+
+/**
+ * Show back navigation indicator
+ */
+function showBackIndicator() {
+    let indicator = document.querySelector('.back-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.className = 'back-indicator';
+        indicator.innerHTML = '◀';
+        document.body.appendChild(indicator);
+    }
+    
+    indicator.classList.add('show');
+    setTimeout(() => indicator.classList.remove('show'), 300);
+}
+
+/**
+ * Update active navigation link
+ */
+function updateActiveNavLink(pageName) {
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.dataset.page === pageName) {
+            link.classList.add('active');
+        }
+    });
+}
+
+/**
+ * Initialize router after login
+ */
+function initRouter() {
+    const route = getCurrentRoute();
+    const pageName = getPageFromRoute(route);
+    
+    ROUTER.lastRoute = route;
+    ROUTER.initialized = true;
+    
+    // Set initial history state
+    history.replaceState(
+        { page: pageName, route: route, timestamp: Date.now() },
+        '',
+        buildHashUrl(route)
+    );
+    
+    console.log('🧭 Router initialized:', { route, pageName });
+    
+    return pageName;
+}
+
+// ==================== PAGE ROUTER (PUBLIC API) ====================
+
+/**
+ * Main function to navigate to a page
+ * This replaces your existing loadPage function
+ */
+async function loadPage(page) {
+    const route = getRouteFromPage(page);
+    
+    // If router not initialized yet, just render directly
+    if (!ROUTER.initialized) {
+        STATE.page = page;
+        await renderPageByRoute(page);
+        return;
+    }
+    
+    navigateTo(route);
+}
+
+/**
+ * Go back in history
+ */
+function goBack() {
+    if (window.history.length > 1) {
+        history.back();
+    } else {
+        loadPage('home');
+    }
+}
+
 // ==================== INITIALIZATION ====================
+
 function initApp() {
-    console.log('🚀 Starting App v5.0...');
+    console.log('🚀 Starting App v5.0 with Routing...');
     ensureAppCSS(); 
     loading(false);
     setupLoginListeners();
@@ -1847,6 +2149,12 @@ function initApp() {
         checkAdminStatus();
         loadSeenResults();
         loadDashboard();
+    } else {
+        // No saved login - ensure we're on login screen
+        // Set URL to login if not already
+        if (getCurrentRoute() !== 'login' && getCurrentRoute() !== '') {
+            history.replaceState({ page: 'login', route: 'login' }, '', '#/login');
+        }
     }
 }
 
@@ -1943,7 +2251,13 @@ async function loadDashboard() {
         
         // Setup dashboard
         setupDashboard();
-        await loadPage('home');
+        
+        // Initialize router and get starting page
+        const startPage = initRouter();
+        
+        // Load the appropriate page (from URL or default to home)
+        await loadPage(startPage === 'login' ? 'home' : startPage);
+        
         preloadDashboardData();
         
         // Check for notifications
@@ -1967,7 +2281,6 @@ async function loadDashboard() {
     }
 }
 
-// ✅ DELETE everything after this point that was orphaned
 async function loadAllWeeksData() {
     try {
         const result = await api('getAllWeeksStats', { agentNo: STATE.agentNo });
@@ -2008,15 +2321,15 @@ function setupDashboard() {
         };
     }
     
+    // Setup nav links with routing
     document.querySelectorAll('.nav-link').forEach(link => {
         link.onclick = null;
         link.onclick = e => {
-            e.preventDefault(); e.stopPropagation();
+            e.preventDefault(); 
+            e.stopPropagation();
             const page = link.dataset.page;
             if (page) {
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-                loadPage(page);
+                loadPage(page); // This now uses the router!
                 closeSidebar();
             }
         };
@@ -2038,59 +2351,34 @@ function setupDashboard() {
 
 function logout() {
     if (confirm('Logout?')) {
+        // Clear intervals
+        if (notificationInterval) {
+            clearInterval(notificationInterval);
+            notificationInterval = null;
+        }
+        
+        // Clear state
+        STATE.agentNo = null;
+        STATE.data = null;
+        STATE.isAdmin = false;
+        ROUTER.initialized = false;
+        ROUTER.lastRoute = null;
+        
+        // Clear storage
         localStorage.removeItem('spyAgent');
         localStorage.removeItem('adminSession');
         localStorage.removeItem('adminExpiry');
+        
+        // Reset URL to clean state
+        history.replaceState({ page: 'login', route: 'login' }, '', '#/login');
+        
+        // Reload to reset everything cleanly
         location.reload();
     }
 }
 
-// ==================== PAGE ROUTER ====================
-async function loadPage(page) {
-    STATE.page = page;
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    
-    const dynamicPages = ['chat', 'playlists', 'gc-links', 'helper-roles'];
-    dynamicPages.forEach(pageName => {
-        if (page === pageName && !$(`page-${pageName}`)) {
-            const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
-            if (mainContent) {
-                const newPage = document.createElement('section');
-                newPage.id = `page-${pageName}`;
-                newPage.className = 'page';
-                newPage.innerHTML = `<div id="${pageName}-content"></div>`;
-                mainContent.appendChild(newPage);
-            }
-        }
-    });
-
-    const el = $('page-' + page);
-    if (el) el.classList.add('active');
-    
-    loading(true);
-    try {
-        switch(page) {
-            case 'home': await renderHome(); break;
-            case 'profile': await renderProfile(); break;
-            case 'rankings': await renderRankings(); break;
-            case 'goals': await renderGoals(); break;
-            case 'album2x': await renderAlbum2x(); break;
-            case 'team-level': await renderTeamLevel(); break;
-            case 'comparison': await renderComparison(); break;
-            case 'summary': await renderSummary(); break;
-            case 'drawer': await renderDrawer(); break;
-            case 'announcements': await renderAnnouncements(); break;
-            case 'secret-missions': await renderSecretMissions(); break;
-            case 'chat': await renderChat(); break;
-            case 'playlists': await renderPlaylists(); break;
-            case 'gc-links': await renderGCLinks(); break;
-            case 'helper-roles': await renderHelperRoles(); break;
-        }
-    } catch (e) {
-        if (el) el.innerHTML = `<div class="error-page"><h3>Failed to load</h3><p>${sanitize(e.message)}</p><button onclick="loadPage('${page}')" class="btn-primary">Retry</button></div>`;
-    } finally { loading(false); }
-}
-
+// ==================== START APP ====================
+document.addEventListener('DOMContentLoaded', initApp);
 // ==================== HOME RENDERER ====================
 async function renderHome() {
     const selectedWeek = STATE.week;
