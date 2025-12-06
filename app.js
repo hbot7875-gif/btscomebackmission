@@ -2845,7 +2845,7 @@ async function renderDrawer() {
         ` : ''}
         
         <!-- App Info -->
-        <div style="text-align: center; padding: 15px; color: #333; font-size: 10px;">
+        <div style="text-align: center; padding: 15px; color: #888; font-size: 10px;">
             <p style="margin: 0;">BTS Spy Battle v5.0</p>
             <p style="margin: 4px 0 0 0;">💜 Fighting! 💜</p>
         </div>
