@@ -3706,15 +3706,17 @@ async function renderSummary() {
         const days = getDaysRemaining(selectedWeek);
         container.innerHTML = `
             <div class="card">
-                <div class="card-body" style="text-align:center;padding:60px 20px;">
-                    <div style="font-size:64px;margin-bottom:20px;">🔒</div>
+                <div class="card-body summary-locked">
+                    <div class="locked-icon">🔒</div>
                     <h2>Summary Locked</h2>
-                    <p style="color:var(--text-dim);margin:16px 0;">Results for <strong>${selectedWeek}</strong> are not yet final.</p>
+                    <p>Results for <strong>${selectedWeek}</strong> are not yet final.</p>
                     <div class="countdown-box">
                         <div class="countdown-value">${days}</div>
                         <div class="countdown-label">day${days !== 1 ? 's' : ''} until results</div>
                     </div>
-                    <button onclick="loadPage('home')" class="btn-primary" style="margin-top:20px;">View Live Progress →</button>
+                    <button onclick="loadPage('home')" class="btn-primary">
+                        View Live Progress →
+                    </button>
                 </div>
             </div>
         `;
@@ -3732,44 +3734,133 @@ async function renderSummary() {
         const actualWinner = sorted[0]?.[0] || summary.winner;
         
         container.innerHTML = `
+            <!-- Week Header -->
             <div class="summary-week-header">
-                <h2>📊 ${selectedWeek} Results</h2>
-                <p class="results-date">🏆 Battle Concluded</p>
+                <span class="summary-week-badge">${selectedWeek}</span>
+                <h2>Final Results</h2>
+                <p class="results-subtitle">🏆 Battle Concluded</p>
             </div>
+            
+            <!-- Winner Announcement -->
             ${actualWinner ? `
-                <div class="card winner-card" style="border-color:${teamColor(actualWinner)};background:linear-gradient(135deg, ${teamColor(actualWinner)}22, #0a0a0f);">
-                    <div class="card-body" style="text-align:center;padding:40px;">
-                        <div style="font-size:80px;margin-bottom:16px;">🏆</div>
-                        <h2 style="color:${teamColor(actualWinner)};font-size:28px;">Team ${actualWinner} WINS!</h2>
-                        <p style="font-size:36px;color:#ffd700;margin-top:10px;">${fmt(teams[actualWinner]?.teamXP)} XP</p>
+                <div class="winner-announcement" style="--team-color: ${teamColor(actualWinner)};">
+                    <div class="winner-trophy">🏆</div>
+                    <div class="winner-content">
+                        ${teamPfp(actualWinner) ? `
+                            <img src="${teamPfp(actualWinner)}" class="winner-avatar" alt="${actualWinner}">
+                        ` : ''}
+                        <h2 class="winner-title">Team ${actualWinner}</h2>
+                        <p class="winner-subtitle">CHAMPIONS!</p>
+                        <div class="winner-xp">
+                            <span class="xp-value">${fmt(teams[actualWinner]?.teamXP)}</span>
+                            <span class="xp-label">Total XP</span>
+                        </div>
                     </div>
+                    <div class="winner-confetti">🎊</div>
                 </div>
             ` : ''}
-            <div class="card">
-                <div class="card-header"><h3>📊 Final Standings</h3></div>
-                <div class="card-body">
+            
+            <!-- Final Standings -->
+            <div class="card standings-card">
+                <div class="card-header">
+                    <h3>📊 Final Standings</h3>
+                </div>
+                <div class="card-body standings-list">
                     ${sorted.map(([t, info], i) => `
-                        <div class="final-standing ${i===0?'winner':''}" style="border-left: 4px solid ${teamColor(t)};padding:15px;margin-bottom:10px;background:${i===0 ? teamColor(t)+'11' : 'transparent'};border-radius:8px;">
-                            <div style="display:flex;align-items:center;gap:15px;">
-                                <span style="font-size:24px;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</span>
-                                ${teamPfp(t) ? `<img src="${teamPfp(t)}" style="width:40px;height:40px;border-radius:50%;border:2px solid ${teamColor(t)}">` : ''}
-                                <div style="flex:1;">
-                                    <div style="color:${teamColor(t)};font-weight:600;font-size:16px;">${t}</div>
-                                    <div style="color:#888;font-size:12px;">${info.trackGoalPassed?'🎵✅':'🎵❌'} ${info.albumGoalPassed?'💿✅':'💿❌'} ${info.album2xPassed?'✨✅':'✨❌'}</div>
+                        <div class="standing-item ${i === 0 ? 'is-winner' : ''}" style="--team-color: ${teamColor(t)};">
+                            <div class="standing-rank">
+                                ${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span class="rank-num">${i + 1}</span>`}
+                            </div>
+                            
+                            <div class="standing-team">
+                                ${teamPfp(t) ? `
+                                    <img src="${teamPfp(t)}" class="standing-avatar" alt="${t}">
+                                ` : `
+                                    <div class="standing-avatar-placeholder">${t[0]}</div>
+                                `}
+                                <div class="standing-info">
+                                    <div class="standing-name">${t}</div>
+                                    <div class="standing-goals">
+                                        <span class="goal-badge ${info.trackGoalPassed ? 'passed' : 'failed'}" title="Track Goal">
+                                            🎵 ${info.trackGoalPassed ? '✓' : '✗'}
+                                        </span>
+                                        <span class="goal-badge ${info.albumGoalPassed ? 'passed' : 'failed'}" title="Album Goal">
+                                            💿 ${info.albumGoalPassed ? '✓' : '✗'}
+                                        </span>
+                                        <span class="goal-badge ${info.album2xPassed ? 'passed' : 'failed'}" title="2X Goal">
+                                            ✨ ${info.album2xPassed ? '✓' : '✗'}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div style="text-align:right;">
-                                    <div style="color:#ffd700;font-size:20px;font-weight:bold;">${fmt(info.teamXP)}</div>
-                                    <div style="color:#888;font-size:11px;">XP</div>
-                                </div>
+                            </div>
+                            
+                            <div class="standing-xp">
+                                <span class="standing-xp-value">${fmt(info.teamXP)}</span>
+                                <span class="standing-xp-label">XP</span>
                             </div>
                         </div>
                     `).join('')}
                 </div>
             </div>
+            
+            <!-- Stats Overview -->
+            <div class="card stats-overview-card">
+                <div class="card-header">
+                    <h3>📈 Battle Stats</h3>
+                </div>
+                <div class="card-body">
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-icon">⚔️</div>
+                            <div class="stat-value">${sorted.length}</div>
+                            <div class="stat-label">Teams</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">⭐</div>
+                            <div class="stat-value">${fmt(sorted.reduce((sum, [,info]) => sum + (info.teamXP || 0), 0))}</div>
+                            <div class="stat-label">Total XP</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">🎯</div>
+                            <div class="stat-value">${sorted.filter(([,info]) => info.trackGoalPassed).length}/${sorted.length}</div>
+                            <div class="stat-label">Track Goals</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">💿</div>
+                            <div class="stat-value">${sorted.filter(([,info]) => info.albumGoalPassed).length}/${sorted.length}</div>
+                            <div class="stat-label">Album Goals</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Button -->
+            <div class="summary-actions">
+                <button onclick="loadPage('leaderboard')" class="btn-secondary">
+                    👥 View Leaderboard
+                </button>
+                <button onclick="loadPage('home')" class="btn-primary">
+                    🏠 Back to Home
+                </button>
+            </div>
         `;
-    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load summary</p></div></div>'; }
+        
+        // Mark results as seen
+        markResultsSeen(selectedWeek);
+        
+    } catch (e) { 
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-body error-state">
+                    <div class="error-icon">😵</div>
+                    <h3>Failed to Load Summary</h3>
+                    <p>Something went wrong. Please try again.</p>
+                    <button onclick="renderSummary()" class="btn-primary">Retry</button>
+                </div>
+            </div>
+        `; 
+    }
 }
-
 // ==================== SECRET MISSIONS ====================
 async function renderSecretMissions() {
     const container = $('secret-missions-content');
