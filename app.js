@@ -3383,7 +3383,7 @@ async function renderMyTeamRankings() {
         `).join('') || '<p class="empty-text">No team ranking data yet</p>';
         
         container.innerHTML = `
-            <div class="rankings-header"><span class="week-badge" style="background-color: ${teamColor(myTeam)}">${myTeam} Leaderboard</span></div>
+            <div class="rankings-header"><span class="week-badge" style="background-color: ${teamColor(myTeam)}">${myTeam} ranking</span></div>
             ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
             ${rankingsHtml}
         `;
@@ -3836,8 +3836,8 @@ async function renderSummary() {
             
             <!-- Action Button -->
             <div class="summary-actions">
-                <button onclick="loadPage('leaderboard')" class="btn-secondary">
-                    👥 View Leaderboard
+                <button onclick="loadPage('ranking')" class="btn-secondary">
+                    👥 View ranking
                 </button>
                 <button onclick="loadPage('home')" class="btn-primary">
                     🏠 Back to Home
