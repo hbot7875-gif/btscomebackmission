@@ -2825,54 +2825,32 @@ async function renderDrawer() {
         
         ${isAdmin ? `
             <!-- ===== ADMIN SECTION ===== -->
-${isAdminAgent() ? `
-    <div class="card" style="border-color: #ffd700; margin-bottom: 20px;">
-        <div class="card-header" style="background: rgba(255,215,0,0.05);">
-            <h3 style="margin: 0; color: #ffd700;">👑 Admin Controls</h3>
+            <div class="card" style="border-color: #ffd700; margin-bottom: 20px;">
+                <div class="card-header" style="background: rgba(255,215,0,0.05);">
+                    <h3 style="margin: 0; color: #ffd700;">👑 Admin Controls</h3>
+                </div>
+                <div class="card-body">
+                    <button onclick="showAdminPanel()" class="btn-primary" style="
+                        width: 100%; 
+                        padding: 14px; 
+                        background: linear-gradient(135deg, #ffd700, #ff8c00); 
+                        color: #000;
+                        font-weight: bold;
+                        font-size: 13px;
+                    ">
+                        🎛️ Open Mission Control
+                    </button>
+                </div>
+            </div>
+        ` : ''}
+        
+        <!-- App Info -->
+        <div style="text-align: center; padding: 15px; color: #333; font-size: 10px;">
+            <p style="margin: 0;">BTS Spy Battle v5.0</p>
+            <p style="margin: 4px 0 0 0;">💜 Fighting! 💜</p>
         </div>
-        <div class="card-body">
-            <button onclick="showAdminPanel()" class="btn-primary" style="
-                width: 100%; 
-                padding: 14px; 
-                background: linear-gradient(135deg, #ffd700, #ff8c00); 
-                color: #000;
-                font-weight: bold;
-                font-size: 13px;
-            ">
-                🎛️ Open Mission Control
-            </button>
-        </div>
-    </div>
-` : ''}
-
-<!-- App Info -->
-<div style="
-    text-align:center; 
-    padding:25px 20px; 
-    margin-top:30px;
-    background: linear-gradient(180deg, transparent, rgba(123,44,191,0.03));
-    border-top: 1px solid rgba(123,44,191,0.1);
-">
-    <div style="
-        display:inline-flex; 
-        align-items:center; 
-        gap:8px; 
-        padding:6px 14px; 
-        background:rgba(0,0,0,0.3); 
-        border-radius:20px;
-        border:1px solid rgba(255,255,255,0.05);
-    ">
-        <span style="font-size:14px;">🕵️</span>
-        <span style="color:#7b2cbf; font-size:11px; font-weight:600;">SPY BATTLE</span>
-        <span style="color:#555; font-size:10px;">v5.0</span>
-    </div>
-    <p style="margin:15px 0 0 0; color:#888; font-size:12px;">
-        💜 Fighting! 💜
-    </p>
-    <p style="margin:8px 0 0 0; color:#555; font-size:9px;">
-        © 2024 BTS ARMY
-    </p>
-</div>
+    `;
+    
     // Update notification state
     const currentXP = parseInt(stats.totalXP) || 0;
     STATE.lastChecked.badges = Math.floor(currentXP / 50);
