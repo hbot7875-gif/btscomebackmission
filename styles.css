@@ -5064,5 +5064,45 @@ function switchAdminTab(tabName) {
         padding: 4px 8px;
         font-size: 11px;
     }
-}       
+} 
+/* ==================== ROUTING TRANSITIONS ==================== */
+
+/* Page transition */
+.page {
+    opacity: 1;
+    transition: opacity 0.15s ease-out;
+}
+
+.page.page-transitioning {
+    opacity: 0;
+}
+
+/* Back button indicator */
+.back-indicator {
+    position: fixed;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    font-size: 24px;
+    color: rgba(123, 44, 191, 0.5);
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.back-indicator.show {
+    opacity: 1;
+}
+
+/* Prevent pull-to-refresh interfering */
+body {
+    overscroll-behavior-y: contain;
+}
+
+/* Touch feedback */
+.nav-link {
+    -webkit-tap-highlight-color: rgba(123, 44, 191, 0.3);
+    touch-action: manipulation;
+}
 /* ==================== END OF STYLES ==================== */
