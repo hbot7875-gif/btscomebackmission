@@ -2453,7 +2453,7 @@ async function renderHome() {
                             ${teamPfp(team) ? `<img src="${teamPfp(team)}" class="quick-pfp" style="border-color:${teamColor(team)}">` : ''}
                             <div class="quick-info">
                                 <div class="quick-name">Welcome, ${sanitize(agentName)}!</div>
-                                <div class="quick-team" style="color:${teamColor(team)}">Team ${team} • Rank #${STATE.data?.rank || 'N/A'}</div>
+                                <div class="quick-team" style="color:${teamColor(team)}">${team} • Rank #${STATE.data?.rank || 'N/A'}</div>
                             </div>
                         </div>
                         <div class="quick-stats-grid">
@@ -2527,25 +2527,54 @@ async function renderHome() {
         const rankList = rankings.rankings || [];
         const topAgentsEl = $('home-top-agents');
         if (topAgentsEl) {
-            topAgentsEl.innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => `<div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" onclick="loadPage('rankings')"><div class="rank-num">${i+1}</div><div class="rank-info"><div class="rank-name">${sanitize(r.name)}</div><div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div></div><div class="rank-xp">${fmt(r.totalXP)} XP</div></div>`).join('') : '<p class="empty-text">No data yet</p>';
+            topAgentsEl.innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => `
+                <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" onclick="loadPage('rankings')">
+                    <div class="rank-num">${i+1}</div>
+                    <div class="rank-info">
+                        <div class="rank-name">${sanitize(r.name)}</div>
+                        <div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div>
+                    </div>
+                    <div class="rank-xp">${fmt(r.totalXP)} XP</div>
+                </div>
+            `).join('') : '<p class="empty-text">No data yet</p>';
         }
         
         const sortedTeams = Object.keys(summary.teams || {}).sort((a, b) => (summary.teams[b].teamXP || 0) - (summary.teams[a].teamXP || 0));
         const standingsEl = $('home-standings');
         if (standingsEl) {
             standingsEl.innerHTML = sortedTeams.length ? `
-                <div class="standings-header"><span class="standings-badge ${isCompleted ? 'final' : ''}">${isCompleted ? '🏆 Final Standings' : '⏳ Live Battle'}</span></div>
+                <div class="standings-header">
+                    <span class="standings-badge ${isCompleted ? 'final' : ''}">${isCompleted ? '🏆 Final Standings' : '⏳ Live Battle'}</span>
+                </div>
                 ${sortedTeams.map((t, i) => {
                     const td = summary.teams[t];
-                    return `<div class="standing-item ${t === team ? 'my-team' : ''}" onclick="loadPage('team-level')" style="--team-color:${teamColor(t)}"><div class="standing-rank">${i+1}</div>${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}<div class="standing-info"><div class="standing-name" style="color:${teamColor(t)}">${t}</div><div class="standing-xp">${fmt(td.teamXP)} XP</div></div><div class="standing-missions">${td.trackGoalPassed?'🎵✅':'🎵❌'} ${td.albumGoalPassed?'💿✅':'💿❌'} ${td.album2xPassed?'✨✅':'✨❌'}</div></div>`;
-                    <div class="standing-members" style="font-size:10px;color:#888;">${getTeamMemberCount(t)} agents</div>
+                    return `
+                        <div class="standing-item ${t === team ? 'my-team' : ''}" onclick="loadPage('team-level')" style="--team-color:${teamColor(t)}">
+                            <div class="standing-rank">${i+1}</div>
+                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}
+                            <div class="standing-info">
+                                <div class="standing-name" style="color:${teamColor(t)}">${t}</div>
+                                <div class="standing-xp">${fmt(td.teamXP)} XP</div>
+                                <div class="standing-members" style="font-size:10px;color:#888;">👥 ${getTeamMemberCount(t)} agents</div>
+                            </div>
+                            <div class="standing-missions">
+                                ${td.trackGoalPassed ? '🎵✅' : '🎵❌'} 
+                                ${td.albumGoalPassed ? '💿✅' : '💿❌'} 
+                                ${td.album2xPassed ? '✨✅' : '✨❌'}
+                            </div>
+                        </div>
+                    `;
                 }).join('')}
-                <div class="standings-footer"><button class="btn-secondary" onclick="loadPage('comparison')">View Battle Details →</button></div>
+                <div class="standings-footer">
+                    <button class="btn-secondary" onclick="loadPage('comparison')">View Battle Details →</button>
+                </div>
             ` : '<p class="empty-text">No data yet</p>';
         }
-    } catch (e) { console.error(e); showToast('Failed to load home', 'error'); }
+    } catch (e) { 
+        console.error(e); 
+        showToast('Failed to load home', 'error'); 
+    }
 }
-
 // ==================== DRAWER ====================
 async function renderDrawer() {
     const container = $('drawer-content');
