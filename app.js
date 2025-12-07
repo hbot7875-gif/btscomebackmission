@@ -1,13 +1,9 @@
-// ===== BTS SPY BATTLE - COMPLETE APP.JS v5.0 (Full Features) =====
-
-// ==================== CONFIGURATION ====================
 const CONFIG = {
     // YOUR GOOGLE SCRIPT URL
     API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
     
     // Admin Settings
     ADMIN_AGENT_NO: 'AGENT000',
-    
     
     // End Dates (YYYY-MM-DD)
     WEEK_DATES: {
@@ -35,7 +31,6 @@ const CONFIG = {
     },
     
     // ===== ALBUM CHALLENGE SETTINGS =====
-    // 🎯 Change these to switch from 2X to 4X!
     ALBUM_CHALLENGE: {
         REQUIRED_STREAMS: 2,
         CHALLENGE_NAME: "2X",
@@ -57,13 +52,14 @@ const CONFIG = {
         "JITB": ["Intro", "Pandora's Box", "MORE", "STOP", "= (Equal Sign)", "Music Box : Reflection", "What if...", "Safety Zone", "Future", "Arson"]
     },
     
+    // ✅ FIXED: Using raw.githubusercontent.com URLs
     TEAM_PFPS: {
-        "Indigo": "https://github.com/hbot7875-gif/btscomebackmission/blob/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamindigo.jpg?raw=true",
-        "Echo": "https://github.com/hbot7875-gif/btscomebackmission/blob/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamecho.jpg?raw=true",
-        "Agust D": "https://github.com/hbot7875-gif/btscomebackmission/blob/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamagustd.jpg?raw=true",
-        "JITB": "https://github.com/hbot7875-gif/btscomebackmission/blob/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamjitb.jpg?raw=true"
+        "Indigo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamindigo.jpg",
+        "Echo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamecho.jpg",
+        "Agust D": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamagustd.jpg",
+        "JITB": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamjitb.jpg"
     },
-    
+
     // Helper Army Roles
     HELPER_ROLES: [
         { id: 'pl_maker', name: 'Playlist Maker', icon: '🎵', description: 'Creates and maintains streaming playlists' },
