@@ -1,8 +1,11 @@
 const CONFIG = {
+    // YOUR GOOGLE SCRIPT URL
     API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
     
+    // Admin Settings
     ADMIN_AGENT_NO: 'AGENT000',
     
+    // End Dates (YYYY-MM-DD)
     WEEK_DATES: {
         'Test Week 1': '2025-11-29',
         'Test Week 2': '2025-12-06',
@@ -12,6 +15,7 @@ const CONFIG = {
         'Week 4': '2026-01-03'
     },
     
+    // ===== BADGE CONFIGURATION =====
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
     TOTAL_BADGE_IMAGES: 55,
     EXCLUDE_BADGES: [],
@@ -26,6 +30,7 @@ const CONFIG = {
         return pool;
     },
     
+    // ===== ALBUM CHALLENGE SETTINGS =====
     ALBUM_CHALLENGE: {
         REQUIRED_STREAMS: 2,
         CHALLENGE_NAME: "2X",
@@ -33,7 +38,7 @@ const CONFIG = {
         BADGE_DESCRIPTION: "Completed Album 2X Challenge"
     },
     
-    // ✅ FIXED: Added "Team " prefix
+    // ✅ FIXED: Added "Team " prefix to match your data
     TEAMS: {
         'Team Indigo': { color: '#FFE082', album: 'Indigo' },   
         'Team Echo': { color: '#FAFAFA', album: 'Echo' },       
@@ -49,7 +54,7 @@ const CONFIG = {
         "Team JITB": ["Intro", "Pandora's Box", "MORE", "STOP", "= (Equal Sign)", "Music Box : Reflection", "What if...", "Safety Zone", "Future", "Arson"]
     },
     
-    // ✅ FIXED: Added "Team " prefix
+    // ✅ FIXED: Added "Team " prefix + raw URLs
     TEAM_PFPS: {
         "Team Indigo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamindigo.jpg",
         "Team Echo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamecho.jpg",
@@ -57,7 +62,6 @@ const CONFIG = {
         "Team JITB": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamjitb.jpg"
     },
     
-
     // Helper Army Roles
     HELPER_ROLES: [
         { id: 'pl_maker', name: 'Playlist Maker', icon: '🎵', description: 'Creates and maintains streaming playlists' },
