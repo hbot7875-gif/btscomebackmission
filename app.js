@@ -2077,7 +2077,6 @@ async function renderPageByRoute(pageName) {
             case 'drawer': await renderDrawer(); break;
             case 'announcements': await renderAnnouncements(); break;
             case 'secret-missions': await renderSecretMissions(); break;
-            case 'chat': await renderChat(); break;
             case 'playlists': await renderPlaylists(); break;
             case 'gc-links': await renderGCLinks(); break;
             case 'helper-roles': await renderHelperRoles(); break;
