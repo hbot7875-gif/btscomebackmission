@@ -121,6 +121,7 @@ isCheckingNotifications: false    // NEW: Prevent double-checking
 const $ = id => document.getElementById(id);
 const teamColor = team => CONFIG.TEAMS[team]?.color || '#7b2cbf';
 const teamPfp = team => CONFIG.TEAM_PFPS[team] || '';
+const getTeamMemberCount = team => STATE.allAgents?.filter(a => a.team === team).length || 0;
 
 function loading(show) {
     STATE.isLoading = show;
@@ -2537,6 +2538,7 @@ async function renderHome() {
                 ${sortedTeams.map((t, i) => {
                     const td = summary.teams[t];
                     return `<div class="standing-item ${t === team ? 'my-team' : ''}" onclick="loadPage('team-level')" style="--team-color:${teamColor(t)}"><div class="standing-rank">${i+1}</div>${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}<div class="standing-info"><div class="standing-name" style="color:${teamColor(t)}">${t}</div><div class="standing-xp">${fmt(td.teamXP)} XP</div></div><div class="standing-missions">${td.trackGoalPassed?'🎵✅':'🎵❌'} ${td.albumGoalPassed?'💿✅':'💿❌'} ${td.album2xPassed?'✨✅':'✨❌'}</div></div>`;
+                    <div class="standing-members" style="font-size:10px;color:#888;">${getTeamMemberCount(t)} agents</div>
                 }).join('')}
                 <div class="standings-footer"><button class="btn-secondary" onclick="loadPage('comparison')">View Battle Details →</button></div>
             ` : '<p class="empty-text">No data yet</p>';
