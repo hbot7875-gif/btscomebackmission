@@ -6,8 +6,8 @@ const CONFIG = {
     API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
     
     // Admin Settings
-    ADMIN_AGENT_NO: 'AGENT001',
-    ADMIN_PASSWORD: 'BTSSPYADMIN2024', 
+    ADMIN_AGENT_NO: 'AGENT000',
+    
     
     // End Dates (YYYY-MM-DD)
     WEEK_DATES: {
