@@ -99,6 +99,9 @@ const STATE = {
     adminSession: null,
     lastUpdated: null,
     hasSeenResults: {},
+// Make STATE and CONFIG globally accessible for debugging
+window.STATE = STATE;
+window.CONFIG = CONFIG;
     
 // ===== NOTIFICATION STATE =====
 notifications: [],
