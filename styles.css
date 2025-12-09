@@ -3613,6 +3613,27 @@ img {
     margin-bottom: 16px;
 }
 
+/* Priority Styles */
+.announcement.priority-high {
+    border-left: 4px solid var(--danger);
+    background: linear-gradient(135deg, rgba(248, 113, 113, 0.1), var(--bg-card));
+}
+
+.announcement.priority-medium {
+    border-left: 4px solid var(--purple-glow);
+    background: linear-gradient(135deg, rgba(169, 114, 255, 0.1), var(--bg-card));
+}
+
+.announcement.priority-low {
+    border-left: 4px solid var(--purple-dark);
+    background: linear-gradient(135deg, rgba(90, 31, 153, 0.05), var(--bg-card));
+}
+
+.announcement.priority-normal {
+    border-left: 3px solid var(--purple-main);
+}
+
+/* Legacy support */
 .announcement.urgent {
     border-left-color: var(--danger);
     background: linear-gradient(135deg, rgba(248, 113, 113, 0.05), var(--bg-card));
@@ -3632,6 +3653,34 @@ img {
     color: var(--purple-glow);
 }
 
+/* Priority Badges */
+.priority-badge {
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.priority-badge.high {
+    background: var(--danger);
+    color: white;
+    animation: pulse-urgent 2s infinite;
+}
+
+.priority-badge.medium {
+    background: linear-gradient(135deg, var(--purple-glow), var(--purple-main));
+    color: white;
+}
+
+.priority-badge.low {
+    background: rgba(123, 44, 191, 0.2);
+    color: var(--purple-glow);
+    border: 1px solid var(--purple-main);
+}
+
+/* Legacy support */
 .urgent-badge {
     font-size: 10px;
     background: var(--danger);
@@ -3653,6 +3702,45 @@ img {
     color: var(--text-dim);
     line-height: 1.6;
     font-size: 14px;
+}
+
+/* Link Button */
+.announcement-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, var(--purple-main), var(--purple-dark));
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.announcement-link-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(123, 44, 191, 0.4);
+}
+
+/* Button colors by priority */
+.priority-high .announcement-link-btn {
+    background: linear-gradient(135deg, var(--danger), #cc0000);
+}
+
+.priority-medium .announcement-link-btn {
+    background: linear-gradient(135deg, var(--purple-glow), var(--purple-main));
+}
+
+.priority-low .announcement-link-btn {
+    background: linear-gradient(135deg, var(--purple-dark), #3d1466);
+}
+
+@keyframes pulse-urgent {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(248, 113, 113, 0); }
 }
 
 /* ==================== FILTER TABS ==================== */
