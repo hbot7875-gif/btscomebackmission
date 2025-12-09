@@ -188,6 +188,27 @@ function isWeekCompleted(selectedWeek) {
     end.setHours(23, 59, 59, 999);
     return new Date() > end;
 }
+function getPriorityClass(priority) {
+    switch ((priority || '').toLowerCase()) {
+        case 'high': return 'priority-high';
+        case 'medium': return 'priority-medium';
+        case 'low': return 'priority-low';
+        default: return 'priority-normal';
+    }
+}
+
+function getPriorityBadge(priority) {
+    switch ((priority || '').toLowerCase()) {
+        case 'high': 
+            return '<span class="priority-badge high">⚠️ IMPORTANT</span>';
+        case 'medium': 
+            return '<span class="priority-badge medium">📌 NOTICE</span>';
+        case 'low': 
+            return '<span class="priority-badge low">💡 TIP</span>';
+        default: 
+            return '';
+    }
+}
 
 function closeSidebar() {
     const sidebar = $('sidebar');
@@ -4046,15 +4067,24 @@ async function renderAnnouncements() {
         const data = await api('getAnnouncements', { week: STATE.week });
         const list = data.announcements || [];
         
+        // Sort by priority: high first, then medium, then low
+        const priorityOrder = { high: 1, medium: 2, low: 3 };
+        list.sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
+        
         container.innerHTML += list.length ? list.map(a => `
-            <div class="card announcement ${a.priority === 'high' ? 'urgent' : ''}">
+            <div class="card announcement ${getPriorityClass(a.priority)}">
                 <div class="card-body">
                     <div class="announcement-header">
                         <span class="announcement-date">${a.created ? new Date(a.created).toLocaleDateString() : ''}</span>
-                        ${a.priority === 'high' ? '<span class="urgent-badge">⚠️ IMPORTANT</span>' : ''}
+                        ${getPriorityBadge(a.priority)}
                     </div>
                     <h3>${sanitize(a.title)}</h3>
                     <p>${sanitize(a.message)}</p>
+                    ${a.link ? `
+                        <a href="${sanitize(a.link)}" target="_blank" class="announcement-link-btn">
+                            ${sanitize(a.linkText) || '🔗 Open Link'}
+                        </a>
+                    ` : ''}
                 </div>
             </div>
         `).join('') : `
@@ -4062,12 +4092,10 @@ async function renderAnnouncements() {
                 <div class="card-body" style="text-align:center;padding:40px;">
                     <div style="font-size:48px;margin-bottom:16px;">📢</div>
                     <p style="color:var(--text-dim);">No announcements at this time</p>
-                    <p style="color:#666;font-size:12px;margin-top:10px;">Check back for important news from Admin!</p>
                 </div>
             </div>
         `;
         
-        // ✅ Moved INSIDE the try block
         STATE.lastChecked.announcements = Date.now();
         saveNotificationState();
         
@@ -4075,7 +4103,6 @@ async function renderAnnouncements() {
         container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p></div></div>';
     }
 }
-
 // ==================== PLAYLISTS ====================
 async function renderPlaylists() {
     const container = $('playlists-content');
