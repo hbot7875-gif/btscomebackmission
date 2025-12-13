@@ -3038,36 +3038,47 @@ async function renderAlbum2x() {
     console.log('=== ALBUM 2X DEBUG ===');
     console.log('Team:', team);
     console.log('Team Tracks from CONFIG:', teamTracks);
-    console.log('User Tracks from API:', userTracks);
+    console.log('User Tracks from API:', JSON.stringify(userTracks));
     console.log('User Track Keys:', Object.keys(userTracks));
-    console.log('User Track Keys Types:', Object.keys(userTracks).map(k => typeof k));
+    
+    // ✅ FIX: Create a normalized lookup map for userTracks
+    // This handles numeric keys, string keys, and case differences
+    const normalizedUserTracks = {};
+    for (const key in userTracks) {
+        // Store with multiple key variations
+        const strKey = String(key).trim();
+        const lowerKey = strKey.toLowerCase();
+        normalizedUserTracks[strKey] = userTracks[key];
+        normalizedUserTracks[lowerKey] = userTracks[key];
+        // If it's numeric, also store as number
+        if (!isNaN(key)) {
+            normalizedUserTracks[Number(key)] = userTracks[key];
+        }
+    }
+    
+    console.log('Normalized User Tracks:', normalizedUserTracks);
     
     let completedCount = 0;
     const trackResults = teamTracks.map(track => {
-        // ✅ FIX: Handle numeric track names like "724148"
-        // Normalize track name to string for comparison
+        // ✅ FIX: Try multiple ways to find the track
         const trackStr = String(track).trim();
+        const trackLower = trackStr.toLowerCase();
+        
         let count = 0;
         
-        // Try direct match with original value
-        if (userTracks.hasOwnProperty(track)) {
-            count = userTracks[track];
-        } 
-        // Try string version
-        else if (userTracks.hasOwnProperty(trackStr)) {
-            count = userTracks[trackStr];
+        // Method 1: Direct lookup in normalized map
+        if (normalizedUserTracks[trackStr] !== undefined) {
+            count = normalizedUserTracks[trackStr];
+        } else if (normalizedUserTracks[trackLower] !== undefined) {
+            count = normalizedUserTracks[trackLower];
+        } else if (normalizedUserTracks[track] !== undefined) {
+            count = normalizedUserTracks[track];
         }
-        // Try numeric version (if track is a string of numbers)
-        else if (!isNaN(track) && userTracks.hasOwnProperty(Number(track))) {
-            count = userTracks[Number(track)];
-        }
-        // Case-insensitive fallback search
-        else {
-            const foundKey = Object.keys(userTracks).find(k => 
-                String(k).toLowerCase().trim() === trackStr.toLowerCase()
-            );
-            if (foundKey) {
-                count = userTracks[foundKey];
+        // Method 2: If track is purely numeric, try number version
+        else if (/^\d+$/.test(trackStr)) {
+            const numKey = parseInt(trackStr, 10);
+            if (normalizedUserTracks[numKey] !== undefined) {
+                count = normalizedUserTracks[numKey];
             }
         }
         
@@ -3078,9 +3089,9 @@ async function renderAlbum2x() {
         if (passed) completedCount++;
         
         // ✅ DEBUG: Log each track matching result
-        console.log(`Track "${track}" -> Found count: ${count}, Passed: ${passed}`);
+        console.log(`Track "${track}" (type: ${typeof track}) -> Found count: ${count}, Passed: ${passed}`);
         
-        return { name: track, count, passed };
+        return { name: String(track), count, passed };
     });
     
     const allComplete = completedCount === trackResults.length && trackResults.length > 0;
