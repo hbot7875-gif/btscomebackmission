@@ -3034,11 +3034,52 @@ async function renderAlbum2x() {
     const CHALLENGE_NAME = CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME;
     const BADGE_NAME = CONFIG.ALBUM_CHALLENGE.BADGE_NAME;
     
+    // ✅ DEBUG: Log to check what data we're receiving
+    console.log('=== ALBUM 2X DEBUG ===');
+    console.log('Team:', team);
+    console.log('Team Tracks from CONFIG:', teamTracks);
+    console.log('User Tracks from API:', userTracks);
+    console.log('User Track Keys:', Object.keys(userTracks));
+    console.log('User Track Keys Types:', Object.keys(userTracks).map(k => typeof k));
+    
     let completedCount = 0;
     const trackResults = teamTracks.map(track => {
-        const count = userTracks[track] || 0;
+        // ✅ FIX: Handle numeric track names like "724148"
+        // Normalize track name to string for comparison
+        const trackStr = String(track).trim();
+        let count = 0;
+        
+        // Try direct match with original value
+        if (userTracks.hasOwnProperty(track)) {
+            count = userTracks[track];
+        } 
+        // Try string version
+        else if (userTracks.hasOwnProperty(trackStr)) {
+            count = userTracks[trackStr];
+        }
+        // Try numeric version (if track is a string of numbers)
+        else if (!isNaN(track) && userTracks.hasOwnProperty(Number(track))) {
+            count = userTracks[Number(track)];
+        }
+        // Case-insensitive fallback search
+        else {
+            const foundKey = Object.keys(userTracks).find(k => 
+                String(k).toLowerCase().trim() === trackStr.toLowerCase()
+            );
+            if (foundKey) {
+                count = userTracks[foundKey];
+            }
+        }
+        
+        // ✅ Ensure count is a valid number
+        count = Number(count) || 0;
+        
         const passed = count >= REQUIRED;
         if (passed) completedCount++;
+        
+        // ✅ DEBUG: Log each track matching result
+        console.log(`Track "${track}" -> Found count: ${count}, Passed: ${passed}`);
+        
         return { name: track, count, passed };
     });
     
@@ -3184,7 +3225,7 @@ async function renderAlbum2x() {
         <!-- TEAM STATUS SECTION -->
         <div class="card" style="border-color: ${teamAllComplete ? '#00ff88' : '#ff6b6b'}; margin-top: 20px;">
             <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                <h3 style="margin:0;">👥 Team ${team} Status</h3>
+                <h3 style="margin:0;">👥 Team ${sanitize(team)} Status</h3>
                 <span style="
                     padding: 4px 12px;
                     border-radius: 12px;
