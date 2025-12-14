@@ -2097,6 +2097,7 @@ async function renderPageByRoute(pageName) {
             case 'playlists': await renderPlaylists(); break;
             case 'gc-links': await renderGCLinks(); break;
             case 'helper-roles': await renderHelperRoles(); break;
+            case 'chat': await renderChat(); break;    
         }
     } catch (e) {
         console.error('Page render error:', e);
@@ -2184,6 +2185,9 @@ function goBack() {
     } else {
         loadPage('home');
     }
+}
+function openChat() {
+    loadPage('chat');
 }
 
 // ==================== INITIALIZATION ====================
@@ -2590,6 +2594,217 @@ async function renderHome() {
         console.error(e); 
         showToast('Failed to load home', 'error'); 
     }
+}
+// ==================== CHAT SYSTEM ====================
+let chatRefreshInterval = null;
+
+async function renderChat() {
+    // Create page container if needed
+    let container = $('chat-content');
+    if (!container) {
+        const page = $('page-chat');
+        if (page) {
+            page.innerHTML = '<div id="chat-content"></div>';
+            container = $('chat-content');
+        }
+    }
+    if (!container) return;
+    
+    const team = STATE.data?.profile?.team;
+    const myUsername = STATE.data?.profile?.name || 'Agent';
+    
+    container.innerHTML = `
+        ${renderGuide('chat')}
+        
+        <div class="chat-box" style="
+            background: #12121a;
+            border-radius: 16px;
+            border: 1px solid #7b2cbf44;
+            overflow: hidden;
+            height: calc(100vh - 280px);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        ">
+            <!-- Header -->
+            <div style="
+                background: #7b2cbf22;
+                padding: 15px;
+                border-bottom: 1px solid #7b2cbf33;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            ">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:24px;">💬</span>
+                    <div>
+                        <div style="color:#fff;font-weight:600;">Secret Comms</div>
+                        <div style="color:#888;font-size:11px;">All Teams</div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="width:8px;height:8px;background:#00ff88;border-radius:50%;"></span>
+                    <span style="color:#00ff88;font-size:11px;">Live</span>
+                </div>
+            </div>
+            
+            <!-- Messages -->
+            <div id="chat-messages" style="
+                flex: 1;
+                overflow-y: auto;
+                padding: 15px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            ">
+                <div style="text-align:center;color:#888;">Loading...</div>
+            </div>
+            
+            <!-- Input -->
+            <div style="
+                padding: 12px;
+                border-top: 1px solid #7b2cbf33;
+                background: #0a0a0f;
+            ">
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <span style="
+                        padding: 6px 10px;
+                        background: ${teamColor(team)}22;
+                        border-radius: 6px;
+                        color: ${teamColor(team)};
+                        font-size: 11px;
+                    ">@${sanitize(myUsername)}</span>
+                    <input 
+                        type="text" 
+                        id="chat-input" 
+                        placeholder="Type message..." 
+                        maxlength="500"
+                        style="
+                            flex: 1;
+                            background: #1a1a2e;
+                            border: 1px solid #333;
+                            border-radius: 8px;
+                            padding: 10px 12px;
+                            color: #fff;
+                            font-size: 14px;
+                        "
+                    >
+                    <button onclick="sendMessage()" style="
+                        background: #7b2cbf;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 10px 16px;
+                        color: #fff;
+                        cursor: pointer;
+                    ">Send ➤</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Enter key to send
+    $('chat-input')?.addEventListener('keypress', e => {
+        if (e.key === 'Enter') sendMessage();
+    });
+    
+    // Load messages
+    await loadMessages();
+    
+    // Auto refresh every 5 seconds
+    if (chatRefreshInterval) clearInterval(chatRefreshInterval);
+    chatRefreshInterval = setInterval(loadMessages, 5000);
+}
+
+async function loadMessages() {
+    const container = $('chat-messages');
+    if (!container) return;
+    
+    try {
+        const data = await api('getChatMessages', { limit: 50 });
+        const messages = data.messages || [];
+        
+        if (messages.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center;color:#888;padding:40px;">
+                    <div style="font-size:48px;margin-bottom:10px;">💬</div>
+                    <p>No messages yet. Say hi!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const myName = (STATE.data?.profile?.name || '').toLowerCase();
+        
+        container.innerHTML = messages.map(msg => {
+            const isMe = msg.username.toLowerCase() === myName;
+            return `
+                <div style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: ${isMe ? 'flex-end' : 'flex-start'};
+                ">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                        <span style="color:${teamColor(msg.team)};font-size:12px;font-weight:600;">
+                            @${sanitize(msg.username)}
+                        </span>
+                        <span style="font-size:9px;color:#666;background:${teamColor(msg.team)}22;padding:2px 6px;border-radius:4px;">
+                            ${sanitize(msg.team?.replace('Team ', '') || '')}
+                        </span>
+                    </div>
+                    <div style="
+                        background: ${isMe ? '#7b2cbf' : '#1a1a2e'};
+                        padding: 10px 14px;
+                        border-radius: ${isMe ? '12px 12px 4px 12px' : '12px 12px 12px 4px'};
+                        color: #fff;
+                        font-size: 14px;
+                        max-width: 80%;
+                        word-break: break-word;
+                    ">${sanitize(msg.message)}</div>
+                    <span style="font-size:9px;color:#555;margin-top:3px;">
+                        ${formatTime(msg.timestamp)}
+                    </span>
+                </div>
+            `;
+        }).join('');
+        
+        container.scrollTop = container.scrollHeight;
+    } catch (e) {
+        container.innerHTML = '<div style="text-align:center;color:#ff6b6b;">Failed to load</div>';
+    }
+}
+
+async function sendMessage() {
+    const input = $('chat-input');
+    const msg = input?.value?.trim();
+    if (!msg) return;
+    
+    input.value = '';
+    
+    try {
+        const result = await api('sendChatMessage', {
+            agentNo: STATE.agentNo,
+            message: msg
+        });
+        
+        if (result.success) {
+            await loadMessages();
+        } else {
+            showToast(result.error || 'Failed', 'error');
+        }
+    } catch (e) {
+        showToast('Failed to send', 'error');
+    }
+}
+
+function formatTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
+    if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 // ==================== DRAWER (FIXED BADGE SECTION) ====================
 async function renderDrawer() {
@@ -4441,5 +4656,8 @@ window.handleNotificationAction = handleNotificationAction;
 window.showNotificationCenter = showNotificationCenter;
 window.clearAllNotifications = clearAllNotifications;
 window.checkNotifications = checkNotifications;
+window.openChat = openChat;
+window.sendMessage = sendMessage;
+window.loadMessages = loadMessages;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded');
