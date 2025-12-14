@@ -2614,14 +2614,27 @@ async function renderChat() {
     const myUsername = STATE.data?.profile?.name || 'Agent';
     
     container.innerHTML = `
-        ${renderGuide('chat')}
+        <!-- Compact Guide -->
+        <div style="
+            background: rgba(255,255,255,0.03);
+            border-left: 3px solid #7b2cbf;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        ">
+            <span style="font-size:16px;">💬</span>
+            <span style="color:#888;font-size:12px;">Be kind to fellow agents! 💜</span>
+        </div>
         
         <div class="chat-box" style="
             background: #12121a;
             border-radius: 16px;
             border: 1px solid #7b2cbf44;
             overflow: hidden;
-            height: calc(100vh - 280px);
+            height: calc(100vh - 220px);
             min-height: 400px;
             display: flex;
             flex-direction: column;
@@ -2629,21 +2642,21 @@ async function renderChat() {
             <!-- Header -->
             <div style="
                 background: #7b2cbf22;
-                padding: 15px;
+                padding: 12px 15px;
                 border-bottom: 1px solid #7b2cbf33;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
             ">
                 <div style="display:flex;align-items:center;gap:10px;">
-                    <span style="font-size:24px;">💬</span>
+                    <span style="font-size:20px;">🔐</span>
                     <div>
-                        <div style="color:#fff;font-weight:600;">Secret Comms</div>
-                        <div style="color:#888;font-size:11px;">All Teams</div>
+                        <div style="color:#fff;font-weight:600;font-size:14px;">Secret Comms</div>
+                        <div style="color:#888;font-size:10px;">All Teams • Encrypted</div>
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;">
-                    <span style="width:8px;height:8px;background:#00ff88;border-radius:50%;"></span>
+                    <span style="width:8px;height:8px;background:#00ff88;border-radius:50%;animation:pulse 2s infinite;"></span>
                     <span style="color:#00ff88;font-size:11px;">Live</span>
                 </div>
             </div>
@@ -2657,10 +2670,10 @@ async function renderChat() {
                 flex-direction: column;
                 gap: 12px;
             ">
-                <div style="text-align:center;color:#888;">Loading...</div>
+                <div style="text-align:center;color:#888;">Loading messages...</div>
             </div>
             
-            <!-- Input -->
+            <!-- Input Area -->
             <div style="
                 padding: 12px;
                 border-top: 1px solid #7b2cbf33;
@@ -2670,9 +2683,11 @@ async function renderChat() {
                     <span style="
                         padding: 6px 10px;
                         background: ${teamColor(team)}22;
+                        border: 1px solid ${teamColor(team)}44;
                         border-radius: 6px;
                         color: ${teamColor(team)};
                         font-size: 11px;
+                        white-space: nowrap;
                     ">@${sanitize(myUsername)}</span>
                     <input 
                         type="text" 
@@ -2687,25 +2702,53 @@ async function renderChat() {
                             padding: 10px 12px;
                             color: #fff;
                             font-size: 14px;
+                            outline: none;
                         "
                     >
-                    <button onclick="sendMessage()" style="
-                        background: #7b2cbf;
+                    <button id="send-btn" onclick="sendMessage()" style="
+                        background: linear-gradient(135deg, #7b2cbf, #5a1f99);
                         border: none;
                         border-radius: 8px;
                         padding: 10px 16px;
                         color: #fff;
                         cursor: pointer;
+                        font-size: 13px;
+                        display: flex;
+                        align-items: center;
+                        gap: 5px;
                     ">Send ➤</button>
+                </div>
+                <div style="margin-top:6px;text-align:right;">
+                    <span id="char-count" style="color:#555;font-size:10px;">0/500</span>
                 </div>
             </div>
         </div>
     `;
     
-    // Enter key to send
-    $('chat-input')?.addEventListener('keypress', e => {
-        if (e.key === 'Enter') sendMessage();
-    });
+    // Setup input handlers
+    const input = $('chat-input');
+    const charCount = $('char-count');
+    
+    if (input) {
+        // Enter key to send
+        input.addEventListener('keypress', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // Character counter
+        input.addEventListener('input', () => {
+            if (charCount) {
+                charCount.textContent = `${input.value.length}/500`;
+                charCount.style.color = input.value.length > 450 ? '#ff6b6b' : '#555';
+            }
+        });
+        
+        // Focus on input
+        input.focus();
+    }
     
     // Load messages
     await loadMessages();
@@ -2725,9 +2768,19 @@ async function loadMessages() {
         
         if (messages.length === 0) {
             container.innerHTML = `
-                <div style="text-align:center;color:#888;padding:40px;">
-                    <div style="font-size:48px;margin-bottom:10px;">💬</div>
-                    <p>No messages yet. Say hi!</p>
+                <div style="
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    color: #888;
+                    text-align: center;
+                    padding: 40px;
+                ">
+                    <div style="font-size:48px;margin-bottom:15px;">💬</div>
+                    <p style="margin:0 0 5px 0;">No messages yet</p>
+                    <p style="font-size:12px;color:#666;">Be the first to say hello!</p>
                 </div>
             `;
             return;
@@ -2742,43 +2795,67 @@ async function loadMessages() {
                     display: flex;
                     flex-direction: column;
                     align-items: ${isMe ? 'flex-end' : 'flex-start'};
+                    max-width: 85%;
+                    ${isMe ? 'margin-left:auto;' : 'margin-right:auto;'}
                 ">
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                         <span style="color:${teamColor(msg.team)};font-size:12px;font-weight:600;">
                             @${sanitize(msg.username)}
                         </span>
-                        <span style="font-size:9px;color:#666;background:${teamColor(msg.team)}22;padding:2px 6px;border-radius:4px;">
-                            ${sanitize(msg.team?.replace('Team ', '') || '')}
-                        </span>
+                        <span style="
+                            font-size:9px;
+                            color:#888;
+                            background:${teamColor(msg.team)}22;
+                            padding:2px 6px;
+                            border-radius:4px;
+                        ">${sanitize(msg.team?.replace('Team ', '') || '')}</span>
                     </div>
                     <div style="
-                        background: ${isMe ? '#7b2cbf' : '#1a1a2e'};
+                        background: ${isMe ? 'linear-gradient(135deg, #7b2cbf, #5a1f99)' : 'rgba(255,255,255,0.08)'};
                         padding: 10px 14px;
-                        border-radius: ${isMe ? '12px 12px 4px 12px' : '12px 12px 12px 4px'};
+                        border-radius: ${isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
                         color: #fff;
                         font-size: 14px;
-                        max-width: 80%;
+                        line-height: 1.4;
                         word-break: break-word;
                     ">${sanitize(msg.message)}</div>
-                    <span style="font-size:9px;color:#555;margin-top:3px;">
+                    <span style="font-size:9px;color:#555;margin-top:4px;">
                         ${formatTime(msg.timestamp)}
                     </span>
                 </div>
             `;
         }).join('');
         
+        // Scroll to bottom
         container.scrollTop = container.scrollHeight;
+        
     } catch (e) {
-        container.innerHTML = '<div style="text-align:center;color:#ff6b6b;">Failed to load</div>';
+        console.error('Failed to load chat:', e);
+        container.innerHTML = `
+            <div style="text-align:center;color:#ff6b6b;padding:40px;">
+                <p>Failed to load messages</p>
+                <button onclick="loadMessages()" class="btn-secondary" style="margin-top:10px;">Retry</button>
+            </div>
+        `;
     }
 }
 
 async function sendMessage() {
     const input = $('chat-input');
-    const msg = input?.value?.trim();
+    const sendBtn = $('send-btn');
+    
+    if (!input) return;
+    
+    const msg = input.value.trim();
     if (!msg) return;
     
+    // Disable while sending
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '...';
+    }
     input.value = '';
+    $('char-count').textContent = '0/500';
     
     try {
         const result = await api('sendChatMessage', {
@@ -2789,22 +2866,44 @@ async function sendMessage() {
         if (result.success) {
             await loadMessages();
         } else {
-            showToast(result.error || 'Failed', 'error');
+            showToast(result.error || 'Failed to send', 'error');
+            input.value = msg; // Restore message
         }
     } catch (e) {
+        console.error('Send error:', e);
         showToast('Failed to send', 'error');
+        input.value = msg; // Restore message
+    } finally {
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = 'Send ➤';
+        }
+        input.focus();
     }
 }
 
 function formatTime(ts) {
     if (!ts) return '';
-    const d = new Date(ts);
-    const now = new Date();
-    const diff = now - d;
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
-    if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    try {
+        const d = new Date(ts);
+        const now = new Date();
+        const diff = now - d;
+        
+        if (diff < 60000) return 'Just now';
+        if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch (e) {
+        return '';
+    }
+}
+
+// Cleanup when leaving chat
+function cleanupChat() {
+    if (chatRefreshInterval) {
+        clearInterval(chatRefreshInterval);
+        chatRefreshInterval = null;
+    }
 }
 // ==================== DRAWER (FIXED BADGE SECTION) ====================
 async function renderDrawer() {
