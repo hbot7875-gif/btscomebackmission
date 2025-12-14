@@ -2595,11 +2595,9 @@ async function renderHome() {
         showToast('Failed to load home', 'error'); 
     }
 }
-// ==================== CHAT SYSTEM ====================
 let chatRefreshInterval = null;
 
 async function renderChat() {
-    // Create page container if needed
     let container = $('chat-content');
     if (!container) {
         const page = $('page-chat');
@@ -2614,19 +2612,24 @@ async function renderChat() {
     const myUsername = STATE.data?.profile?.name || 'Agent';
     
     container.innerHTML = `
-        <!-- Compact Guide -->
+        <!-- Chat Rules -->
         <div style="
             background: rgba(255,255,255,0.03);
             border-left: 3px solid #7b2cbf;
             border-radius: 8px;
-            padding: 8px 12px;
+            padding: 10px 12px;
             margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         ">
-            <span style="font-size:16px;">💬</span>
-            <span style="color:#888;font-size:12px;">Be kind to fellow agents! 💜</span>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <span style="font-size:16px;">📋</span>
+                <span style="color:#fff;font-size:13px;font-weight:600;">Chat Rules</span>
+            </div>
+            <div style="color:#888;font-size:11px;line-height:1.6;">
+                • Be kind & respectful to all agents 💜<br>
+                • Messages auto-delete after 24 hours 🕐<br>
+                • Battle related conversations only ⚔️<br>
+                • No spam, links, or inappropriate content 🚫
+            </div>
         </div>
         
         <div class="chat-box" style="
@@ -2634,7 +2637,7 @@ async function renderChat() {
             border-radius: 16px;
             border: 1px solid #7b2cbf44;
             overflow: hidden;
-            height: calc(100vh - 220px);
+            height: calc(100vh - 280px);
             min-height: 400px;
             display: flex;
             flex-direction: column;
@@ -2730,7 +2733,6 @@ async function renderChat() {
     const charCount = $('char-count');
     
     if (input) {
-        // Enter key to send
         input.addEventListener('keypress', e => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -2738,7 +2740,6 @@ async function renderChat() {
             }
         });
         
-        // Character counter
         input.addEventListener('input', () => {
             if (charCount) {
                 charCount.textContent = `${input.value.length}/500`;
@@ -2746,14 +2747,11 @@ async function renderChat() {
             }
         });
         
-        // Focus on input
         input.focus();
     }
     
-    // Load messages
     await loadMessages();
     
-    // Auto refresh every 5 seconds
     if (chatRefreshInterval) clearInterval(chatRefreshInterval);
     chatRefreshInterval = setInterval(loadMessages, 5000);
 }
@@ -2826,7 +2824,6 @@ async function loadMessages() {
             `;
         }).join('');
         
-        // Scroll to bottom
         container.scrollTop = container.scrollHeight;
         
     } catch (e) {
@@ -2849,7 +2846,6 @@ async function sendMessage() {
     const msg = input.value.trim();
     if (!msg) return;
     
-    // Disable while sending
     if (sendBtn) {
         sendBtn.disabled = true;
         sendBtn.innerHTML = '...';
@@ -2867,12 +2863,12 @@ async function sendMessage() {
             await loadMessages();
         } else {
             showToast(result.error || 'Failed to send', 'error');
-            input.value = msg; // Restore message
+            input.value = msg;
         }
     } catch (e) {
         console.error('Send error:', e);
         showToast('Failed to send', 'error');
-        input.value = msg; // Restore message
+        input.value = msg;
     } finally {
         if (sendBtn) {
             sendBtn.disabled = false;
@@ -2898,12 +2894,15 @@ function formatTime(ts) {
     }
 }
 
-// Cleanup when leaving chat
 function cleanupChat() {
     if (chatRefreshInterval) {
         clearInterval(chatRefreshInterval);
         chatRefreshInterval = null;
     }
+}
+
+function openChat() {
+    loadPage('chat');
 }
 // ==================== DRAWER (FIXED BADGE SECTION) ====================
 async function renderDrawer() {
