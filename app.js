@@ -804,7 +804,9 @@ function updateLastCheckedCounts() {
     STATE.lastChecked.announcements = Date.now();
     saveNotificationState();
 }
-// ==================== BADGE FUNCTIONS ====================
+// ==================== FIXED BADGE FUNCTIONS ====================
+
+// ==================== FIXED BADGE FUNCTIONS ====================
 
 function getLevelBadges(agentNo, totalXP, week = STATE.week) {
     const pool = CONFIG.BADGE_POOL || [];
@@ -812,12 +814,9 @@ function getLevelBadges(agentNo, totalXP, week = STATE.week) {
     
     const badges = [];
     const xp = parseInt(totalXP) || 0;
-    
-    // Every 50 XP = 1 Badge
     const badgeCount = Math.floor(xp / 50);
     
     for (let level = 1; level <= badgeCount; level++) {
-        // Generate unique but consistent badge for each agent + level
         let seed = 0;
         const str = String(agentNo).toUpperCase();
         for (let i = 0; i < str.length; i++) {
@@ -825,7 +824,6 @@ function getLevelBadges(agentNo, totalXP, week = STATE.week) {
         }
         seed += (level * 137);
         
-        // Add week-based offset for variety
         if (week) {
             for (let i = 0; i < week.length; i++) {
                 seed += week.charCodeAt(i);
@@ -843,83 +841,81 @@ function getLevelBadges(agentNo, totalXP, week = STATE.week) {
         });
     }
     
-    return badges.reverse(); // Most recent first
+    return badges.reverse();
 }
 
-function getSpecialBadges(agentNo, week = STATE.week) {
+// ✅ NEW: Get 2X badge for a SPECIFIC week's data object
+function getAlbum2xBadgeForWeek(agentNo, weekData, weekName) {
     const pool = CONFIG.BADGE_POOL || [];
-    if (!pool || pool.length === 0) return [];
+    if (!pool || pool.length === 0) return null;
     
-    const badges = [];
-    const album2xStatus = STATE.data?.album2xStatus || {};
-    const profile = STATE.data?.profile || {};
+    const album2xStatus = weekData?.album2xStatus || {};
     
-    // ✅ Use configurable badge name
-    const BADGE_NAME = CONFIG.ALBUM_CHALLENGE.BADGE_NAME;
-    const BADGE_DESC = CONFIG.ALBUM_CHALLENGE.BADGE_DESCRIPTION;
-    
-    // === ALBUM CHALLENGE COMPLETION BADGE ===
     if (album2xStatus.passed) {
         let seed = 0;
-        const str = String(agentNo).toUpperCase() + '_ALBUM_' + week;
+        const str = String(agentNo).toUpperCase() + '_ALBUM_' + weekName;
         for (let i = 0; i < str.length; i++) {
             seed += str.charCodeAt(i);
         }
         const index = seed % pool.length;
         
-        badges.push({
-            name: BADGE_NAME,
-            description: BADGE_DESC,
+        return {
+            name: CONFIG.ALBUM_CHALLENGE.BADGE_NAME,
+            description: `${CONFIG.ALBUM_CHALLENGE.BADGE_DESCRIPTION} (${weekName})`,
             imageUrl: pool[index],
             type: 'achievement',
             icon: '✨',
-            week: week
-        });
-    }
-    
-    // === TEAM WINNER BADGE ===
-    const teamWinBadge = checkTeamWinnerBadge(agentNo, profile.team, week);
-    if (teamWinBadge) {
-        badges.push(teamWinBadge);
-    }
-    
-    return badges;
-}
-
-function checkTeamWinnerBadge(agentNo, team, week) {
-    const pool = CONFIG.BADGE_POOL || [];
-    if (!pool || pool.length === 0 || !team) return null;
-    
-    // Check from allWeeksData if available
-    if (STATE.allWeeksData?.weeks) {
-        const weekData = STATE.allWeeksData.weeks.find(w => w.week === week);
-        if (weekData?.winner === team) {
-            let seed = 0;
-            const str = String(agentNo).toUpperCase() + '_WINNER_' + week;
-            for (let i = 0; i < str.length; i++) {
-                seed += str.charCodeAt(i);
-            }
-            const index = seed % pool.length;
-            
-            return {
-                name: '🏆 Champion',
-                description: `Team ${team} won ${week}!`,
-                imageUrl: pool[index],
-                type: 'winner',
-                icon: '🏆',
-                week: week
-            };
-        }
+            week: weekName
+        };
     }
     
     return null;
 }
 
+// ✅ NEW: Get winner badge for a specific week
+function getWinnerBadgeForWeek(agentNo, weekData, agentTeam) {
+    const pool = CONFIG.BADGE_POOL || [];
+    if (!pool || pool.length === 0 || !agentTeam) return null;
+    
+    const weekName = weekData.week;
+    const winner = weekData.winner;
+    
+    // Only completed weeks can have winners
+    if (!isWeekCompleted(weekName)) return null;
+    
+    // Check if agent's team won this week
+    if (winner && winner === agentTeam) {
+        let seed = 0;
+        const str = String(agentNo).toUpperCase() + '_WINNER_' + weekName;
+        for (let i = 0; i < str.length; i++) {
+            seed += str.charCodeAt(i);
+        }
+        const index = seed % pool.length;
+        
+        return {
+            name: '🏆 Champion',
+            description: `${agentTeam} won ${weekName}!`,
+            imageUrl: pool[index],
+            type: 'winner',
+            icon: '🏆',
+            week: weekName
+        };
+    }
+    
+    return null;
+}
+
+// Keep original for backward compatibility
+function getSpecialBadges(agentNo, week = STATE.week) {
+    const badges = [];
+    const album2xBadge = getAlbum2xBadgeForWeek(agentNo, STATE.data, week);
+    if (album2xBadge) badges.push(album2xBadge);
+    return badges;
+}
+
 function getAllBadges(agentNo, totalXP, week = STATE.week) {
     const xpBadges = getLevelBadges(agentNo, totalXP, week);
     const specialBadges = getSpecialBadges(agentNo, week);
-    
-    // Special badges first, then XP badges
     return [...specialBadges, ...xpBadges];
 }
 // ==================== ADMIN FUNCTIONS ====================
@@ -2595,7 +2591,7 @@ async function renderHome() {
         showToast('Failed to load home', 'error'); 
     }
 }
-// ==================== DRAWER ====================
+// ==================== DRAWER (FIXED BADGE SECTION) ====================
 async function renderDrawer() {
     const container = $('drawer-content');
     if (!container) return;
@@ -2606,6 +2602,16 @@ async function renderDrawer() {
     const isAdmin = isAdminAgent();
     const album2xStatus = STATE.data?.album2xStatus || {};
     
+    // ===== ENSURE WE HAVE ALL WEEKS DATA =====
+    if (!STATE.allWeeksData) {
+        try {
+            STATE.allWeeksData = await api('getAllWeeksStats', { agentNo: STATE.agentNo });
+            console.log('Loaded allWeeksData:', STATE.allWeeksData);
+        } catch (e) {
+            console.log('Could not load all weeks data:', e);
+        }
+    }
+    
     // ===== CALCULATE OVERALL STATS FROM ALL WEEKS =====
     let overallXP = 0;
     let overallTrackStreams = 0;
@@ -2614,8 +2620,14 @@ async function renderDrawer() {
     let allSpecialBadges = [];
     let weeksParticipated = 0;
     
+    // Get agent's team (for winner badge check)
+    const agentTeam = STATE.allWeeksData?.agentTeam || team;
+    
     if (STATE.allWeeksData?.weeks?.length > 0) {
+        console.log('Processing', STATE.allWeeksData.weeks.length, 'weeks for badges');
+        
         STATE.allWeeksData.weeks.forEach(weekData => {
+            const weekName = weekData.week;
             const weekXP = parseInt(weekData.stats?.totalXP) || 0;
             const weekTracks = parseInt(weekData.stats?.trackScrobbles) || 0;
             const weekAlbums = parseInt(weekData.stats?.albumScrobbles) || 0;
@@ -2626,27 +2638,66 @@ async function renderDrawer() {
             
             if (weekXP > 0) weeksParticipated++;
             
-            const weekBadges = getLevelBadges(STATE.agentNo, weekXP, weekData.week);
+            // ✅ XP badges for this week
+            const weekBadges = getLevelBadges(STATE.agentNo, weekXP, weekName);
             allXpBadges = allXpBadges.concat(weekBadges);
+            
+            // ✅ FIX: Get 2X badge for THIS week's data
+            const album2xBadge = getAlbum2xBadgeForWeek(STATE.agentNo, weekData, weekName);
+            if (album2xBadge) {
+                console.log(`✅ Found 2X badge for ${weekName}:`, album2xBadge);
+                allSpecialBadges.push(album2xBadge);
+            }
+            
+            // ✅ FIX: Get winner badge if team won this week
+            const winnerBadge = getWinnerBadgeForWeek(STATE.agentNo, weekData, agentTeam);
+            if (winnerBadge) {
+                console.log(`✅ Found Winner badge for ${weekName}:`, winnerBadge);
+                allSpecialBadges.push(winnerBadge);
+            }
         });
         
-        allSpecialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
     } else {
+        // Fallback to current week only
+        console.log('No allWeeksData, using current week only');
         overallXP = parseInt(stats.totalXP) || 0;
         overallTrackStreams = parseInt(stats.trackScrobbles) || 0;
         overallAlbumStreams = parseInt(stats.albumScrobbles) || 0;
         weeksParticipated = overallXP > 0 ? 1 : 0;
         allXpBadges = getLevelBadges(STATE.agentNo, overallXP, STATE.week);
-        allSpecialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
+        
+        // Current week special badges
+        const album2xBadge = getAlbum2xBadgeForWeek(STATE.agentNo, STATE.data, STATE.week);
+        if (album2xBadge) allSpecialBadges.push(album2xBadge);
     }
+    
+    // Remove duplicate special badges (same name + week)
+    const seenBadges = new Set();
+    const uniqueSpecialBadges = allSpecialBadges.filter(b => {
+        const key = `${b.name}_${b.week}`;
+        if (seenBadges.has(key)) return false;
+        seenBadges.add(key);
+        return true;
+    });
+    
+    console.log('=== BADGE SUMMARY ===');
+    console.log('Special Badges:', uniqueSpecialBadges.length, uniqueSpecialBadges);
+    console.log('XP Badges:', allXpBadges.length);
     
     // Current week stats
     const currentWeekXP = parseInt(stats.totalXP) || 0;
     const currentWeekTracks = parseInt(stats.trackScrobbles) || 0;
     const currentWeekAlbums = parseInt(stats.albumScrobbles) || 0;
     
-    const allBadges = [...allSpecialBadges, ...allXpBadges];
+    // ✅ Special badges first (winner, 2X), then XP badges
+    const allBadges = [...uniqueSpecialBadges, ...allXpBadges];
     const totalBadgeCount = allBadges.length;
+
+    console.log('=== DRAWER BADGES DEBUG ===');
+    console.log('All Weeks Data:', STATE.allWeeksData);
+    console.log('Special Badges:', uniqueSpecialBadges);
+    console.log('XP Badges:', allXpBadges.length);
+    console.log('Total Badges:', totalBadgeCount);
     
     container.innerHTML = `
         <!-- Agent Profile Card -->
@@ -2770,7 +2821,7 @@ async function renderDrawer() {
             </div>
         </div>
         
-        <!-- ===== BADGES SECTION ===== -->
+        <!-- ===== BADGES SECTION (FIXED) ===== -->
         <div class="card" style="margin-bottom: 20px;">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0;">🎖️ Badge Collection</h3>
@@ -2778,35 +2829,77 @@ async function renderDrawer() {
             </div>
             <div class="card-body">
                 ${allBadges.length > 0 ? `
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 10px;">
-                        ${allBadges.slice(0, 12).map(badge => `
-                            <div style="text-align: center;">
-                                <div class="badge-circle holographic" style="
-                                    width: 50px;
-                                    height: 50px;
-                                    margin: 0 auto;
-                                    border-radius: 50%;
-                                    overflow: hidden;
-                                    border: 2px solid ${badge.type === 'achievement' ? '#7b2cbf' : badge.type === 'winner' ? '#ffd700' : '#555'};
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    background: rgba(123,44,191,0.1);
-                                ">
-                                    ${badge.imageUrl ? `
-                                        <img src="${badge.imageUrl}" style="width:100%;height:100%;object-fit:cover;" 
-                                             onerror="this.style.display='none';this.parentElement.innerHTML='${badge.icon || '🎖️'}';">
-                                    ` : `<span style="font-size:22px;">${badge.icon || '🎖️'}</span>`}
-                                </div>
-                                <div style="margin-top: 5px; font-size: 8px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sanitize(badge.name)}</div>
+                    <!-- Show special badges first (winner, 2X) -->
+                    ${uniqueSpecialBadges.length > 0 ? `
+                        <div style="margin-bottom: 15px;">
+                            <div style="color: #888; font-size: 10px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">✨ Special Badges</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 10px;">
+                                ${uniqueSpecialBadges.map(badge => `
+                                    <div style="text-align: center;">
+                                        <div class="badge-circle holographic" style="
+                                            width: 50px;
+                                            height: 50px;
+                                            margin: 0 auto;
+                                            border-radius: 50%;
+                                            overflow: hidden;
+                                            border: 2px solid ${badge.type === 'winner' ? '#ffd700' : '#7b2cbf'};
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            background: ${badge.type === 'winner' ? 'rgba(255,215,0,0.1)' : 'rgba(123,44,191,0.1)'};
+                                        ">
+                                            ${badge.imageUrl ? `
+                                                <img src="${badge.imageUrl}" style="width:100%;height:100%;object-fit:cover;" 
+                                                     onerror="this.style.display='none';this.parentElement.innerHTML='${badge.icon || '🎖️'}';">
+                                            ` : `<span style="font-size:22px;">${badge.icon || '🎖️'}</span>`}
+                                        </div>
+                                        <div style="margin-top: 5px; font-size: 8px; color: ${badge.type === 'winner' ? '#ffd700' : '#7b2cbf'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            ${badge.icon || ''} ${sanitize(badge.name)}
+                                        </div>
+                                        <div style="font-size: 7px; color: #666;">${sanitize(badge.week)}</div>
+                                    </div>
+                                `).join('')}
                             </div>
-                        `).join('')}
-                    </div>
-                    ${allBadges.length > 12 ? `
-                        <div style="text-align: center; margin-top: 12px;">
-                            <span style="color: #666; font-size: 11px;">+${allBadges.length - 12} more badges</span>
                         </div>
                     ` : ''}
+                    
+                    <!-- XP Badges -->
+                    ${allXpBadges.length > 0 ? `
+                        <div>
+                            <div style="color: #888; font-size: 10px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">⭐ XP Badges</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 10px;">
+                                ${allXpBadges.slice(0, 12).map(badge => `
+                                    <div style="text-align: center;">
+                                        <div class="badge-circle holographic" style="
+                                            width: 50px;
+                                            height: 50px;
+                                            margin: 0 auto;
+                                            border-radius: 50%;
+                                            overflow: hidden;
+                                            border: 2px solid #555;
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            background: rgba(123,44,191,0.1);
+                                        ">
+                                            ${badge.imageUrl ? `
+                                                <img src="${badge.imageUrl}" style="width:100%;height:100%;object-fit:cover;" 
+                                                     onerror="this.style.display='none';this.parentElement.innerHTML='🎖️';">
+                                            ` : `<span style="font-size:22px;">🎖️</span>`}
+                                        </div>
+                                        <div style="margin-top: 5px; font-size: 8px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sanitize(badge.name)}</div>
+                                        <div style="font-size: 7px; color: #666;">${sanitize(badge.week)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ${allXpBadges.length > 12 ? `
+                                <div style="text-align: center; margin-top: 12px;">
+                                    <span style="color: #666; font-size: 11px;">+${allXpBadges.length - 12} more XP badges</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                    
                     <button onclick="loadPage('profile')" class="btn-secondary" style="width: 100%; margin-top: 12px; padding: 10px; font-size: 12px;">
                         View All Badges →
                     </button>
