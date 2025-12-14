@@ -2551,9 +2551,54 @@ async function renderHome() {
         const daysLeft = getDaysRemaining(selectedWeek);
         const agentName = STATE.data?.profile?.name || 'Agent';
         
+        // ===== CALCULATE TIP - Find track with lowest progress =====
+        const trackGoals = goals.trackGoals || {};
+        let lowestTrack = null;
+        let lowestProgress = 100;
+        
+        for (const [trackName, info] of Object.entries(trackGoals)) {
+            const tp = info.teams?.[team] || {};
+            const current = tp.current || 0;
+            const goal = info.goal || 1;
+            const progress = (current / goal) * 100;
+            
+            if (progress < 100 && progress < lowestProgress) {
+                lowestProgress = progress;
+                lowestTrack = {
+                    name: trackName,
+                    current: current,
+                    goal: goal,
+                    needed: Math.max(0, goal - current)
+                };
+            }
+        }
+        
+        // Tip HTML
+        const tipHtml = lowestTrack && !isCompleted ? `
+            <div style="
+                background: linear-gradient(135deg, #ffd70022, #ff8c0011);
+                border: 1px solid #ffd70044;
+                border-radius: 12px;
+                padding: 12px 15px;
+                margin-bottom: 15px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            ">
+                <span style="font-size:24px;">💡</span>
+                <div style="flex:1;">
+                    <div style="color:#ffd700;font-size:10px;font-weight:600;text-transform:uppercase;">TIP FOR ${sanitize(team)}</div>
+                    <div style="color:#fff;font-size:13px;margin-top:3px;">
+                        Focus on <strong style="color:#ffd700;">${sanitize(lowestTrack.name)}</strong> 
+                        — need <strong style="color:#00ff88;">${fmt(lowestTrack.needed)}</strong> more streams!
+                    </div>
+                </div>
+            </div>
+        ` : '';
+        
         const quickStatsEl = document.querySelector('.quick-stats-section');
         if (quickStatsEl) {
-            quickStatsEl.innerHTML = guideHtml + `
+            quickStatsEl.innerHTML = guideHtml + tipHtml + `
                 <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
                     <div class="card-body">
                         <div class="quick-header">
@@ -2576,7 +2621,6 @@ async function renderHome() {
             `;
         }
         
-        const trackGoals = goals.trackGoals || {};
         const albumGoals = goals.albumGoals || {};
         const album2xStatus = STATE.data?.album2xStatus || {};
         const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
@@ -2590,7 +2634,7 @@ async function renderHome() {
             const ap = info.teams?.[team] || {};
             return { name: albumName, current: ap.current || 0, goal: info.goal || 0, done: ap.status === 'Completed' || (ap.current || 0) >= (info.goal || 0) };
         });
-
+        
         const missionCardsContainer = document.querySelector('.missions-grid');
         if (missionCardsContainer) {
             missionCardsContainer.innerHTML = `
