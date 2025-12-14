@@ -2854,7 +2854,7 @@ async function renderDrawer() {
                                             ` : `<span style="font-size:22px;">${badge.icon || '🎖️'}</span>`}
                                         </div>
                                         <div style="margin-top: 5px; font-size: 8px; color: ${badge.type === 'winner' ? '#ffd700' : '#7b2cbf'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                            ${badge.icon || ''} ${sanitize(badge.name)}
+                                            ${sanitize(badge.name)}
                                         </div>
                                         <div style="font-size: 7px; color: #666;">${sanitize(badge.week)}</div>
                                     </div>
