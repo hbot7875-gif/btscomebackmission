@@ -2497,35 +2497,35 @@ function setupDashboard() {
     updateTime();
 }
 
-function logout() {
+async function logout() {
     if (confirm('Logout?')) {
+        // Instant offline
+        try {
+            await api('removeOnlineUser', { agentNo: STATE.agentNo });
+        } catch (e) {}
+        
         stopHeartbeat();
-        // Clear intervals
+        
         if (notificationInterval) {
             clearInterval(notificationInterval);
             notificationInterval = null;
         }
         
-        // Clear state
         STATE.agentNo = null;
         STATE.data = null;
         STATE.isAdmin = false;
         ROUTER.initialized = false;
         ROUTER.lastRoute = null;
         
-        // Clear storage
         localStorage.removeItem('spyAgent');
         localStorage.removeItem('adminSession');
         localStorage.removeItem('adminExpiry');
         
-        // Reset URL to clean state
         history.replaceState({ page: 'login', route: 'login' }, '', '#/login');
         
-        // Reload to reset everything cleanly
         location.reload();
     }
 }
-
 // ==================== START APP ====================
 document.addEventListener('DOMContentLoaded', initApp);
 // ==================== HOME RENDERER ====================
