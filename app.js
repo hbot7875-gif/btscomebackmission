@@ -2189,6 +2189,89 @@ function goBack() {
 function openChat() {
     loadPage('chat');
 }
+async function showOnlineUsers() {
+    const data = await api('getOnlineCount');
+    const users = data.users || [];
+    
+    if (users.length === 0) {
+        showToast('No one else online', 'info');
+        return;
+    }
+    
+    // Create popup
+    const popup = document.createElement('div');
+    popup.className = 'online-popup';
+    popup.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #1a1a2e;
+        border: 1px solid #7b2cbf;
+        border-radius: 16px;
+        padding: 20px;
+        z-index: 99999;
+        max-width: 300px;
+        width: 90%;
+        max-height: 400px;
+        overflow-y: auto;
+    `;
+    
+    popup.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+            <h3 style="margin:0;color:#fff;font-size:16px;">🟢 Online Now (${users.length})</h3>
+            <button onclick="this.closest('.online-popup').remove()" style="
+                background:none;
+                border:none;
+                color:#888;
+                font-size:20px;
+                cursor:pointer;
+            ">×</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            ${users.map(u => `
+                <div style="
+                    display:flex;
+                    align-items:center;
+                    gap:10px;
+                    padding:8px 10px;
+                    background:rgba(255,255,255,0.05);
+                    border-radius:8px;
+                ">
+                    <span style="width:8px;height:8px;background:#00ff88;border-radius:50%;"></span>
+                    <span style="color:${teamColor(u.team)};font-size:13px;">@${sanitize(u.username)}</span>
+                    <span style="
+                        font-size:9px;
+                        color:#888;
+                        background:${teamColor(u.team)}22;
+                        padding:2px 6px;
+                        border-radius:4px;
+                        margin-left:auto;
+                    ">${sanitize(u.team?.replace('Team ', '') || '')}</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    // Add overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 99998;
+    `;
+    overlay.onclick = () => {
+        overlay.remove();
+        popup.remove();
+    };
+    
+    document.body.appendChild(overlay);
+    document.body.appendChild(popup);
+}
 
 // ==================== INITIALIZATION ====================
 
@@ -2281,7 +2364,10 @@ let notificationInterval = null;
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
     loading(true);
-    
+
+    startHeartbeat();
+    updateOnlineCount();
+    setInterval(updateOnlineCount, 30000);
     // Clear previous interval
     if (notificationInterval) {
         clearInterval(notificationInterval);
@@ -2413,6 +2499,7 @@ function setupDashboard() {
 
 function logout() {
     if (confirm('Logout?')) {
+        stopHeartbeat();
         // Clear intervals
         if (notificationInterval) {
             clearInterval(notificationInterval);
@@ -2595,9 +2682,140 @@ async function renderHome() {
         showToast('Failed to load home', 'error'); 
     }
 }
+// ==================== ONLINE TRACKING ====================
+
+let heartbeatInterval = null;
+let onlineCount = 0;
+
+function startHeartbeat() {
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    sendHeartbeat();
+    heartbeatInterval = setInterval(sendHeartbeat, 30000);
+}
+
+async function sendHeartbeat() {
+    try {
+        await api('heartbeat', { agentNo: STATE.agentNo });
+    } catch (e) {
+        console.log('Heartbeat failed');
+    }
+}
+
+async function updateOnlineCount() {
+    try {
+        const data = await api('getOnlineCount');
+        onlineCount = data.online || 0;
+        const el = $('online-count');
+        if (el) el.textContent = onlineCount;
+        return data;
+    } catch (e) {
+        return { online: 0, users: [] };
+    }
+}
+
+function stopHeartbeat() {
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
+}
+
+async function showOnlineUsers() {
+    const data = await api('getOnlineCount');
+    const users = data.users || [];
+    
+    if (users.length === 0) {
+        showToast('No one else online', 'info');
+        return;
+    }
+    
+    // Remove existing popup
+    document.querySelectorAll('.online-popup, .online-overlay').forEach(el => el.remove());
+    
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'online-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 99998;
+    `;
+    overlay.onclick = () => {
+        overlay.remove();
+        popup.remove();
+    };
+    
+    // Create popup
+    const popup = document.createElement('div');
+    popup.className = 'online-popup';
+    popup.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #1a1a2e;
+        border: 1px solid #7b2cbf;
+        border-radius: 16px;
+        padding: 20px;
+        z-index: 99999;
+        max-width: 300px;
+        width: 90%;
+        max-height: 400px;
+        overflow-y: auto;
+    `;
+    
+    popup.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+            <h3 style="margin:0;color:#fff;font-size:16px;">🟢 Online Now (${users.length})</h3>
+            <button onclick="this.closest('.online-popup').remove();document.querySelector('.online-overlay')?.remove();" style="
+                background:none;
+                border:none;
+                color:#888;
+                font-size:24px;
+                cursor:pointer;
+                padding:0;
+                line-height:1;
+            ">×</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            ${users.map(u => `
+                <div style="
+                    display:flex;
+                    align-items:center;
+                    gap:10px;
+                    padding:10px 12px;
+                    background:rgba(255,255,255,0.05);
+                    border-radius:8px;
+                    border-left: 3px solid ${teamColor(u.team)};
+                ">
+                    <span style="width:8px;height:8px;background:#00ff88;border-radius:50%;flex-shrink:0;"></span>
+                    <span style="color:#fff;font-size:13px;flex:1;">@${sanitize(u.username)}</span>
+                    <span style="
+                        font-size:9px;
+                        color:${teamColor(u.team)};
+                        background:${teamColor(u.team)}22;
+                        padding:3px 8px;
+                        border-radius:10px;
+                    ">${sanitize(u.team?.replace('Team ', '') || '')}</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    document.body.appendChild(popup);
+}
+
+// ==================== CHAT SYSTEM ====================
+
 let chatRefreshInterval = null;
 
 async function renderChat() {
+    // Create page container if needed
     let container = $('chat-content');
     if (!container) {
         const page = $('page-chat');
@@ -2612,7 +2830,7 @@ async function renderChat() {
     const myUsername = STATE.data?.profile?.name || 'Agent';
     
     container.innerHTML = `
-        <!-- Chat Rules -->
+        <!-- Chat Rules (Compact) -->
         <div style="
             background: rgba(255,255,255,0.03);
             border-left: 3px solid #7b2cbf;
@@ -2632,17 +2850,18 @@ async function renderChat() {
             </div>
         </div>
         
+        <!-- Chat Box -->
         <div class="chat-box" style="
             background: #12121a;
             border-radius: 16px;
             border: 1px solid #7b2cbf44;
             overflow: hidden;
-            height: calc(100vh - 280px);
-            min-height: 400px;
+            height: calc(100vh - 320px);
+            min-height: 350px;
             display: flex;
             flex-direction: column;
         ">
-            <!-- Header -->
+            <!-- Header with Online Count -->
             <div style="
                 background: #7b2cbf22;
                 padding: 12px 15px;
@@ -2658,13 +2877,18 @@ async function renderChat() {
                         <div style="color:#888;font-size:10px;">All Teams • Encrypted</div>
                     </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;">
+                <div 
+                    style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 12px;background:rgba(0,255,136,0.1);border-radius:20px;" 
+                    onclick="showOnlineUsers()"
+                >
                     <span style="width:8px;height:8px;background:#00ff88;border-radius:50%;animation:pulse 2s infinite;"></span>
-                    <span style="color:#00ff88;font-size:11px;">Live</span>
+                    <span style="color:#00ff88;font-size:12px;font-weight:600;">
+                        <span id="online-count">0</span> online
+                    </span>
                 </div>
             </div>
             
-            <!-- Messages -->
+            <!-- Messages Container -->
             <div id="chat-messages" style="
                 flex: 1;
                 overflow-y: auto;
@@ -2719,9 +2943,11 @@ async function renderChat() {
                         display: flex;
                         align-items: center;
                         gap: 5px;
+                        transition: all 0.3s;
                     ">Send ➤</button>
                 </div>
-                <div style="margin-top:6px;text-align:right;">
+                <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:#555;font-size:10px;">Press Enter to send</span>
                     <span id="char-count" style="color:#555;font-size:10px;">0/500</span>
                 </div>
             </div>
@@ -2733,6 +2959,7 @@ async function renderChat() {
     const charCount = $('char-count');
     
     if (input) {
+        // Enter key to send
         input.addEventListener('keypress', e => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -2740,6 +2967,7 @@ async function renderChat() {
             }
         });
         
+        // Character counter
         input.addEventListener('input', () => {
             if (charCount) {
                 charCount.textContent = `${input.value.length}/500`;
@@ -2747,13 +2975,30 @@ async function renderChat() {
             }
         });
         
+        // Focus input style
+        input.addEventListener('focus', () => {
+            input.style.borderColor = '#7b2cbf';
+        });
+        input.addEventListener('blur', () => {
+            input.style.borderColor = '#333';
+        });
+        
+        // Focus on input
         input.focus();
     }
     
+    // Load messages
     await loadMessages();
     
+    // Update online count
+    await updateOnlineCount();
+    
+    // Auto refresh every 5 seconds
     if (chatRefreshInterval) clearInterval(chatRefreshInterval);
-    chatRefreshInterval = setInterval(loadMessages, 5000);
+    chatRefreshInterval = setInterval(() => {
+        loadMessages();
+        updateOnlineCount();
+    }, 5000);
 }
 
 async function loadMessages() {
@@ -2795,6 +3040,7 @@ async function loadMessages() {
                     align-items: ${isMe ? 'flex-end' : 'flex-start'};
                     max-width: 85%;
                     ${isMe ? 'margin-left:auto;' : 'margin-right:auto;'}
+                    animation: fadeIn 0.3s ease;
                 ">
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                         <span style="color:${teamColor(msg.team)};font-size:12px;font-weight:600;">
@@ -2824,6 +3070,7 @@ async function loadMessages() {
             `;
         }).join('');
         
+        // Scroll to bottom
         container.scrollTop = container.scrollHeight;
         
     } catch (e) {
@@ -2846,8 +3093,10 @@ async function sendMessage() {
     const msg = input.value.trim();
     if (!msg) return;
     
+    // Disable while sending
     if (sendBtn) {
         sendBtn.disabled = true;
+        sendBtn.style.opacity = '0.6';
         sendBtn.innerHTML = '...';
     }
     input.value = '';
@@ -2863,15 +3112,16 @@ async function sendMessage() {
             await loadMessages();
         } else {
             showToast(result.error || 'Failed to send', 'error');
-            input.value = msg;
+            input.value = msg; // Restore message
         }
     } catch (e) {
         console.error('Send error:', e);
         showToast('Failed to send', 'error');
-        input.value = msg;
+        input.value = msg; // Restore message
     } finally {
         if (sendBtn) {
             sendBtn.disabled = false;
+            sendBtn.style.opacity = '1';
             sendBtn.innerHTML = 'Send ➤';
         }
         input.focus();
@@ -2904,6 +3154,7 @@ function cleanupChat() {
 function openChat() {
     loadPage('chat');
 }
+
 // ==================== DRAWER (FIXED BADGE SECTION) ====================
 async function renderDrawer() {
     const container = $('drawer-content');
@@ -4757,5 +5008,8 @@ window.checkNotifications = checkNotifications;
 window.openChat = openChat;
 window.sendMessage = sendMessage;
 window.loadMessages = loadMessages;
+window.showOnlineUsers = showOnlineUsers;
+window.startHeartbeat = startHeartbeat;
+window.stopHeartbeat = stopHeartbeat;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded');
