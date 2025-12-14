@@ -2615,7 +2615,23 @@ async function renderChat() {
     
     container.innerHTML = `
         ${renderGuide('chat')}
-        
+        container.innerHTML = `
+    <!-- Compact Guide -->
+    <div style="
+        background: rgba(255,255,255,0.03);
+        border-left: 3px solid #7b2cbf;
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    ">
+        <span style="font-size:16px;">💬</span>
+        <span style="color:#888;font-size:12px;">Be kind to fellow agents! 💜</span>
+    </div>
+    
+   
         <div class="chat-box" style="
             background: #12121a;
             border-radius: 16px;
