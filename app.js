@@ -1540,6 +1540,36 @@ async function loadMissionHistory() {
     }
 }
 
+async function setTodaysSong() {
+    const title = prompt('Song Title:');
+    if (!title) return;
+    
+    const youtubeId = prompt('YouTube Video ID (11 characters):');
+    if (!youtubeId) return;
+    
+    const hint = prompt('Hint for players:');
+    const xpReward = prompt('XP Reward (default 1):', '1');
+    
+    try {
+        const result = await api('setSongOfDay', {
+            agentNo: STATE.agentNo,
+            sessionToken: STATE.adminSession,
+            title,
+            youtubeId,
+            hint,
+            xpReward: parseInt(xpReward) || 1
+        });
+        
+        if (result.success) {
+            showToast('✅ Song of the day set!', 'success');
+        } else {
+            showToast('❌ ' + result.error, 'error');
+        }
+    } catch (e) {
+        showToast('Failed to set song', 'error');
+    }
+}
+
 function renderAdminAssets() {
     const container = document.getElementById('admin-tab-assets');
     if (!container) {
@@ -1909,6 +1939,7 @@ const ROUTES = {
     'helper-roles': 'helper-roles',
     'drawer': 'drawer',
     'summary': 'summary',
+    'song-of-day': 'song-of-day',
     'login': 'login'
 };
 
@@ -2097,7 +2128,8 @@ async function renderPageByRoute(pageName) {
             case 'playlists': await renderPlaylists(); break;
             case 'gc-links': await renderGCLinks(); break;
             case 'helper-roles': await renderHelperRoles(); break;
-            case 'chat': await renderChat(); break;    
+            case 'chat': await renderChat(); break;
+            case 'song-of-day': await renderSongOfDay(); break;
         }
     } catch (e) {
         console.error('Page render error:', e);
@@ -2653,6 +2685,12 @@ async function renderHome() {
                     <div class="mission-subtitle">${sanitize(CONFIG.TEAMS[team]?.album || team)}</div>
                     <div class="mission-status ${album2xStatus.passed ? 'complete' : ''}">${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}</div>
                     <div class="mission-progress"><div class="progress-bar"><div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div></div><span>${tracksCompleted2x}/${teamTracks.length} tracks</span></div>
+                </div>
+                <div class="mission-card" onclick="loadPage('song-of-day')" style="background:linear-gradient(135deg, #ff000011, #ff000008);">
+                    <div class="mission-icon">🎬</div>
+                    <h3>Song of the Day</h3>
+                    <div class="mission-status" style="color:#ff0000;">▶️ YouTube</div>
+                    <div class="mission-hint">Find the song, earn XP!</div>
                 </div>
                 <div class="mission-card secret" onclick="loadPage('secret-missions')">
                     <div class="mission-icon">🔒</div><h3>Secret Missions</h3>
@@ -4811,6 +4849,288 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
         </div>
     `;
 }
+// ==================== SONG OF THE DAY ====================
+
+async function renderSongOfDay() {
+    const container = $('song-of-day-content') || $('page-song-of-day');
+    if (!container) return;
+    
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#888;">Loading...</div>';
+    
+    try {
+        const data = await api('getSongOfDay');
+        
+        if (!data.success) {
+            container.innerHTML = `
+                <div class="card" style="text-align:center;padding:40px;">
+                    <div style="font-size:64px;margin-bottom:20px;">🎬</div>
+                    <h3 style="color:#fff;">No Song Today</h3>
+                    <p style="color:#888;">Check back later!</p>
+                    <button onclick="loadPage('home')" class="btn-secondary" style="margin-top:20px;">← Back</button>
+                </div>
+            `;
+            return;
+        }
+        
+        const song = data.song;
+        const today = new Date().toDateString();
+        
+        // Check if already answered
+        const answered = localStorage.getItem('song_answered_' + STATE.agentNo + '_' + today);
+        const wasCorrect = localStorage.getItem('song_correct_' + STATE.agentNo + '_' + today);
+        
+        container.innerHTML = `
+            <!-- Header -->
+            <div style="
+                background: linear-gradient(135deg, #ff000022, #ff000011);
+                border: 1px solid #ff000044;
+                border-radius: 16px;
+                padding: 20px;
+                text-align: center;
+                margin-bottom: 20px;
+            ">
+                <div style="font-size:40px;margin-bottom:10px;">🎬</div>
+                <h2 style="color:#fff;margin:0 0 5px 0;">Song of the Day</h2>
+                <p style="color:#888;margin:0;font-size:12px;">Find the correct YouTube link & earn XP!</p>
+            </div>
+            
+            <!-- Hint Card -->
+            <div class="card" style="margin-bottom:20px;">
+                <div class="card-header">
+                    <h3 style="margin:0;">💡 Today's Hint</h3>
+                </div>
+                <div class="card-body" style="text-align:center;padding:25px;">
+                    <div style="
+                        font-size: 18px;
+                        color: #ffd700;
+                        line-height: 1.6;
+                        font-style: italic;
+                    ">${sanitize(song.hint) || 'No hint available!'}</div>
+                    
+                    <div style="
+                        margin-top: 15px;
+                        padding: 10px 20px;
+                        background: rgba(255,215,0,0.1);
+                        border-radius: 20px;
+                        display: inline-block;
+                    ">
+                        <span style="color:#ffd700;font-size:14px;">🎁 Reward: +${song.xpReward || 1} XP</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Answer Section -->
+            <div class="card" style="border-color:${answered ? (wasCorrect === 'true' ? '#00ff88' : '#ff4444') : '#7b2cbf'};">
+                <div class="card-header">
+                    <h3 style="margin:0;">🔗 Your Answer</h3>
+                </div>
+                <div class="card-body" style="padding:20px;">
+                    ${answered ? `
+                        <!-- Already Answered -->
+                        <div style="text-align:center;padding:20px;">
+                            <div style="font-size:64px;margin-bottom:15px;">
+                                ${wasCorrect === 'true' ? '🎉' : '😅'}
+                            </div>
+                            <div style="
+                                color: ${wasCorrect === 'true' ? '#00ff88' : '#ff4444'};
+                                font-size: 20px;
+                                font-weight: bold;
+                                margin-bottom: 10px;
+                            ">
+                                ${wasCorrect === 'true' ? 'Correct!' : 'Wrong!'}
+                            </div>
+                            <div style="color:#888;font-size:13px;">
+                                ${wasCorrect === 'true' 
+                                    ? `You earned +${song.xpReward || 1} XP! 💜` 
+                                    : 'Better luck tomorrow!'}
+                            </div>
+                            
+                            ${wasCorrect === 'true' ? `
+                                <div style="
+                                    margin-top: 20px;
+                                    padding: 15px;
+                                    background: rgba(0,255,136,0.1);
+                                    border-radius: 12px;
+                                ">
+                                    <div style="color:#00ff88;font-size:14px;font-weight:600;">
+                                        🎵 ${sanitize(song.title)}
+                                    </div>
+                                    <div style="color:#888;font-size:12px;margin-top:5px;">
+                                        ${sanitize(song.artist || 'BTS')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            <div style="margin-top:20px;color:#666;font-size:11px;">
+                                ⏰ New song tomorrow!
+                            </div>
+                        </div>
+                    ` : `
+                        <!-- Submit Answer -->
+                        <div style="margin-bottom:15px;">
+                            <label style="color:#888;font-size:12px;display:block;margin-bottom:8px;">
+                                Paste YouTube Link:
+                            </label>
+                            <input 
+                                type="text" 
+                                id="youtube-answer" 
+                                placeholder="https://youtube.com/watch?v=..."
+                                style="
+                                    width: 100%;
+                                    background: #1a1a2e;
+                                    border: 1px solid #333;
+                                    border-radius: 10px;
+                                    padding: 15px;
+                                    color: #fff;
+                                    font-size: 14px;
+                                "
+                            >
+                        </div>
+                        
+                        <div style="
+                            padding: 12px;
+                            background: rgba(255,255,255,0.03);
+                            border-radius: 8px;
+                            margin-bottom: 15px;
+                        ">
+                            <div style="color:#888;font-size:11px;line-height:1.5;">
+                                ✅ Accepted formats:<br>
+                                • youtube.com/watch?v=xxxxx<br>
+                                • youtu.be/xxxxx<br>
+                                • Just the video ID
+                            </div>
+                        </div>
+                        
+                        <button 
+                            id="submit-song-btn"
+                            onclick="submitSongAnswer()"
+                            style="
+                                width: 100%;
+                                padding: 15px;
+                                background: linear-gradient(135deg, #ff0000, #cc0000);
+                                border: none;
+                                border-radius: 12px;
+                                color: #fff;
+                                font-size: 16px;
+                                font-weight: bold;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 10px;
+                            "
+                        >
+                            <span>▶️</span>
+                            <span>Submit Answer</span>
+                        </button>
+                        
+                        <div style="
+                            margin-top: 15px;
+                            text-align: center;
+                            color: #ff6b6b;
+                            font-size: 11px;
+                        ">
+                            ⚠️ You only get ONE attempt per day!
+                        </div>
+                    `}
+                </div>
+            </div>
+            
+            <!-- How to Play -->
+            <div class="card" style="background:rgba(255,255,255,0.02);margin-top:20px;">
+                <div class="card-body" style="padding:15px;">
+                    <div style="color:#888;font-size:12px;line-height:1.6;">
+                        <strong style="color:#fff;">How to Play:</strong><br>
+                        1️⃣ Read the hint above<br>
+                        2️⃣ Find the BTS song on YouTube<br>
+                        3️⃣ Paste the link and submit<br>
+                        4️⃣ Earn XP if correct! 🎉
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Back Button -->
+            <button onclick="loadPage('home')" class="btn-secondary" style="width:100%;margin-top:20px;">
+                ← Back to Home
+            </button>
+        `;
+        
+        // Focus input if not answered
+        if (!answered) {
+            $('youtube-answer')?.focus();
+            
+            // Enter to submit
+            $('youtube-answer')?.addEventListener('keypress', e => {
+                if (e.key === 'Enter') submitSongAnswer();
+            });
+        }
+        
+    } catch (e) {
+        console.error('Song of day error:', e);
+        container.innerHTML = `
+            <div class="card" style="text-align:center;padding:40px;">
+                <p style="color:#ff4444;">Failed to load</p>
+                <button onclick="renderSongOfDay()" class="btn-secondary" style="margin-top:15px;">Retry</button>
+            </div>
+        `;
+    }
+}
+
+async function submitSongAnswer() {
+    const input = $('youtube-answer');
+    const btn = $('submit-song-btn');
+    
+    if (!input || !btn) return;
+    
+    const answer = input.value.trim();
+    
+    if (!answer) {
+        showToast('Please paste a YouTube link!', 'error');
+        return;
+    }
+    
+    // Disable button
+    btn.disabled = true;
+    btn.innerHTML = '<span>Checking...</span>';
+    
+    try {
+        const result = await api('submitSongAnswer', {
+            agentNo: STATE.agentNo,
+            answer: answer
+        });
+        
+        const today = new Date().toDateString();
+        
+        if (result.alreadyAnswered) {
+            localStorage.setItem('song_answered_' + STATE.agentNo + '_' + today, 'true');
+            localStorage.setItem('song_correct_' + STATE.agentNo + '_' + today, result.wasCorrect ? 'true' : 'false');
+            showToast('Already answered today!', 'info');
+            renderSongOfDay();
+            return;
+        }
+        
+        // Save result
+        localStorage.setItem('song_answered_' + STATE.agentNo + '_' + today, 'true');
+        localStorage.setItem('song_correct_' + STATE.agentNo + '_' + today, result.correct ? 'true' : 'false');
+        
+        if (result.correct) {
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            showToast('🎉 Correct! +' + result.xpAwarded + ' XP!', 'success');
+        } else {
+            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+            showToast('❌ Wrong! Try again tomorrow.', 'error');
+        }
+        
+        // Refresh page
+        renderSongOfDay();
+        
+    } catch (e) {
+        console.error('Submit error:', e);
+        showToast('Failed to submit', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<span>▶️</span><span>Submit Answer</span>';
+    }
+}
 // ==================== ANNOUNCEMENTS ====================
 async function renderAnnouncements() {
     const container = $('announcements-content');
@@ -5055,5 +5375,7 @@ window.loadMessages = loadMessages;
 window.showOnlineUsers = showOnlineUsers;
 window.startHeartbeat = startHeartbeat;
 window.stopHeartbeat = stopHeartbeat;
+window.submitSongAnswer = submitSongAnswer;
+window.setTodaysSong = setTodaysSong;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded');
