@@ -4922,7 +4922,7 @@ async function renderSongOfDay() {
             ">
                 <div style="font-size:40px;margin-bottom:10px;">🎬</div>
                 <h2 style="color:#fff;margin:0 0 5px 0;">Song of the Day</h2>
-                <p style="color:#888;margin:0;font-size:12px;">Find the correct YouTube link & earn XP!</p>
+                <p style="color:#888;margin:0;font-size:12px;">Find the correct YouTube link & earn XP!(still testing dont use)</p>
             </div>
             
             <!-- Hint Card -->
