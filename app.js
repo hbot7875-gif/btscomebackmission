@@ -2091,7 +2091,7 @@ async function renderPageByRoute(pageName) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     
     // Create dynamic pages if needed
-    const dynamicPages = ['chat', 'playlists', 'gc-links', 'helper-roles'];
+    const dynamicPages = ['chat', 'playlists', 'gc-links', 'helper-roles', 'song-of-day'];
     dynamicPages.forEach(pName => {
         if (pageName === pName && !$(`page-${pName}`)) {
             const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
@@ -4851,22 +4851,51 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
 }
 // ==================== SONG OF THE DAY ====================
 
+// ==================== SONG OF THE DAY (FIXED) ====================
+
 async function renderSongOfDay() {
-    const container = $('song-of-day-content') || $('page-song-of-day');
-    if (!container) return;
+    // ✅ FIX: Properly create page and container
+    let page = $('page-song-of-day');
+    if (!page) {
+        const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
+        if (mainContent) {
+            page = document.createElement('section');
+            page.id = 'page-song-of-day';
+            page.className = 'page active'; // Make it active immediately
+            page.innerHTML = '<div id="song-of-day-content"></div>';
+            mainContent.appendChild(page);
+            console.log('✅ Created song-of-day page');
+        }
+    } else {
+        page.classList.add('active');
+    }
     
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:#888;">Loading...</div>';
+    let container = $('song-of-day-content');
+    if (!container && page) {
+        page.innerHTML = '<div id="song-of-day-content"></div>';
+        container = $('song-of-day-content');
+    }
+    
+    if (!container) {
+        console.error('❌ Could not create song-of-day container');
+        showToast('Failed to load page', 'error');
+        return;
+    }
+    
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#888;"><div class="loading-spinner"></div><p style="margin-top:15px;">Loading...</p></div>';
     
     try {
+        console.log('📡 Fetching song of day...');
         const data = await api('getSongOfDay');
+        console.log('📥 Song of day response:', data);
         
-        if (!data.success) {
+        if (!data || !data.success || !data.song) {
             container.innerHTML = `
                 <div class="card" style="text-align:center;padding:40px;">
                     <div style="font-size:64px;margin-bottom:20px;">🎬</div>
-                    <h3 style="color:#fff;">No Song Today</h3>
-                    <p style="color:#888;">Check back later!</p>
-                    <button onclick="loadPage('home')" class="btn-secondary" style="margin-top:20px;">← Back</button>
+                    <h3 style="color:#fff;margin-bottom:10px;">No Song Today</h3>
+                    <p style="color:#888;margin-bottom:20px;">Check back later!</p>
+                    <button onclick="loadPage('home')" class="btn-secondary">← Back to Home</button>
                 </div>
             `;
             return;
@@ -4874,10 +4903,12 @@ async function renderSongOfDay() {
         
         const song = data.song;
         const today = new Date().toDateString();
+        const storageKey = 'song_answered_' + STATE.agentNo + '_' + today;
+        const correctKey = 'song_correct_' + STATE.agentNo + '_' + today;
         
-        // Check if already answered
-        const answered = localStorage.getItem('song_answered_' + STATE.agentNo + '_' + today);
-        const wasCorrect = localStorage.getItem('song_correct_' + STATE.agentNo + '_' + today);
+        // Check if already answered today
+        const answered = localStorage.getItem(storageKey);
+        const wasCorrect = localStorage.getItem(correctKey) === 'true';
         
         container.innerHTML = `
             <!-- Header -->
@@ -4905,7 +4936,7 @@ async function renderSongOfDay() {
                         color: #ffd700;
                         line-height: 1.6;
                         font-style: italic;
-                    ">${sanitize(song.hint) || 'No hint available!'}</div>
+                    ">"${sanitize(song.hint || 'No hint available!')}"</div>
                     
                     <div style="
                         margin-top: 15px;
@@ -4920,39 +4951,39 @@ async function renderSongOfDay() {
             </div>
             
             <!-- Answer Section -->
-            <div class="card" style="border-color:${answered ? (wasCorrect === 'true' ? '#00ff88' : '#ff4444') : '#7b2cbf'};">
+            <div class="card" style="border-color:${answered ? (wasCorrect ? '#00ff88' : '#ff4444') : '#7b2cbf'};">
                 <div class="card-header">
-                    <h3 style="margin:0;">🔗 Your Answer</h3>
+                    <h3 style="margin:0;">${answered ? '📋 Your Result' : '🔗 Your Answer'}</h3>
                 </div>
                 <div class="card-body" style="padding:20px;">
                     ${answered ? `
                         <!-- Already Answered -->
                         <div style="text-align:center;padding:20px;">
                             <div style="font-size:64px;margin-bottom:15px;">
-                                ${wasCorrect === 'true' ? '🎉' : '😅'}
+                                ${wasCorrect ? '🎉' : '😅'}
                             </div>
                             <div style="
-                                color: ${wasCorrect === 'true' ? '#00ff88' : '#ff4444'};
-                                font-size: 20px;
+                                color: ${wasCorrect ? '#00ff88' : '#ff4444'};
+                                font-size: 24px;
                                 font-weight: bold;
                                 margin-bottom: 10px;
                             ">
-                                ${wasCorrect === 'true' ? 'Correct!' : 'Wrong!'}
+                                ${wasCorrect ? 'Correct!' : 'Wrong Answer'}
                             </div>
-                            <div style="color:#888;font-size:13px;">
-                                ${wasCorrect === 'true' 
+                            <div style="color:#888;font-size:14px;">
+                                ${wasCorrect 
                                     ? `You earned +${song.xpReward || 1} XP! 💜` 
                                     : 'Better luck tomorrow!'}
                             </div>
                             
-                            ${wasCorrect === 'true' ? `
+                            ${wasCorrect && song.title ? `
                                 <div style="
                                     margin-top: 20px;
                                     padding: 15px;
                                     background: rgba(0,255,136,0.1);
                                     border-radius: 12px;
                                 ">
-                                    <div style="color:#00ff88;font-size:14px;font-weight:600;">
+                                    <div style="color:#00ff88;font-size:16px;font-weight:600;">
                                         🎵 ${sanitize(song.title)}
                                     </div>
                                     <div style="color:#888;font-size:12px;margin-top:5px;">
@@ -4961,12 +4992,12 @@ async function renderSongOfDay() {
                                 </div>
                             ` : ''}
                             
-                            <div style="margin-top:20px;color:#666;font-size:11px;">
-                                ⏰ New song tomorrow!
+                            <div style="margin-top:20px;color:#666;font-size:12px;">
+                                ⏰ New song tomorrow at midnight!
                             </div>
                         </div>
                     ` : `
-                        <!-- Submit Answer -->
+                        <!-- Submit Answer Form -->
                         <div style="margin-bottom:15px;">
                             <label style="color:#888;font-size:12px;display:block;margin-bottom:8px;">
                                 Paste YouTube Link:
@@ -4977,6 +5008,7 @@ async function renderSongOfDay() {
                                 placeholder="https://youtube.com/watch?v=..."
                                 style="
                                     width: 100%;
+                                    box-sizing: border-box;
                                     background: #1a1a2e;
                                     border: 1px solid #333;
                                     border-radius: 10px;
@@ -4993,11 +5025,11 @@ async function renderSongOfDay() {
                             border-radius: 8px;
                             margin-bottom: 15px;
                         ">
-                            <div style="color:#888;font-size:11px;line-height:1.5;">
+                            <div style="color:#888;font-size:11px;line-height:1.6;">
                                 ✅ Accepted formats:<br>
                                 • youtube.com/watch?v=xxxxx<br>
                                 • youtu.be/xxxxx<br>
-                                • Just the video ID
+                                • m.youtube.com/watch?v=xxxxx
                             </div>
                         </div>
                         
@@ -5028,7 +5060,7 @@ async function renderSongOfDay() {
                             margin-top: 15px;
                             text-align: center;
                             color: #ff6b6b;
-                            font-size: 11px;
+                            font-size: 12px;
                         ">
                             ⚠️ You only get ONE attempt per day!
                         </div>
@@ -5039,96 +5071,64 @@ async function renderSongOfDay() {
             <!-- How to Play -->
             <div class="card" style="background:rgba(255,255,255,0.02);margin-top:20px;">
                 <div class="card-body" style="padding:15px;">
-                    <div style="color:#888;font-size:12px;line-height:1.6;">
-                        <strong style="color:#fff;">How to Play:</strong><br>
+                    <div style="color:#888;font-size:12px;line-height:1.8;">
+                        <strong style="color:#fff;">📖 How to Play:</strong><br>
                         1️⃣ Read the hint above<br>
-                        2️⃣ Find the BTS song on YouTube<br>
-                        3️⃣ Paste the link and submit<br>
-                        4️⃣ Earn XP if correct! 🎉
+                        2️⃣ Find the matching BTS song on YouTube<br>
+                        3️⃣ Copy & paste the YouTube link<br>
+                        4️⃣ Submit and earn XP if correct! 🎉
                     </div>
                 </div>
             </div>
             
             <!-- Back Button -->
-            <button onclick="loadPage('home')" class="btn-secondary" style="width:100%;margin-top:20px;">
+            <button onclick="loadPage('home')" class="btn-secondary" style="width:100%;margin-top:20px;padding:15px;">
                 ← Back to Home
             </button>
+            
+            ${STATE.isAdmin ? `
+                <!-- Admin Section -->
+                <div class="card" style="margin-top:20px;border-color:#ffd700;">
+                    <div class="card-header" style="background:rgba(255,215,0,0.05);">
+                        <h3 style="margin:0;color:#ffd700;">👑 Admin Controls</h3>
+                    </div>
+                    <div class="card-body">
+                        <button onclick="setTodaysSong()" class="btn-primary" style="
+                            width:100%;
+                            background:linear-gradient(135deg, #ffd700, #ff8c00);
+                            color:#000;
+                        ">
+                            🎵 Set Today's Song
+                        </button>
+                    </div>
+                </div>
+            ` : ''}
         `;
         
-        // Focus input if not answered
+        // Focus input and setup enter key
         if (!answered) {
-            $('youtube-answer')?.focus();
-            
-            // Enter to submit
-            $('youtube-answer')?.addEventListener('keypress', e => {
-                if (e.key === 'Enter') submitSongAnswer();
-            });
+            setTimeout(() => {
+                const input = $('youtube-answer');
+                if (input) {
+                    input.focus();
+                    input.addEventListener('keypress', e => {
+                        if (e.key === 'Enter') submitSongAnswer();
+                    });
+                }
+            }, 100);
         }
         
     } catch (e) {
-        console.error('Song of day error:', e);
+        console.error('❌ Song of day error:', e);
         container.innerHTML = `
             <div class="card" style="text-align:center;padding:40px;">
-                <p style="color:#ff4444;">Failed to load</p>
-                <button onclick="renderSongOfDay()" class="btn-secondary" style="margin-top:15px;">Retry</button>
+                <div style="font-size:48px;margin-bottom:15px;">❌</div>
+                <h3 style="color:#ff4444;margin-bottom:10px;">Failed to Load</h3>
+                <p style="color:#888;margin-bottom:20px;">${sanitize(e.message)}</p>
+                <button onclick="renderSongOfDay()" class="btn-primary" style="margin-right:10px;">🔄 Retry</button>
+                <button onclick="loadPage('home')" class="btn-secondary">← Back</button>
             </div>
         `;
-    }
-}
-
-async function submitSongAnswer() {
-    const input = $('youtube-answer');
-    const btn = $('submit-song-btn');
-    
-    if (!input || !btn) return;
-    
-    const answer = input.value.trim();
-    
-    if (!answer) {
-        showToast('Please paste a YouTube link!', 'error');
-        return;
-    }
-    
-    // Disable button
-    btn.disabled = true;
-    btn.innerHTML = '<span>Checking...</span>';
-    
-    try {
-        const result = await api('submitSongAnswer', {
-            agentNo: STATE.agentNo,
-            answer: answer
-        });
-        
-        const today = new Date().toDateString();
-        
-        if (result.alreadyAnswered) {
-            localStorage.setItem('song_answered_' + STATE.agentNo + '_' + today, 'true');
-            localStorage.setItem('song_correct_' + STATE.agentNo + '_' + today, result.wasCorrect ? 'true' : 'false');
-            showToast('Already answered today!', 'info');
-            renderSongOfDay();
-            return;
-        }
-        
-        // Save result
-        localStorage.setItem('song_answered_' + STATE.agentNo + '_' + today, 'true');
-        localStorage.setItem('song_correct_' + STATE.agentNo + '_' + today, result.correct ? 'true' : 'false');
-        
-        if (result.correct) {
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            showToast('🎉 Correct! +' + result.xpAwarded + ' XP!', 'success');
-        } else {
-            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-            showToast('❌ Wrong! Try again tomorrow.', 'error');
-        }
-        
-        // Refresh page
-        renderSongOfDay();
-        
-    } catch (e) {
-        console.error('Submit error:', e);
-        showToast('Failed to submit', 'error');
-        btn.disabled = false;
-        btn.innerHTML = '<span>▶️</span><span>Submit Answer</span>';
     }
 }
 // ==================== ANNOUNCEMENTS ====================
