@@ -5131,6 +5131,76 @@ async function renderSongOfDay() {
         `;
     }
 }
+// ==================== SUBMIT SONG ANSWER ====================
+
+async function submitSongAnswer() {
+    const input = $('youtube-answer');
+    const btn = $('submit-song-btn');
+    
+    if (!input) return;
+    
+    const answer = input.value.trim();
+    
+    if (!answer) {
+        showToast('Please paste a YouTube link!', 'error');
+        return;
+    }
+    
+    // Disable button while submitting
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span><span>Checking...</span>';
+        btn.style.opacity = '0.6';
+    }
+    
+    try {
+        const result = await api('submitSongAnswer', {
+            agentNo: STATE.agentNo,
+            answer: answer
+        });
+        
+        console.log('📥 Submit result:', result);
+        
+        const today = new Date().toDateString();
+        const storageKey = 'song_answered_' + STATE.agentNo + '_' + today;
+        const correctKey = 'song_correct_' + STATE.agentNo + '_' + today;
+        
+        if (result.alreadyAnswered) {
+            localStorage.setItem(storageKey, 'true');
+            localStorage.setItem(correctKey, result.wasCorrect ? 'true' : 'false');
+            showToast('Already answered today!', 'info');
+            renderSongOfDay();
+            return;
+        }
+        
+        // Save result to localStorage
+        localStorage.setItem(storageKey, 'true');
+        localStorage.setItem(correctKey, result.correct ? 'true' : 'false');
+        
+        if (result.correct) {
+            // Vibrate if supported
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            showToast('🎉 Correct! +' + (result.xpAwarded || 1) + ' XP!', 'success');
+        } else {
+            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+            showToast('❌ Wrong! Try again tomorrow.', 'error');
+        }
+        
+        // Refresh the page to show result
+        await renderSongOfDay();
+        
+    } catch (e) {
+        console.error('❌ Submit error:', e);
+        showToast('Failed to submit: ' + e.message, 'error');
+        
+        // Re-enable button
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>▶️</span><span>Submit Answer</span>';
+            btn.style.opacity = '1';
+        }
+    }
+    }
 // ==================== ANNOUNCEMENTS ====================
 async function renderAnnouncements() {
     const container = $('announcements-content');
@@ -5375,6 +5445,7 @@ window.loadMessages = loadMessages;
 window.showOnlineUsers = showOnlineUsers;
 window.startHeartbeat = startHeartbeat;
 window.stopHeartbeat = stopHeartbeat;
+window.renderSongOfDay = renderSongOfDay;
 window.submitSongAnswer = submitSongAnswer;
 window.setTodaysSong = setTodaysSong;
 
