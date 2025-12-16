@@ -146,13 +146,54 @@ function formatLastUpdated(dateStr) {
 }
 
 function showToast(msg, type = 'info') {
-    document.querySelectorAll('.toast').forEach(t => t.remove());
+    document.querySelectorAll('.toast-mini').forEach(t => t.remove());
+    
+    const colors = {
+        success: { bg: 'rgba(0,40,20,0.95)', border: '#00ff88', icon: '✅' },
+        error: { bg: 'rgba(40,20,20,0.95)', border: '#ff4444', icon: '⚠️' },
+        info: { bg: 'rgba(30,20,40,0.95)', border: '#7b2cbf', icon: 'ℹ️' }
+    };
+    
+    const c = colors[type] || colors.info;
+    
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `<span class="toast-icon">${type === 'error' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️'}</span><span class="toast-msg">${sanitize(msg)}</span>`;
+    toast.className = 'toast-mini';
+    toast.innerHTML = `<span>${c.icon}</span><span>${sanitize(msg)}</span>`;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-100px);
+        padding: 8px 16px;
+        border-radius: 20px;
+        background: ${c.bg};
+        border: 1px solid ${c.border};
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        z-index: 9999999;
+        opacity: 0;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        white-space: nowrap;
+    `;
+    
     document.body.appendChild(toast);
-    setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 4000);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+    }, 10);
+    
+    // Animate out
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(-100px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
 }
 
 function showResult(msg, isError) {
