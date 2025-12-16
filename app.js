@@ -5154,16 +5154,36 @@ async function submitSongAnswer() {
     }
     
     try {
-        const result = await api('submitSongAnswer', {
-            agentNo: STATE.agentNo,
-            answer: answer
-        });
+        // ✅ Direct fetch with longer timeout
+        const url = new URL(CONFIG.API_URL);
+        url.searchParams.set('action', 'submitSongAnswer');
+        url.searchParams.set('agentNo', STATE.agentNo);
+        url.searchParams.set('answer', answer);
         
+        console.log('📡 Submitting song answer...');
+        
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 90000);  // 90 seconds
+        
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+        
+        const result = await res.json();
         console.log('📥 Submit result:', result);
         
         const today = new Date().toDateString();
         const storageKey = 'song_answered_' + STATE.agentNo + '_' + today;
         const correctKey = 'song_correct_' + STATE.agentNo + '_' + today;
+        
+        if (result.error) {
+            showToast('Error: ' + result.error, 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<span>▶️</span><span>Submit Answer</span>';
+                btn.style.opacity = '1';
+            }
+            return;
+        }
         
         if (result.alreadyAnswered) {
             localStorage.setItem(storageKey, 'true');
@@ -5178,7 +5198,6 @@ async function submitSongAnswer() {
         localStorage.setItem(correctKey, result.correct ? 'true' : 'false');
         
         if (result.correct) {
-            // Vibrate if supported
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             showToast('🎉 Correct! +' + (result.xpAwarded || 1) + ' XP!', 'success');
         } else {
@@ -5191,16 +5210,20 @@ async function submitSongAnswer() {
         
     } catch (e) {
         console.error('❌ Submit error:', e);
-        showToast('Failed to submit: ' + e.message, 'error');
         
-        // Re-enable button
+        if (e.name === 'AbortError') {
+            showToast('Request timed out. Please try again.', 'error');
+        } else {
+            showToast('Failed to submit: ' + e.message, 'error');
+        }
+        
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<span>▶️</span><span>Submit Answer</span>';
             btn.style.opacity = '1';
         }
     }
-    }
+}
 // ==================== ANNOUNCEMENTS ====================
 async function renderAnnouncements() {
     const container = $('announcements-content');
