@@ -4894,8 +4894,6 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
 }
 // ==================== SONG OF THE DAY ====================
 
-// ==================== SONG OF THE DAY (FIXED) ====================
-
 async function renderSongOfDay() {
     // ✅ FIX: Properly create page and container
     let page = $('page-song-of-day');
@@ -4904,7 +4902,7 @@ async function renderSongOfDay() {
         if (mainContent) {
             page = document.createElement('section');
             page.id = 'page-song-of-day';
-            page.className = 'page active'; // Make it active immediately
+            page.className = 'page active';
             page.innerHTML = '<div id="song-of-day-content"></div>';
             mainContent.appendChild(page);
             console.log('✅ Created song-of-day page');
@@ -4965,7 +4963,7 @@ async function renderSongOfDay() {
             ">
                 <div style="font-size:40px;margin-bottom:10px;">🎬</div>
                 <h2 style="color:#fff;margin:0 0 5px 0;">Song of the Day</h2>
-                <p style="color:#888;margin:0;font-size:12px;">Find the correct YouTube link & earn XP!(still testing dont use)</p>
+                <p style="color:#888;margin:0;font-size:12px;">Find the correct YouTube link & earn XP!</p>
             </div>
             
             <!-- Hint Card -->
@@ -5032,6 +5030,40 @@ async function renderSongOfDay() {
                                     <div style="color:#888;font-size:12px;margin-top:5px;">
                                         ${sanitize(song.artist || 'BTS')}
                                     </div>
+                                </div>
+                                
+                                <!-- ✅ WATCH NOW BUTTON WITH LINK -->
+                                <div style="
+                                    margin-top:20px;
+                                    padding:15px;
+                                    background:rgba(255,0,0,0.1);
+                                    border:1px solid rgba(255,0,0,0.3);
+                                    border-radius:12px;
+                                ">
+                                    <p style="color:#fff;font-size:13px;margin:0 0 12px 0;">
+                                        🎬 <strong>Watch the full video</strong> to support BTS!
+                                    </p>
+                                    <a href="https://youtube.com/watch?v=${song.youtubeId}" 
+                                       target="_blank" 
+                                       style="
+                                           display:inline-flex;
+                                           align-items:center;
+                                           gap:8px;
+                                           padding:10px 24px;
+                                           background:linear-gradient(135deg, #ff0000, #cc0000);
+                                           color:#fff;
+                                           border-radius:25px;
+                                           text-decoration:none;
+                                           font-size:14px;
+                                           font-weight:600;
+                                           box-shadow:0 4px 15px rgba(255,0,0,0.3);
+                                       ">
+                                        <span>▶️</span>
+                                        <span>Watch on YouTube</span>
+                                    </a>
+                                    <p style="color:#888;font-size:11px;margin:10px 0 0 0;">
+                                        Every view counts! 💜
+                                    </p>
                                 </div>
                             ` : ''}
                             
@@ -5174,6 +5206,7 @@ async function renderSongOfDay() {
         `;
     }
 }
+
 // ==================== SUBMIT SONG ANSWER ====================
 
 async function submitSongAnswer() {
@@ -5206,7 +5239,7 @@ async function submitSongAnswer() {
         console.log('📡 Submitting song answer...');
         
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 90000);  // 90 seconds
+        const timeout = setTimeout(() => controller.abort(), 90000);
         
         const res = await fetch(url, { signal: controller.signal });
         clearTimeout(timeout);
@@ -5231,7 +5264,7 @@ async function submitSongAnswer() {
         if (result.alreadyAnswered) {
             localStorage.setItem(storageKey, 'true');
             localStorage.setItem(correctKey, result.wasCorrect ? 'true' : 'false');
-            showToast('Already answered today!', 'info');
+            showToast('Already answered today! ✨', 'success');
             renderSongOfDay();
             return;
         }
