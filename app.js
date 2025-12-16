@@ -1907,11 +1907,13 @@ function ensureAppCSS() {
         .playlist-card:hover,.role-card:hover{transform:translateX(5px)}
         .gc-link-btn{display:inline-block;padding:10px 20px;background:linear-gradient(135deg,#7b2cbf,#5a1f99);color:#fff;border-radius:8px;text-decoration:none;font-size:14px;transition:all .3s}
         .gc-link-btn:hover{transform:scale(1.05);box-shadow:0 5px 20px rgba(123,44,191,.4)}
-        .toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:10px;background:#1a1a2e;color:#fff;display:flex;align-items:center;gap:10px;z-index:9999999;opacity:0;transform:translateX(100px);transition:all .3s}
-        .toast.show{opacity:1;transform:translateX(0)}
-        .toast-success{border-left:4px solid #00ff88}
-        .toast-error{border-left:4px solid #ff4444}
-        .toast-info{border-left:4px solid #7b2cbf}
+        .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-100px);padding:8px 16px;border-radius:20px;background:#1a1a2e;color:#fff;display:inline-flex;align-items:center;gap:8px;max-width:fit-content;z-index:9999999;opacity:0;transition:all .3s;font-size:12px;box-shadow:0 4px 15px rgba(0,0,0,0.3)}
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        .toast-icon{font-size:14px}
+        .toast-msg{font-size:12px;white-space:nowrap}
+        .toast-success{border:1px solid #00ff88;background:rgba(0,40,20,0.95)}
+        .toast-error{border:1px solid #ff4444;background:rgba(40,20,20,0.95)}
+        .toast-info{border:1px solid #7b2cbf;background:rgba(30,20,40,0.95)}
     `;
     document.head.appendChild(style);
 }
