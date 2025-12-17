@@ -5689,6 +5689,251 @@ function switchAdminTab(tabName) {
         font-size: 11px;
     }
 } 
+/* ==================== ADDITIONAL NOTIFICATION STYLES ==================== */
+
+/* Fix: Notification badge positioning (make it fixed, not absolute) */
+.notification-badge {
+    position: fixed !important;
+    top: 15px !important;
+    right: 70px !important;
+    z-index: 999999 !important;
+}
+
+/* Popup show/hide animations */
+.notification-popup.hide {
+    opacity: 0;
+    transform: translateX(100px) scale(0.9);
+    pointer-events: none;
+}
+
+/* High priority popup styling */
+.notification-popup.high-priority {
+    border-color: #ff4444;
+    box-shadow: 
+        0 10px 40px rgba(0,0,0,0.5),
+        0 0 30px rgba(255,68,68,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.notification-popup.high-priority::before {
+    background: linear-gradient(90deg, #ff4444, #ffd700, #ff4444);
+}
+
+/* High priority content styling */
+.notif-popup-content.high-priority {
+    border-left: 3px solid #ff4444;
+    padding-left: 12px;
+    margin-left: 3px;
+}
+
+/* Bounce animation for icons */
+.notif-popup-icon.bounce {
+    animation: notifBounce 0.6s ease infinite;
+}
+
+@keyframes notifBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+/* Pulse animation for action button */
+.notif-action-btn.pulse-btn {
+    animation: btnPulse 1.5s ease infinite;
+}
+
+@keyframes btnPulse {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(123,44,191,0.4);
+    }
+    50% { 
+        transform: scale(1.02);
+        box-shadow: 0 0 0 8px rgba(123,44,191,0);
+    }
+}
+
+/* Notification center show/hide */
+.notification-center.hide {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.notification-center.hide .notif-center-panel {
+    transform: translateX(100%);
+}
+
+/* More link in popup */
+.notif-more {
+    color: #888;
+    font-size: 11px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 8px 0;
+}
+
+.notif-more:hover {
+    color: #7b2cbf;
+}
+
+/* Notification badge pulse animation (renamed to avoid conflict) */
+@keyframes notifPulse {
+    0%, 100% { 
+        box-shadow: 0 0 0 0 rgba(255,68,68,0.4);
+        transform: scale(1);
+    }
+    50% { 
+        box-shadow: 0 0 0 10px rgba(255,68,68,0);
+        transform: scale(1.05);
+    }
+}
+
+.notification-badge {
+    animation: notifPulse 2s infinite;
+}
+
+/* Back indicator for routing */
+.back-indicator {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%) translateX(-50px);
+    background: rgba(123,44,191,0.3);
+    color: #7b2cbf;
+    padding: 15px 12px;
+    border-radius: 0 8px 8px 0;
+    font-size: 18px;
+    z-index: 9999;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.back-indicator.show {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+/* Loading spinner for notifications */
+.notif-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #888;
+}
+
+.notif-loading::after {
+    content: '';
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(123,44,191,0.2);
+    border-top-color: #7b2cbf;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 10px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Empty state improvements */
+.notif-empty {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.notif-empty > div:first-child {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.8;
+}
+
+.notif-empty p {
+    margin: 5px 0;
+    color: #888;
+}
+
+.notif-empty p:first-of-type {
+    color: #fff;
+    font-size: 14px;
+}
+
+/* Online popup styles (ensure they're included) */
+.online-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #1a1a2e;
+    border: 1px solid #7b2cbf;
+    border-radius: 16px;
+    padding: 20px;
+    z-index: 99999;
+    max-width: 300px;
+    width: 90%;
+    max-height: 400px;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.online-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 99998;
+    backdrop-filter: blur(3px);
+}
+
+/* Toast improvements */
+.toast-mini {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    padding: 10px 20px;
+    border-radius: 25px;
+    background: rgba(30,20,40,0.95);
+    border: 1px solid #7b2cbf;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    z-index: 9999999;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    max-width: 90%;
+}
+
+.toast-mini.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Priority badge in notifications */
+.priority-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff4444;
+    box-shadow: 0 0 10px rgba(255,68,68,0.5);
+    animation: priorityPulse 1.5s infinite;
+}
+
+@keyframes priorityPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+    }
 /* ==================== ROUTING TRANSITIONS ==================== */
 
 /* Page transition */
