@@ -3606,7 +3606,805 @@ img {
     font-weight: 700;
     color: var(--success);
 }
+/* ==================== SHAREABLE STATS CARD (NEW) ==================== */
 
+/* Share Card Container */
+.share-card-pro {
+    background: linear-gradient(145deg, #1a1a2e, #0f0f1a);
+    border: 2px solid var(--purple-glow);
+    border-radius: 20px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+/* Branded Header */
+.share-header-pro {
+    background: linear-gradient(135deg, var(--purple-glow), #5a1f99);
+    padding: 18px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-icon {
+    font-size: 26px;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-name {
+    color: #fff;
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.brand-sub {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+
+.share-week-badge {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    padding: 6px 14px;
+    border-radius: 15px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Share Content */
+.share-content-pro {
+    padding: 20px;
+}
+
+/* Section Headers */
+.share-section {
+    margin-bottom: 20px;
+}
+
+.share-section:last-of-type {
+    margin-bottom: 15px;
+}
+
+.share-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+    margin-bottom: 10px;
+}
+
+.share-section-header.purple {
+    border-bottom-color: rgba(123, 44, 191, 0.3);
+}
+
+.section-icon {
+    font-size: 18px;
+}
+
+.section-title {
+    color: var(--success);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex: 1;
+}
+
+.share-section-header.purple .section-title {
+    color: var(--purple-glow);
+}
+
+.section-total {
+    font-family: 'Orbitron', monospace;
+    color: var(--success);
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.share-section-header.purple .section-total {
+    color: var(--purple-glow);
+}
+
+/* Stats List */
+.share-stats-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.share-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.share-stat-row:last-child {
+    border-bottom: none;
+}
+
+.stat-name {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
+    padding-right: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stat-value {
+    font-family: 'Orbitron', monospace;
+    font-weight: 700;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.stat-value.green {
+    color: var(--success);
+}
+
+.stat-value.purple {
+    color: var(--purple-glow);
+}
+
+/* Grand Total Box */
+.share-total-box {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(255, 215, 0, 0.03));
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    border-radius: 14px;
+    padding: 22px 20px;
+    text-align: center;
+    margin-top: 5px;
+}
+
+.total-label {
+    color: #ffd700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+}
+
+.total-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 36px;
+    font-weight: 900;
+    color: #ffd700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+    line-height: 1;
+}
+
+.total-sub {
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-top: 8px;
+}
+
+/* Share Footer */
+.share-footer-pro {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px 20px;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.share-footer-pro span {
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+/* ==================== SHARE BUTTONS ==================== */
+
+.share-buttons-pro {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+.share-btn-row {
+    display: flex;
+    gap: 10px;
+}
+
+.share-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+    flex: 1;
+}
+
+.share-btn svg {
+    flex-shrink: 0;
+}
+
+.share-btn.instagram {
+    background: linear-gradient(135deg, #833AB4 0%, #FD1D1D 50%, #F77737 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(131, 58, 180, 0.3);
+}
+
+.share-btn.instagram:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(131, 58, 180, 0.5);
+}
+
+.share-btn.instagram:active {
+    transform: translateY(0);
+}
+
+.share-btn.secondary {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+}
+
+.share-btn.secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--purple-glow);
+    color: #fff;
+}
+
+/* ==================== BREAKDOWN CARDS ==================== */
+
+.breakdown-card {
+    margin-bottom: 20px;
+}
+
+.breakdown-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-total {
+    font-family: 'Orbitron', monospace;
+    color: var(--success);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.breakdown-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+}
+
+.breakdown-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.breakdown-item.top {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.02));
+    border-color: rgba(255, 215, 0, 0.25);
+}
+
+.breakdown-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.breakdown-rank {
+    width: 28px;
+    text-align: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.breakdown-name {
+    flex: 1;
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.breakdown-total {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--success);
+    flex-shrink: 0;
+}
+
+.breakdown-total.purple {
+    color: var(--purple-glow);
+}
+
+/* Team Contribution Bar */
+.breakdown-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 10px;
+}
+
+.bar-segment {
+    height: 100%;
+    transition: width 0.6s ease;
+}
+
+/* Team Chips */
+.breakdown-teams {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.team-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: color-mix(in srgb, var(--chip-color, #7b2cbf) 15%, transparent);
+    border-radius: 10px;
+    font-size: 11px;
+    color: var(--chip-color, #7b2cbf);
+}
+
+.chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--chip-color, #7b2cbf);
+}
+
+.chip-num {
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Goal Progress */
+.breakdown-goal {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.breakdown-goal.met {
+    color: var(--success);
+}
+
+/* ==================== QUICK STATS GRID ==================== */
+
+.quick-stats-grid-pro {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.quick-stat-pro {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px 8px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.quick-stat-pro:hover {
+    border-color: var(--purple-glow);
+    transform: translateY(-2px);
+}
+
+.qs-icon {
+    font-size: 20px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.qs-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    display: block;
+    line-height: 1.2;
+}
+
+.qs-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 3px;
+}
+
+/* ==================== SCREENSHOT HIGHLIGHT ==================== */
+
+.screenshot-highlight {
+    animation: highlightPulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 40px rgba(123, 44, 191, 0.6) !important;
+    transform: scale(1.01);
+}
+
+@keyframes highlightPulse {
+    0%, 100% {
+        box-shadow: 0 0 40px rgba(123, 44, 191, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 60px rgba(123, 44, 191, 0.8), 0 0 80px rgba(255, 215, 0, 0.3);
+    }
+}
+
+/* ==================== SHARE MODAL ==================== */
+
+.share-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.share-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.share-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.share-modal-content {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--purple-glow);
+    border-radius: 20px;
+    padding: 25px;
+    max-width: 360px;
+    width: 100%;
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.share-modal.show .share-modal-content {
+    transform: translateY(0);
+}
+
+.share-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.share-modal-close:hover {
+    color: #fff;
+}
+
+.share-modal-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.share-modal-icon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.share-modal-header h3 {
+    font-family: 'Orbitron', monospace;
+    color: #fff;
+    font-size: 18px;
+    margin: 0;
+}
+
+.share-modal-body {
+    margin-bottom: 25px;
+}
+
+.share-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+.share-step:last-child {
+    margin-bottom: 0;
+}
+
+.step-num {
+    width: 26px;
+    height: 26px;
+    background: var(--purple-glow);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.step-text {
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.share-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ==================== TOP AGENTS CARD ==================== */
+
+.top-agents-card {
+    margin-bottom: 20px;
+}
+
+.agent-row {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.agent-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.agent-row:last-child {
+    margin-bottom: 0;
+}
+
+.agent-row.you {
+    background: rgba(123, 44, 191, 0.1);
+    border: 1px solid var(--purple-glow);
+}
+
+.agent-rank {
+    width: 30px;
+    text-align: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.agent-info {
+    flex: 1;
+    margin-left: 10px;
+    min-width: 0;
+}
+
+.agent-name {
+    color: #fff;
+    font-size: 13px;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.agent-team {
+    font-size: 11px;
+}
+
+.agent-xp {
+    font-family: 'Orbitron', monospace;
+    color: #ffd700;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* ==================== SUMMARY NAV ==================== */
+
+.summary-nav {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+    padding-bottom: 20px;
+}
+
+.summary-nav button {
+    flex: 1;
+}
+
+/* ==================== MOBILE RESPONSIVE (NEW ELEMENTS) ==================== */
+
+@media (max-width: 480px) {
+    .share-header-pro {
+        padding: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .brand-name {
+        font-size: 12px;
+    }
+    
+    .brand-sub {
+        font-size: 9px;
+    }
+    
+    .share-week-badge {
+        font-size: 10px;
+        padding: 5px 12px;
+    }
+    
+    .share-content-pro {
+        padding: 15px;
+    }
+    
+    .stat-name {
+        font-size: 12px;
+    }
+    
+    .stat-value {
+        font-size: 14px;
+    }
+    
+    .total-value {
+        font-size: 30px;
+    }
+    
+    .share-total-box {
+        padding: 18px 15px;
+    }
+    
+    .share-btn {
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+    
+    .breakdown-header {
+        flex-wrap: wrap;
+    }
+    
+    .breakdown-name {
+        font-size: 13px;
+        flex-basis: calc(100% - 40px);
+    }
+    
+    .breakdown-total {
+        font-size: 16px;
+        margin-left: auto;
+    }
+    
+    .breakdown-teams {
+        gap: 5px;
+    }
+    
+    .team-chip {
+        font-size: 10px;
+        padding: 3px 8px;
+    }
+    
+    .quick-stats-grid-pro {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .qs-value {
+        font-size: 14px;
+    }
+    
+    .qs-label {
+        font-size: 8px;
+    }
+    
+    .share-modal-content {
+        padding: 20px;
+        margin: 15px;
+    }
+    
+    .share-step {
+        padding: 12px;
+    }
+    
+    .step-text {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 360px) {
+    .share-header-pro {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .share-week-badge {
+        align-self: flex-start;
+    }
+    
+    .total-value {
+        font-size: 26px;
+    }
+    
+    .breakdown-item {
+        padding: 12px;
+    }
+    
+    .team-chip {
+        font-size: 9px;
+        padding: 2px 6px;
+    }
+}
+
+/* Landscape Mode */
+@media (max-height: 500px) and (orientation: landscape) {
+    .share-card-pro {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    .quick-stats-grid-pro {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .summary-nav {
+        flex-direction: row;
+    }
+}
 /* ==================== ANNOUNCEMENTS ==================== */
 .announcement {
     border-left: 3px solid var(--purple-main);
