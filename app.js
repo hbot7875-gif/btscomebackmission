@@ -4843,7 +4843,7 @@ async function renderComparison() {
     }
 }
 
-// ==================== SUMMARY (PROFESSIONAL + INSTA SHARE) ====================
+// ==================== SUMMARY (FIXED - MATCHES ORIGINAL THEME) ====================
 async function renderSummary() {
     const container = $('summary-content');
     if (!container) return;
@@ -4851,6 +4851,7 @@ async function renderSummary() {
     const selectedWeek = STATE.week;
     const isCompleted = isWeekCompleted(selectedWeek);
     
+    // If week not completed, show locked state
     if (!isCompleted) {
         const days = getDaysRemaining(selectedWeek);
         container.innerHTML = `
@@ -4863,7 +4864,9 @@ async function renderSummary() {
                         <div class="countdown-value">${days}</div>
                         <div class="countdown-label">day${days !== 1 ? 's' : ''} until results</div>
                     </div>
-                    <button onclick="loadPage('home')" class="btn-primary">View Live Progress →</button>
+                    <button onclick="loadPage('home')" class="btn-primary">
+                        View Live Progress →
+                    </button>
                 </div>
             </div>
         `;
@@ -4883,193 +4886,184 @@ async function renderSummary() {
         const trackGoals = goals.trackGoals || {};
         const albumGoals = goals.albumGoals || {};
         const topAgents = rankings.rankings || [];
+        
         const sorted = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
         
-        // Find winner
+        // Find winner: team with highest XP that completed ALL missions
         const teamsWithAllMissions = sorted.filter(([t, info]) => 
             info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed
         );
         const winner = teamsWithAllMissions.length > 0 ? teamsWithAllMissions[0][0] : null;
         const myTeam = STATE.data?.profile?.team;
         
-        // Calculate totals
+        // ===== CALCULATE STREAM TOTALS =====
         let totalTrackStreams = 0;
         let totalAlbumStreams = 0;
-        const totalXP = sorted.reduce((sum, [, info]) => sum + (info.teamXP || 0), 0);
-        const totalAgents = STATE.allAgents?.length || 0;
+        let totalXP = sorted.reduce((sum, [, info]) => sum + (info.teamXP || 0), 0);
         
         const trackStats = [];
-        for (const [name, info] of Object.entries(trackGoals)) {
+        for (const [trackName, info] of Object.entries(trackGoals)) {
             let total = 0;
             const teamData = {};
-            for (const t of Object.keys(CONFIG.TEAMS)) {
-                const s = info.teams?.[t]?.current || 0;
-                total += s;
-                teamData[t] = s;
+            for (const teamName of Object.keys(CONFIG.TEAMS)) {
+                const streams = info.teams?.[teamName]?.current || 0;
+                total += streams;
+                teamData[teamName] = streams;
             }
             totalTrackStreams += total;
-            trackStats.push({ name, total, goal: info.goal || 0, teams: teamData });
+            trackStats.push({ name: trackName, total, goal: info.goal || 0, teams: teamData });
         }
         trackStats.sort((a, b) => b.total - a.total);
         
         const albumStats = [];
-        for (const [name, info] of Object.entries(albumGoals)) {
+        for (const [albumName, info] of Object.entries(albumGoals)) {
             let total = 0;
             const teamData = {};
-            for (const t of Object.keys(CONFIG.TEAMS)) {
-                const s = info.teams?.[t]?.current || 0;
-                total += s;
-                teamData[t] = s;
+            for (const teamName of Object.keys(CONFIG.TEAMS)) {
+                const streams = info.teams?.[teamName]?.current || 0;
+                total += streams;
+                teamData[teamName] = streams;
             }
             totalAlbumStreams += total;
-            albumStats.push({ name, total, goal: info.goal || 0, teams: teamData });
+            albumStats.push({ name: albumName, total, goal: info.goal || 0, teams: teamData });
         }
         albumStats.sort((a, b) => b.total - a.total);
         
         const endDate = CONFIG.WEEK_DATES[selectedWeek];
-        const dateStr = endDate ? new Date(endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
+        const dateStr = endDate ? new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
         
         container.innerHTML = `
-            <!-- ===== HEADER ===== -->
-            <div class="summary-header-pro">
-                <div class="summary-badge">${selectedWeek}</div>
-                <h1>Final Results</h1>
-                <p>Battle Concluded • ${dateStr}</p>
+            <!-- Week Header -->
+            <div class="summary-week-header">
+                <span class="summary-week-badge">${selectedWeek}</span>
+                <h2>Final Results</h2>
+                <p class="results-subtitle">🏆 Battle Concluded ${dateStr ? '• ' + dateStr : ''}</p>
             </div>
             
-            <!-- ===== WINNER CARD ===== -->
+            <!-- ===== WINNER ANNOUNCEMENT ===== -->
             ${winner ? `
-                <div class="winner-card-pro" style="--winner-color: ${teamColor(winner)}">
-                    <div class="winner-glow"></div>
-                    <div class="winner-content-pro">
-                        <div class="winner-trophy-pro">🏆</div>
-                        ${teamPfp(winner) ? `<img src="${teamPfp(winner)}" class="winner-avatar-pro">` : ''}
-                        <div class="winner-team-name">${winner}</div>
-                        <div class="winner-label">WEEK CHAMPIONS</div>
-                        <div class="winner-xp-pro">${fmt(teams[winner]?.teamXP)} <span>XP</span></div>
-                        ${winner === myTeam ? `<div class="winner-you-badge-pro">🎉 YOUR TEAM WON!</div>` : ''}
+                <div class="winner-announcement" style="--team-color: ${teamColor(winner)};">
+                    <div class="winner-trophy">🏆</div>
+                    <div class="winner-content">
+                        ${teamPfp(winner) ? `<img src="${teamPfp(winner)}" class="winner-avatar" alt="${winner}">` : ''}
+                        <h2 class="winner-title">${winner}</h2>
+                        <p class="winner-subtitle">WEEK CHAMPIONS!</p>
+                        <div class="winner-xp">
+                            <span class="xp-value">${fmt(teams[winner]?.teamXP)}</span>
+                            <span class="xp-label">Total XP</span>
+                        </div>
                     </div>
+                    ${winner === myTeam ? `
+                        <div class="winner-you-badge">🎉 YOUR TEAM WON!</div>
+                    ` : ''}
+                    <div class="winner-confetti">🎊</div>
                 </div>
             ` : `
-                <div class="no-winner-card">
-                    <span class="no-winner-icon">😔</span>
-                    <h3>No Winner This Week</h3>
-                    <p>No team completed all 3 missions</p>
+                <div class="card" style="margin-bottom:20px;">
+                    <div class="card-body" style="text-align:center;padding:30px;">
+                        <div style="font-size:48px;margin-bottom:10px;">😔</div>
+                        <h3 style="color:var(--danger);margin:0;">No Winner This Week</h3>
+                        <p style="color:var(--text-dim);margin-top:10px;">No team completed all 3 missions.</p>
+                    </div>
                 </div>
             `}
             
-            <!-- ===== SHAREABLE STATS CARD ===== -->
-            <div id="share-card" class="share-card-pro">
-                <!-- Branded Header -->
-                <div class="share-header-pro">
-                    <div class="brand-logo">
-                        <span class="brand-icon">💜</span>
-                        <div class="brand-text">
-                            <span class="brand-name">HOPETRACKER</span>
-                            <span class="brand-sub">BTS Comeback Mission</span>
-                        </div>
-                    </div>
-                    <div class="share-week-badge">${selectedWeek}</div>
+            <!-- ===== SHAREABLE STREAMS CARD ===== -->
+            <div id="shareable-stats-card" class="card" style="margin-bottom:20px;border-color:var(--purple-glow);">
+                <div class="card-header" style="background:linear-gradient(135deg, var(--purple-glow), #5a1f99);text-align:center;padding:20px;">
+                    <div style="font-size:20px;margin-bottom:5px;">💜 BTS COMEBACK MISSION 💜</div>
+                    <div style="color:#fff;font-size:14px;">${selectedWeek} - Total Streams Pulled</div>
                 </div>
-                
-                <!-- Stats Content -->
-                <div class="share-content-pro">
-                    <!-- Track Section -->
-                    <div class="share-section">
-                        <div class="share-section-header">
-                            <span class="section-icon">🎵</span>
-                            <span class="section-title">Track Streams</span>
-                            <span class="section-total">${fmt(totalTrackStreams)}</span>
+                <div class="card-body">
+                    
+                    <!-- Track Streams Section -->
+                    <div style="margin-bottom:20px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">
+                            <span style="font-size:18px;">🎵</span>
+                            <span style="color:var(--success);font-weight:600;font-size:14px;">TRACK STREAMS</span>
+                            <span style="margin-left:auto;color:var(--success);font-weight:bold;">${fmt(totalTrackStreams)}</span>
                         </div>
-                        <div class="share-stats-list">
-                            ${trackStats.map(t => `
-                                <div class="share-stat-row">
-                                    <span class="stat-name">${sanitize(t.name)}</span>
-                                    <span class="stat-value green">${fmt(t.total)}</span>
-                                </div>
-                            `).join('')}
-                        </div>
+                        
+                        ${trackStats.map(track => `
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
+                                <span style="color:#fff;font-size:13px;">${sanitize(track.name)}</span>
+                                <span style="color:var(--success);font-weight:600;font-size:14px;">${fmt(track.total)}</span>
+                            </div>
+                        `).join('')}
                     </div>
                     
-                    <!-- Album Section -->
-                    <div class="share-section">
-                        <div class="share-section-header purple">
-                            <span class="section-icon">💿</span>
-                            <span class="section-title">Album Streams</span>
-                            <span class="section-total">${fmt(totalAlbumStreams)}</span>
+                    <!-- Album Streams Section -->
+                    <div style="margin-bottom:20px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">
+                            <span style="font-size:18px;">💿</span>
+                            <span style="color:var(--purple-glow);font-weight:600;font-size:14px;">ALBUM STREAMS</span>
+                            <span style="margin-left:auto;color:var(--purple-glow);font-weight:bold;">${fmt(totalAlbumStreams)}</span>
                         </div>
-                        <div class="share-stats-list">
-                            ${albumStats.map(a => `
-                                <div class="share-stat-row">
-                                    <span class="stat-name">${sanitize(a.name)}</span>
-                                    <span class="stat-value purple">${fmt(a.total)}</span>
-                                </div>
-                            `).join('')}
-                        </div>
+                        
+                        ${albumStats.map(album => `
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
+                                <span style="color:#fff;font-size:13px;">${sanitize(album.name)}</span>
+                                <span style="color:var(--purple-glow);font-weight:600;font-size:14px;">${fmt(album.total)}</span>
+                            </div>
+                        `).join('')}
                     </div>
                     
                     <!-- Grand Total -->
-                    <div class="share-total-box">
-                        <div class="total-label">🔥 TOTAL STREAMS PULLED 🔥</div>
-                        <div class="total-value">${fmt(totalTrackStreams + totalAlbumStreams)}</div>
-                        <div class="total-sub">by ${totalAgents || sorted.length * 10}+ ARMY agents</div>
+                    <div style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:12px;padding:20px;text-align:center;">
+                        <div style="color:#ffd700;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">
+                            🔥 Total Streams This Week 🔥
+                        </div>
+                        <div style="font-size:36px;font-weight:bold;color:#ffd700;">
+                            ${fmt(totalTrackStreams + totalAlbumStreams)}
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Footer -->
-                <div class="share-footer-pro">
-                    <span>@hopetracker • #BTSComeback #BTSARMY</span>
+                <!-- Hashtags Footer -->
+                <div style="background:rgba(0,0,0,0.2);padding:10px;text-align:center;border-top:1px solid var(--border-color);">
+                    <span style="color:var(--text-dim);font-size:10px;">#BTSComeback #BTSARMY #StreamingMission</span>
                 </div>
             </div>
             
-            <!-- ===== SHARE BUTTONS ===== -->
-            <div class="share-buttons-pro">
-                <button onclick="shareToInstagram()" class="share-btn instagram">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                    </svg>
-                    Share to Instagram Story
+            <!-- Share Buttons -->
+            <div style="display:flex;gap:10px;margin-bottom:25px;">
+                <button onclick="shareStats()" class="btn-primary" style="flex:1;">
+                    📸 Screenshot Stats
                 </button>
-                
-                <div class="share-btn-row">
-                    <button onclick="downloadShareCard()" class="share-btn secondary">
-                        📥 Download Image
-                    </button>
-                    <button onclick="copyShareCaption()" class="share-btn secondary">
-                        📋 Copy Caption
-                    </button>
-                </div>
+                <button onclick="copyShareText()" class="btn-secondary" style="flex:1;">
+                    📋 Copy Caption
+                </button>
             </div>
             
             <!-- ===== TEAM STANDINGS ===== -->
-            <div class="card standings-card-pro">
+            <div class="card standings-card">
                 <div class="card-header">
                     <h3>📊 Final Standings</h3>
                 </div>
-                <div class="card-body">
+                <div class="card-body standings-list">
                     ${sorted.map(([t, info], i) => {
+                        const hasAllMissions = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
                         const isWinner = t === winner;
-                        const hasAll = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
                         return `
-                            <div class="standing-row ${isWinner ? 'winner' : ''} ${t === myTeam ? 'you' : ''}">
-                                <div class="standing-rank-pro">
-                                    ${isWinner ? '👑' : i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}
+                            <div class="standing-item ${isWinner ? 'is-winner' : ''} ${t === myTeam ? 'my-team' : ''}" style="--team-color: ${teamColor(t)};">
+                                <div class="standing-rank">
+                                    ${isWinner ? '👑' : i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span class="rank-num">${i + 1}</span>`}
                                 </div>
-                                <div class="standing-team-pro">
-                                    ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-avatar-sm">` : ''}
-                                    <div class="team-details">
-                                        <span class="team-name-pro" style="color:${teamColor(t)}">${t}</span>
-                                        <div class="mission-badges">
-                                            <span class="${info.trackGoalPassed ? 'pass' : 'fail'}">🎵</span>
-                                            <span class="${info.albumGoalPassed ? 'pass' : 'fail'}">💿</span>
-                                            <span class="${info.album2xPassed ? 'pass' : 'fail'}">✨</span>
-                                            ${hasAll ? '<span class="all-complete">All ✓</span>' : ''}
+                                <div class="standing-team">
+                                    ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-avatar" alt="${t}">` : `<div class="standing-avatar-placeholder">${t[0]}</div>`}
+                                    <div class="standing-info">
+                                        <div class="standing-name">${t} ${t === myTeam ? '(You)' : ''}</div>
+                                        <div class="standing-goals">
+                                            <span class="goal-badge ${info.trackGoalPassed ? 'passed' : 'failed'}">🎵 ${info.trackGoalPassed ? '✓' : '✗'}</span>
+                                            <span class="goal-badge ${info.albumGoalPassed ? 'passed' : 'failed'}">💿 ${info.albumGoalPassed ? '✓' : '✗'}</span>
+                                            <span class="goal-badge ${info.album2xPassed ? 'passed' : 'failed'}">✨ ${info.album2xPassed ? '✓' : '✗'}</span>
+                                            ${hasAllMissions ? '<span style="color:var(--success);font-size:9px;margin-left:5px;">All Complete!</span>' : ''}
                                         </div>
                                     </div>
                                 </div>
-                                <div class="standing-xp-pro">
-                                    <span class="xp-num">${fmt(info.teamXP)}</span>
-                                    <span class="xp-label">XP</span>
+                                <div class="standing-xp">
+                                    <span class="standing-xp-value">${fmt(info.teamXP)}</span>
+                                    <span class="standing-xp-label">XP</span>
                                 </div>
                             </div>
                         `;
@@ -5077,37 +5071,41 @@ async function renderSummary() {
                 </div>
             </div>
             
-            <!-- ===== DETAILED BREAKDOWN ===== -->
-            <div class="card breakdown-card">
+            <!-- ===== TRACK DETAILS WITH TEAM BREAKDOWN ===== -->
+            <div class="card" style="margin-top:20px;">
                 <div class="card-header">
-                    <h3>🎵 Track Streams Breakdown</h3>
-                    <span class="header-total">${fmt(totalTrackStreams)} total</span>
+                    <h3>🎵 Track Streams by Team</h3>
                 </div>
                 <div class="card-body">
                     ${trackStats.map((track, i) => `
-                        <div class="breakdown-item ${i === 0 ? 'top' : ''}">
-                            <div class="breakdown-header">
-                                <div class="breakdown-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}</div>
-                                <div class="breakdown-name">${sanitize(track.name)}</div>
-                                <div class="breakdown-total">${fmt(track.total)}</div>
+                        <div class="goal-item" style="margin-bottom:15px;">
+                            <div class="goal-header">
+                                <span class="goal-name">
+                                    ${i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}${sanitize(track.name)}
+                                </span>
+                                <span class="goal-status complete">${fmt(track.total)} streams</span>
                             </div>
-                            <div class="breakdown-bar">
-                                ${Object.entries(track.teams).filter(([,s]) => s > 0).map(([team, streams]) => `
-                                    <div class="bar-segment" style="width:${track.total > 0 ? (streams/track.total)*100 : 0}%;background:${teamColor(team)}" title="${team}: ${fmt(streams)}"></div>
-                                `).join('')}
+                            
+                            <!-- Team contribution bar -->
+                            <div class="progress-bar" style="height:12px;margin:8px 0;">
+                                ${Object.entries(track.teams).filter(([,s]) => s > 0).map(([team, streams]) => {
+                                    const pct = track.total > 0 ? (streams / track.total) * 100 : 0;
+                                    return `<div class="progress-fill" style="width:${pct}%;background:${teamColor(team)};display:inline-block;height:100%;" title="${team}: ${fmt(streams)}"></div>`;
+                                }).join('')}
                             </div>
-                            <div class="breakdown-teams">
+                            
+                            <!-- Team labels -->
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
                                 ${Object.entries(track.teams).filter(([,s]) => s > 0).sort((a,b) => b[1] - a[1]).map(([team, streams]) => `
-                                    <span class="team-chip" style="--chip-color:${teamColor(team)}">
-                                        <span class="chip-dot"></span>
-                                        ${team.replace('Team ', '')}
-                                        <span class="chip-num">${fmt(streams)}</span>
+                                    <span style="font-size:10px;padding:3px 8px;background:${teamColor(team)}22;color:${teamColor(team)};border-radius:10px;">
+                                        ${team.replace('Team ', '')}: ${fmt(streams)}
                                     </span>
                                 `).join('')}
                             </div>
+                            
                             ${track.goal > 0 ? `
-                                <div class="breakdown-goal ${track.total >= track.goal ? 'met' : ''}">
-                                    Goal: ${fmt(track.goal)} ${track.total >= track.goal ? '✅' : `(${Math.round((track.total/track.goal)*100)}%)`}
+                                <div style="margin-top:8px;font-size:10px;color:${track.total >= track.goal ? 'var(--success)' : 'var(--text-dim)'};">
+                                    Goal: ${fmt(track.goal)} ${track.total >= track.goal ? '✅ Achieved!' : `(${Math.round((track.total/track.goal)*100)}%)`}
                                 </div>
                             ` : ''}
                         </div>
@@ -5115,87 +5113,106 @@ async function renderSummary() {
                 </div>
             </div>
             
-            <div class="card breakdown-card">
+            <!-- ===== ALBUM DETAILS WITH TEAM BREAKDOWN ===== -->
+            <div class="card" style="margin-top:20px;">
                 <div class="card-header">
-                    <h3>💿 Album Streams Breakdown</h3>
-                    <span class="header-total">${fmt(totalAlbumStreams)} total</span>
+                    <h3>💿 Album Streams by Team</h3>
                 </div>
                 <div class="card-body">
                     ${albumStats.map((album, i) => `
-                        <div class="breakdown-item ${i === 0 ? 'top' : ''}">
-                            <div class="breakdown-header">
-                                <div class="breakdown-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}</div>
-                                <div class="breakdown-name">${sanitize(album.name)}</div>
-                                <div class="breakdown-total purple">${fmt(album.total)}</div>
+                        <div class="goal-item" style="margin-bottom:15px;">
+                            <div class="goal-header">
+                                <span class="goal-name">
+                                    ${i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}${sanitize(album.name)}
+                                </span>
+                                <span class="goal-status complete">${fmt(album.total)} streams</span>
                             </div>
-                            <div class="breakdown-bar">
-                                ${Object.entries(album.teams).filter(([,s]) => s > 0).map(([team, streams]) => `
-                                    <div class="bar-segment" style="width:${album.total > 0 ? (streams/album.total)*100 : 0}%;background:${teamColor(team)}"></div>
-                                `).join('')}
+                            
+                            <div class="progress-bar" style="height:12px;margin:8px 0;">
+                                ${Object.entries(album.teams).filter(([,s]) => s > 0).map(([team, streams]) => {
+                                    const pct = album.total > 0 ? (streams / album.total) * 100 : 0;
+                                    return `<div class="progress-fill" style="width:${pct}%;background:${teamColor(team)};display:inline-block;height:100%;"></div>`;
+                                }).join('')}
                             </div>
-                            <div class="breakdown-teams">
+                            
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
                                 ${Object.entries(album.teams).filter(([,s]) => s > 0).sort((a,b) => b[1] - a[1]).map(([team, streams]) => `
-                                    <span class="team-chip" style="--chip-color:${teamColor(team)}">
-                                        <span class="chip-dot"></span>
-                                        ${team.replace('Team ', '')}
-                                        <span class="chip-num">${fmt(streams)}</span>
+                                    <span style="font-size:10px;padding:3px 8px;background:${teamColor(team)}22;color:${teamColor(team)};border-radius:10px;">
+                                        ${team.replace('Team ', '')}: ${fmt(streams)}
                                     </span>
                                 `).join('')}
                             </div>
+                            
+                            ${album.goal > 0 ? `
+                                <div style="margin-top:8px;font-size:10px;color:${album.total >= album.goal ? 'var(--success)' : 'var(--text-dim)'};">
+                                    Goal: ${fmt(album.goal)} ${album.total >= album.goal ? '✅ Achieved!' : `(${Math.round((album.total/album.goal)*100)}%)`}
+                                </div>
+                            ` : ''}
                         </div>
                     `).join('')}
                 </div>
             </div>
             
-            <!-- ===== QUICK STATS ===== -->
-            <div class="quick-stats-grid-pro">
-                <div class="quick-stat-pro">
-                    <span class="qs-icon">🎵</span>
-                    <span class="qs-value">${fmt(totalTrackStreams)}</span>
-                    <span class="qs-label">Tracks</span>
+            <!-- ===== BATTLE STATS ===== -->
+            <div class="card stats-overview-card" style="margin-top:20px;">
+                <div class="card-header">
+                    <h3>📈 Battle Stats</h3>
                 </div>
-                <div class="quick-stat-pro">
-                    <span class="qs-icon">💿</span>
-                    <span class="qs-value">${fmt(totalAlbumStreams)}</span>
-                    <span class="qs-label">Albums</span>
-                </div>
-                <div class="quick-stat-pro">
-                    <span class="qs-icon">⭐</span>
-                    <span class="qs-value">${fmt(totalXP)}</span>
-                    <span class="qs-label">Total XP</span>
-                </div>
-                <div class="quick-stat-pro">
-                    <span class="qs-icon">🕵️</span>
-                    <span class="qs-value">${totalAgents || '—'}</span>
-                    <span class="qs-label">Agents</span>
+                <div class="card-body">
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-icon">🎵</div>
+                            <div class="stat-value">${fmt(totalTrackStreams)}</div>
+                            <div class="stat-label">Track Streams</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">💿</div>
+                            <div class="stat-value">${fmt(totalAlbumStreams)}</div>
+                            <div class="stat-label">Album Streams</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">⭐</div>
+                            <div class="stat-value">${fmt(totalXP)}</div>
+                            <div class="stat-label">Total XP</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">⚔️</div>
+                            <div class="stat-value">${sorted.length}</div>
+                            <div class="stat-label">Teams</div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <!-- ===== TOP AGENTS ===== -->
             ${topAgents.length > 0 ? `
-                <div class="card top-agents-card">
+                <div class="card" style="margin-top:20px;">
                     <div class="card-header">
                         <h3>🏆 Top Agents</h3>
                     </div>
                     <div class="card-body">
                         ${topAgents.slice(0, 5).map((agent, i) => `
-                            <div class="agent-row ${String(agent.agentNo) === String(STATE.agentNo) ? 'you' : ''}">
-                                <span class="agent-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}</span>
-                                <div class="agent-info">
-                                    <span class="agent-name">${sanitize(agent.name)}${String(agent.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</span>
-                                    <span class="agent-team" style="color:${teamColor(agent.team)}">${agent.team}</span>
+                            <div class="rank-item ${String(agent.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}">
+                                <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
+                                <div class="rank-info">
+                                    <div class="rank-name">${sanitize(agent.name)}${String(agent.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</div>
+                                    <div class="rank-team" style="color:${teamColor(agent.team)}">${agent.team}</div>
                                 </div>
-                                <span class="agent-xp">${fmt(agent.totalXP)} XP</span>
+                                <div class="rank-xp">${fmt(agent.totalXP)} XP</div>
                             </div>
                         `).join('')}
                     </div>
                 </div>
             ` : ''}
             
-            <!-- ===== NAVIGATION ===== -->
-            <div class="summary-nav">
-                <button onclick="loadPage('rankings')" class="btn-secondary">👥 Full Rankings</button>
-                <button onclick="loadPage('home')" class="btn-primary">🏠 Home</button>
+            <!-- Action Buttons -->
+            <div class="summary-actions" style="margin-top:20px;">
+                <button onclick="loadPage('rankings')" class="btn-secondary">
+                    👥 View Full Rankings
+                </button>
+                <button onclick="loadPage('home')" class="btn-primary">
+                    🏠 Back to Home
+                </button>
             </div>
         `;
         
@@ -5205,260 +5222,77 @@ async function renderSummary() {
         console.error('Summary error:', e);
         container.innerHTML = `
             <div class="card">
-                <div class="card-body" style="text-align:center;padding:40px;">
-                    <div style="font-size:48px;margin-bottom:15px;">😵</div>
-                    <h3 style="color:var(--danger);">Failed to Load</h3>
-                    <p style="color:var(--text-dim);">${sanitize(e.message)}</p>
-                    <button onclick="renderSummary()" class="btn-primary" style="margin-top:15px;">🔄 Retry</button>
+                <div class="card-body error-state">
+                    <div class="error-icon">😵</div>
+                    <h3>Failed to Load Summary</h3>
+                    <p>${sanitize(e.message)}</p>
+                    <button onclick="renderSummary()" class="btn-primary">Retry</button>
                 </div>
             </div>
         `; 
     }
 }
 
-// ==================== INSTAGRAM SHARE FUNCTIONS ====================
+// ==================== SHARE FUNCTIONS ====================
 
-async function shareToInstagram() {
-    const card = document.getElementById('share-card');
+function shareStats() {
+    const card = document.getElementById('shareable-stats-card');
     if (!card) {
-        showToast('Share card not found', 'error');
+        showToast('Stats card not found', 'error');
         return;
     }
     
-    // Show loading
-    showToast('📸 Preparing image...', 'info');
-    
-    try {
-        // Try to use html2canvas if available
-        if (typeof html2canvas !== 'undefined') {
-            const canvas = await html2canvas(card, {
-                backgroundColor: '#0a0a0f',
-                scale: 2,
-                useCORS: true,
-                logging: false
-            });
-            
-            canvas.toBlob(async (blob) => {
-                if (blob) {
-                    // Try Web Share API with files (works on mobile)
-                    if (navigator.canShare && navigator.canShare({ files: [new File([blob], 'hopetracker-stats.png', { type: 'image/png' })] })) {
-                        try {
-                            await navigator.share({
-                                files: [new File([blob], 'hopetracker-stats.png', { type: 'image/png' })],
-                                title: 'HOPETRACKER - BTS Comeback Mission',
-                                text: generateInstagramCaption()
-                            });
-                            showToast('✅ Shared successfully!', 'success');
-                            return;
-                        } catch (e) {
-                            console.log('Share cancelled or failed:', e);
-                        }
-                    }
-                    
-                    // Fallback: Download and open Instagram
-                    downloadBlob(blob, 'hopetracker-stats.png');
-                    setTimeout(() => {
-                        openInstagramStory();
-                    }, 500);
-                }
-            }, 'image/png');
-        } else {
-            // No html2canvas - fallback to screenshot method
-            fallbackInstagramShare();
-        }
-    } catch (e) {
-        console.error('Share error:', e);
-        fallbackInstagramShare();
-    }
-}
-
-function fallbackInstagramShare() {
-    const card = document.getElementById('share-card');
-    if (!card) return;
-    
-    // Highlight card for screenshot
+    // Scroll to card
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    card.classList.add('screenshot-highlight');
     
-    // Copy caption
-    copyShareCaption();
+    // Add highlight effect
+    card.style.transition = 'all 0.3s ease';
+    card.style.boxShadow = '0 0 30px rgba(123, 44, 191, 0.6), 0 0 60px rgba(123, 44, 191, 0.3)';
+    card.style.transform = 'scale(1.01)';
     
-    // Show instructions
-    showShareInstructions();
+    showToast('📸 Screenshot the highlighted card!', 'success');
     
+    // Remove highlight after 6 seconds
     setTimeout(() => {
-        card.classList.remove('screenshot-highlight');
-    }, 8000);
+        card.style.boxShadow = '';
+        card.style.transform = '';
+    }, 6000);
 }
 
-function showShareInstructions() {
-    // Remove existing modal
-    document.querySelectorAll('.share-modal').forEach(m => m.remove());
+function copyShareText() {
+    const week = STATE.week || 'This Week';
     
-    const modal = document.createElement('div');
-    modal.className = 'share-modal';
-    modal.innerHTML = `
-        <div class="share-modal-overlay" onclick="this.parentElement.remove()"></div>
-        <div class="share-modal-content">
-            <button class="share-modal-close" onclick="this.closest('.share-modal').remove()">×</button>
-            
-            <div class="share-modal-header">
-                <span class="share-modal-icon">📸</span>
-                <h3>Share to Instagram</h3>
-            </div>
-            
-            <div class="share-modal-body">
-                <div class="share-step">
-                    <span class="step-num">1</span>
-                    <span class="step-text">Screenshot the highlighted stats card</span>
-                </div>
-                <div class="share-step">
-                    <span class="step-num">2</span>
-                    <span class="step-text">Caption copied! ✅</span>
-                </div>
-                <div class="share-step">
-                    <span class="step-num">3</span>
-                    <span class="step-text">Open Instagram → Your Story → Add Photo</span>
-                </div>
-                <div class="share-step">
-                    <span class="step-num">4</span>
-                    <span class="step-text">Paste caption and tag @hopetracker</span>
-                </div>
-            </div>
-            
-            <div class="share-modal-actions">
-                <button onclick="openInstagramApp()" class="share-btn instagram">
-                    Open Instagram
-                </button>
-                <button onclick="this.closest('.share-modal').remove()" class="share-btn secondary">
-                    Got it!
-                </button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Animate in
-    requestAnimationFrame(() => modal.classList.add('show'));
-}
+    const shareText = `💜 BTS COMEBACK MISSION 💜
 
-function openInstagramApp() {
-    // Try to open Instagram app directly
-    const instagramUrl = 'instagram://story-camera';
-    const webFallback = 'https://www.instagram.com/';
-    
-    // Try app first
-    window.location.href = instagramUrl;
-    
-    // Fallback to web after delay
-    setTimeout(() => {
-        window.open(webFallback, '_blank');
-    }, 2000);
-}
+${week} Results are in! 🔥
 
-function openInstagramStory() {
-    showToast('📥 Image saved! Opening Instagram...', 'success');
-    
-    setTimeout(() => {
-        // Try to open Instagram story camera
-        const instagramUrl = 'instagram://story-camera';
-        window.location.href = instagramUrl;
-        
-        // Show fallback instructions
-        setTimeout(() => {
-            showShareInstructions();
-        }, 1500);
-    }, 500);
-}
+Our ARMY agents came together and pulled amazing streaming numbers! 
 
-function downloadShareCard() {
-    const card = document.getElementById('share-card');
-    if (!card) {
-        showToast('Card not found', 'error');
-        return;
-    }
-    
-    showToast('📸 Preparing download...', 'info');
-    
-    if (typeof html2canvas !== 'undefined') {
-        html2canvas(card, {
-            backgroundColor: '#0a0a0f',
-            scale: 2,
-            useCORS: true
-        }).then(canvas => {
-            canvas.toBlob(blob => {
-                if (blob) {
-                    downloadBlob(blob, `hopetracker-${STATE.week.replace(/\s+/g, '-').toLowerCase()}.png`);
-                    showToast('✅ Image downloaded!', 'success');
-                }
-            }, 'image/png');
-        }).catch(e => {
-            console.error('Download error:', e);
-            fallbackDownload();
-        });
-    } else {
-        fallbackDownload();
-    }
-}
+Every stream counts. Join us in supporting BTS! 🎵
 
-function fallbackDownload() {
-    // Highlight for manual screenshot
-    const card = document.getElementById('share-card');
-    if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.classList.add('screenshot-highlight');
-        showToast('📸 Take a screenshot of the highlighted card!', 'info');
-        setTimeout(() => card.classList.remove('screenshot-highlight'), 6000);
-    }
-}
+#BTSComeback #BTS #BTSARMY #StreamingMission
 
-function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-function copyShareCaption() {
-    const caption = generateInstagramCaption();
+💜 Fighting! 보라해! 💜`;
     
-    navigator.clipboard.writeText(caption).then(() => {
-        showToast('✅ Caption copied!', 'success');
+    navigator.clipboard.writeText(shareText).then(() => {
+        showToast('✅ Caption copied to clipboard!', 'success');
     }).catch(() => {
-        // Fallback
-        const ta = document.createElement('textarea');
-        ta.value = caption;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = shareText;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
         document.execCommand('copy');
-        document.body.removeChild(ta);
+        document.body.removeChild(textarea);
         showToast('✅ Caption copied!', 'success');
     });
 }
 
-function generateInstagramCaption() {
-    const week = STATE.week || 'This Week';
-    
-    return `💜 HOPETRACKER - BTS Comeback Mission 💜
-
-${week} Results! 🔥
-
-Our ARMY agents came together and pulled incredible streaming numbers! Every stream counts towards supporting BTS. 
-
-Join the mission! DM for details. 🕵️
-
-@hopetracker
-#BTSComeback #BTS #BTSARMY #Hopetracker #StreamingMission #BTSComebackMission #방탄소년단
-
-💜 Fighting! 보라해! 💜`;
-}
+// Add to window exports
+window.shareStats = shareStats;
+window.copyShareText = copyShareText;
 
 // ==================== SECRET MISSIONS ====================
 async function renderSecretMissions() {
@@ -6442,10 +6276,5 @@ window.renderSummary = renderSummary;
 window.renderComparison = renderComparison;
 window.renderGCLinks = renderGCLinks;
 window.renderHelperRoles = renderHelperRoles;
-window.shareToInstagram = shareToInstagram;
-window.downloadShareCard = downloadShareCard;
-window.copyShareCaption = copyShareCaption;
-window.openInstagramApp = openInstagramApp;
-window.showShareInstructions = showShareInstructions;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded');
