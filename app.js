@@ -4837,12 +4837,17 @@ async function renderComparison() {
                 </div>
             `;
         }
-    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; }
+    } catch (e) { 
+        console.error('Comparison error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; 
+    }
 }
 
 // ==================== SUMMARY ====================
 async function renderSummary() {
     const container = $('summary-content');
+    if (!container) return;
+    
     const selectedWeek = STATE.week;
     const isCompleted = isWeekCompleted(selectedWeek);
     
@@ -4875,7 +4880,13 @@ async function renderSummary() {
         
         const teams = summary.teams || {};
         const sorted = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
-        const actualWinner = sorted[0]?.[0] || summary.winner;
+        
+        // Find winner: team with highest XP that completed ALL missions
+        const teamsWithAllMissions = sorted.filter(([t, info]) => 
+            info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed
+        );
+        const actualWinner = teamsWithAllMissions.length > 0 ? teamsWithAllMissions[0][0] : null;
+        const myTeam = STATE.data?.profile?.team;
         
         container.innerHTML = `
             <!-- Week Header -->
@@ -4899,10 +4910,23 @@ async function renderSummary() {
                             <span class="xp-value">${fmt(teams[actualWinner]?.teamXP)}</span>
                             <span class="xp-label">Total XP</span>
                         </div>
+                        ${actualWinner === myTeam ? `
+                            <div style="margin-top:15px;padding:10px 20px;background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);border-radius:20px;">
+                                <span style="color:#00ff88;font-weight:bold;">🎉 YOUR TEAM WON!</span>
+                            </div>
+                        ` : ''}
                     </div>
                     <div class="winner-confetti">🎊</div>
                 </div>
-            ` : ''}
+            ` : `
+                <div class="card" style="border-color:#ff6b6b;margin-bottom:20px;">
+                    <div class="card-body" style="text-align:center;padding:30px;">
+                        <div style="font-size:48px;margin-bottom:15px;">😔</div>
+                        <h3 style="color:#ff6b6b;margin:0;">No Winner This Week</h3>
+                        <p style="color:#888;margin-top:10px;">No team completed all 3 missions.</p>
+                    </div>
+                </div>
+            `}
             
             <!-- Final Standings -->
             <div class="card standings-card">
@@ -4910,40 +4934,45 @@ async function renderSummary() {
                     <h3>📊 Final Standings</h3>
                 </div>
                 <div class="card-body standings-list">
-                    ${sorted.map(([t, info], i) => `
-                        <div class="standing-item ${i === 0 ? 'is-winner' : ''}" style="--team-color: ${teamColor(t)};">
-                            <div class="standing-rank">
-                                ${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span class="rank-num">${i + 1}</span>`}
-                            </div>
-                            
-                            <div class="standing-team">
-                                ${teamPfp(t) ? `
-                                    <img src="${teamPfp(t)}" class="standing-avatar" alt="${t}">
-                                ` : `
-                                    <div class="standing-avatar-placeholder">${t[0]}</div>
-                                `}
-                                <div class="standing-info">
-                                    <div class="standing-name">${t}</div>
-                                    <div class="standing-goals">
-                                        <span class="goal-badge ${info.trackGoalPassed ? 'passed' : 'failed'}" title="Track Goal">
-                                            🎵 ${info.trackGoalPassed ? '✓' : '✗'}
-                                        </span>
-                                        <span class="goal-badge ${info.albumGoalPassed ? 'passed' : 'failed'}" title="Album Goal">
-                                            💿 ${info.albumGoalPassed ? '✓' : '✗'}
-                                        </span>
-                                        <span class="goal-badge ${info.album2xPassed ? 'passed' : 'failed'}" title="2X Goal">
-                                            ✨ ${info.album2xPassed ? '✓' : '✗'}
-                                        </span>
+                    ${sorted.map(([t, info], i) => {
+                        const hasAllMissions = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
+                        const isWinner = t === actualWinner;
+                        return `
+                            <div class="standing-item ${isWinner ? 'is-winner' : ''} ${t === myTeam ? 'my-team' : ''}" style="--team-color: ${teamColor(t)};">
+                                <div class="standing-rank">
+                                    ${isWinner ? '👑' : i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span class="rank-num">${i + 1}</span>`}
+                                </div>
+                                
+                                <div class="standing-team">
+                                    ${teamPfp(t) ? `
+                                        <img src="${teamPfp(t)}" class="standing-avatar" alt="${t}">
+                                    ` : `
+                                        <div class="standing-avatar-placeholder">${t[0]}</div>
+                                    `}
+                                    <div class="standing-info">
+                                        <div class="standing-name">${t} ${t === myTeam ? '(You)' : ''}</div>
+                                        <div class="standing-goals">
+                                            <span class="goal-badge ${info.trackGoalPassed ? 'passed' : 'failed'}" title="Track Goal">
+                                                🎵 ${info.trackGoalPassed ? '✓' : '✗'}
+                                            </span>
+                                            <span class="goal-badge ${info.albumGoalPassed ? 'passed' : 'failed'}" title="Album Goal">
+                                                💿 ${info.albumGoalPassed ? '✓' : '✗'}
+                                            </span>
+                                            <span class="goal-badge ${info.album2xPassed ? 'passed' : 'failed'}" title="2X Goal">
+                                                ✨ ${info.album2xPassed ? '✓' : '✗'}
+                                            </span>
+                                            ${hasAllMissions ? '<span style="color:#00ff88;font-size:10px;margin-left:5px;">All Complete!</span>' : ''}
+                                        </div>
                                     </div>
                                 </div>
+                                
+                                <div class="standing-xp">
+                                    <span class="standing-xp-value">${fmt(info.teamXP)}</span>
+                                    <span class="standing-xp-label">XP</span>
+                                </div>
                             </div>
-                            
-                            <div class="standing-xp">
-                                <span class="standing-xp-value">${fmt(info.teamXP)}</span>
-                                <span class="standing-xp-label">XP</span>
-                            </div>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             </div>
             
@@ -4981,7 +5010,7 @@ async function renderSummary() {
             <!-- Action Button -->
             <div class="summary-actions">
                 <button onclick="loadPage('rankings')" class="btn-secondary">
-                    👥 View rankings
+                    👥 View Rankings
                 </button>
                 <button onclick="loadPage('home')" class="btn-primary">
                     🏠 Back to Home
@@ -4993,6 +5022,7 @@ async function renderSummary() {
         markResultsSeen(selectedWeek);
         
     } catch (e) { 
+        console.error('Summary error:', e);
         container.innerHTML = `
             <div class="card">
                 <div class="card-body error-state">
@@ -5005,11 +5035,18 @@ async function renderSummary() {
         `; 
     }
 }
+
 // ==================== SECRET MISSIONS ====================
 async function renderSecretMissions() {
     const container = $('secret-missions-content');
     if (!container) return;
+    
     const myTeam = STATE.data?.profile?.team;
+    if (!myTeam) {
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Could not identify your team</p></div></div>';
+        return;
+    }
+    
     container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
     
     try {
@@ -5096,13 +5133,13 @@ async function renderSecretMissions() {
             ` : ''}
         `;
         
-        // ✅ Moved INSIDE try block where 'activeMissions' is accessible
+        // Update notification state
         STATE.lastChecked.missions = activeMissions.length;
         saveNotificationState();
         
     } catch (e) {
         console.error('Failed to load secret missions:', e);
-        container.innerHTML = '<div class="card"><div class="card-body error-state"><p>Failed to load secret missions.</p></div></div>';
+        container.innerHTML = renderGuide('secret-missions') + '<div class="card"><div class="card-body error-state"><p>Failed to load secret missions.</p><button onclick="renderSecretMissions()" class="btn-secondary">Retry</button></div></div>';
     }
 }
 
@@ -5152,10 +5189,10 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
         </div>
     `;
 }
-// ==================== SONG OF THE DAY ====================
 
+// ==================== SONG OF THE DAY (WITH DATE) ====================
 async function renderSongOfDay() {
-    // ✅ FIX: Properly create page and container
+    // Create page container if needed
     let page = $('page-song-of-day');
     if (!page) {
         const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
@@ -5165,7 +5202,6 @@ async function renderSongOfDay() {
             page.className = 'page active';
             page.innerHTML = '<div id="song-of-day-content"></div>';
             mainContent.appendChild(page);
-            console.log('✅ Created song-of-day page');
         }
     } else {
         page.classList.add('active');
@@ -5178,21 +5214,44 @@ async function renderSongOfDay() {
     }
     
     if (!container) {
-        console.error('❌ Could not create song-of-day container');
         showToast('Failed to load page', 'error');
         return;
     }
     
+    // ✅ GET TODAY'S DATE FOR DISPLAY
+    const today = new Date();
+    const dateDisplay = today.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    const shortDate = today.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric'
+    });
+    
     container.innerHTML = '<div style="text-align:center;padding:40px;color:#888;"><div class="loading-spinner"></div><p style="margin-top:15px;">Loading...</p></div>';
     
     try {
-        console.log('📡 Fetching song of day...');
         const data = await api('getSongOfDay');
-        console.log('📥 Song of day response:', data);
         
         if (!data || !data.success || !data.song) {
             container.innerHTML = `
                 <div class="card" style="text-align:center;padding:40px;">
+                    <!-- ✅ DATE HEADER -->
+                    <div style="
+                        background: linear-gradient(135deg, #7b2cbf22, #7b2cbf11);
+                        border: 1px solid #7b2cbf44;
+                        border-radius: 12px;
+                        padding: 12px 20px;
+                        margin-bottom: 25px;
+                        display: inline-block;
+                    ">
+                        <span style="color: #7b2cbf; font-size: 14px; font-weight: 600;">📅 ${dateDisplay}</span>
+                    </div>
+                    
                     <div style="font-size:64px;margin-bottom:20px;">🎬</div>
                     <h3 style="color:#fff;margin-bottom:10px;">No Song Today</h3>
                     <p style="color:#888;margin-bottom:20px;">Check back later!</p>
@@ -5203,16 +5262,15 @@ async function renderSongOfDay() {
         }
         
         const song = data.song;
-        const today = new Date().toDateString();
-        const storageKey = 'song_answered_' + STATE.agentNo + '_' + today;
-        const correctKey = 'song_correct_' + STATE.agentNo + '_' + today;
+        const todayStr = today.toDateString();
+        const storageKey = 'song_answered_' + STATE.agentNo + '_' + todayStr;
+        const correctKey = 'song_correct_' + STATE.agentNo + '_' + todayStr;
         
-        // Check if already answered today
         const answered = localStorage.getItem(storageKey);
         const wasCorrect = localStorage.getItem(correctKey) === 'true';
         
         container.innerHTML = `
-            <!-- Header -->
+            <!-- ✅ PROMINENT DATE HEADER -->
             <div style="
                 background: linear-gradient(135deg, #ff000022, #ff000011);
                 border: 1px solid #ff000044;
@@ -5222,14 +5280,38 @@ async function renderSongOfDay() {
                 margin-bottom: 20px;
             ">
                 <div style="font-size:40px;margin-bottom:10px;">🎬</div>
-                <h2 style="color:#fff;margin:0 0 5px 0;">Song of the Day</h2>
+                <h2 style="color:#fff;margin:0 0 8px 0;">Song of the Day</h2>
+                
+                <!-- ✅ DATE BADGE -->
+                <div style="
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 8px 20px;
+                    background: rgba(255,255,255,0.1);
+                    border: 1px solid rgba(255,255,255,0.2);
+                    border-radius: 25px;
+                    margin-bottom: 10px;
+                ">
+                    <span style="font-size: 18px;">📅</span>
+                    <span style="color: #fff; font-size: 14px; font-weight: 600;">${dateDisplay}</span>
+                </div>
+                
                 <p style="color:#888;margin:0;font-size:12px;">Find the correct YouTube link & earn XP!</p>
             </div>
             
             <!-- Hint Card -->
             <div class="card" style="margin-bottom:20px;">
-                <div class="card-header">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
                     <h3 style="margin:0;">💡 Today's Hint</h3>
+                    <span style="
+                        padding: 4px 12px;
+                        background: rgba(255,0,0,0.1);
+                        border: 1px solid rgba(255,0,0,0.3);
+                        border-radius: 12px;
+                        color: #ff6b6b;
+                        font-size: 11px;
+                    ">${shortDate}</span>
                 </div>
                 <div class="card-body" style="text-align:center;padding:25px;">
                     <div style="
@@ -5237,16 +5319,20 @@ async function renderSongOfDay() {
                         color: #ffd700;
                         line-height: 1.6;
                         font-style: italic;
+                        padding: 15px;
+                        background: rgba(255,215,0,0.05);
+                        border-radius: 12px;
+                        border: 1px dashed rgba(255,215,0,0.3);
                     ">"${sanitize(song.hint || 'No hint available!')}"</div>
                     
                     <div style="
                         margin-top: 15px;
                         padding: 10px 20px;
-                        background: rgba(255,215,0,0.1);
+                        background: rgba(0,255,136,0.1);
                         border-radius: 20px;
                         display: inline-block;
                     ">
-                        <span style="color:#ffd700;font-size:14px;">🎁 Reward: +${song.xpReward || 1} XP</span>
+                        <span style="color:#00ff88;font-size:14px;">🎁 Reward: +${song.xpReward || 1} XP</span>
                     </div>
                 </div>
             </div>
@@ -5277,14 +5363,15 @@ async function renderSongOfDay() {
                                     : 'Better luck tomorrow!'}
                             </div>
                             
-                            ${wasCorrect && song.title ? `
+                            ${song.title ? `
                                 <div style="
                                     margin-top: 20px;
                                     padding: 15px;
-                                    background: rgba(0,255,136,0.1);
+                                    background: ${wasCorrect ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.05)'};
                                     border-radius: 12px;
+                                    border: 1px solid ${wasCorrect ? 'rgba(0,255,136,0.3)' : 'rgba(255,255,255,0.1)'};
                                 ">
-                                    <div style="color:#00ff88;font-size:16px;font-weight:600;">
+                                    <div style="color:${wasCorrect ? '#00ff88' : '#fff'};font-size:16px;font-weight:600;">
                                         🎵 ${sanitize(song.title)}
                                     </div>
                                     <div style="color:#888;font-size:12px;margin-top:5px;">
@@ -5292,7 +5379,7 @@ async function renderSongOfDay() {
                                     </div>
                                 </div>
                                 
-                                <!-- ✅ WATCH NOW BUTTON WITH LINK -->
+                                <!-- Watch on YouTube Button -->
                                 <div style="
                                     margin-top:20px;
                                     padding:15px;
@@ -5321,9 +5408,6 @@ async function renderSongOfDay() {
                                         <span>▶️</span>
                                         <span>Watch on YouTube</span>
                                     </a>
-                                    <p style="color:#888;font-size:11px;margin:10px 0 0 0;">
-                                        Every view counts! 💜
-                                    </p>
                                 </div>
                             ` : ''}
                             
@@ -5453,8 +5537,12 @@ async function renderSongOfDay() {
             }, 100);
         }
         
+        // Update notification state
+        STATE.lastChecked.songOfDay = todayStr;
+        saveNotificationState();
+        
     } catch (e) {
-        console.error('❌ Song of day error:', e);
+        console.error('Song of day error:', e);
         container.innerHTML = `
             <div class="card" style="text-align:center;padding:40px;">
                 <div style="font-size:48px;margin-bottom:15px;">❌</div>
@@ -5468,7 +5556,6 @@ async function renderSongOfDay() {
 }
 
 // ==================== SUBMIT SONG ANSWER ====================
-
 async function submitSongAnswer() {
     const input = $('youtube-answer');
     const btn = $('submit-song-btn');
@@ -5482,7 +5569,7 @@ async function submitSongAnswer() {
         return;
     }
     
-    // Disable button while submitting
+    // Disable button
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<span>⏳</span><span>Checking...</span>';
@@ -5490,13 +5577,10 @@ async function submitSongAnswer() {
     }
     
     try {
-        // ✅ Direct fetch with longer timeout
         const url = new URL(CONFIG.API_URL);
         url.searchParams.set('action', 'submitSongAnswer');
         url.searchParams.set('agentNo', STATE.agentNo);
         url.searchParams.set('answer', answer);
-        
-        console.log('📡 Submitting song answer...');
         
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 90000);
@@ -5505,7 +5589,6 @@ async function submitSongAnswer() {
         clearTimeout(timeout);
         
         const result = await res.json();
-        console.log('📥 Submit result:', result);
         
         const today = new Date().toDateString();
         const storageKey = 'song_answered_' + STATE.agentNo + '_' + today;
@@ -5524,12 +5607,11 @@ async function submitSongAnswer() {
         if (result.alreadyAnswered) {
             localStorage.setItem(storageKey, 'true');
             localStorage.setItem(correctKey, result.wasCorrect ? 'true' : 'false');
-            showToast('Already answered today! ✨', 'success');
+            showToast('Already answered today!', 'info');
             renderSongOfDay();
             return;
         }
         
-        // Save result to localStorage
         localStorage.setItem(storageKey, 'true');
         localStorage.setItem(correctKey, result.correct ? 'true' : 'false');
         
@@ -5541,11 +5623,10 @@ async function submitSongAnswer() {
             showToast('❌ Wrong! Try again tomorrow.', 'error');
         }
         
-        // Refresh the page to show result
         await renderSongOfDay();
         
     } catch (e) {
-        console.error('❌ Submit error:', e);
+        console.error('Submit error:', e);
         
         if (e.name === 'AbortError') {
             showToast('Request timed out. Please try again.', 'error');
@@ -5560,18 +5641,25 @@ async function submitSongAnswer() {
         }
     }
 }
+
 // ==================== ANNOUNCEMENTS ====================
 async function renderAnnouncements() {
     const container = $('announcements-content');
+    if (!container) return;
+    
     container.innerHTML = renderGuide('announcements');
     
     try {
         const data = await api('getAnnouncements', { week: STATE.week });
         const list = data.announcements || [];
         
-        // Sort by priority: high first, then medium, then low
+        // Sort by priority and date
         const priorityOrder = { high: 1, medium: 2, low: 3 };
-        list.sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
+        list.sort((a, b) => {
+            const pDiff = (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
+            if (pDiff !== 0) return pDiff;
+            return new Date(b.created || 0) - new Date(a.created || 0);
+        });
         
         container.innerHTML += list.length ? list.map(a => `
             <div class="card announcement ${getPriorityClass(a.priority)}">
@@ -5581,7 +5669,7 @@ async function renderAnnouncements() {
                         ${getPriorityBadge(a.priority)}
                     </div>
                     <h3>${sanitize(a.title)}</h3>
-                    <p>${sanitize(a.message)}</p>
+                    <p style="white-space:pre-line;">${sanitize(a.message || a.content || '')}</p>
                     ${a.link ? `
                         <a href="${sanitize(a.link)}" target="_blank" class="announcement-link-btn">
                             ${sanitize(a.linkText) || '🔗 Open Link'}
@@ -5602,9 +5690,11 @@ async function renderAnnouncements() {
         saveNotificationState();
         
     } catch (e) {
-        container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p></div></div>';
+        console.error('Announcements error:', e);
+        container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p><button onclick="renderAnnouncements()" class="btn-secondary">Retry</button></div></div>';
     }
 }
+
 // ==================== PLAYLISTS ====================
 async function renderPlaylists() {
     const container = $('playlists-content');
@@ -5630,7 +5720,7 @@ async function renderPlaylists() {
         if (playlists.length) {
             listEl.innerHTML = playlists.map(pl => `
                 <div class="playlist-card">
-                    <a href="${sanitize(pl.link)}" target="_blank" class="playlist-link">
+                    <a href="${sanitize(pl.link || pl.url)}" target="_blank" class="playlist-link">
                         <span class="playlist-icon">${getPlaylistIcon(pl.platform)}</span>
                         <div>
                             <div class="playlist-name">${sanitize(pl.name)}</div>
@@ -5640,10 +5730,15 @@ async function renderPlaylists() {
                 </div>
             `).join('');
         } else {
-            listEl.innerHTML = `<div style="text-align:center;padding:40px;color:#888;"><div style="font-size:48px;margin-bottom:15px;">📭</div><p>No playlists available yet</p><p style="font-size:12px;">Check back later for official streaming playlists</p></div>`;
+            listEl.innerHTML = `
+                <div style="text-align:center;padding:40px;color:#888;">
+                    <div style="font-size:48px;margin-bottom:15px;">📭</div>
+                    <p>No playlists available yet</p>
+                    <p style="font-size:12px;">Check back later for official streaming playlists</p>
+                </div>
+            `;
         }
         
-        // ✅ Moved INSIDE try block where 'playlists' is accessible
         STATE.lastChecked.playlists = playlists.length;
         saveNotificationState();
         
@@ -5654,13 +5749,22 @@ async function renderPlaylists() {
 }
 
 function getPlaylistIcon(platform) {
-    const icons = { 'spotify': '💚', 'apple': '🍎', 'youtube': '🔴', 'amazon': '📦', 'deezer': '🎧' };
+    const icons = { 
+        'spotify': '💚', 
+        'apple': '🍎', 
+        'youtube': '🔴', 
+        'amazon': '📦', 
+        'deezer': '🎧',
+        'youtube music': '🔴'
+    };
     return icons[(platform || '').toLowerCase()] || '🎵';
 }
+
 // ==================== GC LINKS ====================
 async function renderGCLinks() {
     const container = $('gc-links-content');
     if (!container) return;
+    
     const team = STATE.data?.profile?.team;
     
     container.innerHTML = `
@@ -5693,7 +5797,9 @@ async function renderGCLinks() {
         if (links.team && links.team[team]) $('gc-team-link').href = links.team[team];
         if (links.playlist) $('gc-pl-link').href = links.playlist;
         if (links.main) $('gc-main-link').href = links.main;
-    } catch (e) { console.log('Could not load GC links'); }
+    } catch (e) { 
+        console.log('Could not load GC links'); 
+    }
 }
 
 // ==================== HELPER ROLES ====================
@@ -5714,14 +5820,14 @@ async function renderHelperRoles() {
             <div class="card-body" style="text-align:center;padding:30px;">
                 <div style="font-size:40px;margin-bottom:15px;">🚀</div>
                 <h4 style="color:#fff;margin-bottom:10px;">Want to Join the Helper Army?</h4>
-                <p style="color:#888;font-size:13px;">Contact Admin through insta or Secret Comms.<br>More roles will be released depending on the need!</p>
+                <p style="color:#888;font-size:13px;">Contact Admin through Instagram or Secret Comms.<br>More roles will be released depending on the need!</p>
             </div>
         </div>
     `;
     
     try {
         const data = await api('getHelperRoles');
-        const roles = data.roles || [];
+        const roles = data.roles || CONFIG.HELPER_ROLES || [];
         const rolesListEl = $('roles-list');
         
         if (roles.length) {
@@ -5735,17 +5841,103 @@ async function renderHelperRoles() {
                             <div class="role-agents" style="margin-top:8px;">
                                 <span style="color:#7b2cbf;font-size:11px;font-weight:600;">Assigned:</span>
                                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
-                                    ${role.agents.map(agent => `<span class="agent-badge" style="background:rgba(123,44,191,0.2);color:#c9a0ff;padding:3px 8px;border-radius:12px;font-size:11px;">👤 ${sanitize(agent.name)}</span>`).join('')}
+                                    ${role.agents.map(agent => `
+                                        <span class="agent-badge" style="background:rgba(123,44,191,0.2);color:#c9a0ff;padding:3px 8px;border-radius:12px;font-size:11px;">
+                                            👤 ${sanitize(typeof agent === 'string' ? agent : agent.name)}
+                                        </span>
+                                    `).join('')}
                                 </div>
                             </div>
-                        ` : `<div style="margin-top:8px;font-size:11px;color:#666;"><span style="color:#ffd700;">⭐</span> Position open - Apply now!</div>`}
+                        ` : `
+                            <div style="margin-top:8px;font-size:11px;color:#666;">
+                                <span style="color:#ffd700;">⭐</span> Position open - Apply now!
+                            </div>
+                        `}
                     </div>
                 </div>
             `).join('');
         } else {
             rolesListEl.innerHTML = '<p style="color:#888;text-align:center;">No roles defined yet</p>';
         }
-    } catch (e) { $('roles-list').innerHTML = '<p style="color:red;">Failed to load roles</p>'; }
+    } catch (e) { 
+        console.error('Helper roles error:', e);
+        $('roles-list').innerHTML = '<p style="color:red;">Failed to load roles</p>'; 
+    }
+}
+
+// ==================== MISSING FUNCTION: showChatRules ====================
+function showChatRules() {
+    const popup = document.createElement('div');
+    popup.className = 'chat-rules-popup';
+    popup.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.9);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    `;
+    
+    popup.innerHTML = `
+        <div style="
+            background: #1a1a2e;
+            border: 1px solid #7b2cbf;
+            border-radius: 16px;
+            padding: 25px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        ">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="margin:0;color:#fff;">📋 Chat Rules</h3>
+                <button onclick="this.closest('.chat-rules-popup').remove()" style="
+                    background:none;
+                    border:none;
+                    color:#888;
+                    font-size:24px;
+                    cursor:pointer;
+                ">×</button>
+            </div>
+            
+            <div style="color:#aaa;font-size:13px;line-height:1.8;">
+                <div style="margin-bottom:15px;padding:12px;background:rgba(123,44,191,0.1);border-radius:8px;">
+                    <strong style="color:#7b2cbf;">💜 Be Kind & Respectful</strong><br>
+                    We're all here for BTS. Treat everyone with kindness.
+                </div>
+                
+                <div style="margin-bottom:15px;padding:12px;background:rgba(255,215,0,0.1);border-radius:8px;">
+                    <strong style="color:#ffd700;">⏰ Messages Auto-Delete</strong><br>
+                    Messages are deleted after 24 hours. Nothing is permanent!
+                </div>
+                
+                <div style="margin-bottom:15px;padding:12px;background:rgba(0,255,136,0.1);border-radius:8px;">
+                    <strong style="color:#00ff88;">⚔️ Battle Conversations Only</strong><br>
+                    Keep discussions related to streaming missions.
+                </div>
+                
+                <div style="padding:12px;background:rgba(255,68,68,0.1);border-radius:8px;">
+                    <strong style="color:#ff6b6b;">🚫 No Spam or Links</strong><br>
+                    No spam, external links, or inappropriate content.
+                </div>
+            </div>
+            
+            <button onclick="this.closest('.chat-rules-popup').remove()" class="btn-primary" style="
+                width:100%;
+                margin-top:20px;
+                padding:12px;
+            ">
+                Got it! 💜
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(popup);
 }
 
 // ==================== RESULTS POPUP ====================
@@ -5753,6 +5945,8 @@ function viewResults(week) {
     markResultsSeen(week);
     dismissResultsUI();
     STATE.week = week;
+    const weekSelect = $('week-select');
+    if (weekSelect) weekSelect.value = week;
     loadPage('summary');
 }
 
@@ -5764,15 +5958,24 @@ function dismissResults(week) {
 function dismissResultsUI() {
     const popup = $('results-popup');
     const confetti = $('confetti-overlay');
-    if (popup) { popup.classList.remove('show'); setTimeout(() => popup.remove(), 500); }
+    if (popup) { 
+        popup.classList.remove('show'); 
+        setTimeout(() => popup.remove(), 500); 
+    }
     if (confetti) confetti.remove();
 }
+
+// ==================== CLEANUP CHAT ON PAGE LEAVE ====================
+// Add this to the router - call cleanupChat() when leaving chat page
+// Already defined in Part 1, ensuring it's called properly
 
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
+// Export all functions to window for onclick handlers
 window.loadPage = loadPage;
 window.logout = logout;
+window.goBack = goBack;
 window.showAdminPanel = showAdminPanel;
 window.showAdminLogin = showAdminLogin;
 window.closeAdminModal = closeAdminModal;
@@ -5796,9 +5999,10 @@ window.openChat = openChat;
 window.showChatRules = showChatRules;
 window.handleNotificationAction = handleNotificationAction;
 window.showNotificationCenter = showNotificationCenter;
+window.closeNotificationCenter = closeNotificationCenter;
 window.clearAllNotifications = clearAllNotifications;
 window.checkNotifications = checkNotifications;
-window.openChat = openChat;
+window.dismissNotificationPopup = dismissNotificationPopup;
 window.sendMessage = sendMessage;
 window.loadMessages = loadMessages;
 window.showOnlineUsers = showOnlineUsers;
@@ -5807,5 +6011,12 @@ window.stopHeartbeat = stopHeartbeat;
 window.renderSongOfDay = renderSongOfDay;
 window.submitSongAnswer = submitSongAnswer;
 window.setTodaysSong = setTodaysSong;
+window.renderSecretMissions = renderSecretMissions;
+window.renderAnnouncements = renderAnnouncements;
+window.renderPlaylists = renderPlaylists;
+window.renderSummary = renderSummary;
+window.renderComparison = renderComparison;
+window.renderGCLinks = renderGCLinks;
+window.renderHelperRoles = renderHelperRoles;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded');
