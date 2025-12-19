@@ -5900,58 +5900,108 @@ async function renderSongOfDay() {
     }
 }
 
-// ==================== SUBMIT SONG ANSWER (UPDATED FOR 2 CHANCES) ====================
+// ==================== SUBMIT SONG ANSWER (2 CHANCES - FIXED) ====================
 async function submitSongAnswer() {
     const input = $('youtube-answer');
     const btn = $('submit-song-btn');
     
-    if (!input || !btn) return;
+    if (!input) {
+        console.error('❌ youtube-answer input not found');
+        return;
+    }
     
-    const url = input.value.trim();
+    const answer = input.value.trim();
     
-    if (!url) {
-        showToast('Please enter a YouTube link', 'error');
+    if (!answer) {
+        showToast('Please paste a YouTube link!', 'error');
         input.focus();
         return;
     }
     
-    // Extract YouTube ID
-    const youtubeId = extractYouTubeId(url);
+    // ✅ FIX: Check if agentNo exists
+    if (!STATE.agentNo) {
+        console.error('❌ STATE.agentNo is missing:', STATE);
+        showToast('Session expired. Please refresh the page!', 'error');
+        return;
+    }
     
-    if (!youtubeId) {
-        showToast('Invalid YouTube link format', 'error');
+    // ✅ DEBUG: Log what we're sending
+    console.log('📤 Submitting song answer:', {
+        agentNo: STATE.agentNo,
+        answer: answer
+    });
+    
+    const today = new Date().toDateString();
+    const attemptsKey = 'song_attempts_' + STATE.agentNo + '_' + today;
+    const correctKey = 'song_correct_' + STATE.agentNo + '_' + today;
+    const maxAttempts = 2;
+    
+    const currentAttempts = parseInt(localStorage.getItem(attemptsKey) || '0');
+    const alreadyCorrect = localStorage.getItem(correctKey) === 'true';
+    
+    // PRE-CHECK: Already correct?
+    if (alreadyCorrect) {
+        showToast('You already got it correct today! 🎉', 'info');
+        renderSongOfDay();
+        return;
+    }
+    
+    // PRE-CHECK: Out of attempts?
+    if (currentAttempts >= maxAttempts) {
+        showToast('No more chances today! Try tomorrow.', 'error');
+        renderSongOfDay();
         return;
     }
     
     // Disable button
-    btn.disabled = true;
-    btn.innerHTML = '<span class="loading-spinner" style="width:20px;height:20px;"></span><span>Checking...</span>';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span><span>Checking...</span>';
+        btn.style.opacity = '0.6';
+    }
     
     try {
-        const data = await api('submitSongAnswer', { youtubeId });
+        // ✅ FIX: Pass BOTH agentNo AND answer to the API
+        const result = await api('submitSongAnswer', {
+            agentNo: STATE.agentNo,  // ✅ THIS WAS MISSING!
+            answer: answer           // ✅ Send full URL, backend extracts ID
+        });
         
-        // ✅ UPDATE ATTEMPTS IN LOCAL STORAGE
-        const today = new Date();
-        const todayStr = today.toDateString();
-        const attemptsKey = 'song_attempts_' + STATE.agentNo + '_' + todayStr;
-        const correctKey = 'song_correct_' + STATE.agentNo + '_' + todayStr;
+        console.log('📥 Song answer response:', result);
         
-        // Increment attempts
-        const currentAttempts = parseInt(localStorage.getItem(attemptsKey) || '0');
-        localStorage.setItem(attemptsKey, (currentAttempts + 1).toString());
+        // Handle error from server
+        if (result.error) {
+            showToast('Error: ' + result.error, 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<span>▶️</span><span>Submit Answer</span>';
+                btn.style.opacity = '1';
+            }
+            return;
+        }
         
-        if (data.correct) {
+        // Handle already answered from server
+        if (result.alreadyAnswered) {
+            if (result.attempts !== undefined) {
+                localStorage.setItem(attemptsKey, result.attempts.toString());
+            }
+            if (result.wasCorrect !== undefined) {
+                localStorage.setItem(correctKey, result.wasCorrect ? 'true' : 'false');
+            }
+            showToast(result.wasCorrect ? 'Already answered correctly!' : 'No more chances today!', 'info');
+            renderSongOfDay();
+            return;
+        }
+        
+        // Increment attempts locally
+        const newAttempts = currentAttempts + 1;
+        localStorage.setItem(attemptsKey, newAttempts.toString());
+        
+        if (result.correct) {
             // ✅ CORRECT ANSWER
             localStorage.setItem(correctKey, 'true');
             
-            showToast(`🎉 Correct! +${data.xpEarned || 1} XP`, 'success');
-            
-            if (data.newXP !== undefined) {
-                STATE.user.xp = data.newXP;
-            }
-            if (data.newLevel !== undefined) {
-                STATE.user.level = data.newLevel;
-            }
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             
             // Confetti effect
             if (typeof confetti === 'function') {
@@ -5961,27 +6011,38 @@ async function submitSongAnswer() {
                     origin: { y: 0.6 }
                 });
             }
+            
+            showToast('🎉 Correct! +' + (result.xpAwarded || 1) + ' XP!', 'success');
+            
         } else {
             // ❌ WRONG ANSWER
-            const attemptsLeft = 2 - (currentAttempts + 1);
+            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+            
+            const attemptsLeft = maxAttempts - newAttempts;
             
             if (attemptsLeft > 0) {
-                showToast(`❌ Wrong! You have ${attemptsLeft} chance left`, 'error');
+                showToast(`❌ Wrong! ${attemptsLeft} chance left!`, 'error');
             } else {
-                showToast('❌ Wrong! No more chances today', 'error');
+                showToast('❌ Wrong! No more chances today.', 'error');
             }
         }
         
-        // Reload the page to show updated state
-        setTimeout(() => renderSongOfDay(), 500);
+        await renderSongOfDay();
         
     } catch (e) {
-        console.error('Submit song error:', e);
-        showToast(e.message || 'Failed to submit', 'error');
+        console.error('❌ Submit error:', e);
         
-        // Re-enable button
-        btn.disabled = false;
-        btn.innerHTML = '<span>▶️</span><span>Submit Answer</span>';
+        if (e.name === 'AbortError') {
+            showToast('Request timed out. Please try again.', 'error');
+        } else {
+            showToast('Failed to submit: ' + e.message, 'error');
+        }
+        
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>▶️</span><span>Submit Answer</span>';
+            btn.style.opacity = '1';
+        }
     }
 }
 
