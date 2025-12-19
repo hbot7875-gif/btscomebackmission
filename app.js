@@ -5840,7 +5840,7 @@ async function renderSongOfDay() {
                         2️⃣ Find the matching BTS song on YouTube<br>
                         3️⃣ Copy & paste the YouTube link<br>
                         4️⃣ Submit and earn XP if correct! 🎉<br>
-                        <span style="color:#7b2cbf;">💡 You get <strong>2 chances</strong> per day!</span>
+                        <span style="color:#00ff88;">💡 You get <strong>2 chances</strong> per day!</span>
                     </div>
                 </div>
             </div>
