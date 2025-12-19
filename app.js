@@ -3539,6 +3539,106 @@ function cleanupChat() {
 function openChat() {
     loadPage('chat');
 }
+// ==================== CHAT NOTIFICATION SYSTEM ====================
+
+let unreadCheckInterval = null;
+
+// Check for unread messages
+async function checkUnreadMessages() {
+    const agentNo = localStorage.getItem('spyAgentNo');
+    if (!agentNo) return;
+    
+    try {
+        const response = await fetch(`${API_URL}?action=hasUnreadMessages&agentNo=${agentNo}`);
+        const data = await response.json();
+        
+        const dot = document.getElementById('chatUnreadDot');
+        const badge = document.getElementById('chatUnreadBadge');
+        
+        if (data.hasUnread) {
+            // Show dot
+            if (dot) dot.classList.add('show');
+            
+            // Show badge with count
+            if (badge) {
+                badge.textContent = data.count > 99 ? '99+' : data.count;
+                badge.classList.add('show');
+            }
+        } else {
+            // Hide indicators
+            if (dot) dot.classList.remove('show');
+            if (badge) badge.classList.remove('show');
+        }
+    } catch (e) {
+        console.error('Error checking unread:', e);
+    }
+}
+
+// Mark chat as read when opening Secret Comms
+async function markChatRead() {
+    const agentNo = localStorage.getItem('spyAgentNo');
+    if (!agentNo) return;
+    
+    try {
+        await fetch(`${API_URL}?action=markChatAsRead&agentNo=${agentNo}`);
+        
+        // Hide the dot/badge immediately
+        const dot = document.getElementById('chatUnreadDot');
+        const badge = document.getElementById('chatUnreadBadge');
+        if (dot) dot.classList.remove('show');
+        if (badge) badge.classList.remove('show');
+    } catch (e) {
+        console.error('Error marking as read:', e);
+    }
+}
+
+// Start checking for unread messages
+function startUnreadCheck() {
+    // Check immediately
+    checkUnreadMessages();
+    
+    // Then check every 30 seconds
+    if (unreadCheckInterval) clearInterval(unreadCheckInterval);
+    unreadCheckInterval = setInterval(checkUnreadMessages, 30000);
+}
+
+// Stop checking (when logged out)
+function stopUnreadCheck() {
+    if (unreadCheckInterval) {
+        clearInterval(unreadCheckInterval);
+        unreadCheckInterval = null;
+    }
+}
+
+// ==================== UPDATE YOUR EXISTING FUNCTIONS ====================
+
+// Update your showSecretComms function to mark as read:
+function showSecretComms() {
+    // Your existing code to show the chat panel...
+    showPanel('secretCommsPanel'); // or whatever your function is
+    
+    // Mark as read when opening
+    markChatRead();
+    
+    // Load messages
+    loadChatMessages();
+}
+
+// Call this after successful login:
+function onLoginSuccess() {
+    // Your existing login success code...
+    
+    // Start checking for unread messages
+    startUnreadCheck();
+}
+
+// Call this on page load if already logged in:
+document.addEventListener('DOMContentLoaded', function() {
+    const agentNo = localStorage.getItem('spyAgentNo');
+    if (agentNo) {
+        startUnreadCheck();
+    }
+});
 
 // ==================== DRAWER (FIXED BADGE SECTION) ====================
 async function renderDrawer() {
