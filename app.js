@@ -5448,7 +5448,7 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
     `;
 }
 
-// ==================== SONG OF THE DAY (WITH 2 CHANCES) ====================
+// ==================== SONG OF THE DAY (WITH 2 CHANCES - FIXED) ====================
 async function renderSongOfDay() {
     // Create page container if needed
     let page = $('page-song-of-day');
@@ -5490,15 +5490,31 @@ async function renderSongOfDay() {
         year: 'numeric'
     });
     
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:#888;"><div class="loading-spinner"></div><p style="margin-top:15px;">Loading...</p></div>';
+    container.innerHTML = `
+        <div style="text-align:center;padding:40px;color:#888;">
+            <div class="loading-spinner" style="
+                width: 40px;
+                height: 40px;
+                border: 3px solid #333;
+                border-top-color: #7b2cbf;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto;
+            "></div>
+            <p style="margin-top:15px;">Loading today's challenge...</p>
+        </div>
+        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    `;
     
     try {
-        const data = await api('getSongOfDay');
+        // ✅ IMPORTANT: Pass agentNo to get user state from server
+        const data = await api('getSongOfDay', { agentNo: STATE.agentNo });
+        
+        console.log('🎬 Song of Day data:', data);
         
         if (!data || !data.success || !data.song) {
             container.innerHTML = `
                 <div class="card" style="text-align:center;padding:40px;">
-                    <!-- ✅ DATE HEADER -->
                     <div style="
                         background: linear-gradient(135deg, #7b2cbf22, #7b2cbf11);
                         border: 1px solid #7b2cbf44;
@@ -5522,17 +5538,33 @@ async function renderSongOfDay() {
         const song = data.song;
         const todayStr = today.toDateString();
         
-        // ✅ UPDATED STORAGE KEYS FOR 2 CHANCES
+        // ✅ STORAGE KEYS FOR 2 CHANCES
         const attemptsKey = 'song_attempts_' + STATE.agentNo + '_' + todayStr;
         const correctKey = 'song_correct_' + STATE.agentNo + '_' + todayStr;
         
-        const attempts = parseInt(localStorage.getItem(attemptsKey) || '0');
-        const wasCorrect = localStorage.getItem(correctKey) === 'true';
+        // ✅ Get from localStorage first (using let so we can update)
+        let attempts = parseInt(localStorage.getItem(attemptsKey) || '0');
+        let wasCorrect = localStorage.getItem(correctKey) === 'true';
+        
+        // ✅ SYNC WITH SERVER STATE - This is the key fix!
+        if (data.userAttempts !== undefined) {
+            attempts = data.userAttempts;
+            localStorage.setItem(attemptsKey, attempts.toString());
+            console.log('📊 Synced attempts from server:', attempts);
+        }
+        if (data.userCorrect !== undefined) {
+            wasCorrect = data.userCorrect;
+            localStorage.setItem(correctKey, wasCorrect ? 'true' : 'false');
+            console.log('📊 Synced correct status from server:', wasCorrect);
+        }
+        
         const maxAttempts = 2;
-        const attemptsRemaining = maxAttempts - attempts;
+        const attemptsRemaining = Math.max(0, maxAttempts - attempts);
         
         // ✅ CHECK IF USER CAN STILL ANSWER
         const canAnswer = !wasCorrect && attempts < maxAttempts;
+        
+        console.log('🎬 SOTD State:', { attempts, wasCorrect, canAnswer, attemptsRemaining });
         
         container.innerHTML = `
             <!-- ✅ PROMINENT DATE HEADER -->
@@ -5681,41 +5713,46 @@ async function renderSongOfDay() {
                                     <div style="color:${wasCorrect ? '#00ff88' : '#fff'};font-size:16px;font-weight:600;">
                                         🎵 ${sanitize(song.title)}
                                     </div>
-                                    <div style="color:#888;font-size:12px;margin-top:5px;">
-                                        ${sanitize(song.artist || 'BTS')}
-                                    </div>
+                                    ${song.artist ? `
+                                        <div style="color:#888;font-size:12px;margin-top:5px;">
+                                            ${sanitize(song.artist)}
+                                        </div>
+                                    ` : ''}
                                 </div>
                                 
                                 <!-- Watch on YouTube Button -->
-                                <div style="
-                                    margin-top:20px;
-                                    padding:15px;
-                                    background:rgba(255,0,0,0.1);
-                                    border:1px solid rgba(255,0,0,0.3);
-                                    border-radius:12px;
-                                ">
-                                    <p style="color:#fff;font-size:13px;margin:0 0 12px 0;">
-                                        🎬 <strong>Watch the full video</strong> to support BTS!
-                                    </p>
-                                    <a href="https://youtube.com/watch?v=${song.youtubeId}" 
-                                       target="_blank" 
-                                       style="
-                                           display:inline-flex;
-                                           align-items:center;
-                                           gap:8px;
-                                           padding:10px 24px;
-                                           background:linear-gradient(135deg, #ff0000, #cc0000);
-                                           color:#fff;
-                                           border-radius:25px;
-                                           text-decoration:none;
-                                           font-size:14px;
-                                           font-weight:600;
-                                           box-shadow:0 4px 15px rgba(255,0,0,0.3);
-                                       ">
-                                        <span>▶️</span>
-                                        <span>Watch on YouTube</span>
-                                    </a>
-                                </div>
+                                ${song.youtubeId ? `
+                                    <div style="
+                                        margin-top:20px;
+                                        padding:15px;
+                                        background:rgba(255,0,0,0.1);
+                                        border:1px solid rgba(255,0,0,0.3);
+                                        border-radius:12px;
+                                    ">
+                                        <p style="color:#fff;font-size:13px;margin:0 0 12px 0;">
+                                            🎬 <strong>Watch the full video</strong> to support BTS!
+                                        </p>
+                                        <a href="https://youtube.com/watch?v=${song.youtubeId}" 
+                                           target="_blank" 
+                                           rel="noopener noreferrer"
+                                           style="
+                                               display:inline-flex;
+                                               align-items:center;
+                                               gap:8px;
+                                               padding:10px 24px;
+                                               background:linear-gradient(135deg, #ff0000, #cc0000);
+                                               color:#fff;
+                                               border-radius:25px;
+                                               text-decoration:none;
+                                               font-size:14px;
+                                               font-weight:600;
+                                               box-shadow:0 4px 15px rgba(255,0,0,0.3);
+                                           ">
+                                            <span>▶️</span>
+                                            <span>Watch on YouTube</span>
+                                        </a>
+                                    </div>
+                                ` : ''}
                             ` : ''}
                             
                             <div style="margin-top:20px;color:#666;font-size:12px;">
@@ -5753,6 +5790,7 @@ async function renderSongOfDay() {
                                 type="text" 
                                 id="youtube-answer" 
                                 placeholder="https://youtube.com/watch?v=..."
+                                autocomplete="off"
                                 style="
                                     width: 100%;
                                     box-sizing: border-box;
@@ -5803,7 +5841,7 @@ async function renderSongOfDay() {
                             <span>Submit Answer</span>
                         </button>
                         
-                        <!-- ✅ UPDATED: 2 CHANCES INFO -->
+                        <!-- ✅ 2 CHANCES INFO -->
                         <div style="
                             margin-top: 15px;
                             text-align: center;
@@ -5861,8 +5899,12 @@ async function renderSongOfDay() {
                             width:100%;
                             background:linear-gradient(135deg, #ffd700, #ff8c00);
                             color:#000;
+                            margin-bottom:10px;
                         ">
                             🎵 Set Today's Song
+                        </button>
+                        <button onclick="clearSOTDLocalStorage()" class="btn-secondary" style="width:100%;">
+                            🧹 Clear Local Storage (Debug)
                         </button>
                     </div>
                 </div>
@@ -5899,6 +5941,22 @@ async function renderSongOfDay() {
         `;
     }
 }
+
+// ==================== DEBUG: Clear SOTD localStorage ====================
+function clearSOTDLocalStorage() {
+    const today = new Date().toDateString();
+    const attemptsKey = 'song_attempts_' + STATE.agentNo + '_' + today;
+    const correctKey = 'song_correct_' + STATE.agentNo + '_' + today;
+    
+    localStorage.removeItem(attemptsKey);
+    localStorage.removeItem(correctKey);
+    
+    showToast('SOTD localStorage cleared!', 'success');
+    renderSongOfDay();
+}
+
+// Make sure to export
+window.clearSOTDLocalStorage = clearSOTDLocalStorage;
 
 // ==================== SUBMIT SONG ANSWER (2 CHANCES - FIXED) ====================
 async function submitSongAnswer() {
