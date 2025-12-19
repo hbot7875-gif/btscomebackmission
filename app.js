@@ -5448,7 +5448,7 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
     `;
 }
 
-// ==================== SONG OF THE DAY (WITH DATE) ====================
+// ==================== SONG OF THE DAY (WITH 2 CHANCES) ====================
 async function renderSongOfDay() {
     // Create page container if needed
     let page = $('page-song-of-day');
@@ -5521,11 +5521,18 @@ async function renderSongOfDay() {
         
         const song = data.song;
         const todayStr = today.toDateString();
-        const storageKey = 'song_answered_' + STATE.agentNo + '_' + todayStr;
+        
+        // ✅ UPDATED STORAGE KEYS FOR 2 CHANCES
+        const attemptsKey = 'song_attempts_' + STATE.agentNo + '_' + todayStr;
         const correctKey = 'song_correct_' + STATE.agentNo + '_' + todayStr;
         
-        const answered = localStorage.getItem(storageKey);
+        const attempts = parseInt(localStorage.getItem(attemptsKey) || '0');
         const wasCorrect = localStorage.getItem(correctKey) === 'true';
+        const maxAttempts = 2;
+        const attemptsRemaining = maxAttempts - attempts;
+        
+        // ✅ CHECK IF USER CAN STILL ANSWER
+        const canAnswer = !wasCorrect && attempts < maxAttempts;
         
         container.innerHTML = `
             <!-- ✅ PROMINENT DATE HEADER -->
@@ -5596,13 +5603,32 @@ async function renderSongOfDay() {
             </div>
             
             <!-- Answer Section -->
-            <div class="card" style="border-color:${answered ? (wasCorrect ? '#00ff88' : '#ff4444') : '#7b2cbf'};">
-                <div class="card-header">
-                    <h3 style="margin:0;">${answered ? '📋 Your Result' : '🔗 Your Answer'}</h3>
+            <div class="card" style="border-color:${!canAnswer ? (wasCorrect ? '#00ff88' : '#ff4444') : '#7b2cbf'};">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                    <h3 style="margin:0;">${!canAnswer ? '📋 Your Result' : '🔗 Your Answer'}</h3>
+                    ${canAnswer ? `
+                        <!-- ✅ ATTEMPTS REMAINING BADGE -->
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 5px;
+                            padding: 6px 12px;
+                            background: ${attemptsRemaining === 1 ? 'rgba(255,165,0,0.15)' : 'rgba(0,255,136,0.1)'};
+                            border: 1px solid ${attemptsRemaining === 1 ? 'rgba(255,165,0,0.4)' : 'rgba(0,255,136,0.3)'};
+                            border-radius: 20px;
+                        ">
+                            <span style="font-size:12px;">🎯</span>
+                            <span style="
+                                color: ${attemptsRemaining === 1 ? '#ffa500' : '#00ff88'};
+                                font-size: 12px;
+                                font-weight: 600;
+                            ">${attemptsRemaining} ${attemptsRemaining === 1 ? 'Chance' : 'Chances'} Left</span>
+                        </div>
+                    ` : ''}
                 </div>
                 <div class="card-body" style="padding:20px;">
-                    ${answered ? `
-                        <!-- Already Answered -->
+                    ${!canAnswer ? `
+                        <!-- Already Answered / Out of Attempts -->
                         <div style="text-align:center;padding:20px;">
                             <div style="font-size:64px;margin-bottom:15px;">
                                 ${wasCorrect ? '🎉' : '😅'}
@@ -5613,13 +5639,36 @@ async function renderSongOfDay() {
                                 font-weight: bold;
                                 margin-bottom: 10px;
                             ">
-                                ${wasCorrect ? 'Correct!' : 'Wrong Answer'}
+                                ${wasCorrect ? 'Correct!' : 'Out of Attempts!'}
                             </div>
                             <div style="color:#888;font-size:14px;">
                                 ${wasCorrect 
                                     ? `You earned +${song.xpReward || 1} XP! 💜` 
-                                    : 'Better luck tomorrow!'}
+                                    : `You used all ${maxAttempts} chances. Better luck tomorrow!`}
                             </div>
+                            
+                            <!-- ✅ ATTEMPTS USED INDICATOR -->
+                            ${!wasCorrect ? `
+                                <div style="
+                                    margin-top: 15px;
+                                    display: flex;
+                                    justify-content: center;
+                                    gap: 8px;
+                                ">
+                                    ${Array(maxAttempts).fill(0).map((_, i) => `
+                                        <div style="
+                                            width: 12px;
+                                            height: 12px;
+                                            border-radius: 50%;
+                                            background: ${i < attempts ? '#ff4444' : '#333'};
+                                            border: 1px solid ${i < attempts ? '#ff4444' : '#555'};
+                                        "></div>
+                                    `).join('')}
+                                </div>
+                                <div style="color:#666;font-size:11px;margin-top:8px;">
+                                    ${attempts}/${maxAttempts} attempts used
+                                </div>
+                            ` : ''}
                             
                             ${song.title ? `
                                 <div style="
@@ -5675,6 +5724,27 @@ async function renderSongOfDay() {
                         </div>
                     ` : `
                         <!-- Submit Answer Form -->
+                        
+                        <!-- ✅ PREVIOUS ATTEMPT WARNING (if this is 2nd attempt) -->
+                        ${attempts === 1 ? `
+                            <div style="
+                                padding: 12px;
+                                background: rgba(255,165,0,0.1);
+                                border: 1px solid rgba(255,165,0,0.3);
+                                border-radius: 10px;
+                                margin-bottom: 15px;
+                                display: flex;
+                                align-items: center;
+                                gap: 10px;
+                            ">
+                                <span style="font-size:20px;">⚠️</span>
+                                <div>
+                                    <div style="color:#ffa500;font-size:13px;font-weight:600;">Last Chance!</div>
+                                    <div style="color:#888;font-size:11px;">Your first answer was wrong. This is your final attempt!</div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
                         <div style="margin-bottom:15px;">
                             <label style="color:#888;font-size:12px;display:block;margin-bottom:8px;">
                                 Paste YouTube Link:
@@ -5733,13 +5803,29 @@ async function renderSongOfDay() {
                             <span>Submit Answer</span>
                         </button>
                         
+                        <!-- ✅ UPDATED: 2 CHANCES INFO -->
                         <div style="
                             margin-top: 15px;
                             text-align: center;
-                            color: #ff6b6b;
-                            font-size: 12px;
+                            padding: 12px;
+                            background: rgba(123,44,191,0.1);
+                            border: 1px solid rgba(123,44,191,0.3);
+                            border-radius: 10px;
                         ">
-                            ⚠️ You only get ONE attempt per day!
+                            <div style="display:flex;justify-content:center;gap:6px;margin-bottom:8px;">
+                                ${Array(maxAttempts).fill(0).map((_, i) => `
+                                    <div style="
+                                        width: 10px;
+                                        height: 10px;
+                                        border-radius: 50%;
+                                        background: ${i < attempts ? '#ff4444' : '#7b2cbf'};
+                                        border: 1px solid ${i < attempts ? '#ff4444' : '#7b2cbf'};
+                                    "></div>
+                                `).join('')}
+                            </div>
+                            <div style="color:#7b2cbf;font-size:12px;">
+                                🎯 You have <strong>${attemptsRemaining}</strong> ${attemptsRemaining === 1 ? 'chance' : 'chances'} to guess correctly!
+                            </div>
                         </div>
                     `}
                 </div>
@@ -5753,7 +5839,8 @@ async function renderSongOfDay() {
                         1️⃣ Read the hint above<br>
                         2️⃣ Find the matching BTS song on YouTube<br>
                         3️⃣ Copy & paste the YouTube link<br>
-                        4️⃣ Submit and earn XP if correct! 🎉
+                        4️⃣ Submit and earn XP if correct! 🎉<br>
+                        <span style="color:#7b2cbf;">💡 You get <strong>2 chances</strong> per day!</span>
                     </div>
                 </div>
             </div>
@@ -5783,7 +5870,7 @@ async function renderSongOfDay() {
         `;
         
         // Focus input and setup enter key
-        if (!answered) {
+        if (canAnswer) {
             setTimeout(() => {
                 const input = $('youtube-answer');
                 if (input) {
@@ -5813,93 +5900,108 @@ async function renderSongOfDay() {
     }
 }
 
-// ==================== SUBMIT SONG ANSWER ====================
+// ==================== SUBMIT SONG ANSWER (UPDATED FOR 2 CHANCES) ====================
 async function submitSongAnswer() {
     const input = $('youtube-answer');
     const btn = $('submit-song-btn');
     
-    if (!input) return;
+    if (!input || !btn) return;
     
-    const answer = input.value.trim();
+    const url = input.value.trim();
     
-    if (!answer) {
-        showToast('Please paste a YouTube link!', 'error');
+    if (!url) {
+        showToast('Please enter a YouTube link', 'error');
+        input.focus();
+        return;
+    }
+    
+    // Extract YouTube ID
+    const youtubeId = extractYouTubeId(url);
+    
+    if (!youtubeId) {
+        showToast('Invalid YouTube link format', 'error');
         return;
     }
     
     // Disable button
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<span>⏳</span><span>Checking...</span>';
-        btn.style.opacity = '0.6';
-    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner" style="width:20px;height:20px;"></span><span>Checking...</span>';
     
     try {
-        const url = new URL(CONFIG.API_URL);
-        url.searchParams.set('action', 'submitSongAnswer');
-        url.searchParams.set('agentNo', STATE.agentNo);
-        url.searchParams.set('answer', answer);
+        const data = await api('submitSongAnswer', { youtubeId });
         
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 90000);
+        // ✅ UPDATE ATTEMPTS IN LOCAL STORAGE
+        const today = new Date();
+        const todayStr = today.toDateString();
+        const attemptsKey = 'song_attempts_' + STATE.agentNo + '_' + todayStr;
+        const correctKey = 'song_correct_' + STATE.agentNo + '_' + todayStr;
         
-        const res = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeout);
+        // Increment attempts
+        const currentAttempts = parseInt(localStorage.getItem(attemptsKey) || '0');
+        localStorage.setItem(attemptsKey, (currentAttempts + 1).toString());
         
-        const result = await res.json();
-        
-        const today = new Date().toDateString();
-        const storageKey = 'song_answered_' + STATE.agentNo + '_' + today;
-        const correctKey = 'song_correct_' + STATE.agentNo + '_' + today;
-        
-        if (result.error) {
-            showToast('Error: ' + result.error, 'error');
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '<span>▶️</span><span>Submit Answer</span>';
-                btn.style.opacity = '1';
+        if (data.correct) {
+            // ✅ CORRECT ANSWER
+            localStorage.setItem(correctKey, 'true');
+            
+            showToast(`🎉 Correct! +${data.xpEarned || 1} XP`, 'success');
+            
+            if (data.newXP !== undefined) {
+                STATE.user.xp = data.newXP;
             }
-            return;
-        }
-        
-        if (result.alreadyAnswered) {
-            localStorage.setItem(storageKey, 'true');
-            localStorage.setItem(correctKey, result.wasCorrect ? 'true' : 'false');
-            showToast('Already answered today!', 'info');
-            renderSongOfDay();
-            return;
-        }
-        
-        localStorage.setItem(storageKey, 'true');
-        localStorage.setItem(correctKey, result.correct ? 'true' : 'false');
-        
-        if (result.correct) {
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            showToast('🎉 Correct! +' + (result.xpAwarded || 1) + ' XP!', 'success');
+            if (data.newLevel !== undefined) {
+                STATE.user.level = data.newLevel;
+            }
+            
+            // Confetti effect
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
         } else {
-            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-            showToast('❌ Wrong! Try again tomorrow.', 'error');
+            // ❌ WRONG ANSWER
+            const attemptsLeft = 2 - (currentAttempts + 1);
+            
+            if (attemptsLeft > 0) {
+                showToast(`❌ Wrong! You have ${attemptsLeft} chance left`, 'error');
+            } else {
+                showToast('❌ Wrong! No more chances today', 'error');
+            }
         }
         
-        await renderSongOfDay();
+        // Reload the page to show updated state
+        setTimeout(() => renderSongOfDay(), 500);
         
     } catch (e) {
-        console.error('Submit error:', e);
+        console.error('Submit song error:', e);
+        showToast(e.message || 'Failed to submit', 'error');
         
-        if (e.name === 'AbortError') {
-            showToast('Request timed out. Please try again.', 'error');
-        } else {
-            showToast('Failed to submit: ' + e.message, 'error');
-        }
-        
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<span>▶️</span><span>Submit Answer</span>';
-            btn.style.opacity = '1';
-        }
+        // Re-enable button
+        btn.disabled = false;
+        btn.innerHTML = '<span>▶️</span><span>Submit Answer</span>';
     }
 }
 
+// ==================== HELPER: EXTRACT YOUTUBE ID ====================
+function extractYouTubeId(url) {
+    if (!url) return null;
+    
+    // Various YouTube URL patterns
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|m\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+        /^([a-zA-Z0-9_-]{11})$/ // Just the ID
+    ];
+    
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return match[1];
+    }
+    
+    return null;
+}
 // ==================== ANNOUNCEMENTS ====================
 async function renderAnnouncements() {
     const container = $('announcements-content');
