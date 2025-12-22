@@ -4062,43 +4062,103 @@ async function renderProfile() {
         `;
     }
 }
-// ==================== GOALS ====================
+// ==================== GOALS (MOBILE FIXED) ====================
 async function renderGoals() {
     const container = $('goals-content');
     const team = STATE.data?.profile?.team;
+    
     try {
         const data = await api('getGoalsProgress', { week: STATE.week });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
         
-        let html = renderGuide('goals') + `<div class="goals-header"><h2 style="color:#fff;margin:0;">🎯 Team Goal Progress</h2><span class="week-badge">${STATE.week}</span></div><div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated || 'recently')}</div>`;
+        let html = renderGuide('goals') + `
+            <div class="goals-header">
+                <h2 style="color:#fff;margin:0;">🎯 Team Goal Progress</h2>
+                <span class="week-badge">${STATE.week}</span>
+            </div>
+            <div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated || 'recently')}</div>
+        `;
         
+        // Track Goals
         const trackGoals = data.trackGoals || {};
         if (Object.keys(trackGoals).length) {
-            html += `<div class="card"><div class="card-header"><h3>🎵 Track Goals</h3><span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span></div><div class="card-body">`;
+            html += `
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🎵 Track Goals</h3>
+                        <span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span>
+                    </div>
+                    <div class="card-body">
+            `;
+            
             for (const [track, info] of Object.entries(trackGoals)) {
                 const tp = info.teams?.[team] || {};
-                const current = tp.current || 0, goal = info.goal || 0;
+                const current = tp.current || 0;
+                const goal = info.goal || 0;
                 const done = tp.status === 'Completed' || current >= goal;
                 const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
-                html += `<div class="goal-item ${done ? 'completed' : ''}"><div class="goal-header"><span class="goal-name">${sanitize(track)}</span><span class="goal-status ${done ? 'complete' : ''}">${fmt(current)}/${fmt(goal)} streams ${done ? '✅' : ''}</span></div><div class="progress-bar"><div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%"></div></div></div>`;
+                
+                html += `
+                    <div class="goal-item ${done ? 'completed' : ''}">
+                        <div class="goal-name">
+                            <span class="status-icon">${done ? '✅' : '⏳'}</span>
+                            <span>${sanitize(track)}</span>
+                        </div>
+                        <div class="goal-progress-wrapper">
+                            <div class="progress-bar">
+                                <div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%"></div>
+                            </div>
+                            <span class="goal-status ${done ? 'complete' : ''}">${fmt(current)}/${fmt(goal)}</span>
+                        </div>
+                    </div>
+                `;
             }
             html += '</div></div>';
         }
         
+        // Album Goals
         const albumGoals = data.albumGoals || {};
         if (Object.keys(albumGoals).length) {
-            html += `<div class="card"><div class="card-header"><h3>💿 Album Goals</h3><span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span></div><div class="card-body">`;
+            html += `
+                <div class="card">
+                    <div class="card-header">
+                        <h3>💿 Album Goals</h3>
+                        <span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span>
+                    </div>
+                    <div class="card-body">
+            `;
+            
             for (const [album, info] of Object.entries(albumGoals)) {
                 const ap = info.teams?.[team] || {};
-                const current = ap.current || 0, goal = info.goal || 0;
+                const current = ap.current || 0;
+                const goal = info.goal || 0;
                 const done = ap.status === 'Completed' || current >= goal;
                 const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
-                html += `<div class="goal-item ${done ? 'completed' : ''}"><div class="goal-header"><span class="goal-name">${sanitize(album)}</span><span class="goal-status ${done ? 'complete' : ''}">${fmt(current)}/${fmt(goal)} streams ${done ? '✅' : ''}</span></div><div class="progress-bar"><div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%"></div></div></div>`;
+                
+                html += `
+                    <div class="goal-item ${done ? 'completed' : ''}">
+                        <div class="goal-name">
+                            <span class="status-icon">${done ? '✅' : '⏳'}</span>
+                            <span>${sanitize(album)}</span>
+                        </div>
+                        <div class="goal-progress-wrapper">
+                            <div class="progress-bar">
+                                <div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%"></div>
+                            </div>
+                            <span class="goal-status ${done ? 'complete' : ''}">${fmt(current)}/${fmt(goal)}</span>
+                        </div>
+                    </div>
+                `;
             }
             html += '</div></div>';
         }
+        
         container.innerHTML = html || '<div class="card"><div class="card-body"><p class="empty-text">No goals set for this week</p></div></div>';
-    } catch (e) { container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load goals</p></div></div>'; }
+        
+    } catch (e) { 
+        console.error('Goals error:', e);
+        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load goals</p></div></div>'; 
+    }
 }
 
 // ==================== ALBUM CHALLENGE (Configurable) ====================
@@ -4767,7 +4827,7 @@ async function renderTeamLevel() {
     }
 }
 
-// ==================== COMPARISON ====================
+// ==================== COMPARISON (MOBILE FIXED) ====================
 async function renderComparison() {
     const container = $('comparison-content');
     if (!container) return;
@@ -4786,37 +4846,44 @@ async function renderComparison() {
         const albumGoals = goals.albumGoals || {};
         const teamNames = Object.keys(CONFIG.TEAMS);
         
-        container.innerHTML = `
+        let html = `
             ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
+            
+            <!-- Battle Standings -->
             <div class="card">
                 <div class="card-header"><h3>⚔️ Battle Standings (${STATE.week})</h3></div>
                 <div class="card-body">
                     ${teams.map((t, i) => `
                         <div class="comparison-item">
-                            <span class="comparison-rank">${i+1}</span>
-                            <span class="comparison-name" style="color:${teamColor(t.team)}">${t.team}</span>
-                            <div class="comparison-bar-container">
-                                <div class="progress-bar"><div class="progress-fill" style="width:${(t.teamXP/maxXP)*100}%;background:${teamColor(t.team)}"></div></div>
+                            <div class="comparison-top-row">
+                                <span class="comparison-rank">${i+1}</span>
+                                <span class="comparison-name" style="color:${teamColor(t.team)}">${t.team}</span>
+                                <span class="comparison-xp">${fmt(t.teamXP)} XP</span>
                             </div>
-                            <span class="comparison-xp">${fmt(t.teamXP)}</span>
+                            <div class="comparison-bar-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width:${(t.teamXP/maxXP)*100}%;background:${teamColor(t.team)}"></div>
+                                </div>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
             </div>
         `;
         
+        // Track Goals Comparison
         if (Object.keys(trackGoals).length) {
-            container.innerHTML += `
+            html += `
                 <div class="card">
                     <div class="card-header"><h3>🎵 Track Goals</h3></div>
-                    <div class="card-body comparison-goals-section">
+                    <div class="card-body">
                         ${Object.entries(trackGoals).map(([trackName, info]) => {
                             const goal = info.goal || 0;
                             return `
                                 <div class="goal-comparison-block">
                                     <div class="goal-comparison-header">
                                         <span class="goal-track-name">${sanitize(trackName)}</span>
-                                        <span class="goal-target">Goal: ${fmt(goal)} streams</span>
+                                        <span class="goal-target">Goal: ${fmt(goal)}</span>
                                     </div>
                                     <div class="goal-team-progress">
                                         ${teamNames.map(teamName => {
@@ -4825,10 +4892,12 @@ async function renderComparison() {
                                             const pct = goal > 0 ? Math.min((current/goal)*100, 100) : 0;
                                             const done = current >= goal;
                                             return `
-                                                <div class="team-progress-row ${done ? 'complete' : ''}">
-                                                    <span class="team-name-small" style="color:${teamColor(teamName)}">${teamName}</span>
-                                                    <div class="progress-bar-small"><div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(teamName)}"></div></div>
-                                                    <span class="progress-text">${fmt(current)}/${fmt(goal)}</span>
+                                                <div class="team-progress-row">
+                                                    <span class="team-name-small" style="color:${teamColor(teamName)}">${teamName.replace('Team ', '')}</span>
+                                                    <div class="progress-bar-small">
+                                                        <div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(teamName)}"></div>
+                                                    </div>
+                                                    <span class="progress-text ${done ? 'complete' : ''}">${fmt(current)}</span>
                                                 </div>
                                             `;
                                         }).join('')}
@@ -4841,18 +4910,19 @@ async function renderComparison() {
             `;
         }
         
+        // Album Goals Comparison
         if (Object.keys(albumGoals).length) {
-            container.innerHTML += `
+            html += `
                 <div class="card">
                     <div class="card-header"><h3>💿 Album Goals</h3></div>
-                    <div class="card-body comparison-goals-section">
+                    <div class="card-body">
                         ${Object.entries(albumGoals).map(([albumName, info]) => {
                             const goal = info.goal || 0;
                             return `
                                 <div class="goal-comparison-block">
                                     <div class="goal-comparison-header">
                                         <span class="goal-track-name">${sanitize(albumName)}</span>
-                                        <span class="goal-target">Goal: ${fmt(goal)} streams</span>
+                                        <span class="goal-target">Goal: ${fmt(goal)}</span>
                                     </div>
                                     <div class="goal-team-progress">
                                         ${teamNames.map(teamName => {
@@ -4861,10 +4931,12 @@ async function renderComparison() {
                                             const pct = goal > 0 ? Math.min((current/goal)*100, 100) : 0;
                                             const done = current >= goal;
                                             return `
-                                                <div class="team-progress-row ${done ? 'complete' : ''}">
-                                                    <span class="team-name-small" style="color:${teamColor(teamName)}">${teamName}</span>
-                                                    <div class="progress-bar-small"><div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(teamName)}"></div></div>
-                                                    <span class="progress-text">${fmt(current)}/${fmt(goal)}</span>
+                                                <div class="team-progress-row">
+                                                    <span class="team-name-small" style="color:${teamColor(teamName)}">${teamName.replace('Team ', '')}</span>
+                                                    <div class="progress-bar-small">
+                                                        <div class="progress-fill ${done ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(teamName)}"></div>
+                                                    </div>
+                                                    <span class="progress-text ${done ? 'complete' : ''}">${fmt(current)}</span>
                                                 </div>
                                             `;
                                         }).join('')}
@@ -4876,12 +4948,14 @@ async function renderComparison() {
                 </div>
             `;
         }
+        
+        container.innerHTML = html;
+        
     } catch (e) { 
         console.error('Comparison error:', e);
         container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; 
     }
 }
-
 // ==================== SUMMARY (FIXED - MATCHES ORIGINAL THEME) ====================
 async function renderSummary() {
     const container = $('summary-content');
