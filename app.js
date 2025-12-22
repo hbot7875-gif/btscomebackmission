@@ -3372,6 +3372,9 @@ async function renderChat() {
         input.focus();
     }
     
+    // 👇 ADD THIS - Mark chat as read when opening
+    markChatRead();
+    
     // Load messages
     await loadMessages();
     
@@ -3385,252 +3388,59 @@ async function renderChat() {
         updateOnlineCount();
     }, 5000);
 }
-
-async function loadMessages() {
-    const container = $('chat-messages');
-    if (!container) return;
-    
-    try {
-        const data = await api('getChatMessages', { limit: 50 });
-        const messages = data.messages || [];
-        
-        if (messages.length === 0) {
-            container.innerHTML = `
-                <div style="
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    color: #888;
-                    text-align: center;
-                    padding: 40px;
-                ">
-                    <div style="font-size:48px;margin-bottom:15px;">💬</div>
-                    <p style="margin:0 0 5px 0;">No messages yet</p>
-                    <p style="font-size:12px;color:#666;">Be the first to say hello!</p>
-                </div>
-            `;
-            return;
-        }
-        
-        const myName = (STATE.data?.profile?.name || '').toLowerCase();
-        
-        container.innerHTML = messages.map(msg => {
-            const isMe = msg.username.toLowerCase() === myName;
-            return `
-                <div style="
-                    display: flex;
-                    flex-direction: column;
-                    align-items: ${isMe ? 'flex-end' : 'flex-start'};
-                    max-width: 85%;
-                    ${isMe ? 'margin-left:auto;' : 'margin-right:auto;'}
-                    animation: fadeIn 0.3s ease;
-                ">
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-                        <span style="color:${teamColor(msg.team)};font-size:12px;font-weight:600;">
-                            @${sanitize(msg.username)}
-                        </span>
-                        <span style="
-                            font-size:9px;
-                            color:#888;
-                            background:${teamColor(msg.team)}22;
-                            padding:2px 6px;
-                            border-radius:4px;
-                        ">${sanitize(msg.team?.replace('Team ', '') || '')}</span>
-                    </div>
-                    <div style="
-                        background: ${isMe ? 'linear-gradient(135deg, #7b2cbf, #5a1f99)' : 'rgba(255,255,255,0.08)'};
-                        padding: 10px 14px;
-                        border-radius: ${isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
-                        color: #fff;
-                        font-size: 14px;
-                        line-height: 1.4;
-                        word-break: break-word;
-                    ">${sanitize(msg.message)}</div>
-                    <span style="font-size:9px;color:#555;margin-top:4px;">
-                        ${formatTime(msg.timestamp)}
-                    </span>
-                </div>
-            `;
-        }).join('');
-        
-        // Scroll to bottom
-        container.scrollTop = container.scrollHeight;
-        
-    } catch (e) {
-        console.error('Failed to load chat:', e);
-        container.innerHTML = `
-            <div style="text-align:center;color:#ff6b6b;padding:40px;">
-                <p>Failed to load messages</p>
-                <button onclick="loadMessages()" class="btn-secondary" style="margin-top:10px;">Retry</button>
-            </div>
-        `;
-    }
-}
-
-async function sendMessage() {
-    const input = $('chat-input');
-    const sendBtn = $('send-btn');
-    
-    if (!input) return;
-    
-    const msg = input.value.trim();
-    if (!msg) return;
-    
-    // Disable while sending
-    if (sendBtn) {
-        sendBtn.disabled = true;
-        sendBtn.style.opacity = '0.6';
-        sendBtn.innerHTML = '...';
-    }
-    input.value = '';
-    $('char-count').textContent = '0/500';
-    
-    try {
-        const result = await api('sendChatMessage', {
-            agentNo: STATE.agentNo,
-            message: msg
-        });
-        
-        if (result.success) {
-            await loadMessages();
-        } else {
-            showToast(result.error || 'Failed to send', 'error');
-            input.value = msg; // Restore message
-        }
-    } catch (e) {
-        console.error('Send error:', e);
-        showToast('Failed to send', 'error');
-        input.value = msg; // Restore message
-    } finally {
-        if (sendBtn) {
-            sendBtn.disabled = false;
-            sendBtn.style.opacity = '1';
-            sendBtn.innerHTML = 'Send ➤';
-        }
-        input.focus();
-    }
-}
-
-function formatTime(ts) {
-    if (!ts) return '';
-    try {
-        const d = new Date(ts);
-        const now = new Date();
-        const diff = now - d;
-        
-        if (diff < 60000) return 'Just now';
-        if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-        if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } catch (e) {
-        return '';
-    }
-}
-
-function cleanupChat() {
-    if (chatRefreshInterval) {
-        clearInterval(chatRefreshInterval);
-        chatRefreshInterval = null;
-    }
-}
-
-function openChat() {
-    loadPage('chat');
-}
 // ==================== CHAT NOTIFICATION SYSTEM ====================
 
 let unreadCheckInterval = null;
 
 // Check for unread messages
 async function checkUnreadMessages() {
-  const agentNo = localStorage.getItem('spyAgentNo');
-  if (!agentNo) return;
+    if (!STATE.agentNo) return;
 
-  try {
-    const response = await fetch(`${API_URL}?action=hasUnreadMessages&agentNo=${agentNo}`);
-    const data = await response.json();
-    
-    // Use the correct ID from your HTML
-    const dot = document.getElementById('dot-chat');
-    
-    if (data.hasUnread) {
-      // Show dot
-      if (dot) dot.classList.add('active');
-    } else {
-      // Hide dot
-      if (dot) dot.classList.remove('active');
+    try {
+        const response = await fetch(`${API_URL}?action=hasUnreadMessages&agentNo=${STATE.agentNo}`);
+        const data = await response.json();
+        
+        const dot = document.getElementById('dot-chat');
+        
+        if (data.hasUnread) {
+            if (dot) dot.classList.add('active');
+        } else {
+            if (dot) dot.classList.remove('active');
+        }
+    } catch (e) {
+        console.error('Error checking unread:', e);
     }
-  } catch (e) {
-    console.error('Error checking unread:', e);
-  }
 }
 
-// Mark chat as read when opening Secret Comms
+// Mark chat as read when opening
 async function markChatRead() {
-  const agentNo = localStorage.getItem('spyAgentNo');
-  if (!agentNo) return;
+    if (!STATE.agentNo) return;
 
-  try {
-    await fetch(`${API_URL}?action=markChatAsRead&agentNo=${agentNo}`);
-    
-    // Hide the dot immediately
-    const dot = document.getElementById('dot-chat');
-    if (dot) dot.classList.remove('active');
-  } catch (e) {
-    console.error('Error marking as read:', e);
-  }
+    try {
+        await fetch(`${API_URL}?action=markChatAsRead&agentNo=${STATE.agentNo}`);
+        
+        const dot = document.getElementById('dot-chat');
+        if (dot) dot.classList.remove('active');
+    } catch (e) {
+        console.error('Error marking as read:', e);
+    }
 }
 
 // Start checking for unread messages
 function startUnreadCheck() {
-  // Check immediately
-  checkUnreadMessages();
-  
-  // Then check every 30 seconds
-  if (unreadCheckInterval) clearInterval(unreadCheckInterval);
-  unreadCheckInterval = setInterval(checkUnreadMessages, 30000);
+    checkUnreadMessages();
+    
+    if (unreadCheckInterval) clearInterval(unreadCheckInterval);
+    unreadCheckInterval = setInterval(checkUnreadMessages, 30000);
 }
 
 // Stop checking (when logged out)
 function stopUnreadCheck() {
-  if (unreadCheckInterval) {
-    clearInterval(unreadCheckInterval);
-    unreadCheckInterval = null;
-  }
-}
-
-// ==================== UPDATE YOUR EXISTING FUNCTIONS ====================
-
-// Update your showSecretComms function to mark as read:
-function showSecretComms() {
-    // Your existing code to show the chat panel...
-    showPanel('secretCommsPanel'); // or whatever your function is
-    
-    // Mark as read when opening
-    markChatRead();
-    
-    // Load messages
-    loadChatMessages();
-}
-
-// Call this after successful login:
-function onLoginSuccess() {
-    // Your existing login success code...
-    
-    // Start checking for unread messages
-    startUnreadCheck();
-}
-
-// Call this on page load if already logged in:
-document.addEventListener('DOMContentLoaded', function() {
-    const agentNo = localStorage.getItem('spyAgentNo');
-    if (agentNo) {
-        startUnreadCheck();
+    if (unreadCheckInterval) {
+        clearInterval(unreadCheckInterval);
+        unreadCheckInterval = null;
     }
-});
-
+}
 // ==================== DRAWER (FIXED BADGE SECTION) ====================
 async function renderDrawer() {
     const container = $('drawer-content');
