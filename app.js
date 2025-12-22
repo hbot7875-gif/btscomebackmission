@@ -3537,8 +3537,8 @@ async function checkUnreadMessages() {
     if (!STATE.agentNo) return;
 
     try {
-        const response = await fetch(`${API_URL}?action=hasUnreadMessages&agentNo=${STATE.agentNo}`);
-        const data = await response.json();
+        // Use your existing api() function instead of fetch
+        const data = await api('hasUnreadMessages', { agentNo: STATE.agentNo });
         
         const dot = document.getElementById('dot-chat');
         
@@ -3556,7 +3556,8 @@ async function markChatRead() {
     if (!STATE.agentNo) return;
 
     try {
-        await fetch(`${API_URL}?action=markChatAsRead&agentNo=${STATE.agentNo}`);
+        // Use your existing api() function instead of fetch
+        await api('markChatAsRead', { agentNo: STATE.agentNo });
         
         const dot = document.getElementById('dot-chat');
         if (dot) dot.classList.remove('active');
