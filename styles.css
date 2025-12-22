@@ -3984,6 +3984,7 @@ img {
     color: #fff;
 }
 
+
 /* ==================== BREAKDOWN CARDS ==================== */
 
 .breakdown-card {
@@ -4304,6 +4305,156 @@ img {
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+/* ==================== MOBILE FIXES (ADD AT END) ==================== */
+
+/* Profile - Fix long track/album names */
+.contrib-item {
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.contrib-item span:first-child {
+    min-width: 0;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4;
+    font-size: 13px;
+}
+
+.contrib-item span:last-child {
+    color: var(--success);
+    font-size: 12px;
+    min-width: 70px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+#profile-tracks,
+#profile-albums {
+    max-height: 350px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Goals & Comparison - Fix long names */
+#goals-content,
+#comparison-content {
+    padding-bottom: 100px;
+}
+
+.goal-name {
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4;
+}
+
+.goal-header {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.goal-track-name {
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+/* Team progress rows - smaller on mobile */
+.team-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.team-name-small {
+    width: 50px;
+    min-width: 50px;
+    font-size: 10px;
+}
+
+.progress-bar-small {
+    flex: 1;
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    min-width: 50px;
+}
+
+.progress-bar-small .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+}
+
+.progress-text {
+    min-width: 45px;
+    font-size: 10px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Stats grid mobile */
+#profile-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.stat-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(123,44,191,0.2);
+    border-radius: 12px;
+    padding: 15px 10px;
+    text-align: center;
+}
+
+.stat-box .stat-value {
+    display: block;
+    font-size: 18px;
+}
+
+.stat-box .stat-label {
+    display: block;
+    font-size: 10px;
+    color: #888;
+}
+
+/* Profile card mobile */
+@media (max-width: 480px) {
+    .profile-card {
+        padding: 20px;
+    }
+    
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    #profile-avatar {
+        width: 70px;
+        height: 70px;
+    }
+    
+    #profile-name {
+        font-size: 18px;
+    }
+}
+
+@media (min-width: 500px) {
+    #profile-stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .team-name-small {
+        width: 65px;
+        min-width: 65px;
+        font-size: 11px;
+    }
+    
+    .progress-text {
+        min-width: 55px;
+        font-size: 11px;
+    }
 }
 
 /* ==================== TOP AGENTS CARD ==================== */
