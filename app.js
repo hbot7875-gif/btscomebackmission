@@ -2676,6 +2676,7 @@ async function handleLogin() {
         checkAdminStatus();
         loadSeenResults();
         await loadDashboard();
+        startUnreadCheck();
     } catch (e) { showResult(e.message, true); } 
     finally { loading(false); }
 }
