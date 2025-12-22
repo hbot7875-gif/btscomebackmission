@@ -3988,7 +3988,7 @@ async function renderDrawer() {
     STATE.lastChecked.album2xBadge = album2xStatus.passed || false;
     saveNotificationState();
 }
-// ==================== PROFILE ====================
+// ==================== PROFILE (MOBILE FIXED) ====================
 async function renderProfile() {
     const container = $('profile-stats');
     if (!container) return;
@@ -4004,62 +4004,100 @@ async function renderProfile() {
     const specialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
     const allCurrentBadges = [...specialBadges, ...xpBadges];
     
+    // Stats Grid - Using your existing stat-box class
     container.innerHTML = `
-        <div class="stat-box"><div class="stat-value">${fmt(stats.totalXP)}</div><div class="stat-label">XP (${STATE.week})</div></div>
-        <div class="stat-box"><div class="stat-value">#${STATE.data?.rank || 'N/A'}</div><div class="stat-label">Rank</div></div>
-        <div class="stat-box"><div class="stat-value">#${STATE.data?.teamRank || 'N/A'}</div><div class="stat-label">Team Rank</div></div>
-        <div class="stat-box"><div class="stat-value">${fmt(stats.trackScrobbles)}</div><div class="stat-label">Track Streams</div></div>
-        <div class="stat-box"><div class="stat-value">${fmt(stats.albumScrobbles)}</div><div class="stat-label">Album Streams</div></div>
-        <div class="stat-box"><div class="stat-value">${album2xStatus.passed ? '✅' : '❌'}</div><div class="stat-label">2X Done</div></div>
+        <div class="stat-box">
+            <span class="stat-value">${fmt(stats.totalXP)}</span>
+            <span class="stat-label">XP (${STATE.week})</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-value">#${STATE.data?.rank || 'N/A'}</span>
+            <span class="stat-label">Rank</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-value">#${STATE.data?.teamRank || 'N/A'}</span>
+            <span class="stat-label">Team Rank</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-value">${fmt(stats.trackScrobbles)}</span>
+            <span class="stat-label">Track Streams</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-value">${fmt(stats.albumScrobbles)}</span>
+            <span class="stat-label">Album Streams</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-value">${album2xStatus.passed ? '✅' : '❌'}</span>
+            <span class="stat-label">2X Done</span>
+        </div>
     `;
     
     // Track contributions
     const tracksContainer = $('profile-tracks');
     if (tracksContainer) {
-        tracksContainer.innerHTML = Object.keys(trackContributions).length 
-            ? Object.entries(trackContributions)
-                .sort((a, b) => b[1] - a[1])
-                .map(([t, c]) => `<div class="contrib-item"><span>${sanitize(t)}</span><span>${fmt(c)} streams</span></div>`)
-                .join('') 
-            : '<p class="empty-text">No track data yet</p>';
+        const trackEntries = Object.entries(trackContributions).sort((a, b) => b[1] - a[1]);
+        
+        if (trackEntries.length > 0) {
+            tracksContainer.innerHTML = trackEntries.map(([track, count]) => `
+                <div class="contrib-item">
+                    <span>${sanitize(track)}</span>
+                    <span>${fmt(count)} streams</span>
+                </div>
+            `).join('');
+        } else {
+            tracksContainer.innerHTML = '<p class="empty-text">No track data yet</p>';
+        }
     }
     
     // Album contributions
     const albumsContainer = $('profile-albums');
     if (albumsContainer) {
-        albumsContainer.innerHTML = Object.keys(albumContributions).length 
-            ? Object.entries(albumContributions)
-                .sort((a, b) => b[1] - a[1])
-                .map(([a, c]) => `<div class="contrib-item"><span>${sanitize(a)}</span><span>${fmt(c)} streams</span></div>`)
-                .join('') 
-            : '<p class="empty-text">No album data yet</p>';
+        const albumEntries = Object.entries(albumContributions).sort((a, b) => b[1] - a[1]);
+        
+        if (albumEntries.length > 0) {
+            albumsContainer.innerHTML = albumEntries.map(([album, count]) => `
+                <div class="contrib-item">
+                    <span>${sanitize(album)}</span>
+                    <span>${fmt(count)} streams</span>
+                </div>
+            `).join('');
+        } else {
+            albumsContainer.innerHTML = '<p class="empty-text">No album data yet</p>';
+        }
     }
     
-    // Badges
+    // Badges - Using your existing badge classes
     const badgesContainer = $('profile-badges');
     if (badgesContainer) {
-        badgesContainer.innerHTML = allCurrentBadges.length ? `
-            <div style="margin-bottom:12px;">
-                <span style="color:#888;font-size:12px;">Badges earned in ${STATE.week}</span>
-            </div>
-            <div class="badges-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:12px;">
-                ${allCurrentBadges.map(b => `
-                    <div class="badge-item" style="text-align:center;">
-                        <div class="badge-circle holographic" style="width:55px;height:55px;margin:0 auto;">
-                            <img src="${b.imageUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.innerHTML='${b.icon || '🎖️'}';">
+        if (allCurrentBadges.length > 0) {
+            badgesContainer.innerHTML = `
+                <div style="margin-bottom:12px;">
+                    <span style="color:var(--text-dim);font-size:12px;">Badges earned in ${STATE.week}</span>
+                </div>
+                <div class="badges-grid">
+                    ${allCurrentBadges.map(b => `
+                        <div class="badge-item">
+                            <div class="badge-icon${b.type === 'achievement' || b.type === 'winner' ? '-lg' : ''}">
+                                ${b.imageUrl 
+                                    ? `<img src="${b.imageUrl}" onerror="this.parentElement.innerHTML='${b.icon || '🎖️'}';">`
+                                    : `<span style="font-size:28px;">${b.icon || '🎖️'}</span>`
+                                }
+                            </div>
+                            <div class="badge-name" style="color:${b.type === 'winner' ? '#ffd700' : b.type === 'achievement' ? 'var(--purple-glow)' : 'var(--text-dim)'};">
+                                ${b.type === 'achievement' ? '✨ ' : b.type === 'winner' ? '🏆 ' : ''}${sanitize(b.name)}
+                            </div>
                         </div>
-                        <div style="margin-top:6px;font-size:10px;color:${b.type === 'winner' ? '#ffd700' : b.type === 'achievement' ? '#7b2cbf' : '#888'};">
-                            ${b.type === 'achievement' ? '✨ ' : b.type === 'winner' ? '🏆 ' : ''}${sanitize(b.name)}
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        ` : `
-            <div class="empty-state" style="text-align:center; padding:30px; color:#777;">
-                <div style="font-size:40px; margin-bottom:10px;">🔒</div>
-                <p style="margin:0;">Earn <strong style="color:#ffd700;">50 XP</strong> to unlock your first badge!</p>
-            </div>
-        `;
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            badgesContainer.innerHTML = `
+                <div style="text-align:center;padding:30px;color:var(--text-dim);">
+                    <div style="font-size:40px;margin-bottom:10px;">🔒</div>
+                    <p style="margin:0;">Earn <strong style="color:#ffd700;">50 XP</strong> to unlock your first badge!</p>
+                </div>
+            `;
+        }
     }
 }
 // ==================== GOALS (MOBILE FIXED) ====================
