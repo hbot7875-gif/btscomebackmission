@@ -2623,6 +2623,7 @@ function initApp() {
         checkAdminStatus();
         loadSeenResults();
         loadDashboard();
+        startUnreadCheck();
     } else {
         // No saved login - ensure we're on login screen
         // Set URL to login if not already
