@@ -2840,6 +2840,7 @@ async function logout() {
         } catch (e) {}
         
         stopHeartbeat();
+        stopUnreadCheck();
         
         if (notificationInterval) {
             clearInterval(notificationInterval);
