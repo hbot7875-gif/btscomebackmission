@@ -3545,69 +3545,60 @@ let unreadCheckInterval = null;
 
 // Check for unread messages
 async function checkUnreadMessages() {
-    const agentNo = localStorage.getItem('spyAgentNo');
-    if (!agentNo) return;
+  const agentNo = localStorage.getItem('spyAgentNo');
+  if (!agentNo) return;
+
+  try {
+    const response = await fetch(`${API_URL}?action=hasUnreadMessages&agentNo=${agentNo}`);
+    const data = await response.json();
     
-    try {
-        const response = await fetch(`${API_URL}?action=hasUnreadMessages&agentNo=${agentNo}`);
-        const data = await response.json();
-        
-        const dot = document.getElementById('chatUnreadDot');
-        const badge = document.getElementById('chatUnreadBadge');
-        
-        if (data.hasUnread) {
-            // Show dot
-            if (dot) dot.classList.add('show');
-            
-            // Show badge with count
-            if (badge) {
-                badge.textContent = data.count > 99 ? '99+' : data.count;
-                badge.classList.add('show');
-            }
-        } else {
-            // Hide indicators
-            if (dot) dot.classList.remove('show');
-            if (badge) badge.classList.remove('show');
-        }
-    } catch (e) {
-        console.error('Error checking unread:', e);
+    // Use the correct ID from your HTML
+    const dot = document.getElementById('dot-chat');
+    
+    if (data.hasUnread) {
+      // Show dot
+      if (dot) dot.classList.add('active');
+    } else {
+      // Hide dot
+      if (dot) dot.classList.remove('active');
     }
+  } catch (e) {
+    console.error('Error checking unread:', e);
+  }
 }
 
 // Mark chat as read when opening Secret Comms
 async function markChatRead() {
-    const agentNo = localStorage.getItem('spyAgentNo');
-    if (!agentNo) return;
+  const agentNo = localStorage.getItem('spyAgentNo');
+  if (!agentNo) return;
+
+  try {
+    await fetch(`${API_URL}?action=markChatAsRead&agentNo=${agentNo}`);
     
-    try {
-        await fetch(`${API_URL}?action=markChatAsRead&agentNo=${agentNo}`);
-        
-        // Hide the dot/badge immediately
-        const dot = document.getElementById('chatUnreadDot');
-        const badge = document.getElementById('chatUnreadBadge');
-        if (dot) dot.classList.remove('show');
-        if (badge) badge.classList.remove('show');
-    } catch (e) {
-        console.error('Error marking as read:', e);
-    }
+    // Hide the dot immediately
+    const dot = document.getElementById('dot-chat');
+    if (dot) dot.classList.remove('active');
+  } catch (e) {
+    console.error('Error marking as read:', e);
+  }
 }
 
 // Start checking for unread messages
 function startUnreadCheck() {
-    // Check immediately
-    checkUnreadMessages();
-    
-    // Then check every 30 seconds
-    if (unreadCheckInterval) clearInterval(unreadCheckInterval);
-    unreadCheckInterval = setInterval(checkUnreadMessages, 30000);
+  // Check immediately
+  checkUnreadMessages();
+  
+  // Then check every 30 seconds
+  if (unreadCheckInterval) clearInterval(unreadCheckInterval);
+  unreadCheckInterval = setInterval(checkUnreadMessages, 30000);
 }
 
 // Stop checking (when logged out)
 function stopUnreadCheck() {
-    if (unreadCheckInterval) {
-        clearInterval(unreadCheckInterval);
-        unreadCheckInterval = null;
-    }
+  if (unreadCheckInterval) {
+    clearInterval(unreadCheckInterval);
+    unreadCheckInterval = null;
+  }
 }
 
 // ==================== UPDATE YOUR EXISTING FUNCTIONS ====================
