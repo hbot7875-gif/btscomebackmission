@@ -6367,24 +6367,241 @@ async function renderAnnouncements() {
         container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p><button onclick="renderAnnouncements()" class="btn-secondary">Retry</button></div></div>';
     }
 }
-
-// ==================== PLAYLISTS ====================
+// ==================== PLAYLISTS (WITH REQUEST FEATURE) ====================
 async function renderPlaylists() {
     const container = $('playlists-content');
     if (!container) return;
     
+
+    const PLAYLIST_REQUEST_FORM = 'https://forms.gle/hwHMSDxVjNhcLh1U6';  
+    const PLAYLIST_TRACKER_SHEET = 'https://docs.google.com/spreadsheets/d/1_EFaH_-uAZUjxtZyuwKBsQF4HCzdsbBN4XRqLUWMMDY/edit?usp=sharing';  // ← Your Google Sheet link
+    
     container.innerHTML = `
         ${renderGuide('playlists')}
+        
+        <!-- ===== NEW PLAYLIST REQUEST SYSTEM ===== -->
+        <div class="card" style="
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(123, 44, 191, 0.05));
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            margin-bottom: 20px;
+        ">
+            <div class="card-header" style="border-bottom: 1px solid rgba(0,255,136,0.2);">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">📝</span>
+                    <span>Need a Playlist? Request Here!</span>
+                </h3>
+            </div>
+            <div class="card-body" style="padding: 20px;">
+                
+                <!-- Why We Made This -->
+                <div style="
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 12px;
+                    padding: 15px;
+                    margin-bottom: 20px;
+                ">
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span style="font-size: 24px;">💡</span>
+                        <div>
+                            <div style="color: #ffd700; font-size: 13px; font-weight: 600; margin-bottom: 6px;">
+                                Why did we create this system?
+                            </div>
+                            <div style="color: #aaa; font-size: 12px; line-height: 1.6;">
+                                Many agents were having trouble scrolling up in the Playlist GC to find old playlists. 
+                                So we made this easier for everyone! Now you can:
+                                <br><br>
+                                <strong style="color: #fff;">1.</strong> Fill a simple form to request any playlist you need
+                                <br>
+                                <strong style="color: #fff;">2.</strong> Playlist makers will create it and add the link
+                                <br>
+                                <strong style="color: #fff;">3.</strong> Find all playlist links easily in one spreadsheet!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step by Step Guide -->
+                <div style="
+                    background: rgba(123, 44, 191, 0.1);
+                    border: 1px solid rgba(123, 44, 191, 0.3);
+                    border-radius: 12px;
+                    padding: 15px;
+                    margin-bottom: 20px;
+                ">
+                    <div style="color: #7b2cbf; font-size: 14px; font-weight: 600; margin-bottom: 12px;">
+                        📋 How It Works (3 Simple Steps!)
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Step 1 -->
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <div style="
+                                width: 28px;
+                                height: 28px;
+                                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                                border-radius: 50%;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: #fff;
+                                font-weight: bold;
+                                font-size: 14px;
+                                flex-shrink: 0;
+                            ">1</div>
+                            <div>
+                                <div style="color: #fff; font-size: 13px; font-weight: 600;">Fill the Request Form</div>
+                                <div style="color: #888; font-size: 11px; margin-top: 3px;">
+                                    Tell us what playlist you need (which songs, platform, etc.)
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 2 -->
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <div style="
+                                width: 28px;
+                                height: 28px;
+                                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                                border-radius: 50%;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: #fff;
+                                font-weight: bold;
+                                font-size: 14px;
+                                flex-shrink: 0;
+                            ">2</div>
+                            <div>
+                                <div style="color: #fff; font-size: 13px; font-weight: 600;">Wait for Playlist Makers</div>
+                                <div style="color: #888; font-size: 11px; margin-top: 3px;">
+                                    Our amazing Playlist Makers 🎵 will create your playlist and add the link
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 3 -->
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <div style="
+                                width: 28px;
+                                height: 28px;
+                                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                                border-radius: 50%;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: #fff;
+                                font-weight: bold;
+                                font-size: 14px;
+                                flex-shrink: 0;
+                            ">3</div>
+                            <div>
+                                <div style="color: #fff; font-size: 13px; font-weight: 600;">Find Your Playlist in the Sheet</div>
+                                <div style="color: #888; font-size: 11px; margin-top: 3px;">
+                                    Open the tracker spreadsheet to find all playlist links in one place!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    
+                    <!-- Request Form Button -->
+                    <a href="${PLAYLIST_REQUEST_FORM}" target="_blank" rel="noopener noreferrer" style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                        padding: 16px 24px;
+                        background: linear-gradient(135deg, #00ff88, #00cc6a);
+                        color: #000;
+                        border-radius: 12px;
+                        text-decoration: none;
+                        font-size: 15px;
+                        font-weight: bold;
+                        box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+                        transition: all 0.3s ease;
+                    ">
+                        <span style="font-size: 20px;">📝</span>
+                        <span>Request a Playlist</span>
+                        <span style="font-size: 14px;">→</span>
+                    </a>
+                    
+                    <!-- Tracker Sheet Button -->
+                    <a href="${PLAYLIST_TRACKER_SHEET}" target="_blank" rel="noopener noreferrer" style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                        padding: 16px 24px;
+                        background: linear-gradient(135deg, #4285f4, #2d6fe8);
+                        color: #fff;
+                        border-radius: 12px;
+                        text-decoration: none;
+                        font-size: 15px;
+                        font-weight: bold;
+                        box-shadow: 0 4px 20px rgba(66, 133, 244, 0.3);
+                        transition: all 0.3s ease;
+                    ">
+                        <span style="font-size: 20px;">📊</span>
+                        <span>View Playlist Tracker</span>
+                        <span style="font-size: 14px;">→</span>
+                    </a>
+                </div>
+                
+                <!-- Info Note -->
+                <div style="
+                    margin-top: 16px;
+                    padding: 12px;
+                    background: rgba(255, 215, 0, 0.08);
+                    border: 1px dashed rgba(255, 215, 0, 0.3);
+                    border-radius: 10px;
+                    text-align: center;
+                ">
+                    <span style="color: #ffd700; font-size: 12px;">
+                        💜 Playlist Makers are volunteers helping our mission! Please be patient and kind. Thank you! 💜
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ===== OFFICIAL PLAYLISTS ===== -->
         <div class="card">
-            <div class="card-header"><h3>🎵 Official Streaming Playlists</h3></div>
+            <div class="card-header">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">🎵</span>
+                    <span>Official Streaming Playlists</span>
+                </h3>
+            </div>
             <div class="card-body">
                 <div id="playlists-list" style="display:flex;flex-direction:column;gap:10px;">
-                    <div class="loading-text">Loading playlists...</div>
+                    <div class="loading-text" style="text-align:center;padding:20px;color:#888;">
+                        ⏳ Loading playlists...
+                    </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- ===== NEED HELP? ===== -->
+        <div class="card" style="background: rgba(255,255,255,0.02); margin-top: 20px;">
+            <div class="card-body" style="text-align: center; padding: 20px;">
+                <div style="font-size: 24px; margin-bottom: 10px;">❓</div>
+                <div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                    Have Questions?
+                </div>
+                <div style="color: #888; font-size: 12px; line-height: 1.6;">
+                    If you have any doubts about requesting playlists or finding links,<br>
+                    ask in the <strong style="color: #7b2cbf;">Secret Comms</strong> chat or your <strong style="color: #7b2cbf;">Team GC</strong>!
+                </div>
+                <button onclick="loadPage('chat')" class="btn-secondary" style="margin-top: 15px; padding: 10px 24px;">
+                    💬 Go to Secret Comms
+                </button>
             </div>
         </div>
     `;
     
+    // ===== LOAD EXISTING PLAYLISTS FROM API =====
     try {
         const data = await api('getPlaylists');
         const playlists = data.playlists || [];
@@ -6392,13 +6609,28 @@ async function renderPlaylists() {
         
         if (playlists.length) {
             listEl.innerHTML = playlists.map(pl => `
-                <div class="playlist-card">
-                    <a href="${sanitize(pl.link || pl.url)}" target="_blank" class="playlist-link">
-                        <span class="playlist-icon">${getPlaylistIcon(pl.platform)}</span>
-                        <div>
-                            <div class="playlist-name">${sanitize(pl.name)}</div>
-                            <div class="playlist-type">${sanitize(pl.platform || 'Streaming')} • ${sanitize(pl.type || 'Playlist')}</div>
+                <div class="playlist-card" style="
+                    background: linear-gradient(135deg, rgba(26, 26, 46, 0.9), rgba(18, 18, 26, 0.95));
+                    border: 1px solid rgba(123, 44, 191, 0.3);
+                    border-radius: 12px;
+                    padding: 15px;
+                    transition: all 0.3s ease;
+                ">
+                    <a href="${sanitize(pl.link || pl.url)}" target="_blank" rel="noopener noreferrer" class="playlist-link" style="
+                        display: flex;
+                        align-items: center;
+                        gap: 15px;
+                        text-decoration: none;
+                        color: inherit;
+                    ">
+                        <span class="playlist-icon" style="font-size: 28px;">${getPlaylistIcon(pl.platform)}</span>
+                        <div style="flex: 1;">
+                            <div class="playlist-name" style="color: #fff; font-size: 14px; font-weight: 600;">${sanitize(pl.name)}</div>
+                            <div class="playlist-type" style="color: #888; font-size: 11px; margin-top: 3px;">
+                                ${sanitize(pl.platform || 'Streaming')} • ${sanitize(pl.type || 'Playlist')}
+                            </div>
                         </div>
+                        <span style="color: #7b2cbf; font-size: 18px;">→</span>
                     </a>
                 </div>
             `).join('');
@@ -6406,31 +6638,25 @@ async function renderPlaylists() {
             listEl.innerHTML = `
                 <div style="text-align:center;padding:40px;color:#888;">
                     <div style="font-size:48px;margin-bottom:15px;">📭</div>
-                    <p>No playlists available yet</p>
-                    <p style="font-size:12px;">Check back later for official streaming playlists</p>
+                    <p style="margin: 0;">No official playlists added yet</p>
+                    <p style="font-size:12px;margin-top:8px;">Use the request form above to ask for playlists!</p>
                 </div>
             `;
         }
         
+        // Update notification state
         STATE.lastChecked.playlists = playlists.length;
         saveNotificationState();
         
     } catch (e) {
         console.error('Failed to load playlists:', e);
-        $('playlists-list').innerHTML = '<p style="color:red;">Failed to load playlists</p>';
+        $('playlists-list').innerHTML = `
+            <div style="text-align:center;padding:30px;">
+                <p style="color:#ff6b6b;">❌ Failed to load playlists</p>
+                <button onclick="renderPlaylists()" class="btn-secondary" style="margin-top:10px;">🔄 Retry</button>
+            </div>
+        `;
     }
-}
-
-function getPlaylistIcon(platform) {
-    const icons = { 
-        'spotify': '💚', 
-        'apple': '🍎', 
-        'youtube': '🔴', 
-        'amazon': '📦', 
-        'deezer': '🎧',
-        'youtube music': '🔴'
-    };
-    return icons[(platform || '').toLowerCase()] || '🎵';
 }
 
 // ==================== GC LINKS ====================
