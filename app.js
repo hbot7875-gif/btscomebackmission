@@ -210,11 +210,14 @@ function showResult(msg, isError) {
 function updateTime() {
     const el = $('last-update');
     if (el) {
-        if (STATE.lastUpdated) el.textContent = `Updated: ${formatLastUpdated(STATE.lastUpdated)}`;
-        else el.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const timeStr = STATE.lastUpdated ? formatLastUpdated(STATE.lastUpdated) : 'Unknown';
+        el.innerHTML = `
+            <span style="font-size:10px;color:#888;">
+                ⏰ Updates every hour • Last: ${timeStr}
+            </span>
+        `;
     }
 }
-
 function getDaysRemaining(weekLabel) {
     const endDateStr = CONFIG.WEEK_DATES[weekLabel];
     if (!endDateStr) return 0;
@@ -2872,7 +2875,47 @@ async function renderHome() {
     const weekEl = $('current-week');
     if (weekEl) weekEl.textContent = `Week: ${selectedWeek}`;
     const guideHtml = renderGuide('home'); 
-    
+    // ===== HOURLY UPDATE NOTICE =====
+const refreshNotice = `
+    <div style="
+        background: linear-gradient(135deg, rgba(123, 44, 191, 0.1), rgba(255, 165, 0, 0.08));
+        border: 1px solid rgba(255, 165, 0, 0.25);
+        border-left: 4px solid #ffa500;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    ">
+        <div style="font-size: 28px; line-height: 1;">⏰</div>
+        <div style="flex: 1;">
+            <div style="color: #ffa500; font-size: 14px; font-weight: 600; margin-bottom: 6px;">
+                📊 Your Streams Update Every 1 Hour!
+            </div>
+            <div style="color: #aaa; font-size: 12px; line-height: 1.5;">
+                <strong style="color:#fff;">Don't worry!</strong> If you just finished streaming and your numbers haven't changed yet, that's normal! 
+                <br><br>
+                🔄 <strong>How it works:</strong> Our system automatically checks your Last.fm account <strong>every hour</strong> and updates your stream counts.
+                <br><br>
+                💡 <strong>Tip:</strong> Keep streaming! Your progress will appear in the next update.
+            </div>
+            ${STATE.lastUpdated ? `
+                <div style="
+                    margin-top: 10px;
+                    padding: 8px 12px;
+                    background: rgba(0,0,0,0.2);
+                    border-radius: 8px;
+                    display: inline-block;
+                ">
+                    <span style="color: #888; font-size: 11px;">
+                        🕐 Last updated: <strong style="color:#fff;">${formatLastUpdated(STATE.lastUpdated)}</strong>
+                    </span>
+                </div>
+            ` : ''}
+        </div>
+    </div>
+`;
     try {
         const [summary, rankings, goals] = await Promise.all([
             api('getWeeklySummary', { week: selectedWeek }), 
@@ -2936,7 +2979,7 @@ async function renderHome() {
         
         const quickStatsEl = document.querySelector('.quick-stats-section');
         if (quickStatsEl) {
-            quickStatsEl.innerHTML = guideHtml + tipHtml + `
+            quickStatsEl.innerHTML = guideHtml + refreshNotice + tipHtml + `
                 <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
                     <div class="card-body">
                         <div class="quick-header">
