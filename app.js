@@ -126,6 +126,20 @@ const teamColor = team => CONFIG.TEAMS[team]?.color || '#7b2cbf';
 const teamPfp = team => CONFIG.TEAM_PFPS[team] || '';
 const getTeamMemberCount = team => STATE.allAgents?.filter(a => a.team === team).length || 0;
 
+// ==================== PLAYLIST ICON HELPER ====================
+function getPlaylistIcon(platform) {
+    const icons = { 
+        'spotify': '💚', 
+        'apple': '🍎', 
+        'youtube': '🔴', 
+        'amazon': '📦', 
+        'deezer': '🎧',
+        'youtube music': '🔴',
+        'apple music': '🍎'
+    };
+    return icons[(platform || '').toLowerCase()] || '🎵';
+}
+
 function loading(show) {
     STATE.isLoading = show;
     const el = $('loading');
