@@ -684,8 +684,416 @@ async function checkNewAnnouncements() {
         return null;
     }
 }
+// ==================== VOTING ANNOUNCEMENT POPUP ====================
 
-// Check for new playlists
+async function checkVotingAnnouncement() {
+    if (!STATE.agentNo) return;
+    
+    try {
+        const data = await api('getActiveVotingAnnouncement');
+        
+        if (!data.success || !data.voting) return;
+        
+        const voting = data.voting;
+        const votingId = voting.id;
+        
+        // Check if already responded
+        const responseKey = 'voting_response_' + STATE.agentNo + '_' + votingId;
+        const response = localStorage.getItem(responseKey);
+        
+        // If already voted or said yes, don't show again
+        if (response === 'yes' || response === 'already_voted') {
+            console.log('Already responded to voting:', votingId, response);
+            return;
+        }
+        
+        // If "not_now", check if reminder time has passed
+        if (response === 'not_now') {
+            const reminderKey = 'voting_reminder_' + votingId;
+            const reminderTime = localStorage.getItem(reminderKey);
+            
+            if (reminderTime && Date.now() < parseInt(reminderTime)) {
+                console.log('Reminder not yet due');
+                return; // Not time for reminder yet
+            }
+            
+            // Time to remind! Clear the reminder flag
+            localStorage.removeItem(reminderKey);
+        }
+        
+        // Check if dismissed this session
+        const dismissKey = 'voting_dismissed_' + votingId;
+        if (sessionStorage.getItem(dismissKey)) {
+            return;
+        }
+        
+        // Show voting popup
+        showVotingPopup(voting);
+        
+    } catch (e) {
+        console.log('Error checking voting announcement:', e);
+    }
+}
+
+function showVotingPopup(voting) {
+    // Remove any existing voting popup
+    document.querySelectorAll('.voting-announcement-popup').forEach(p => p.remove());
+    
+    const popup = document.createElement('div');
+    popup.className = 'voting-announcement-popup';
+    popup.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 99999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        animation: fadeIn 0.3s ease;
+        backdrop-filter: blur(5px);
+    `;
+    
+    popup.innerHTML = `
+        <div class="voting-popup-content" style="
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+            border-radius: 20px;
+            border: 2px solid #7b2cbf;
+            box-shadow: 0 0 50px rgba(123,44,191,0.6), 0 0 100px rgba(255,20,147,0.3);
+            max-width: 480px;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+            animation: slideUp 0.4s ease;
+        ">
+            <!-- Animated Border -->
+            <div style="
+                position: absolute;
+                top: -2px;
+                left: -2px;
+                right: -2px;
+                bottom: -2px;
+                background: linear-gradient(45deg, #ffd700, #ff6b6b, #7b2cbf, #00d4ff, #00ff88, #ffd700);
+                border-radius: 22px;
+                z-index: -1;
+                animation: rotateBorder 4s linear infinite;
+            "></div>
+            
+            <!-- URGENT Banner -->
+            <div style="
+                background: linear-gradient(135deg, #ff0000, #cc0000);
+                padding: 8px;
+                text-align: center;
+                animation: urgentPulse 1.5s ease-in-out infinite;
+            ">
+                <span style="color:#fff;font-size:11px;font-weight:bold;letter-spacing:2px;">
+                    🚨 URGENT: EVERYONE MUST VOTE 🚨
+                </span>
+            </div>
+            
+            <!-- Header -->
+            <div style="
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                padding: 20px 25px;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            ">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+                    <span style="font-size:32px;">🗳️</span>
+                    <div style="flex:1;">
+                        <div style="color:#ffd700;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">
+                            🔥 FAN VOTING MISSION
+                        </div>
+                        <div style="color:#fff;font-size:16px;font-weight:bold;margin-top:4px;">
+                            ${sanitize(voting.title)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Message Body -->
+            <div style="padding:25px;">
+                <!-- Important Notice -->
+                <div style="
+                    background: rgba(255, 68, 68, 0.15);
+                    border: 2px solid #ff4444;
+                    border-radius: 12px;
+                    padding: 15px;
+                    margin-bottom: 20px;
+                    animation: warningPulse 2s ease-in-out infinite;
+                ">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <span style="font-size:24px;">⚠️</span>
+                        <div style="color:#ff6b6b;font-weight:bold;font-size:14px;">
+                            ALL AGENTS MUST PARTICIPATE!
+                        </div>
+                    </div>
+                    <div style="color:#fff;font-size:12px;line-height:1.6;">
+                        This is a <strong style="color:#ffd700;">team mission</strong>. Every vote counts. 
+                        We need <strong style="color:#00ff88;">100% participation</strong> to support Jin! 💜
+                    </div>
+                </div>
+                
+                <!-- Message Details -->
+                <div style="
+                    color:#fff;
+                    font-size:14px;
+                    line-height:1.7;
+                    white-space:pre-line;
+                    margin-bottom:20px;
+                    padding:15px;
+                    background:rgba(255,255,255,0.03);
+                    border-radius:10px;
+                    border-left:4px solid #7b2cbf;
+                ">
+                    ${sanitize(voting.message)}
+                </div>
+                
+                <!-- Call to Action -->
+                <div style="
+                    background:linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05));
+                    border:2px solid rgba(255,215,0,0.4);
+                    border-radius:12px;
+                    padding:18px;
+                    margin-bottom:25px;
+                    text-align:center;
+                ">
+                    <div style="font-size:24px;margin-bottom:10px;">💜</div>
+                    <div style="color:#ffd700;font-size:15px;font-weight:bold;margin-bottom:6px;">
+                        Will you help vote for Jin?
+                    </div>
+                    <div style="color:#888;font-size:11px;">
+                        Your support matters! Let's take Jin to #1!
+                    </div>
+                </div>
+                
+                <!-- Response Buttons -->
+                <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:15px;">
+                    <!-- YES Button (Primary) -->
+                    <button onclick="respondToVoting('${voting.id}', 'yes', '${voting.link.replace(/'/g, "\\'")}', '${voting.linkText.replace(/'/g, "\\'")}', this)" 
+                            style="
+                        padding:18px;
+                        background:linear-gradient(135deg, #00ff88, #00cc6a);
+                        border:none;
+                        border-radius:12px;
+                        color:#000;
+                        font-size:17px;
+                        font-weight:bold;
+                        cursor:pointer;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        gap:10px;
+                        transition:all 0.3s;
+                        box-shadow:0 4px 20px rgba(0,255,136,0.4);
+                    " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 25px rgba(0,255,136,0.5)';" 
+                       onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(0,255,136,0.4)';">
+                        <span style="font-size:22px;">✓</span>
+                        <span>Yes! I'll Vote Now!</span>
+                        <span style="font-size:20px;">→</span>
+                    </button>
+                    
+                    <!-- Already Voted Button -->
+                    <button onclick="respondToVoting('${voting.id}', 'already_voted', '', '', this)" 
+                            style="
+                        padding:14px;
+                        background:rgba(123,44,191,0.2);
+                        border:1px solid rgba(123,44,191,0.5);
+                        border-radius:12px;
+                        color:#c9a0ff;
+                        font-size:14px;
+                        font-weight:600;
+                        cursor:pointer;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        gap:8px;
+                        transition:all 0.3s;
+                    " onmouseover="this.style.background='rgba(123,44,191,0.3)';" 
+                       onmouseout="this.style.background='rgba(123,44,191,0.2)';">
+                        <span>✔️</span>
+                        <span>I Already Voted!</span>
+                    </button>
+                    
+                    <!-- Not Now Button (Smallest) -->
+                    <button onclick="respondToVoting('${voting.id}', 'not_now', '', '', this)" 
+                            style="
+                        padding:10px;
+                        background:transparent;
+                        border:1px solid rgba(255,255,255,0.15);
+                        border-radius:8px;
+                        color:#666;
+                        font-size:12px;
+                        cursor:pointer;
+                        transition:all 0.3s;
+                    " onmouseover="this.style.color='#888';this.style.borderColor='rgba(255,255,255,0.25)';" 
+                       onmouseout="this.style.color='#666';this.style.borderColor='rgba(255,255,255,0.15)';">
+                        Remind Me Later
+                    </button>
+                </div>
+                
+                <!-- Team Mission Note -->
+                <div style="
+                    text-align:center;
+                    padding:12px;
+                    background:rgba(0,0,0,0.3);
+                    border-radius:8px;
+                ">
+                    <span style="color:#888;font-size:11px;">
+                        💜 Remember: This is a <strong style="color:#7b2cbf;">team mission</strong> - 
+                        let's show our support together! 💜
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            @keyframes slideUp {
+                from { 
+                    transform: translateY(50px) scale(0.95);
+                    opacity: 0;
+                }
+                to { 
+                    transform: translateY(0) scale(1);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes rotateBorder {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            @keyframes urgentPulse {
+                0%, 100% { 
+                    background: linear-gradient(135deg, #ff0000, #cc0000);
+                }
+                50% { 
+                    background: linear-gradient(135deg, #ff4444, #ff0000);
+                }
+            }
+            
+            @keyframes warningPulse {
+                0%, 100% { 
+                    border-color: #ff4444;
+                    box-shadow: 0 0 0 rgba(255,68,68,0);
+                }
+                50% { 
+                    border-color: #ff6b6b;
+                    box-shadow: 0 0 15px rgba(255,68,68,0.3);
+                }
+            }
+        </style>
+    `;
+    
+    document.body.appendChild(popup);
+}
+
+async function respondToVoting(votingId, response, link, linkText, button) {
+    if (!STATE.agentNo) return;
+    
+    // Disable button
+    if (button) {
+        button.disabled = true;
+        button.style.opacity = '0.6';
+        
+        const loadingText = {
+            'yes': '<span>⏳</span><span>Opening voting page...</span>',
+            'already_voted': '<span>⏳</span><span>Recording...</span>',
+            'not_now': '<span>⏳</span><span>Saving...</span>'
+        };
+        
+        button.innerHTML = loadingText[response] || '<span>⏳</span><span>Please wait...</span>';
+    }
+    
+    try {
+        // Record response
+        await api('recordVotingResponse', {
+            agentNo: STATE.agentNo,
+            votingId: votingId,
+            response: response
+        });
+        
+        // Save to localStorage
+        const responseKey = 'voting_response_' + STATE.agentNo + '_' + votingId;
+        localStorage.setItem(responseKey, response);
+        
+        // Handle different responses
+        if (response === 'yes' && link) {
+            // Open voting link
+            window.open(link, '_blank', 'noopener,noreferrer');
+            
+            // Show success with confetti
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+            
+            showToast('🎉 Thank you! Voting page opened. Please complete your vote!', 'success');
+            
+        } else if (response === 'already_voted') {
+            // Thank you for voting
+            showToast('✅ Great! Thank you for voting! 💜', 'success');
+            
+        } else if (response === 'not_now') {
+            // Remind later
+            showToast('⏰ We\'ll remind you later. Please don\'t forget to vote!', 'info');
+            
+            // Set reminder flag (will show popup again after 4 hours)
+            const reminderKey = 'voting_reminder_' + votingId;
+            const reminderTime = Date.now() + (4 * 60 * 60 * 1000); // 4 hours
+            localStorage.setItem(reminderKey, reminderTime.toString());
+        }
+        
+        // Close popup
+        setTimeout(() => {
+            const popup = document.querySelector('.voting-announcement-popup');
+            if (popup) {
+                popup.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => popup.remove(), 300);
+            }
+        }, 1000);
+        
+    } catch (e) {
+        console.error('Error recording vote:', e);
+        showToast('❌ Failed to save response. Please try again.', 'error');
+        
+        // Re-enable button
+        if (button) {
+            button.disabled = false;
+            button.style.opacity = '1';
+            
+            const originalText = {
+                'yes': '<span>✓</span><span>Yes! I\'ll Vote Now!</span><span>→</span>',
+                'already_voted': '<span>✔️</span><span>I Already Voted!</span>',
+                'not_now': 'Remind Me Later'
+            };
+            
+            button.innerHTML = originalText[response] || 'Try Again';
+        }
+    }
+}
+
+// Add fadeOut animation to CSS
+const style = document.createElement('style');
+style.innerHTML = `
+    @keyframes fadeOut {
+        from { opacity: 1; transform: scale(1); }
+        to { opacity: 0; transform: scale(0.9); }
+    }
+`;
+document.head.appendChild(style);
+
 async function checkNewPlaylists() {
     try {
         const data = await api('getPlaylists');
@@ -2729,59 +3137,65 @@ async function loadDashboard() {
     }
     
     try {
-        // ⚡ PARALLEL LOAD - All API calls at once!
-        const [weeksRes, agentDataRes] = await Promise.all([
-            api('getAvailableWeeks'),
-            api('getAgentData', { agentNo: STATE.agentNo, week: null }) // Will use current week
-        ]);
-        
-        STATE.weeks = weeksRes.weeks || [];
-        STATE.week = weeksRes.current || STATE.weeks[0];
-        
-        // If we got data with wrong week, refetch (rare case)
-        if (agentDataRes.week && agentDataRes.week !== STATE.week) {
-            STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: STATE.week });
-        } else {
-            STATE.data = agentDataRes;
-        }
-        
-        if (STATE.data?.lastUpdated) STATE.lastUpdated = STATE.data.lastUpdated;
-        
-        // Switch screens FIRST (feels faster!)
-        $('login-screen').classList.remove('active');
-        $('login-screen').style.display = 'none';
-        $('dashboard-screen').classList.add('active');
-        $('dashboard-screen').style.display = 'flex';
-        
-        // Setup dashboard
-        setupDashboard();
-        loadNotificationState();
-        
-        // Initialize router and load page
-        const startPage = initRouter();
-        await loadPage(startPage === 'login' ? 'home' : startPage);
-        
-        // ⚡ Load these in BACKGROUND (don't await!)
-        loadAllWeeksData();           // Background
-        preloadDashboardData();       // Background
-        
-        // Delayed notification check
-        setTimeout(() => checkNotifications(), 2000);
-        notificationInterval = setInterval(() => checkNotifications(), 5 * 60 * 1000);
-        
-        if (STATE.isAdmin) addAdminIndicator();
-        
-    } catch (e) {
-        console.error('❌ Dashboard error:', e);
-        showToast('Error: ' + e.message, 'error');
-        
-        $('login-screen').classList.add('active');
-        $('login-screen').style.display = 'flex';
-        $('dashboard-screen').classList.remove('active');
-        $('dashboard-screen').style.display = 'none';
-    } finally { 
-        loading(false); 
+    // ⚡ PARALLEL LOAD - All API calls at once!
+    const [weeksRes, agentDataRes] = await Promise.all([
+        api('getAvailableWeeks'),
+        api('getAgentData', { agentNo: STATE.agentNo, week: null })
+    ]);
+    
+    STATE.weeks = weeksRes.weeks || [];
+    STATE.week = weeksRes.current || STATE.weeks[0];
+    
+    if (agentDataRes.week && agentDataRes.week !== STATE.week) {
+        STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: STATE.week });
+    } else {
+        STATE.data = agentDataRes;
     }
+    
+    if (STATE.data?.lastUpdated) STATE.lastUpdated = STATE.data.lastUpdated;
+    
+    // Switch screens FIRST (feels faster!)
+    $('login-screen').classList.remove('active');
+    $('login-screen').style.display = 'none';
+    $('dashboard-screen').classList.add('active');
+    $('dashboard-screen').style.display = 'flex';
+    
+    // Setup dashboard
+    setupDashboard();
+    loadNotificationState();
+    
+    // Initialize router and load page
+    const startPage = initRouter();
+    await loadPage(startPage === 'login' ? 'home' : startPage);
+    
+    // ⚡ Load these in BACKGROUND (don't await!)
+    loadAllWeeksData();
+    preloadDashboardData();
+    
+    // ✅ FIXED: Delayed notification + voting check (INITIAL)
+    setTimeout(() => {
+        checkNotifications();
+        checkVotingAnnouncement(); // Check voting on login
+    }, 2000);
+    
+    // ✅ FIXED: Recurring checks every 5 minutes
+    notificationInterval = setInterval(() => {
+        checkNotifications();        // Check for new notifications
+        checkVotingAnnouncement();   // Check for new/reminder voting
+    }, 5 * 60 * 1000);
+    
+    if (STATE.isAdmin) addAdminIndicator();
+    
+} catch (e) {
+    console.error('❌ Dashboard error:', e);
+    showToast('Error: ' + e.message, 'error');
+    
+    $('login-screen').classList.add('active');
+    $('login-screen').style.display = 'flex';
+    $('dashboard-screen').classList.remove('active');
+    $('dashboard-screen').style.display = 'none';
+} finally { 
+    loading(false); 
 }
 
 // ⚡ Make this non-blocking
@@ -6931,5 +7345,7 @@ window.renderSummary = renderSummary;
 window.renderComparison = renderComparison;
 window.renderGCLinks = renderGCLinks;
 window.renderHelperRoles = renderHelperRoles;
+window.respondToVoting = respondToVoting;
+window.dismissVotingPopup = dismissVotingPopup;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded');
