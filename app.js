@@ -10788,6 +10788,10 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
+// ==================== FUNCTION ALIASES ====================
+// Create aliases for any renamed functions
+const respondToVoting = handleVotingResponse;
+
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
@@ -10840,13 +10844,20 @@ window.renderHelperRoles = renderHelperRoles;
 window.shareStats = shareStats;
 window.copyShareText = copyShareText;
 window.clearSOTDLocalStorage = clearSOTDLocalStorage;
-window.respondToVoting = respondToVoting;
+
+// Voting functions
+window.respondToVoting = handleVotingResponse;  // ← FIXED: Use the actual function
+window.handleVotingResponse = handleVotingResponse;
 window.dismissVotingPopup = dismissVotingPopup;
 window.checkVotingAnnouncement = checkVotingAnnouncement;
 window.showVotingPopup = showVotingPopup;
+
+// Guide page functions
 window.renderGuidePage = renderGuidePage;
 window.toggleGuideSection = toggleGuideSection;
 window.scrollToGuideSection = scrollToGuideSection;
+
+// Week confirmation functions
 window.renderWeekConfirmation = renderWeekConfirmation;
 window.adminConfirmAttendance = adminConfirmAttendance;
 window.adminConfirmPolice = adminConfirmPolice;
