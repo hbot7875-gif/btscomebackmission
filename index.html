@@ -96,150 +96,148 @@
     <div id="dashboard-screen" class="screen">
         
         <!-- ==================== SIDEBAR ==================== -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo-container">
-                    <div class="logo-symbol"><span style="font-size:30px; color:#9d4edd;">⟭⟬</span></div>
-                    <div class="logo-text-group"><span class="logo-title">BTS COMEBACK</span><span class="logo-subtitle">MISSION</span></div>
-                </div>
-                <button id="close-sidebar" class="close-btn">✕</button>
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-symbol"><span style="font-size:30px; color:#9d4edd;">⟭⟬</span></div>
+            <div class="logo-text-group">
+                <span class="logo-title">BTS COMEBACK</span>
+                <span class="logo-subtitle">MISSION</span>
             </div>
+        </div>
+        <button id="close-sidebar" class="close-btn">✕</button>
+    </div>
 
-            <div class="agent-card">
-                <div class="agent-avatar" id="agent-avatar"></div>
-                <div class="agent-details">
-                    <div class="agent-name" id="agent-name">Agent</div>
-                    <div class="agent-team" id="agent-team">Team</div>
-                    <div class="agent-id" id="agent-id">ID: ---</div>
-                </div>
-            </div>
+    <div class="agent-card">
+        <div class="agent-avatar" id="agent-avatar"></div>
+        <div class="agent-details">
+            <div class="agent-name" id="agent-name">Agent</div>
+            <div class="agent-team" id="agent-team">Team</div>
+            <div class="agent-id" id="agent-id">ID: ---</div>
+        </div>
+    </div>
 
-            <div class="week-selector">
-                <label for="week-select"><span class="selector-icon">📅</span> MISSION WEEK</label>
-                <div class="select-wrapper"><select id="week-select"></select><span class="select-arrow">▼</span></div>
-            </div>
+    <div class="week-selector">
+        <label for="week-select">
+            <span class="selector-icon">📅</span> MISSION WEEK
+        </label>
+        <div class="select-wrapper">
+            <select id="week-select"></select>
+            <span class="select-arrow">▼</span>
+        </div>
+    </div>
 
-            <nav class="nav-links" role="navigation">
-                <!-- MAIN Section -->
-                <div class="nav-section">
-                    <span class="nav-section-title">MAIN</span>
-                    <a href="#" class="nav-link active" data-page="home">
-                        <span class="nav-icon">🏠</span>
-                        <span class="nav-text">Mission Control</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="profile">
-                        <span class="nav-icon">👤</span>
-                        <span class="nav-text">Agent Profile</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="playlists">
-                        <span class="nav-icon">🎧</span>
-                        <span class="nav-text">Playlists</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="rankings">
-                        <span class="nav-icon">🏆</span>
-                        <span class="nav-text">Rankings</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="drawer">
-                        <span class="nav-icon">🎒</span>
-                        <span class="nav-text">My Drawer</span>
-                        <span class="notification-dot" id="dot-drawer"></span>
-                    </a>
-                </div>
-                
-                <!-- MISSIONS Section -->
-                <div class="nav-section">
-                    <span class="nav-section-title">MISSIONS</span>
-                    <a href="#" class="nav-link" data-page="goals">
-                        <span class="nav-icon">🎯</span>
-                        <span class="nav-text">Goals Progress</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="album2x">
-                        <span class="nav-icon">💿</span>
-                        <span class="nav-text">Album 2X Mission</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="secret-missions">
-                        <span class="nav-icon">🔒</span>
-                        <span class="nav-text">Secret Missions</span>
-                        <span class="notification-dot" id="dot-mission"></span>
-                    </a>
-                </div>
-                
-                <!-- ANALYTICS Section -->
-                <div class="nav-section">
-                    <span class="nav-section-title">ANALYTICS</span>
-                    <a href="#" class="nav-link" data-page="team-level">
-                        <span class="nav-icon">📊</span>
-                        <span class="nav-text">Team Levels</span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="comparison">
-                        <span class="nav-icon">⚔️</span>
-                        <span class="nav-text">Team Comparison</span>
-                    </a>
-                </div>
-                
-                <!-- MORE Section -->
-                <div class="nav-section">
-                    <span class="nav-section-title">MORE</span>
-                    <a href="#" class="nav-link" data-page="chat">
-                        <span class="nav-icon">💬</span>
-                        <span class="nav-text">Secret Comms</span>
-                        <span class="notification-dot" id="dot-chat"></span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="summary">
-                        <span class="nav-icon">📋</span>
-                        <span class="nav-text">Weekly Summary</span>
-                        <span class="notification-dot" id="dot-summary"></span>
-                    </a>
-                    <a href="#" class="nav-link" data-page="announcements">
-                        <span class="nav-icon">📢</span>
-                        <span class="nav-text">Announcements</span>
-                        <span class="notification-dot" id="dot-announce"></span>
-                    </a>
-                </div>
-                
-                <!-- ========================================== -->
-                <!-- ✅ NEW: HELPER ARMY Section (Role-Based)  -->
-                <!-- ========================================== -->
-                <div class="nav-section" id="nav-section-helper" style="display:none;">
-                    <span class="nav-section-title">HELPER ARMY</span>
-                    
-                    <!-- Attendance Checker Link -->
-                    <a href="#" 
-                       class="nav-link" 
-                       data-page="attendance-checker" 
-                       id="nav-attendance-checker" 
-                       style="display:none;">
-                        <span class="nav-icon">📋</span>
-                        <span class="nav-text">Attendance Checker</span>
-                    </a>
-                    
-                    <!-- Police Panel Link -->
-                    <a href="#" 
-                       class="nav-link" 
-                       data-page="police-panel" 
-                       id="nav-police-panel" 
-                       style="display:none;">
-                        <span class="nav-icon">👮</span>
-                        <span class="nav-text">Police Panel</span>
-                    </a>
-                </div>
-                <!-- ========================================== -->
-                
-                <!-- Admin Section Container (for dynamic admin button) -->
-                <div class="nav-section nav-admin-section" id="nav-admin-container"></div>
-            </nav>
+    <nav class="nav-links" role="navigation">
+        
+        <!-- ==================== MAIN Section ==================== -->
+        <div class="nav-section">
+            <span class="nav-section-title">MAIN</span>
+            
+            <a href="#" class="nav-link active" data-page="home">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Mission Control</span>
+            </a>
+            
+            <a href="#" class="nav-link" data-page="guide">
+                <span class="nav-icon">📚</span>
+                <span class="nav-text">New? Start Here</span>
+            </a>
+            
+            <a href="#" class="nav-link" data-page="profile">
+                <span class="nav-icon">👤</span>
+                <span class="nav-text">Agent Profile</span>
+            </a>
+            
+            <a href="#" class="nav-link" data-page="playlists">
+                <span class="nav-icon">🎧</span>
+                <span class="nav-text">Playlists</span>
+            </a>
+            
+            <a href="#" class="nav-link" data-page="rankings">
+                <span class="nav-icon">🏆</span>
+                <span class="nav-text">Rankings</span>
+            </a>
+            
+            <a href="#" class="nav-link" data-page="drawer">
+                <span class="nav-icon">🎒</span>
+                <span class="nav-text">My Drawer</span>
+                <span class="notification-dot" id="dot-drawer"></span>
+            </a>
+        </div>
+        
+        <!-- ==================== MISSIONS Section ==================== -->
+        <div class="nav-section">
+            <span class="nav-section-title">MISSIONS</span>
+            
+            <a href="#" class="nav-link" data-page="goals">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-text">Goals Progress</span>
+            </a>
+            
+            <a href="#" class="nav-link" data-page="album2x">
+                <span class="nav-icon">💿</span>
+                <span class="nav-text">Album 2X Mission</span>
+            </a>
+            
+            <a href="#" class="nav-link" data-page="secret-missions">
+                <span class="nav-icon">🔒</span>
+                <span class="nav-text">Secret Missions</span>
+                <span class="notification-dot" id="dot-mission"></span>
+            </a>
+        </div>
+        
+        <!-- ==================== ANALYTICS Section ==================== -->
+        <div class="nav-section">
+            <span class="nav-section-title">ANALYTICS</span>
+            
+            <a href="#" class="nav-link" data-page="team-level">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Team Levels</span>
+            </a>
+            
+            <a href="#" class="nav-link" data-page="comparison">
+                <span class="nav-icon">⚔️</span>
+                <span class="nav-text">Team Comparison</span>
+            </a>
+        </div>
+        
+        <!-- ==================== MORE Section ==================== -->
+        <div class="nav-section">
+            <span class="nav-section-title">MORE</span>
+            
+            <a href="#" class="nav-link" data-page="chat">
+                <span class="nav-icon">💬</span>
+                <span class="nav-text">Secret Comms</span>
+                <span class="notification-dot" id="dot-chat"></span>
+            </a>
+            
+            <a href="#" class="nav-link" data-page="summary">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">Weekly Summary</span>
+                <span class="notification-dot" id="dot-summary"></span>
+            </a>
+            
+            <a href="#" class="nav-link" data-page="announcements">
+                <span class="nav-icon">📢</span>
+                <span class="nav-text">Announcements</span>
+                <span class="notification-dot" id="dot-announce"></span>
+            </a>
+        </div>
+        <!-- ==================== Admin Section Container ==================== -->
+        <div class="nav-section nav-admin-section" id="nav-admin-container"></div>
+        
+    </nav>
 
-            <div class="sidebar-footer">
-                <div class="sync-status">
-                    <span class="sync-icon">🔄</span>
-                    <span id="last-update">--:--</span>
-                </div>
-                <button id="logout-btn">Logout</button>
-            </div>
-        </aside>
+    <div class="sidebar-footer">
+        <div class="sync-status">
+            <span class="sync-icon">🔄</span>
+            <span id="last-update">--:--</span>
+        </div>
+        <button id="logout-btn">Logout</button>
+    </div>
+</aside>
 
-        <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
         <!-- ==================== MAIN CONTENT AREA ==================== -->
         <main class="main-content" role="main">
             <header class="mobile-header">
