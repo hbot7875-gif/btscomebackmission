@@ -7292,9 +7292,15 @@ function dismissResultsUI() {
     if (confetti) confetti.remove();
 }
 
-// ==================== CLEANUP CHAT ON PAGE LEAVE ====================
-// Add this to the router - call cleanupChat() when leaving chat page
-// Already defined in Part 1, ensuring it's called properly
+// ==================== CLEANUP ON LOGOUT ====================
+window.addEventListener('beforeunload', () => {
+    stopHeartbeat();
+    stopUnreadCheck();
+    cleanupChat();
+    if (STATE.agentNo) {
+        navigator.sendBeacon(CONFIG.API_URL + '?action=removeOnlineUser&agentNo=' + STATE.agentNo);
+    }
+});
 
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
@@ -7345,7 +7351,12 @@ window.renderSummary = renderSummary;
 window.renderComparison = renderComparison;
 window.renderGCLinks = renderGCLinks;
 window.renderHelperRoles = renderHelperRoles;
+window.shareStats = shareStats;
+window.copyShareText = copyShareText;
+window.clearSOTDLocalStorage = clearSOTDLocalStorage;
 window.respondToVoting = respondToVoting;
 window.dismissVotingPopup = dismissVotingPopup;
+window.checkVotingAnnouncement = checkVotingAnnouncement;
+window.showVotingPopup = showVotingPopup;
 
-console.log('🎮 BTS Spy Battle v5.0 Loaded');
+console.log('🎮 BTS Spy Battle v5.0 Loaded with Voting System 🗳️💜');;
