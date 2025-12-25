@@ -3277,6 +3277,67 @@ function setupDashboard() {
     
     updateTime();
 }
+// ==================== ROLE-BASED NAVIGATION ====================
+
+async function setupRoleBasedNavigation() {
+  try {
+    console.log('🔧 Setting up role-based navigation...');
+    
+    // Check if user has attendance role
+    const hasAttendance = await checkMyRole('attendance');
+    const navAttendance = document.getElementById('nav-attendance-checker');
+    
+    if (navAttendance) {
+      navAttendance.style.display = hasAttendance ? 'flex' : 'none';
+      if (hasAttendance) console.log('✅ Attendance Checker link shown');
+    }
+    
+    // Check if user has police role
+    const hasPolice = await checkMyRole('police');
+    const navPolice = document.getElementById('nav-police-panel');
+    
+    if (navPolice) {
+      navPolice.style.display = hasPolice ? 'flex' : 'none';
+      if (hasPolice) console.log('✅ Police Panel link shown');
+    }
+    
+    // ✅ Show/hide entire HELPER ARMY section
+    const helperSection = document.getElementById('nav-section-helper');
+    if (helperSection) {
+      // Show section if user has ANY helper role
+      const hasAnyRole = hasAttendance || hasPolice;
+      helperSection.style.display = hasAnyRole ? 'block' : 'none';
+      
+      if (hasAnyRole) {
+        console.log('✅ Helper Army section shown');
+      }
+    }
+    
+  } catch (e) {
+    console.error('Error setting up role navigation:', e);
+  }
+}
+
+async function checkMyRole(roleId) {
+  try {
+    const rolesData = await api('getHelperRoles');
+    const roles = rolesData.roles || [];
+    
+    const role = roles.find(r => r.id === roleId);
+    if (!role) {
+      console.log(`Role '${roleId}' not found`);
+      return false;
+    }
+    
+    const hasRole = role.agents.some(a => String(a.agentNo) === String(STATE.agentNo));
+    console.log(`Agent ${STATE.agentNo} has ${roleId} role: ${hasRole}`);
+    
+    return hasRole;
+  } catch (e) {
+    console.error('Check role error:', e);
+    return false;
+  }
+}
 
 async function logout() {
     if (confirm('Logout?')) {
