@@ -3197,7 +3197,7 @@ async function loadDashboard() {
 } finally { 
     loading(false); 
 }
-
+}
 // ⚡ Make this non-blocking
 function loadAllWeeksData() {
     api('getAllWeeksStats', { agentNo: STATE.agentNo })
