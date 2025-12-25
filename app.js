@@ -10372,7 +10372,6 @@ window.clearSOTDLocalStorage = clearSOTDLocalStorage;
 
 // Voting functions
 window.respondToVoting = handleVotingResponse;  // ← FIXED: Use the actual function
-window.handleVotingResponse = handleVotingResponse;
 window.dismissVotingPopup = dismissVotingPopup;
 window.checkVotingAnnouncement = checkVotingAnnouncement;
 window.showVotingPopup = showVotingPopup;
