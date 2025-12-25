@@ -9704,13 +9704,19 @@ async function renderHelperRoles() {
     }
 }
 async function renderGuidePage() {
-    let container = $('guide-content');
+    // Helper function if $ is not defined
+    const getEl = (id) => document.getElementById(id);
+    
+    let container = getEl('guide-content');
     
     // Create page if doesn't exist
     if (!container) {
-        let page = $('page-guide');
+        let page = getEl('page-guide');
         if (!page) {
-            const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
+            const mainContent = document.querySelector('.pages-wrapper') || 
+                               document.querySelector('main') ||
+                               document.querySelector('.main-content') ||
+                               document.body;
             if (mainContent) {
                 page = document.createElement('section');
                 page.id = 'page-guide';
@@ -9719,17 +9725,53 @@ async function renderGuidePage() {
                 mainContent.appendChild(page);
             }
         }
-        container = $('guide-content');
+        container = getEl('guide-content');
     }
     
-    if (!container) return;
+    if (!container) {
+        console.error('Guide container not found');
+        return;
+    }
     
-    const myTeam = STATE.data?.profile?.team || 'Your Team';
-    const teamAlbum = CONFIG.TEAMS[myTeam]?.album || 'Team Album';
+    // Safe access to STATE and CONFIG with fallbacks
+    const myTeam = (typeof STATE !== 'undefined' && STATE.data?.profile?.team) 
+        ? STATE.data.profile.team 
+        : 'Your Team';
     
+    const teamAlbum = (typeof CONFIG !== 'undefined' && CONFIG.TEAMS && CONFIG.TEAMS[myTeam]?.album)
+        ? CONFIG.TEAMS[myTeam].album
+        : 'Team Album';
+    
+    // Safe sanitize function
+    const safeSanitize = (str) => {
+        if (typeof sanitize === 'function') return sanitize(str);
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    };
+    
+    // Safe config access
+    const albumChallengeName = (typeof CONFIG !== 'undefined' && CONFIG.ALBUM_CHALLENGE?.CHALLENGE_NAME)
+        ? CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME
+        : 'Album';
+    
+    const requiredStreams = (typeof CONFIG !== 'undefined' && CONFIG.ALBUM_CHALLENGE?.REQUIRED_STREAMS)
+        ? CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS
+        : 3;
+
     container.innerHTML = `
         <style>
-            .guide-page { max-width: 800px; margin: 0 auto; padding: 15px; padding-bottom: 100px; }
+            .guide-page { 
+                max-width: 800px; 
+                margin: 0 auto; 
+                padding: 15px; 
+                padding-bottom: 100px;
+                min-height: 100vh;
+                box-sizing: border-box;
+            }
             
             .guide-header {
                 text-align: center;
@@ -9757,8 +9799,19 @@ async function renderGuidePage() {
                 50% { transform: translate(10%, 10%); }
             }
             
-            .guide-header h1 { color: #fff; font-size: 24px; margin: 0 0 8px 0; position: relative; }
-            .guide-header p { color: rgba(255,255,255,0.8); font-size: 13px; margin: 0; position: relative; }
+            .guide-header h1 { 
+                color: #fff; 
+                font-size: 24px; 
+                margin: 0 0 8px 0; 
+                position: relative;
+                word-break: break-word;
+            }
+            .guide-header p { 
+                color: rgba(255,255,255,0.8); 
+                font-size: 13px; 
+                margin: 0; 
+                position: relative; 
+            }
             
             .guide-nav {
                 display: flex;
@@ -9780,9 +9833,10 @@ async function renderGuidePage() {
                 font-size: 11px;
                 cursor: pointer;
                 transition: all 0.3s;
+                -webkit-tap-highlight-color: transparent;
             }
             
-            .guide-nav-btn:hover, .guide-nav-btn.active {
+            .guide-nav-btn:hover, .guide-nav-btn:active, .guide-nav-btn.active {
                 background: linear-gradient(135deg, #7b2cbf, #5a1f99);
                 color: #fff;
                 border-color: #7b2cbf;
@@ -9804,13 +9858,30 @@ async function renderGuidePage() {
                 background: rgba(123,44,191,0.1);
                 cursor: pointer;
                 transition: background 0.3s;
+                -webkit-tap-highlight-color: transparent;
+                user-select: none;
             }
             
-            .guide-section-header:hover { background: rgba(123,44,191,0.2); }
+            .guide-section-header:hover,
+            .guide-section-header:active { 
+                background: rgba(123,44,191,0.2); 
+            }
+            
             .guide-section-icon { font-size: 22px; }
-            .guide-section-title { flex: 1; color: #fff; font-size: 15px; font-weight: 600; }
-            .guide-section-toggle { color: #7b2cbf; font-size: 18px; transition: transform 0.3s; }
-            .guide-section.open .guide-section-toggle { transform: rotate(180deg); }
+            .guide-section-title { 
+                flex: 1; 
+                color: #fff; 
+                font-size: 15px; 
+                font-weight: 600; 
+            }
+            .guide-section-toggle { 
+                color: #7b2cbf; 
+                font-size: 18px; 
+                transition: transform 0.3s; 
+            }
+            .guide-section.open .guide-section-toggle { 
+                transform: rotate(180deg); 
+            }
             
             .guide-section-content {
                 padding: 0;
@@ -9821,10 +9892,15 @@ async function renderGuidePage() {
             
             .guide-section.open .guide-section-content {
                 padding: 18px;
-                max-height: 3000px;
+                max-height: 5000px;
             }
             
-            .guide-text { color: #ccc; font-size: 13px; line-height: 1.7; margin-bottom: 12px; }
+            .guide-text { 
+                color: #ccc; 
+                font-size: 13px; 
+                line-height: 1.7; 
+                margin-bottom: 12px; 
+            }
             .guide-text:last-child { margin-bottom: 0; }
             
             .guide-highlight {
@@ -9931,6 +10007,7 @@ async function renderGuidePage() {
                 color: #fff;
                 width: 22px;
                 height: 22px;
+                min-width: 22px;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
@@ -9954,15 +10031,39 @@ async function renderGuidePage() {
                 border: 2px solid;
             }
             
-            .guide-team-card.indigo { background: rgba(75,0,130,0.15); border-color: rgba(75,0,130,0.4); }
-            .guide-team-card.echo { background: rgba(0,191,255,0.15); border-color: rgba(0,191,255,0.4); }
-            .guide-team-card.agustd { background: rgba(220,20,60,0.15); border-color: rgba(220,20,60,0.4); }
-            .guide-team-card.jitb { background: rgba(50,205,50,0.15); border-color: rgba(50,205,50,0.4); }
+            .guide-team-card.indigo { 
+                background: rgba(75,0,130,0.15); 
+                border-color: rgba(75,0,130,0.4); 
+            }
+            .guide-team-card.echo { 
+                background: rgba(0,191,255,0.15); 
+                border-color: rgba(0,191,255,0.4); 
+            }
+            .guide-team-card.agustd { 
+                background: rgba(220,20,60,0.15); 
+                border-color: rgba(220,20,60,0.4); 
+            }
+            .guide-team-card.jitb { 
+                background: rgba(50,205,50,0.15); 
+                border-color: rgba(50,205,50,0.4); 
+            }
             
-            .guide-team-name { color: #fff; font-weight: bold; font-size: 13px; }
-            .guide-team-album { color: #aaa; font-size: 10px; margin-top: 4px; }
+            .guide-team-name { 
+                color: #fff; 
+                font-weight: bold; 
+                font-size: 13px; 
+            }
+            .guide-team-album { 
+                color: #aaa; 
+                font-size: 10px; 
+                margin-top: 4px; 
+            }
             
-            .guide-gc-grid { display: grid; gap: 8px; margin: 14px 0; }
+            .guide-gc-grid { 
+                display: grid; 
+                gap: 8px; 
+                margin: 14px 0; 
+            }
             
             .guide-gc-item {
                 display: flex;
@@ -9975,8 +10076,16 @@ async function renderGuidePage() {
             
             .guide-gc-icon { font-size: 18px; }
             .guide-gc-info { flex: 1; }
-            .guide-gc-name { color: #fff; font-weight: 600; font-size: 12px; }
-            .guide-gc-desc { color: #888; font-size: 10px; margin-top: 2px; }
+            .guide-gc-name { 
+                color: #fff; 
+                font-weight: 600; 
+                font-size: 12px; 
+            }
+            .guide-gc-desc { 
+                color: #888; 
+                font-size: 10px; 
+                margin-top: 2px; 
+            }
             
             .guide-steps { margin: 14px 0; }
             
@@ -9992,6 +10101,7 @@ async function renderGuidePage() {
             .guide-step-num {
                 width: 32px;
                 height: 32px;
+                min-width: 32px;
                 background: linear-gradient(135deg, #7b2cbf, #5a1f99);
                 border-radius: 50%;
                 display: flex;
@@ -10003,9 +10113,18 @@ async function renderGuidePage() {
                 font-size: 14px;
             }
             
-            .guide-step-content { flex: 1; }
-            .guide-step-title { color: #fff; font-weight: 600; font-size: 13px; margin-bottom: 4px; }
-            .guide-step-desc { color: #888; font-size: 11px; line-height: 1.5; }
+            .guide-step-content { flex: 1; min-width: 0; }
+            .guide-step-title { 
+                color: #fff; 
+                font-weight: 600; 
+                font-size: 13px; 
+                margin-bottom: 4px; 
+            }
+            .guide-step-desc { 
+                color: #888; 
+                font-size: 11px; 
+                line-height: 1.5; 
+            }
             
             .guide-cross-check { margin: 14px 0; }
             
@@ -10017,10 +10136,20 @@ async function renderGuidePage() {
                 background: rgba(255,255,255,0.03);
                 border-radius: 8px;
                 margin-bottom: 6px;
+                flex-wrap: wrap;
+                gap: 8px;
             }
             
-            .guide-cross-check-from, .guide-cross-check-to { color: #fff; font-size: 12px; font-weight: 600; }
-            .guide-cross-check-arrow { color: #7b2cbf; font-size: 16px; }
+            .guide-cross-check-from, 
+            .guide-cross-check-to { 
+                color: #fff; 
+                font-size: 12px; 
+                font-weight: 600; 
+            }
+            .guide-cross-check-arrow { 
+                color: #7b2cbf; 
+                font-size: 16px; 
+            }
             
             .watermark-example {
                 background: rgba(0,0,0,0.3);
@@ -10052,7 +10181,11 @@ async function renderGuidePage() {
             }
             
             .watermark-preview-label { color: #666; font-size: 11px; }
-            .watermark-instructions { color: #aaa; font-size: 11px; line-height: 1.6; }
+            .watermark-instructions { 
+                color: #aaa; 
+                font-size: 11px; 
+                line-height: 1.6; 
+            }
             
             .quick-links {
                 display: grid;
@@ -10069,9 +10202,11 @@ async function renderGuidePage() {
                 text-align: center;
                 cursor: pointer;
                 transition: all 0.3s;
+                -webkit-tap-highlight-color: transparent;
             }
             
-            .quick-link:hover {
+            .quick-link:hover,
+            .quick-link:active {
                 transform: translateY(-3px);
                 box-shadow: 0 8px 25px rgba(123,44,191,0.3);
             }
@@ -10079,8 +10214,24 @@ async function renderGuidePage() {
             .quick-link-icon { font-size: 22px; margin-bottom: 6px; }
             .quick-link-text { color: #fff; font-size: 12px; font-weight: 600; }
             
+            /* Mobile specific fixes */
             @media (max-width: 500px) {
-                .guide-teams-grid, .quick-links { grid-template-columns: 1fr; }
+                .guide-teams-grid { grid-template-columns: 1fr; }
+                .quick-links { grid-template-columns: 1fr 1fr; }
+                .guide-header h1 { font-size: 20px; }
+                .guide-section-title { font-size: 14px; }
+                .guide-nav-btn { 
+                    padding: 6px 12px; 
+                    font-size: 10px; 
+                }
+                .guide-cross-check-item {
+                    flex-direction: column;
+                    text-align: center;
+                }
+            }
+            
+            @media (max-width: 350px) {
+                .quick-links { grid-template-columns: 1fr; }
             }
         </style>
         
@@ -10118,7 +10269,7 @@ async function renderGuidePage() {
                         <div style="color:#fff;font-size:12px;line-height:1.8;">
                             • <strong>Track Goals</strong> (team combined streams for specific songs)<br>
                             • <strong>Album Goals</strong> (team combined streams for albums)<br>
-                            • <strong>${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Rule</strong> (stream your team album ${CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS}X each)<br>
+                            • <strong>${albumChallengeName} Rule</strong> (stream your team album ${requiredStreams}X each)<br>
                             • <strong>Secret Missions</strong> (special bonus challenges)
                         </div>
                     </div>
@@ -10169,10 +10320,10 @@ async function renderGuidePage() {
                     </div>
                     
                     <div class="guide-highlight">
-                        <div class="guide-highlight-title">🎧 Your Team: ${sanitize(myTeam)}</div>
+                        <div class="guide-highlight-title">🎧 Your Team: ${safeSanitize(myTeam)}</div>
                         <div style="color:#fff;font-size:12px;">
-                            Your team album is <strong style="color:#ffd700;">${sanitize(teamAlbum)}</strong>.<br>
-                            You must stream this album <strong>top to bottom, ${CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS} times per week</strong>.
+                            Your team album is <strong style="color:#ffd700;">${safeSanitize(teamAlbum)}</strong>.<br>
+                            You must stream this album <strong>top to bottom, ${requiredStreams} times per week</strong>.
                         </div>
                     </div>
                 </div>
@@ -10232,7 +10383,7 @@ async function renderGuidePage() {
                     <ol class="guide-numbered-list">
                         <li><strong style="color:#fff;">Complete Track Goals</strong> - All track streaming goals met</li>
                         <li><strong style="color:#fff;">Complete Album Goals</strong> - All album streaming goals met</li>
-                        <li><strong style="color:#fff;">Complete ${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Challenge</strong> - EVERY member streams team album ${CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS}X</li>
+                        <li><strong style="color:#fff;">Complete ${albumChallengeName} Challenge</strong> - EVERY member streams team album ${requiredStreams}X</li>
                         <li><strong style="color:#fff;">100% Attendance</strong> - All members submit Spotify screenshots</li>
                         <li><strong style="color:#fff;">Pass Police Check</strong> - No more than 3 violations</li>
                         <li><strong style="color:#fff;">Highest XP</strong> - Among teams that completed all above!</li>
@@ -10472,41 +10623,59 @@ async function renderGuidePage() {
             
             <!-- Quick Links -->
             <div class="quick-links">
-                <div class="quick-link" onclick="loadPage('home')">
+                <div class="quick-link" onclick="if(typeof loadPage==='function')loadPage('home');else window.location.hash='home';">
                     <div class="quick-link-icon">🏠</div>
                     <div class="quick-link-text">Dashboard</div>
                 </div>
-                <div class="quick-link" onclick="loadPage('goals')">
+                <div class="quick-link" onclick="if(typeof loadPage==='function')loadPage('goals');else window.location.hash='goals';">
                     <div class="quick-link-icon">🎯</div>
                     <div class="quick-link-text">Goals</div>
                 </div>
-                <div class="quick-link" onclick="loadPage('playlists')">
+                <div class="quick-link" onclick="if(typeof loadPage==='function')loadPage('playlists');else window.location.hash='playlists';">
                     <div class="quick-link-icon">🎵</div>
                     <div class="quick-link-text">Playlists</div>
                 </div>
-                <div class="quick-link" onclick="loadPage('gc-links')">
+                <div class="quick-link" onclick="if(typeof loadPage==='function')loadPage('gc-links');else window.location.hash='gc-links';">
                     <div class="quick-link-icon">👥</div>
                     <div class="quick-link-text">GC Links</div>
                 </div>
             </div>
         </div>
     `;
+    
+    console.log('Guide page rendered successfully');
 }
 
 // Toggle guide section
 function toggleGuideSection(header) {
+    if (!header) return;
     const section = header.parentElement;
-    section.classList.toggle('open');
+    if (section) {
+        section.classList.toggle('open');
+    }
 }
 
 // Scroll to guide section
 function scrollToGuideSection(sectionId) {
     const section = document.getElementById('guide-' + sectionId);
     if (section) {
+        // Open the section
         section.classList.add('open');
-        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         
-        document.querySelectorAll('.guide-nav-btn').forEach(btn => btn.classList.remove('active'));
+        // Scroll with offset for fixed header
+        setTimeout(() => {
+            const yOffset = -80;
+            const y = section.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }, 100);
+        
+        // Update nav buttons
+        document.querySelectorAll('.guide-nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.getAttribute('onclick')?.includes(sectionId)) {
+                btn.classList.add('active');
+            }
+        });
     }
 }
 // ==================== MISSING FUNCTION: showChatRules ====================
