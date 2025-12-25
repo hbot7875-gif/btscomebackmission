@@ -406,78 +406,266 @@ function preloadDashboardData() {
         api('getWeeklySummary', { week: STATE.week }).catch(() => {});
     }
 }
-// ==================== NOTIFICATION SYSTEM (COMPLETE FIX) ====================
+// ==================== NOTIFICATION & VOTING SYSTEM (COMBINED V3) ====================
+
+// 🔴 INCREMENT THESE when making breaking changes
+const NOTIFICATION_SYSTEM_VERSION = 3;
+const VOTING_STORAGE_VERSION = 2;
+
+// ==================== NOTIFICATION STATE MANAGEMENT ====================
 
 // Initialize notification state structure
 function initNotificationState() {
     return {
+        version: NOTIFICATION_SYSTEM_VERSION,
+        
+        // Badge tracking
         badges: 0,
-        announcements: null,
-        playlists: 0,
-        missions: 0,
-        album2xBadge: {},      // Track per week: { "Test Week 1": true }
-        songOfDay: null,       // Date string of last check
-        weekResults: [],       // Array of seen week results
-        missionIds: []         // Track seen mission IDs
+        album2xBadge: {},
+        _badgesInitialized: false,
+        
+        // Content-based tracking (prevents re-notification on code updates)
+        seenAnnouncementIds: [],
+        lastAnnouncementTimestamp: null,
+        
+        seenPlaylistIds: [],
+        playlistCount: 0,
+        
+        seenMissionIds: [],
+        missionCount: 0,
+        
+        // Date-based tracking
+        songOfDay: null,
+        weekResults: [],
+        
+        // System flags
+        _initialized: true,
+        _initDate: Date.now(),
+        _lastMigration: null
     };
 }
 
-// Load saved notification state
+// Load saved notification state with migration support
 function loadNotificationState() {
     try {
-        const saved = localStorage.getItem('notificationState_' + STATE.agentNo);
+        const storageKey = 'notificationState_v3_' + STATE.agentNo;
+        const legacyKey = 'notificationState_' + STATE.agentNo;
+        
+        let saved = localStorage.getItem(storageKey);
+        let isLegacy = false;
+        
+        // Try legacy key if new key not found
+        if (!saved) {
+            saved = localStorage.getItem(legacyKey);
+            isLegacy = true;
+        }
+        
         if (saved) {
             const parsed = JSON.parse(saved);
+            const savedVersion = parsed.lastChecked?.version || 1;
             
-            // Merge with defaults to ensure all properties exist
-            STATE.lastChecked = {
-                ...initNotificationState(),
-                ...parsed.lastChecked
-            };
+            console.log(`📌 Found notification state v${savedVersion}${isLegacy ? ' (legacy)' : ''}`);
+            
+            // Smart merge - preserve existing values, add new defaults
+            STATE.lastChecked = smartMergeState(
+                initNotificationState(),
+                parsed.lastChecked || {}
+            );
             
             STATE.dismissedPopups = parsed.dismissedPopups || {};
             STATE.shownPopupsThisSession = {};
             
-            console.log('📌 Loaded notification state:', STATE.lastChecked);
+            // Run migration if version changed
+            if (savedVersion < NOTIFICATION_SYSTEM_VERSION) {
+                migrateNotificationState(savedVersion, isLegacy);
+            }
+            
+            // Update version
+            STATE.lastChecked.version = NOTIFICATION_SYSTEM_VERSION;
+            
+            // Clean up legacy storage
+            if (isLegacy) {
+                localStorage.removeItem(legacyKey);
+                saveNotificationState();
+            }
+            
         } else {
-            // First time user - initialize baseline
+            // Truly first time user - initialize with current data as baseline
+            console.log('📌 First time user - initializing notification baseline');
             initializeNotificationBaseline();
         }
     } catch (e) {
-        console.log('Could not load notification state, initializing fresh');
+        console.error('Error loading notification state:', e);
         initializeNotificationBaseline();
     }
 }
 
+// Smart merge that preserves user data while adding new fields
+function smartMergeState(defaults, saved) {
+    const merged = { ...defaults };
+    
+    for (const key in saved) {
+        if (saved[key] !== undefined && saved[key] !== null) {
+            // For arrays, keep existing data and dedupe
+            if (Array.isArray(defaults[key]) && Array.isArray(saved[key])) {
+                merged[key] = [...new Set([...saved[key]])];
+            }
+            // For objects, merge deeply
+            else if (typeof defaults[key] === 'object' && typeof saved[key] === 'object' && !Array.isArray(defaults[key])) {
+                merged[key] = { ...defaults[key], ...saved[key] };
+            }
+            // For primitives, keep saved value
+            else {
+                merged[key] = saved[key];
+            }
+        }
+    }
+    
+    return merged;
+}
+
+// Migration function for version upgrades
+function migrateNotificationState(fromVersion, isLegacy) {
+    console.log(`🔄 Migrating notification state from v${fromVersion} to v${NOTIFICATION_SYSTEM_VERSION}`);
+    
+    const state = STATE.lastChecked;
+    
+    // v1 -> v2+: Convert count-based to ID-based tracking
+    if (fromVersion < 2) {
+        console.log('  → Converting to ID-based tracking');
+        
+        // Convert old playlist count to new system
+        if (typeof state.playlists === 'number' && state.playlists > 0) {
+            state.playlistCount = state.playlists;
+            state.seenPlaylistIds = [];
+        }
+        
+        // Convert old mission count
+        if (typeof state.missions === 'number' && state.missions > 0) {
+            state.missionCount = state.missions;
+        }
+        
+        // Preserve missionIds if they exist
+        if (Array.isArray(state.missionIds)) {
+            state.seenMissionIds = [...state.missionIds];
+        }
+        
+        // Convert announcements timestamp
+        if (state.announcements) {
+            state.lastAnnouncementTimestamp = state.announcements;
+        }
+    }
+    
+    // v2 -> v3: Add additional safeguards
+    if (fromVersion < 3) {
+        console.log('  → Adding migration safeguards');
+        
+        // Ensure arrays exist
+        state.seenAnnouncementIds = state.seenAnnouncementIds || [];
+        state.seenPlaylistIds = state.seenPlaylistIds || [];
+        state.seenMissionIds = state.seenMissionIds || state.missionIds || [];
+        state.weekResults = state.weekResults || [];
+        
+        // Mark as properly initialized
+        state._initialized = true;
+        state._badgesInitialized = true;
+    }
+    
+    state._lastMigration = Date.now();
+    state._migratedFrom = fromVersion;
+    
+    // Save immediately after migration
+    saveNotificationState();
+    
+    console.log('✅ Migration complete');
+}
+
 // Set baseline counts to avoid notification spam on first load
-function initializeNotificationBaseline() {
+async function initializeNotificationBaseline() {
+    console.log('📌 Initializing notification baseline...');
+    
     const currentXP = parseInt(STATE.data?.stats?.totalXP) || 0;
     const album2xPassed = STATE.data?.album2xStatus?.passed || false;
     
-    STATE.lastChecked = {
-        badges: Math.floor(currentXP / 50),  // Don't notify for existing badges
-        announcements: Date.now(),            // Don't notify for old announcements
-        playlists: -1,                        // -1 means "not yet initialized"
-        missions: -1,                         // -1 means "not yet initialized"
-        album2xBadge: album2xPassed ? { [STATE.week]: true } : {},
-        songOfDay: null,
-        weekResults: Object.keys(STATE.hasSeenResults || {}),
-        missionIds: []
-    };
+    // Initialize with current state as baseline
+    STATE.lastChecked = initNotificationState();
+    STATE.lastChecked.badges = Math.floor(currentXP / 50);
+    STATE.lastChecked._badgesInitialized = true;
+    STATE.lastChecked.lastAnnouncementTimestamp = Date.now();
+    STATE.lastChecked.songOfDay = new Date().toDateString();
+    
+    // Album 2X badge
+    if (album2xPassed && STATE.week) {
+        STATE.lastChecked.album2xBadge[STATE.week] = true;
+    }
+    
+    // Copy existing seen results
+    if (STATE.hasSeenResults) {
+        STATE.lastChecked.weekResults = Object.keys(STATE.hasSeenResults);
+    }
     
     STATE.dismissedPopups = {};
     STATE.shownPopupsThisSession = {};
     
-    // Save immediately
-    saveNotificationState();
+    // Fetch current counts to set baseline (async)
+    try {
+        await setInitialBaselines();
+    } catch (e) {
+        console.log('Could not fetch initial baselines:', e);
+    }
     
-    console.log('📌 Notification baseline initialized');
+    saveNotificationState();
+    console.log('✅ Notification baseline initialized');
+}
+
+// Fetch current data to set as baseline
+async function setInitialBaselines() {
+    const promises = [];
+    
+    // Get current playlists
+    promises.push(
+        api('getPlaylists').then(data => {
+            const playlists = data.playlists || [];
+            STATE.lastChecked.playlistCount = playlists.length;
+            STATE.lastChecked.seenPlaylistIds = playlists.map(p => p.id || p.name).filter(Boolean);
+            console.log(`  → Baseline: ${playlists.length} playlists`);
+        }).catch(() => {})
+    );
+    
+    // Get current announcements
+    promises.push(
+        api('getAnnouncements', { week: STATE.week }).then(data => {
+            const announcements = data.announcements || [];
+            STATE.lastChecked.seenAnnouncementIds = announcements.map(a => a.id || a.created).filter(Boolean);
+            if (announcements.length > 0) {
+                const sorted = announcements.sort((a, b) => new Date(b.created || 0) - new Date(a.created || 0));
+                STATE.lastChecked.lastAnnouncementTimestamp = new Date(sorted[0].created).getTime();
+            }
+            console.log(`  → Baseline: ${announcements.length} announcements`);
+        }).catch(() => {})
+    );
+    
+    // Get current missions
+    const team = STATE.data?.profile?.team;
+    if (team) {
+        promises.push(
+            api('getTeamSecretMissions', { team, agentNo: STATE.agentNo, week: STATE.week }).then(data => {
+                const missions = data.active || [];
+                STATE.lastChecked.missionCount = missions.length;
+                STATE.lastChecked.seenMissionIds = missions.map(m => m.id).filter(Boolean);
+                console.log(`  → Baseline: ${missions.length} missions`);
+            }).catch(() => {})
+        );
+    }
+    
+    await Promise.allSettled(promises);
 }
 
 // Save notification state
 function saveNotificationState() {
     try {
-        localStorage.setItem('notificationState_' + STATE.agentNo, JSON.stringify({
+        const storageKey = 'notificationState_v3_' + STATE.agentNo;
+        localStorage.setItem(storageKey, JSON.stringify({
             lastChecked: STATE.lastChecked,
             dismissedPopups: STATE.dismissedPopups || {}
         }));
@@ -489,13 +677,22 @@ function saveNotificationState() {
 // Generate unique key for notification
 function getNotificationKey(notif) {
     if (!notif) return 'unknown_' + Date.now();
-    const weekPart = notif.week || STATE.week || '';
-    const typePart = notif.type || 'generic';
-    const titlePart = (notif.title || '').substring(0, 20);
-    return `${typePart}_${titlePart}_${weekPart}`.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+    
+    const parts = [
+        notif.type || 'generic',
+        notif.week || STATE.week || '',
+        notif.id || '',
+        (notif.title || '').substring(0, 30)
+    ];
+    
+    return parts.join('_')
+        .replace(/\s+/g, '_')
+        .replace(/[^a-zA-Z0-9_]/g, '')
+        .toLowerCase();
 }
 
-// Main notification check function
+// ==================== MAIN NOTIFICATION CHECK ====================
+
 async function checkNotifications() {
     // Prevent concurrent checks
     if (STATE.isCheckingNotifications) {
@@ -506,6 +703,13 @@ async function checkNotifications() {
     // Don't check if not logged in or no data
     if (!STATE.agentNo || !STATE.data) {
         console.log('⚠️ Cannot check notifications - not logged in');
+        return;
+    }
+    
+    // Ensure state is initialized
+    if (!STATE.lastChecked || !STATE.lastChecked._initialized) {
+        console.log('⚠️ Notification state not initialized, loading...');
+        loadNotificationState();
         return;
     }
     
@@ -523,10 +727,10 @@ async function checkNotifications() {
         ]);
         
         const notifications = [];
+        const checkNames = ['badges', 'announcements', 'playlists', 'missions', 'sotd'];
         
         // Collect successful results
         results.forEach((result, index) => {
-            const checkNames = ['badges', 'announcements', 'playlists', 'missions', 'sotd'];
             if (result.status === 'fulfilled' && result.value) {
                 if (Array.isArray(result.value)) {
                     notifications.push(...result.value.filter(Boolean));
@@ -582,15 +786,17 @@ async function checkNotifications() {
             }
         }
         
+        // Also check voting announcements (separate system)
+        await checkVotingAnnouncement();
+        
     } catch (e) {
         console.error('❌ Error in checkNotifications:', e);
     } finally {
-        // ALWAYS reset the flag
         STATE.isCheckingNotifications = false;
     }
 }
 
-// ===== INDIVIDUAL CHECK FUNCTIONS =====
+// ==================== INDIVIDUAL CHECK FUNCTIONS ====================
 
 // Check for new XP badges
 async function checkNewBadges() {
@@ -602,17 +808,19 @@ async function checkNewBadges() {
         
         const notifications = [];
         
-        // First load check - don't spam
-        if (lastBadgeCount === 0 && currentBadgeCount > 0 && !STATE.lastChecked._badgesInitialized) {
+        // First load protection
+        if (!STATE.lastChecked._badgesInitialized) {
             STATE.lastChecked.badges = currentBadgeCount;
             STATE.lastChecked._badgesInitialized = true;
             saveNotificationState();
+            console.log('  → Badges initialized at:', currentBadgeCount);
             return null;
         }
         
         // New badges earned
         if (currentBadgeCount > lastBadgeCount) {
             const newBadges = currentBadgeCount - lastBadgeCount;
+            
             notifications.push({
                 type: 'badge',
                 icon: '🎖️',
@@ -620,7 +828,8 @@ async function checkNewBadges() {
                 message: `You reached ${currentBadgeCount * 50} XP!`,
                 action: () => loadPage('drawer'),
                 actionText: 'View Badges',
-                week: STATE.week
+                week: STATE.week,
+                id: `badge_${currentBadgeCount}`
             });
             
             STATE.lastChecked.badges = currentBadgeCount;
@@ -635,12 +844,13 @@ async function checkNewBadges() {
             notifications.push({
                 type: 'achievement',
                 icon: '✨',
-                title: `${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Master!`,
-                message: `You completed the Album ${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Challenge!`,
+                title: `${CONFIG.ALBUM_CHALLENGE?.CHALLENGE_NAME || '2X'} Master!`,
+                message: `You completed the Album Challenge!`,
                 action: () => loadPage('drawer'),
                 actionText: 'View Badge',
                 priority: 'high',
-                week: STATE.week
+                week: STATE.week,
+                id: `album2x_${album2xKey}`
             });
             
             if (!STATE.lastChecked.album2xBadge) STATE.lastChecked.album2xBadge = {};
@@ -655,7 +865,7 @@ async function checkNewBadges() {
     }
 }
 
-// Check for new announcements
+// Check for new announcements (ID-based)
 async function checkNewAnnouncements() {
     try {
         const data = await api('getAnnouncements', { week: STATE.week });
@@ -663,490 +873,102 @@ async function checkNewAnnouncements() {
         
         if (announcements.length === 0) return null;
         
-        // Sort by date, newest first
-        const sorted = announcements.sort((a, b) => 
+        // Get seen announcement IDs
+        const seenIds = STATE.lastChecked.seenAnnouncementIds || [];
+        
+        // Find unseen announcements
+        const unseen = announcements.filter(a => {
+            const id = a.id || a.created;
+            return id && !seenIds.includes(id);
+        });
+        
+        if (unseen.length === 0) return null;
+        
+        // Get the newest unseen
+        const sorted = unseen.sort((a, b) => 
             new Date(b.created || 0) - new Date(a.created || 0)
         );
-        
         const latest = sorted[0];
-        if (!latest || !latest.created) return null;
         
-        const latestDate = new Date(latest.created).getTime();
-        const lastCheckedDate = STATE.lastChecked.announcements || 0;
+        // Mark all current announcements as seen
+        STATE.lastChecked.seenAnnouncementIds = announcements
+            .map(a => a.id || a.created)
+            .filter(Boolean);
+        STATE.lastChecked.lastAnnouncementTimestamp = Date.now();
+        saveNotificationState();
         
-        if (latestDate > lastCheckedDate) {
-            // Update BEFORE returning to prevent re-notification
-            STATE.lastChecked.announcements = Date.now();
-            saveNotificationState();
-            
-            return {
-                type: 'announcement',
-                icon: '📢',
-                title: 'New Announcement!',
-                message: latest.title || 'New message from HQ',
-                action: () => loadPage('announcements'),
-                actionText: 'Read Now',
-                priority: latest.priority === 'high' ? 'high' : 'normal',
-                week: STATE.week
-            };
-        }
+        return {
+            type: 'announcement',
+            icon: '📢',
+            title: 'New Announcement!',
+            message: latest.title || 'New message from HQ',
+            action: () => loadPage('announcements'),
+            actionText: 'Read Now',
+            priority: latest.priority === 'high' ? 'high' : 'normal',
+            week: STATE.week,
+            id: latest.id || latest.created
+        };
         
-        return null;
     } catch (e) {
         console.log('Announcement check error:', e);
         return null;
     }
 }
-// ==================== VOTING ANNOUNCEMENT POPUP ====================
 
-async function checkVotingAnnouncement() {
-    if (!STATE.agentNo) return;
-    
-    try {
-        const data = await api('getActiveVotingAnnouncement');
-        
-        if (!data.success || !data.voting) return;
-        
-        const voting = data.voting;
-        const votingId = voting.id;
-        
-        // Check if already responded
-        const responseKey = 'voting_response_' + STATE.agentNo + '_' + votingId;
-        const response = localStorage.getItem(responseKey);
-        
-        // If already voted or said yes, don't show again
-        if (response === 'yes' || response === 'already_voted') {
-            console.log('Already responded to voting:', votingId, response);
-            return;
-        }
-        
-        // If "not_now", check if reminder time has passed
-        if (response === 'not_now') {
-            const reminderKey = 'voting_reminder_' + votingId;
-            const reminderTime = localStorage.getItem(reminderKey);
-            
-            if (reminderTime && Date.now() < parseInt(reminderTime)) {
-                console.log('Reminder not yet due');
-                return; // Not time for reminder yet
-            }
-            
-            // Time to remind! Clear the reminder flag
-            localStorage.removeItem(reminderKey);
-        }
-        
-        // Check if dismissed this session
-        const dismissKey = 'voting_dismissed_' + votingId;
-        if (sessionStorage.getItem(dismissKey)) {
-            return;
-        }
-        
-        // Show voting popup
-        showVotingPopup(voting);
-        
-    } catch (e) {
-        console.log('Error checking voting announcement:', e);
-    }
-}
-
-function showVotingPopup(voting) {
-    // Remove any existing voting popup
-    document.querySelectorAll('.voting-announcement-popup').forEach(p => p.remove());
-    
-    const popup = document.createElement('div');
-    popup.className = 'voting-announcement-popup';
-    popup.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.95);
-        z-index: 99999999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        animation: fadeIn 0.3s ease;
-        backdrop-filter: blur(5px);
-    `;
-    
-    popup.innerHTML = `
-        <div class="voting-popup-content" style="
-            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
-            border-radius: 20px;
-            border: 2px solid #7b2cbf;
-            box-shadow: 0 0 50px rgba(123,44,191,0.6), 0 0 100px rgba(255,20,147,0.3);
-            max-width: 480px;
-            width: 100%;
-            overflow: hidden;
-            position: relative;
-            animation: slideUp 0.4s ease;
-        ">
-            <!-- Animated Border -->
-            <div style="
-                position: absolute;
-                top: -2px;
-                left: -2px;
-                right: -2px;
-                bottom: -2px;
-                background: linear-gradient(45deg, #ffd700, #ff6b6b, #7b2cbf, #00d4ff, #00ff88, #ffd700);
-                border-radius: 22px;
-                z-index: -1;
-                animation: rotateBorder 4s linear infinite;
-            "></div>
-            
-            <!-- URGENT Banner -->
-            <div style="
-                background: linear-gradient(135deg, #ff0000, #cc0000);
-                padding: 8px;
-                text-align: center;
-                animation: urgentPulse 1.5s ease-in-out infinite;
-            ">
-                <span style="color:#fff;font-size:11px;font-weight:bold;letter-spacing:2px;">
-                    🚨 URGENT: EVERYONE MUST VOTE 🚨
-                </span>
-            </div>
-            
-            <!-- Header -->
-            <div style="
-                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                padding: 20px 25px;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-            ">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-                    <span style="font-size:32px;">🗳️</span>
-                    <div style="flex:1;">
-                        <div style="color:#ffd700;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">
-                            🔥 FAN VOTING MISSION
-                        </div>
-                        <div style="color:#fff;font-size:16px;font-weight:bold;margin-top:4px;">
-                            ${sanitize(voting.title)}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Message Body -->
-            <div style="padding:25px;">
-                <!-- Important Notice -->
-                <div style="
-                    background: rgba(255, 68, 68, 0.15);
-                    border: 2px solid #ff4444;
-                    border-radius: 12px;
-                    padding: 15px;
-                    margin-bottom: 20px;
-                    animation: warningPulse 2s ease-in-out infinite;
-                ">
-                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                        <span style="font-size:24px;">⚠️</span>
-                        <div style="color:#ff6b6b;font-weight:bold;font-size:14px;">
-                            ALL AGENTS MUST PARTICIPATE!
-                        </div>
-                    </div>
-                    <div style="color:#fff;font-size:12px;line-height:1.6;">
-                        This is a <strong style="color:#ffd700;">team mission</strong>. Every vote counts. 
-                        We need <strong style="color:#00ff88;">100% participation</strong> to support Jin! 💜
-                    </div>
-                </div>
-                
-                <!-- Message Details -->
-                <div style="
-                    color:#fff;
-                    font-size:14px;
-                    line-height:1.7;
-                    white-space:pre-line;
-                    margin-bottom:20px;
-                    padding:15px;
-                    background:rgba(255,255,255,0.03);
-                    border-radius:10px;
-                    border-left:4px solid #7b2cbf;
-                ">
-                    ${sanitize(voting.message)}
-                </div>
-                
-                <!-- Call to Action -->
-                <div style="
-                    background:linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05));
-                    border:2px solid rgba(255,215,0,0.4);
-                    border-radius:12px;
-                    padding:18px;
-                    margin-bottom:25px;
-                    text-align:center;
-                ">
-                    <div style="font-size:24px;margin-bottom:10px;">💜</div>
-                    <div style="color:#ffd700;font-size:15px;font-weight:bold;margin-bottom:6px;">
-                        Will you help vote for Jin?
-                    </div>
-                    <div style="color:#888;font-size:11px;">
-                        Your support matters! Let's take Jin to #1!
-                    </div>
-                </div>
-                
-                <!-- Response Buttons -->
-                <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:15px;">
-                    <!-- YES Button (Primary) -->
-                    <button onclick="respondToVoting('${voting.id}', 'yes', '${voting.link.replace(/'/g, "\\'")}', '${voting.linkText.replace(/'/g, "\\'")}', this)" 
-                            style="
-                        padding:18px;
-                        background:linear-gradient(135deg, #00ff88, #00cc6a);
-                        border:none;
-                        border-radius:12px;
-                        color:#000;
-                        font-size:17px;
-                        font-weight:bold;
-                        cursor:pointer;
-                        display:flex;
-                        align-items:center;
-                        justify-content:center;
-                        gap:10px;
-                        transition:all 0.3s;
-                        box-shadow:0 4px 20px rgba(0,255,136,0.4);
-                    " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 25px rgba(0,255,136,0.5)';" 
-                       onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(0,255,136,0.4)';">
-                        <span style="font-size:22px;">✓</span>
-                        <span>Yes! I'll Vote Now!</span>
-                        <span style="font-size:20px;">→</span>
-                    </button>
-                    
-                    <!-- Already Voted Button -->
-                    <button onclick="respondToVoting('${voting.id}', 'already_voted', '', '', this)" 
-                            style="
-                        padding:14px;
-                        background:rgba(123,44,191,0.2);
-                        border:1px solid rgba(123,44,191,0.5);
-                        border-radius:12px;
-                        color:#c9a0ff;
-                        font-size:14px;
-                        font-weight:600;
-                        cursor:pointer;
-                        display:flex;
-                        align-items:center;
-                        justify-content:center;
-                        gap:8px;
-                        transition:all 0.3s;
-                    " onmouseover="this.style.background='rgba(123,44,191,0.3)';" 
-                       onmouseout="this.style.background='rgba(123,44,191,0.2)';">
-                        <span>✔️</span>
-                        <span>I Already Voted!</span>
-                    </button>
-                    
-                    <!-- Not Now Button (Smallest) -->
-                    <button onclick="respondToVoting('${voting.id}', 'not_now', '', '', this)" 
-                            style="
-                        padding:10px;
-                        background:transparent;
-                        border:1px solid rgba(255,255,255,0.15);
-                        border-radius:8px;
-                        color:#666;
-                        font-size:12px;
-                        cursor:pointer;
-                        transition:all 0.3s;
-                    " onmouseover="this.style.color='#888';this.style.borderColor='rgba(255,255,255,0.25)';" 
-                       onmouseout="this.style.color='#666';this.style.borderColor='rgba(255,255,255,0.15)';">
-                        Remind Me Later
-                    </button>
-                </div>
-                
-                <!-- Team Mission Note -->
-                <div style="
-                    text-align:center;
-                    padding:12px;
-                    background:rgba(0,0,0,0.3);
-                    border-radius:8px;
-                ">
-                    <span style="color:#888;font-size:11px;">
-                        💜 Remember: This is a <strong style="color:#7b2cbf;">team mission</strong> - 
-                        let's show our support together! 💜
-                    </span>
-                </div>
-            </div>
-        </div>
-        
-        <style>
-            @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-            
-            @keyframes slideUp {
-                from { 
-                    transform: translateY(50px) scale(0.95);
-                    opacity: 0;
-                }
-                to { 
-                    transform: translateY(0) scale(1);
-                    opacity: 1;
-                }
-            }
-            
-            @keyframes rotateBorder {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            
-            @keyframes urgentPulse {
-                0%, 100% { 
-                    background: linear-gradient(135deg, #ff0000, #cc0000);
-                }
-                50% { 
-                    background: linear-gradient(135deg, #ff4444, #ff0000);
-                }
-            }
-            
-            @keyframes warningPulse {
-                0%, 100% { 
-                    border-color: #ff4444;
-                    box-shadow: 0 0 0 rgba(255,68,68,0);
-                }
-                50% { 
-                    border-color: #ff6b6b;
-                    box-shadow: 0 0 15px rgba(255,68,68,0.3);
-                }
-            }
-        </style>
-    `;
-    
-    document.body.appendChild(popup);
-}
-
-async function respondToVoting(votingId, response, link, linkText, button) {
-    if (!STATE.agentNo) return;
-    
-    // Disable button
-    if (button) {
-        button.disabled = true;
-        button.style.opacity = '0.6';
-        
-        const loadingText = {
-            'yes': '<span>⏳</span><span>Opening voting page...</span>',
-            'already_voted': '<span>⏳</span><span>Recording...</span>',
-            'not_now': '<span>⏳</span><span>Saving...</span>'
-        };
-        
-        button.innerHTML = loadingText[response] || '<span>⏳</span><span>Please wait...</span>';
-    }
-    
-    try {
-        // Record response
-        await api('recordVotingResponse', {
-            agentNo: STATE.agentNo,
-            votingId: votingId,
-            response: response
-        });
-        
-        // Save to localStorage
-        const responseKey = 'voting_response_' + STATE.agentNo + '_' + votingId;
-        localStorage.setItem(responseKey, response);
-        
-        // Handle different responses
-        if (response === 'yes' && link) {
-            // Open voting link
-            window.open(link, '_blank', 'noopener,noreferrer');
-            
-            // Show success with confetti
-            if (typeof confetti === 'function') {
-                confetti({
-                    particleCount: 100,
-                    spread: 70,
-                    origin: { y: 0.6 }
-                });
-            }
-            
-            showToast('🎉 Thank you! Voting page opened. Please complete your vote!', 'success');
-            
-        } else if (response === 'already_voted') {
-            // Thank you for voting
-            showToast('✅ Great! Thank you for voting! 💜', 'success');
-            
-        } else if (response === 'not_now') {
-            // Remind later
-            showToast('⏰ We\'ll remind you later. Please don\'t forget to vote!', 'info');
-            
-            // Set reminder flag (will show popup again after 4 hours)
-            const reminderKey = 'voting_reminder_' + votingId;
-            const reminderTime = Date.now() + (4 * 60 * 60 * 1000); // 4 hours
-            localStorage.setItem(reminderKey, reminderTime.toString());
-        }
-        
-        // Close popup
-        setTimeout(() => {
-            const popup = document.querySelector('.voting-announcement-popup');
-            if (popup) {
-                popup.style.animation = 'fadeOut 0.3s ease';
-                setTimeout(() => popup.remove(), 300);
-            }
-        }, 1000);
-        
-    } catch (e) {
-        console.error('Error recording vote:', e);
-        showToast('❌ Failed to save response. Please try again.', 'error');
-        
-        // Re-enable button
-        if (button) {
-            button.disabled = false;
-            button.style.opacity = '1';
-            
-            const originalText = {
-                'yes': '<span>✓</span><span>Yes! I\'ll Vote Now!</span><span>→</span>',
-                'already_voted': '<span>✔️</span><span>I Already Voted!</span>',
-                'not_now': 'Remind Me Later'
-            };
-            
-            button.innerHTML = originalText[response] || 'Try Again';
-        }
-    }
-}
-
-// Add fadeOut animation to CSS
-const style = document.createElement('style');
-style.innerHTML = `
-    @keyframes fadeOut {
-        from { opacity: 1; transform: scale(1); }
-        to { opacity: 0; transform: scale(0.9); }
-    }
-`;
-document.head.appendChild(style);
-
+// Check for new playlists (ID-based)
 async function checkNewPlaylists() {
     try {
         const data = await api('getPlaylists');
         const playlists = data.playlists || [];
-        const currentCount = playlists.length;
-        const lastCount = STATE.lastChecked.playlists;
         
-        // First initialization
-        if (lastCount === -1) {
-            STATE.lastChecked.playlists = currentCount;
+        // Get seen playlist IDs
+        const seenIds = STATE.lastChecked.seenPlaylistIds || [];
+        const lastCount = STATE.lastChecked.playlistCount ?? -1;
+        
+        // First initialization - mark all as seen
+        if (lastCount === -1 || seenIds.length === 0) {
+            STATE.lastChecked.playlistCount = playlists.length;
+            STATE.lastChecked.seenPlaylistIds = playlists.map(p => p.id || p.name).filter(Boolean);
             saveNotificationState();
+            console.log('  → Playlists initialized at:', playlists.length);
             return null;
         }
         
-        // New playlists added
-        if (currentCount > lastCount) {
-            const newCount = currentCount - lastCount;
-            
-            STATE.lastChecked.playlists = currentCount;
-            saveNotificationState();
-            
-            return {
-                type: 'playlist',
-                icon: '🎵',
-                title: 'New Playlist Added!',
-                message: `${newCount} new playlist${newCount > 1 ? 's' : ''} available!`,
-                action: () => loadPage('playlists'),
-                actionText: 'View Playlists',
-                week: STATE.week
-            };
+        // Find unseen playlists
+        const unseen = playlists.filter(p => {
+            const id = p.id || p.name;
+            return id && !seenIds.includes(id);
+        });
+        
+        if (unseen.length === 0) {
+            // Update count silently
+            STATE.lastChecked.playlistCount = playlists.length;
+            return null;
         }
         
-        return null;
+        // Mark all as seen
+        STATE.lastChecked.playlistCount = playlists.length;
+        STATE.lastChecked.seenPlaylistIds = playlists.map(p => p.id || p.name).filter(Boolean);
+        saveNotificationState();
+        
+        return {
+            type: 'playlist',
+            icon: '🎵',
+            title: 'New Playlist Added!',
+            message: `${unseen.length} new playlist${unseen.length > 1 ? 's' : ''} available!`,
+            action: () => loadPage('playlists'),
+            actionText: 'View Playlists',
+            week: STATE.week,
+            id: `playlist_${Date.now()}`
+        };
+        
     } catch (e) {
         console.log('Playlist check error:', e);
         return null;
     }
 }
 
-// Check for new secret missions
+// Check for new secret missions (ID-based)
 async function checkNewMissions() {
     try {
         const team = STATE.data?.profile?.team;
@@ -1160,47 +982,57 @@ async function checkNewMissions() {
         
         const activeMissions = data.active || [];
         const myAssigned = data.myAssigned || [];
-        const currentCount = activeMissions.length;
-        const lastCount = STATE.lastChecked.missions;
+        
+        // Get seen mission IDs
+        const seenIds = STATE.lastChecked.seenMissionIds || [];
+        const lastCount = STATE.lastChecked.missionCount ?? -1;
         
         // First initialization
-        if (lastCount === -1) {
-            STATE.lastChecked.missions = currentCount;
-            STATE.lastChecked.missionIds = activeMissions.map(m => m.id);
+        if (lastCount === -1 || (seenIds.length === 0 && activeMissions.length > 0)) {
+            STATE.lastChecked.missionCount = activeMissions.length;
+            STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
             saveNotificationState();
+            console.log('  → Missions initialized at:', activeMissions.length);
             return null;
         }
         
         // Check for personally assigned missions (HIGH PRIORITY)
-        if (myAssigned.length > 0) {
-            const unseenAssigned = myAssigned.filter(m => 
-                !STATE.lastChecked.missionIds?.includes(m.id)
-            );
+        const unseenAssigned = myAssigned.filter(m => 
+            m.id && !seenIds.includes(m.id)
+        );
+        
+        if (unseenAssigned.length > 0) {
+            const mission = unseenAssigned[0];
             
-            if (unseenAssigned.length > 0) {
-                const mission = unseenAssigned[0];
-                
-                // Track this mission
-                if (!STATE.lastChecked.missionIds) STATE.lastChecked.missionIds = [];
-                STATE.lastChecked.missionIds.push(mission.id);
-                saveNotificationState();
-                
-                return {
-                    type: 'mission',
-                    icon: '🎯',
-                    title: 'Mission Assigned to YOU!',
-                    message: mission.title || 'New classified mission',
-                    action: () => loadPage('secret-missions'),
-                    actionText: 'View Mission',
-                    priority: 'high',
-                    week: STATE.week
-                };
-            }
+            // Mark as seen
+            STATE.lastChecked.seenMissionIds = [
+                ...seenIds,
+                ...unseenAssigned.map(m => m.id)
+            ];
+            saveNotificationState();
+            
+            return {
+                type: 'mission',
+                icon: '🎯',
+                title: 'Mission Assigned to YOU!',
+                message: mission.title || 'New classified mission',
+                action: () => loadPage('secret-missions'),
+                actionText: 'View Mission',
+                priority: 'high',
+                week: STATE.week,
+                id: mission.id
+            };
         }
         
         // Check for new team missions
-        if (currentCount > lastCount) {
-            STATE.lastChecked.missions = currentCount;
+        const unseenMissions = activeMissions.filter(m => 
+            m.id && !seenIds.includes(m.id)
+        );
+        
+        if (unseenMissions.length > 0) {
+            // Mark all as seen
+            STATE.lastChecked.missionCount = activeMissions.length;
+            STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
             saveNotificationState();
             
             return {
@@ -1210,12 +1042,13 @@ async function checkNewMissions() {
                 message: 'Your team has a new secret mission!',
                 action: () => loadPage('secret-missions'),
                 actionText: 'View Missions',
-                week: STATE.week
+                week: STATE.week,
+                id: unseenMissions[0].id
             };
         }
         
         // Update count silently
-        STATE.lastChecked.missions = currentCount;
+        STATE.lastChecked.missionCount = activeMissions.length;
         
         return null;
     } catch (e) {
@@ -1239,7 +1072,6 @@ async function checkNewSongOfDay() {
         const alreadyAnswered = localStorage.getItem(storageKey);
         
         if (alreadyAnswered) {
-            // Already played today, no notification needed
             STATE.lastChecked.songOfDay = today;
             return null;
         }
@@ -1257,7 +1089,8 @@ async function checkNewSongOfDay() {
                     loadPage('song-of-day');
                 },
                 actionText: 'Play Now',
-                week: STATE.week
+                week: STATE.week,
+                id: `sotd_${today}`
             };
         }
         
@@ -1272,11 +1105,12 @@ async function checkNewSongOfDay() {
 function checkWeekResults() {
     if (!STATE.weeks || STATE.weeks.length === 0) return null;
     
+    const seenResults = STATE.lastChecked.weekResults || [];
+    
     // Find completed weeks that user hasn't seen
     const unseenCompletedWeeks = STATE.weeks.filter(week => {
-        const completed = isWeekCompleted(week);
-        const seen = STATE.hasSeenResults?.[week] || 
-                     STATE.lastChecked.weekResults?.includes(week);
+        const completed = typeof isWeekCompleted === 'function' ? isWeekCompleted(week) : false;
+        const seen = STATE.hasSeenResults?.[week] || seenResults.includes(week);
         return completed && !seen;
     });
     
@@ -1284,8 +1118,8 @@ function checkWeekResults() {
     
     // Get the most recent completed week
     const latestCompleted = unseenCompletedWeeks.sort((a, b) => {
-        const dateA = new Date(CONFIG.WEEK_DATES[a] || 0);
-        const dateB = new Date(CONFIG.WEEK_DATES[b] || 0);
+        const dateA = new Date(CONFIG.WEEK_DATES?.[a] || 0);
+        const dateB = new Date(CONFIG.WEEK_DATES?.[b] || 0);
         return dateB - dateA;
     })[0];
     
@@ -1298,18 +1132,19 @@ function checkWeekResults() {
         message: `${latestCompleted} has ended. See the final standings!`,
         action: () => {
             STATE.week = latestCompleted;
-            const weekSelect = $('week-select');
+            const weekSelect = document.getElementById('week-select');
             if (weekSelect) weekSelect.value = latestCompleted;
-            markResultsSeen(latestCompleted);
+            if (typeof markResultsSeen === 'function') markResultsSeen(latestCompleted);
             loadPage('summary');
         },
         actionText: 'View Results',
         priority: 'high',
-        week: latestCompleted
+        week: latestCompleted,
+        id: `results_${latestCompleted}`
     };
 }
 
-// ===== UI FUNCTIONS =====
+// ==================== NOTIFICATION UI ====================
 
 // Update notification badge in header
 function updateNotificationBadge() {
@@ -1372,6 +1207,145 @@ function showNotificationPopup(notifications) {
     const popup = document.createElement('div');
     popup.className = 'notification-popup';
     popup.innerHTML = `
+        <style>
+            .notification-popup {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 999998;
+                max-width: 350px;
+                background: linear-gradient(145deg, #1a1a2e, #16213e);
+                border-radius: 16px;
+                border: 1px solid rgba(123, 44, 191, 0.3);
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                overflow: hidden;
+                transform: translateX(120%);
+                opacity: 0;
+                transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            }
+            
+            .notification-popup.show {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            
+            .notification-popup.hide {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+            
+            .notif-popup-content {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px;
+            }
+            
+            .notif-popup-content.high-priority {
+                background: linear-gradient(135deg, rgba(255,68,68,0.1), rgba(255,68,68,0.05));
+                border-left: 3px solid #ff4444;
+            }
+            
+            .notif-popup-icon {
+                font-size: 28px;
+                flex-shrink: 0;
+            }
+            
+            .notif-popup-icon.bounce {
+                animation: iconBounce 1s ease infinite;
+            }
+            
+            @keyframes iconBounce {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-5px); }
+            }
+            
+            .notif-popup-text {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .notif-popup-title {
+                color: #fff;
+                font-weight: bold;
+                font-size: 14px;
+                margin-bottom: 4px;
+            }
+            
+            .notif-popup-message {
+                color: #aaa;
+                font-size: 12px;
+                line-height: 1.4;
+            }
+            
+            .notif-popup-close {
+                background: none;
+                border: none;
+                color: #666;
+                font-size: 20px;
+                cursor: pointer;
+                padding: 0;
+                line-height: 1;
+                transition: color 0.2s;
+            }
+            
+            .notif-popup-close:hover {
+                color: #ff4444;
+            }
+            
+            .notif-popup-actions {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 16px;
+                background: rgba(0,0,0,0.2);
+                border-top: 1px solid rgba(255,255,255,0.05);
+            }
+            
+            .notif-action-btn {
+                flex: 1;
+                padding: 10px 16px;
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                border: none;
+                border-radius: 8px;
+                color: #fff;
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+            
+            .notif-action-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(123,44,191,0.4);
+            }
+            
+            .notif-action-btn.pulse-btn {
+                animation: btnPulse 2s ease-in-out infinite;
+            }
+            
+            @keyframes btnPulse {
+                0%, 100% { box-shadow: 0 0 0 rgba(123,44,191,0); }
+                50% { box-shadow: 0 0 20px rgba(123,44,191,0.5); }
+            }
+            
+            .notif-more {
+                color: #7b2cbf;
+                font-size: 12px;
+                cursor: pointer;
+                white-space: nowrap;
+            }
+            
+            .notif-more:hover {
+                text-decoration: underline;
+            }
+            
+            @keyframes notifPulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+            }
+        </style>
+        
         <div class="notif-popup-content ${isHighPriority ? 'high-priority' : ''}">
             <div class="notif-popup-icon ${isHighPriority ? 'bounce' : ''}">${notif.icon || '🔔'}</div>
             <div class="notif-popup-text">
@@ -1394,12 +1368,8 @@ function showNotificationPopup(notifications) {
     
     document.body.appendChild(popup);
     
-    // Animate in
-    requestAnimationFrame(() => {
-        popup.classList.add('show');
-    });
+    requestAnimationFrame(() => popup.classList.add('show'));
     
-    // Auto dismiss (longer for high priority)
     const dismissTime = isHighPriority ? 10000 : 6000;
     setTimeout(() => dismissNotificationPopup(), dismissTime);
 }
@@ -1435,7 +1405,7 @@ function markNotificationSeen(notif) {
     
     // Mark as dismissed
     if (!STATE.dismissedPopups) STATE.dismissedPopups = {};
-    STATE.dismissedPopups[key] = true;
+    STATE.dismissedPopups[key] = Date.now();
     
     // Type-specific handling
     switch (notif.type) {
@@ -1443,16 +1413,29 @@ function markNotificationSeen(notif) {
         case 'achievement': {
             const currentXP = parseInt(STATE.data?.stats?.totalXP) || 0;
             STATE.lastChecked.badges = Math.floor(currentXP / 50);
+            STATE.lastChecked._badgesInitialized = true;
             break;
         }
         case 'announcement': {
-            STATE.lastChecked.announcements = Date.now();
+            STATE.lastChecked.lastAnnouncementTimestamp = Date.now();
+            if (notif.id && !STATE.lastChecked.seenAnnouncementIds.includes(notif.id)) {
+                STATE.lastChecked.seenAnnouncementIds.push(notif.id);
+            }
+            break;
+        }
+        case 'playlist': {
+            // Already marked in check function
+            break;
+        }
+        case 'mission': {
+            if (notif.id && !STATE.lastChecked.seenMissionIds.includes(notif.id)) {
+                STATE.lastChecked.seenMissionIds.push(notif.id);
+            }
             break;
         }
         case 'results': {
             if (notif.week) {
-                markResultsSeen(notif.week);
-                if (!STATE.lastChecked.weekResults) STATE.lastChecked.weekResults = [];
+                if (typeof markResultsSeen === 'function') markResultsSeen(notif.week);
                 if (!STATE.lastChecked.weekResults.includes(notif.week)) {
                     STATE.lastChecked.weekResults.push(notif.week);
                 }
@@ -1472,9 +1455,8 @@ function markNotificationSeen(notif) {
     updateNotificationBadge();
 }
 
-// Show notification center (all notifications)
+// Show notification center
 function showNotificationCenter() {
-    // Remove existing
     document.querySelectorAll('.notification-center').forEach(c => c.remove());
     dismissNotificationPopup();
     
@@ -1483,6 +1465,169 @@ function showNotificationCenter() {
     const center = document.createElement('div');
     center.className = 'notification-center';
     center.innerHTML = `
+        <style>
+            .notification-center {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 999999;
+                opacity: 0;
+                transition: opacity 0.3s;
+            }
+            
+            .notification-center.show {
+                opacity: 1;
+            }
+            
+            .notification-center.hide {
+                opacity: 0;
+            }
+            
+            .notif-center-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.7);
+            }
+            
+            .notif-center-panel {
+                position: absolute;
+                top: 60px;
+                right: 20px;
+                width: 360px;
+                max-width: calc(100vw - 40px);
+                max-height: calc(100vh - 100px);
+                background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+                border-radius: 16px;
+                border: 1px solid rgba(123,44,191,0.3);
+                box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .notif-center-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 16px 20px;
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+            }
+            
+            .notif-center-header h3 {
+                margin: 0;
+                color: #fff;
+                font-size: 16px;
+            }
+            
+            .notif-center-header button {
+                background: rgba(255,255,255,0.2);
+                border: none;
+                color: #fff;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                font-size: 18px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.2s;
+            }
+            
+            .notif-center-header button:hover {
+                background: rgba(255,255,255,0.3);
+            }
+            
+            .notif-center-list {
+                flex: 1;
+                overflow-y: auto;
+                padding: 10px;
+            }
+            
+            .notif-center-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 14px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 10px;
+                margin-bottom: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            .notif-center-item:hover {
+                background: rgba(123,44,191,0.15);
+                transform: translateX(5px);
+            }
+            
+            .notif-center-item.high-priority {
+                background: rgba(255,68,68,0.1);
+                border-left: 3px solid #ff4444;
+            }
+            
+            .notif-item-icon {
+                font-size: 24px;
+                flex-shrink: 0;
+            }
+            
+            .notif-item-content {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .notif-item-title {
+                color: #fff;
+                font-weight: 600;
+                font-size: 13px;
+                margin-bottom: 3px;
+            }
+            
+            .notif-item-message {
+                color: #888;
+                font-size: 11px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            
+            .notif-item-arrow {
+                color: #7b2cbf;
+                font-size: 16px;
+            }
+            
+            .notif-empty {
+                text-align: center;
+                padding: 40px 20px;
+            }
+            
+            .notif-center-footer {
+                padding: 12px;
+                border-top: 1px solid rgba(255,255,255,0.05);
+            }
+            
+            .notif-center-footer button {
+                width: 100%;
+                padding: 10px;
+                background: transparent;
+                border: 1px solid rgba(255,68,68,0.3);
+                border-radius: 8px;
+                color: #ff6b6b;
+                font-size: 12px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            .notif-center-footer button:hover {
+                background: rgba(255,68,68,0.1);
+            }
+        </style>
+        
         <div class="notif-center-overlay" onclick="closeNotificationCenter()"></div>
         <div class="notif-center-panel">
             <div class="notif-center-header">
@@ -1517,11 +1662,7 @@ function showNotificationCenter() {
     `;
     
     document.body.appendChild(center);
-    
-    // Animate in
-    requestAnimationFrame(() => {
-        center.classList.add('show');
-    });
+    requestAnimationFrame(() => center.classList.add('show'));
 }
 
 // Close notification center
@@ -1543,7 +1684,620 @@ function clearAllNotifications() {
     showToast('All notifications cleared', 'success');
 }
 
-// ==================== END NOTIFICATION SYSTEM ====================
+// ==================== VOTING ANNOUNCEMENT POPUP ====================
+
+async function checkVotingAnnouncement() {
+    if (!STATE.agentNo) return;
+    
+    try {
+        const data = await api('getActiveVotingAnnouncement');
+        
+        if (!data.success || !data.voting) return;
+        
+        const voting = data.voting;
+        const votingId = voting.id;
+        
+        if (!votingId) {
+            console.log('Voting has no ID, skipping');
+            return;
+        }
+        
+        // Get stored response (version-safe)
+        const responseData = getVotingResponse(votingId);
+        
+        // If already voted or said yes, don't show again
+        if (responseData.response === 'yes' || responseData.response === 'already_voted') {
+            console.log('Already responded to voting:', votingId, responseData.response);
+            return;
+        }
+        
+        // If "not_now", check if reminder time has passed
+        if (responseData.response === 'not_now') {
+            if (responseData.reminderTime && Date.now() < responseData.reminderTime) {
+                console.log('Reminder not yet due, time left:', 
+                    Math.round((responseData.reminderTime - Date.now()) / 60000), 'minutes');
+                return;
+            }
+            console.log('Reminder time passed, showing popup again');
+        }
+        
+        // Check if dismissed this session
+        const dismissKey = 'voting_dismissed_session_' + votingId;
+        if (sessionStorage.getItem(dismissKey)) {
+            return;
+        }
+        
+        // Store voting data for onclick handlers
+        STATE.currentVoting = voting;
+        
+        // Show voting popup
+        showVotingPopup(voting);
+        
+    } catch (e) {
+        console.log('Error checking voting announcement:', e);
+    }
+}
+
+// Version-safe response storage
+function getVotingResponse(votingId) {
+    try {
+        const key = 'voting_v' + VOTING_STORAGE_VERSION + '_' + STATE.agentNo + '_' + votingId;
+        const data = localStorage.getItem(key);
+        
+        if (data) {
+            return JSON.parse(data);
+        }
+        
+        // Check legacy storage and migrate
+        const legacyKey = 'voting_response_' + STATE.agentNo + '_' + votingId;
+        const legacyResponse = localStorage.getItem(legacyKey);
+        
+        if (legacyResponse) {
+            // Migrate to new format
+            const migrated = {
+                response: legacyResponse,
+                timestamp: Date.now(),
+                version: VOTING_STORAGE_VERSION
+            };
+            
+            // Check for reminder time
+            const reminderKey = 'voting_reminder_' + votingId;
+            const reminderTime = localStorage.getItem(reminderKey);
+            if (reminderTime) {
+                migrated.reminderTime = parseInt(reminderTime);
+                localStorage.removeItem(reminderKey);
+            }
+            
+            // Save new format
+            localStorage.setItem(key, JSON.stringify(migrated));
+            localStorage.removeItem(legacyKey);
+            
+            console.log('Migrated voting response for:', votingId);
+            return migrated;
+        }
+        
+        return { response: null };
+    } catch (e) {
+        console.log('Error reading voting response:', e);
+        return { response: null };
+    }
+}
+
+function saveVotingResponse(votingId, response, extraData = {}) {
+    try {
+        const key = 'voting_v' + VOTING_STORAGE_VERSION + '_' + STATE.agentNo + '_' + votingId;
+        const data = {
+            response: response,
+            timestamp: Date.now(),
+            version: VOTING_STORAGE_VERSION,
+            ...extraData
+        };
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+        console.log('Error saving voting response:', e);
+    }
+}
+
+function showVotingPopup(voting) {
+    // Remove any existing voting popup
+    document.querySelectorAll('.voting-announcement-popup').forEach(p => p.remove());
+    
+    const popup = document.createElement('div');
+    popup.className = 'voting-announcement-popup';
+    popup.id = 'voting-popup-' + voting.id;
+    
+    // Sanitize values for display
+    const safeTitle = sanitize(voting.title || 'Voting Mission');
+    const safeMessage = sanitize(voting.message || '');
+    
+    popup.innerHTML = `
+        <style>
+            .voting-announcement-popup {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.95);
+                z-index: 99999999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                animation: votingFadeIn 0.3s ease;
+                backdrop-filter: blur(5px);
+            }
+            
+            @keyframes votingFadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            @keyframes votingFadeOut {
+                from { opacity: 1; transform: scale(1); }
+                to { opacity: 0; transform: scale(0.95); }
+            }
+            
+            @keyframes votingSlideUp {
+                from { 
+                    transform: translateY(50px) scale(0.95);
+                    opacity: 0;
+                }
+                to { 
+                    transform: translateY(0) scale(1);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes votingBorderRotate {
+                0% { filter: hue-rotate(0deg); }
+                100% { filter: hue-rotate(360deg); }
+            }
+            
+            @keyframes votingUrgentPulse {
+                0%, 100% { background: linear-gradient(135deg, #ff0000, #cc0000); }
+                50% { background: linear-gradient(135deg, #ff4444, #ff0000); }
+            }
+            
+            @keyframes votingWarningPulse {
+                0%, 100% { 
+                    border-color: #ff4444;
+                    box-shadow: 0 0 0 rgba(255,68,68,0);
+                }
+                50% { 
+                    border-color: #ff6b6b;
+                    box-shadow: 0 0 15px rgba(255,68,68,0.3);
+                }
+            }
+            
+            @keyframes votingGlow {
+                0%, 100% { box-shadow: 0 0 30px rgba(123,44,191,0.4); }
+                50% { box-shadow: 0 0 50px rgba(123,44,191,0.7), 0 0 80px rgba(255,20,147,0.3); }
+            }
+            
+            .voting-popup-content {
+                background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+                border-radius: 20px;
+                border: 3px solid transparent;
+                background-clip: padding-box;
+                max-width: 480px;
+                width: 100%;
+                overflow: hidden;
+                position: relative;
+                animation: votingSlideUp 0.4s ease, votingGlow 3s ease-in-out infinite;
+            }
+            
+            .voting-popup-content::before {
+                content: '';
+                position: absolute;
+                top: -3px;
+                left: -3px;
+                right: -3px;
+                bottom: -3px;
+                background: linear-gradient(45deg, #ffd700, #ff6b6b, #7b2cbf, #00d4ff, #00ff88, #ffd700);
+                border-radius: 22px;
+                z-index: -1;
+                animation: votingBorderRotate 4s linear infinite;
+            }
+            
+            .voting-close-btn {
+                position: absolute;
+                top: 45px;
+                right: 10px;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                border: none;
+                background: rgba(0,0,0,0.5);
+                color: #888;
+                font-size: 20px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s;
+                z-index: 10;
+            }
+            
+            .voting-close-btn:hover {
+                background: rgba(255,68,68,0.3);
+                color: #ff6b6b;
+                transform: rotate(90deg);
+            }
+            
+            .voting-btn-primary {
+                padding: 18px;
+                background: linear-gradient(135deg, #00ff88, #00cc6a);
+                border: none;
+                border-radius: 12px;
+                color: #000;
+                font-size: 17px;
+                font-weight: bold;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                transition: all 0.3s;
+                box-shadow: 0 4px 20px rgba(0,255,136,0.4);
+                width: 100%;
+            }
+            
+            .voting-btn-primary:hover:not(:disabled) {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 25px rgba(0,255,136,0.5);
+            }
+            
+            .voting-btn-primary:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+            
+            .voting-btn-secondary {
+                padding: 14px;
+                background: rgba(123,44,191,0.2);
+                border: 1px solid rgba(123,44,191,0.5);
+                border-radius: 12px;
+                color: #c9a0ff;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                transition: all 0.3s;
+                width: 100%;
+            }
+            
+            .voting-btn-secondary:hover:not(:disabled) {
+                background: rgba(123,44,191,0.3);
+            }
+            
+            .voting-btn-tertiary {
+                padding: 10px;
+                background: transparent;
+                border: 1px solid rgba(255,255,255,0.15);
+                border-radius: 8px;
+                color: #666;
+                font-size: 12px;
+                cursor: pointer;
+                transition: all 0.3s;
+                width: 100%;
+            }
+            
+            .voting-btn-tertiary:hover:not(:disabled) {
+                color: #888;
+                border-color: rgba(255,255,255,0.25);
+            }
+        </style>
+        
+        <div class="voting-popup-content">
+            <!-- Close Button -->
+            <button class="voting-close-btn" onclick="dismissVotingPopup('${voting.id}')" title="Close">×</button>
+            
+            <!-- URGENT Banner -->
+            <div style="
+                background: linear-gradient(135deg, #ff0000, #cc0000);
+                padding: 8px;
+                text-align: center;
+                animation: votingUrgentPulse 1.5s ease-in-out infinite;
+            ">
+                <span style="color:#fff;font-size:11px;font-weight:bold;letter-spacing:2px;">
+                    🚨 URGENT: EVERYONE MUST VOTE 🚨
+                </span>
+            </div>
+            
+            <!-- Header -->
+            <div style="
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                padding: 20px 25px;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            ">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+                    <span style="font-size:32px;">🗳️</span>
+                    <div style="flex:1;">
+                        <div style="color:#ffd700;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">
+                            🔥 FAN VOTING MISSION
+                        </div>
+                        <div style="color:#fff;font-size:16px;font-weight:bold;margin-top:4px;">
+                            ${safeTitle}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Message Body -->
+            <div style="padding:25px;">
+                <!-- Important Notice -->
+                <div style="
+                    background: rgba(255, 68, 68, 0.15);
+                    border: 2px solid #ff4444;
+                    border-radius: 12px;
+                    padding: 15px;
+                    margin-bottom: 20px;
+                    animation: votingWarningPulse 2s ease-in-out infinite;
+                ">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <span style="font-size:24px;">⚠️</span>
+                        <div style="color:#ff6b6b;font-weight:bold;font-size:14px;">
+                            ALL AGENTS MUST PARTICIPATE!
+                        </div>
+                    </div>
+                    <div style="color:#fff;font-size:12px;line-height:1.6;">
+                        This is a <strong style="color:#ffd700;">team mission</strong>. Every vote counts. 
+                        We need <strong style="color:#00ff88;">100% participation</strong> to support Jin! 💜
+                    </div>
+                </div>
+                
+                <!-- Message Details -->
+                <div style="
+                    color:#fff;
+                    font-size:14px;
+                    line-height:1.7;
+                    white-space:pre-line;
+                    margin-bottom:20px;
+                    padding:15px;
+                    background:rgba(255,255,255,0.03);
+                    border-radius:10px;
+                    border-left:4px solid #7b2cbf;
+                    max-height: 150px;
+                    overflow-y: auto;
+                ">
+                    ${safeMessage}
+                </div>
+                
+                <!-- Call to Action -->
+                <div style="
+                    background:linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05));
+                    border:2px solid rgba(255,215,0,0.4);
+                    border-radius:12px;
+                    padding:18px;
+                    margin-bottom:25px;
+                    text-align:center;
+                ">
+                    <div style="font-size:24px;margin-bottom:10px;">💜</div>
+                    <div style="color:#ffd700;font-size:15px;font-weight:bold;margin-bottom:6px;">
+                        Will you help vote for Jin?
+                    </div>
+                    <div style="color:#888;font-size:11px;">
+                        Your support matters! Let's take Jin to #1!
+                    </div>
+                </div>
+                
+                <!-- Response Buttons -->
+                <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:15px;">
+                    <!-- YES Button (Primary) -->
+                    <button id="voting-btn-yes" class="voting-btn-primary" onclick="handleVotingResponse('yes')">
+                        <span style="font-size:22px;">✓</span>
+                        <span>Yes! I'll Vote Now!</span>
+                        <span style="font-size:20px;">→</span>
+                    </button>
+                    
+                    <!-- Already Voted Button -->
+                    <button id="voting-btn-voted" class="voting-btn-secondary" onclick="handleVotingResponse('already_voted')">
+                        <span>✔️</span>
+                        <span>I Already Voted!</span>
+                    </button>
+                    
+                    <!-- Not Now Button (Smallest) -->
+                    <button id="voting-btn-later" class="voting-btn-tertiary" onclick="handleVotingResponse('not_now')">
+                        Remind Me Later
+                    </button>
+                </div>
+                
+                <!-- Team Mission Note -->
+                <div style="
+                    text-align:center;
+                    padding:12px;
+                    background:rgba(0,0,0,0.3);
+                    border-radius:8px;
+                ">
+                    <span style="color:#888;font-size:11px;">
+                        💜 Remember: This is a <strong style="color:#7b2cbf;">team mission</strong> - 
+                        let's show our support together! 💜
+                    </span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+}
+
+// Dismiss popup for this session only
+function dismissVotingPopup(votingId) {
+    const popup = document.querySelector('.voting-announcement-popup');
+    if (popup) {
+        popup.style.animation = 'votingFadeOut 0.3s ease forwards';
+        setTimeout(() => {
+            popup.remove();
+            document.body.style.overflow = '';
+        }, 300);
+    }
+    
+    // Mark as dismissed for this session
+    if (votingId) {
+        sessionStorage.setItem('voting_dismissed_session_' + votingId, 'true');
+    }
+}
+
+// Handle voting response (uses STATE.currentVoting)
+async function handleVotingResponse(response) {
+    const voting = STATE.currentVoting;
+    if (!voting || !STATE.agentNo) {
+        showToast('❌ Error: Voting data not found', 'error');
+        return;
+    }
+    
+    const votingId = voting.id;
+    const buttonId = {
+        'yes': 'voting-btn-yes',
+        'already_voted': 'voting-btn-voted',
+        'not_now': 'voting-btn-later'
+    }[response];
+    
+    const button = document.getElementById(buttonId);
+    
+    // Disable all buttons
+    document.querySelectorAll('.voting-btn-primary, .voting-btn-secondary, .voting-btn-tertiary')
+        .forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+        });
+    
+    // Show loading on clicked button
+    if (button) {
+        button.style.opacity = '0.8';
+        
+        const loadingText = {
+            'yes': '<span>⏳</span><span>Opening voting page...</span>',
+            'already_voted': '<span>⏳</span><span>Recording...</span>',
+            'not_now': '<span>⏳</span><span>Saving...</span>'
+        };
+        button.innerHTML = loadingText[response];
+    }
+    
+    try {
+        // Record response to server
+        await api('recordVotingResponse', {
+            agentNo: STATE.agentNo,
+            votingId: votingId,
+            response: response
+        });
+        
+        // Handle different responses
+        if (response === 'yes') {
+            // Save response
+            saveVotingResponse(votingId, 'yes');
+            
+            // Open voting link
+            if (voting.link) {
+                window.open(voting.link, '_blank', 'noopener,noreferrer');
+            }
+            
+            // Show success with confetti
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+            
+            showToast('🎉 Thank you! Voting page opened. Please complete your vote!', 'success');
+            
+        } else if (response === 'already_voted') {
+            // Save response
+            saveVotingResponse(votingId, 'already_voted');
+            
+            showToast('✅ Great! Thank you for voting! 💜', 'success');
+            
+        } else if (response === 'not_now') {
+            // Save response with reminder time (4 hours)
+            const reminderTime = Date.now() + (4 * 60 * 60 * 1000);
+            saveVotingResponse(votingId, 'not_now', { reminderTime });
+            
+            showToast('⏰ We\'ll remind you in 4 hours. Please don\'t forget to vote!', 'info');
+        }
+        
+        // Close popup after delay
+        setTimeout(() => {
+            dismissVotingPopup(votingId);
+        }, 1500);
+        
+    } catch (e) {
+        console.error('Error recording vote:', e);
+        showToast('❌ Failed to save response. Please try again.', 'error');
+        
+        // Re-enable buttons
+        document.querySelectorAll('.voting-btn-primary, .voting-btn-secondary, .voting-btn-tertiary')
+            .forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            });
+        
+        // Restore button text
+        if (button) {
+            const originalText = {
+                'yes': '<span style="font-size:22px;">✓</span><span>Yes! I\'ll Vote Now!</span><span style="font-size:20px;">→</span>',
+                'already_voted': '<span>✔️</span><span>I Already Voted!</span>',
+                'not_now': 'Remind Me Later'
+            };
+            button.innerHTML = originalText[response];
+        }
+    }
+}
+
+// ==================== DEBUG / RESET UTILITIES ====================
+
+// Reset notification baseline for testing
+function resetNotificationBaseline() {
+    const storageKey = 'notificationState_v3_' + STATE.agentNo;
+    localStorage.removeItem(storageKey);
+    localStorage.removeItem('notificationState_' + STATE.agentNo); // Legacy
+    STATE.lastChecked = null;
+    STATE.dismissedPopups = {};
+    STATE.notifications = [];
+    initializeNotificationBaseline();
+    console.log('🔄 Notification baseline reset');
+    showToast('Notifications reset', 'success');
+}
+
+// Reset voting response for testing
+function resetVotingResponse(votingId) {
+    if (!STATE.agentNo || !votingId) {
+        console.log('Need agentNo and votingId');
+        return;
+    }
+    
+    const key = 'voting_v' + VOTING_STORAGE_VERSION + '_' + STATE.agentNo + '_' + votingId;
+    localStorage.removeItem(key);
+    
+    // Also clear legacy
+    localStorage.removeItem('voting_response_' + STATE.agentNo + '_' + votingId);
+    localStorage.removeItem('voting_reminder_' + votingId);
+    sessionStorage.removeItem('voting_dismissed_session_' + votingId);
+    
+    console.log('Voting response reset for:', votingId);
+    showToast('Voting response reset', 'success');
+}
+
+// Debug: Show current notification state
+function debugNotificationState() {
+    console.log('=== NOTIFICATION DEBUG ===');
+    console.log('Version:', NOTIFICATION_SYSTEM_VERSION);
+    console.log('Last Checked:', STATE.lastChecked);
+    console.log('Dismissed Popups:', STATE.dismissedPopups);
+    console.log('Current Notifications:', STATE.notifications);
+    console.log('Session Shown:', STATE.shownPopupsThisSession);
+    console.log('========================');
+}
+
+// ==================== END NOTIFICATION & VOTING SYSTEM ====================
 
 // ==================== FIXED BADGE FUNCTIONS ====================
 
