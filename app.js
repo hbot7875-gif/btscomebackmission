@@ -341,6 +341,19 @@ const PAGE_GUIDES = {
         title: 'Your Badge Collection',
         text: "Earn badges by:\n• Every 50 XP = 1 Badge 🎖️\n• Complete Album 2X = Special Badge ✨\n• Team Wins Week = Winner Badge 🏆"
     },
+    'attendance-checker': {
+    icon: '📋',
+    title: 'Attendance Checker Instructions',
+    text: '1. Check Team GC for screenshot submissions\n2. Mark attendance for members who submitted\n3. Deadline: Sunday 3:00 PM IST\n4. 100% attendance required for team eligibility',
+    isWarning: false
+  },
+  
+  'police-panel': {
+    icon: '👮',
+    title: 'Police Agent Instructions',
+    text: '1. Monitor team streaming activity\n2. Report violations: Looping or Wrong Playlist\n3. Max 3 unique violators per team\n4. More than 3 = Team disqualified',
+    isWarning: true
+  }
 };
 
 function renderGuide(pageName) {
@@ -4571,6 +4584,85 @@ async function renderProfile() {
         }
     }
 }
+
+// ==================== HELPER FUNCTIONS ====================
+
+async function markMemberAttendance(agentNo, name) {
+  if (!confirm(`Mark ${name} as present?`)) return;
+  
+  loading(true);
+  try {
+    const result = await api('markAttendance', {
+      week: STATE.week,
+      agentNo: agentNo,
+      checkerAgentNo: STATE.agentNo
+    });
+    
+    if (result.success) {
+      showToast(`✅ ${name} marked present`, 'success');
+      
+      // Reload attendance checker
+      await renderAttendanceChecker();
+    } else {
+      showToast('❌ ' + result.error, 'error');
+    }
+  } catch (e) {
+    console.error('Mark attendance error:', e);
+    showToast('Failed to mark attendance', 'error');
+  } finally {
+    loading(false);
+  }
+}
+
+async function unmarkMemberAttendance(agentNo, name) {
+  if (!confirm(`Remove ${name} from attendance?`)) return;
+  
+  loading(true);
+  try {
+    const result = await api('unmarkAttendance', {
+      week: STATE.week,
+      agentNo: agentNo,
+      checkerAgentNo: STATE.agentNo
+    });
+    
+    if (result.success) {
+      showToast(`✅ ${name} unmarked`, 'success');
+      
+      // Reload attendance checker
+      await renderAttendanceChecker();
+    } else {
+      showToast('❌ ' + result.error, 'error');
+    }
+  } catch (e) {
+    console.error('Unmark attendance error:', e);
+    showToast('Failed to unmark attendance', 'error');
+  } finally {
+    loading(false);
+  }
+}
+
+async function checkMyRole(roleId) {
+  try {
+    const rolesData = await api('getHelperRoles');
+    const roles = rolesData.roles || [];
+    
+    const role = roles.find(r => r.id === roleId);
+    if (!role) return false;
+    
+    return role.agents.some(a => String(a.agentNo) === String(STATE.agentNo));
+  } catch (e) {
+    console.error('Check role error:', e);
+    return false;
+  }
+}
+
+// Add this to your PAGE_GUIDES config
+PAGE_GUIDES['attendance-checker'] = {
+  icon: '📋',
+  title: 'Attendance Checker Instructions',
+  text: '1. Check Team GC for screenshot submissions\n2. Mark attendance for members who submitted\n3. Deadline: Sunday 3:00 PM IST\n4. 100% attendance required for team eligibility',
+  isWarning: false
+};
 // ==================== GOALS (MOBILE FIXED) ====================
 async function renderGoals() {
     const container = $('goals-content');
@@ -5140,6 +5232,1256 @@ async function renderMyTeamRankings() {
             ${rankingsHtml}
         `;
     } catch (e) { container.innerHTML = '<p class="error-text">Failed to load team rankings.</p>'; }
+}
+// ==================== ATTENDANCE CHECKER UI (THEME MATCHED) ====================
+
+async function renderAttendanceChecker() {
+  // Check if user has attendance role
+  const hasAttendanceRole = await checkMyRole('attendance');
+  
+  if (!hasAttendanceRole) {
+    const container = $('attendance-checker-content') || document.createElement('div');
+    container.id = 'attendance-checker-content';
+    container.innerHTML = `
+      <div style="
+        min-height: 60vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+      ">
+        <div style="
+          font-size: 80px;
+          margin-bottom: 20px;
+          opacity: 0.3;
+        ">🔒</div>
+        <h3 style="
+          color: #fff;
+          margin: 0 0 10px 0;
+          font-size: 20px;
+        ">Access Denied</h3>
+        <p style="
+          color: #888;
+          margin: 0;
+          font-size: 14px;
+        ">You need Attendance Checker role to access this page.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  let container = $('attendance-checker-content');
+  if (!container) {
+    const page = $('page-attendance-checker');
+    if (page) {
+      page.innerHTML = '<div id="attendance-checker-content"></div>';
+      container = $('attendance-checker-content');
+    }
+  }
+  if (!container) return;
+  
+  loading(true);
+  
+  try {
+    const team = STATE.data?.profile?.team;
+    const data = await api('getAttendanceList', { 
+      week: STATE.week, 
+      team: team 
+    });
+    
+    const teamColor = CONFIG.TEAMS[team]?.color || '#7b2cbf';
+    const percentage = parseFloat(data.percentage);
+    const isPassed = percentage >= 100;
+    
+    container.innerHTML = `
+      <!-- Guide Card -->
+      ${renderGuide('attendance-checker') || `
+        <div class="card guide-card" style="
+          background: linear-gradient(135deg, rgba(123,44,191,0.15), rgba(123,44,191,0.05));
+          border-left: 3px solid #7b2cbf;
+          margin-bottom: 20px;
+        ">
+          <div class="card-body" style="
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            padding: 15px;
+          ">
+            <div style="font-size: 28px;">📋</div>
+            <div style="flex: 1;">
+              <h4 style="
+                margin: 0 0 8px 0;
+                color: #fff;
+                font-size: 15px;
+                font-weight: 600;
+              ">Attendance Checker Instructions</h4>
+              <p style="
+                margin: 0;
+                color: #aaa;
+                font-size: 13px;
+                line-height: 1.6;
+              ">
+                1. Check Team GC for screenshot submissions<br>
+                2. Mark attendance for members who submitted<br>
+                3. Deadline: <strong style="color:#ff6b6b;">Sunday 3:00 PM IST</strong><br>
+                4. <strong style="color:#ffd700;">100% attendance required</strong> for team eligibility
+              </p>
+            </div>
+          </div>
+        </div>
+      `}
+      
+      <!-- Stats Overview Card -->
+      <div class="card" style="
+        background: linear-gradient(135deg, ${teamColor}11, var(--bg-card));
+        border-color: ${teamColor}40;
+        margin-bottom: 20px;
+      ">
+        <div class="card-header" style="
+          border-bottom: 1px solid ${teamColor}22;
+          padding: 15px;
+        ">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; color: #fff; font-size: 16px;">
+              ${team} - ${STATE.week}
+            </h3>
+            <span class="week-badge" style="
+              background: ${teamColor}33;
+              color: ${teamColor};
+              padding: 4px 12px;
+              border-radius: 12px;
+              font-size: 11px;
+              font-weight: 600;
+            ">${percentage.toFixed(1)}%</span>
+          </div>
+        </div>
+        
+        <div class="card-body" style="padding: 20px;">
+          <!-- Quick Stats Grid -->
+          <div style="
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+          ">
+            <!-- Total Members -->
+            <div style="
+              text-align: center;
+              padding: 18px 12px;
+              background: rgba(255,255,255,0.03);
+              border-radius: 12px;
+              border: 1px solid rgba(255,255,255,0.05);
+            ">
+              <div style="
+                font-size: 28px;
+                font-weight: bold;
+                color: #fff;
+                margin-bottom: 5px;
+              ">${data.totalMembers}</div>
+              <div style="
+                font-size: 11px;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+              ">Total Members</div>
+            </div>
+            
+            <!-- Submitted -->
+            <div style="
+              text-align: center;
+              padding: 18px 12px;
+              background: linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,255,136,0.05));
+              border-radius: 12px;
+              border: 1px solid rgba(0,255,136,0.2);
+            ">
+              <div style="
+                font-size: 28px;
+                font-weight: bold;
+                color: #00ff88;
+                margin-bottom: 5px;
+              ">${data.submittedCount}</div>
+              <div style="
+                font-size: 11px;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+              ">✅ Submitted</div>
+            </div>
+            
+            <!-- Missing -->
+            <div style="
+              text-align: center;
+              padding: 18px 12px;
+              background: linear-gradient(135deg, rgba(255,68,68,0.15), rgba(255,68,68,0.05));
+              border-radius: 12px;
+              border: 1px solid rgba(255,68,68,0.2);
+            ">
+              <div style="
+                font-size: 28px;
+                font-weight: bold;
+                color: #ff6b6b;
+                margin-bottom: 5px;
+              ">${data.notSubmittedCount}</div>
+              <div style="
+                font-size: 11px;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+              ">❌ Missing</div>
+            </div>
+          </div>
+          
+          <!-- Progress Bar -->
+          <div style="margin-bottom: 15px;">
+            <div style="
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+            ">
+              <span style="
+                color: #888;
+                font-size: 12px;
+                font-weight: 500;
+              ">Attendance Progress</span>
+              <span style="
+                color: ${isPassed ? '#00ff88' : '#fff'};
+                font-size: 13px;
+                font-weight: 600;
+              ">${percentage.toFixed(1)}%</span>
+            </div>
+            <div class="progress-bar" style="
+              width: 100%;
+              height: 10px;
+              background: rgba(255,255,255,0.05);
+              border-radius: 10px;
+              overflow: hidden;
+              position: relative;
+            ">
+              <div class="progress-fill ${isPassed ? 'complete' : ''}" style="
+                width: ${percentage}%;
+                height: 100%;
+                background: ${isPassed 
+                  ? 'linear-gradient(90deg, #00ff88, #00cc6a)' 
+                  : 'linear-gradient(90deg, #7b2cbf, #c56cf0)'};
+                border-radius: 10px;
+                transition: width 0.5s ease;
+                position: relative;
+                overflow: hidden;
+              ">
+                ${isPassed ? `
+                  <div style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                    animation: shimmer 2s infinite;
+                  "></div>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Status Banner -->
+          ${isPassed ? `
+            <div style="
+              padding: 14px 16px;
+              background: linear-gradient(135deg, rgba(0,255,136,0.2), rgba(0,255,136,0.1));
+              border: 1px solid rgba(0,255,136,0.4);
+              border-radius: 12px;
+              text-align: center;
+              box-shadow: 0 4px 15px rgba(0,255,136,0.2);
+            ">
+              <div style="
+                color: #00ff88;
+                font-size: 14px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+              ">
+                <span style="font-size: 20px;">✅</span>
+                <span>100% Attendance Achieved!</span>
+              </div>
+            </div>
+          ` : `
+            <div style="
+              padding: 14px 16px;
+              background: linear-gradient(135deg, rgba(255,68,68,0.2), rgba(255,68,68,0.1));
+              border: 1px solid rgba(255,68,68,0.4);
+              border-radius: 12px;
+              text-align: center;
+              box-shadow: 0 4px 15px rgba(255,68,68,0.2);
+            ">
+              <div style="
+                color: #ff6b6b;
+                font-size: 14px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+              ">
+                <span style="font-size: 20px;">⚠️</span>
+                <span>Need ${data.notSubmittedCount} more to reach 100%</span>
+              </div>
+            </div>
+          `}
+        </div>
+      </div>
+      
+      <!-- Not Submitted List -->
+      ${data.notSubmittedCount > 0 ? `
+        <div class="card" style="
+          background: linear-gradient(135deg, rgba(255,68,68,0.08), var(--bg-card));
+          border-color: #ff444440;
+          margin-bottom: 20px;
+        ">
+          <div class="card-header" style="
+            background: rgba(255,68,68,0.1);
+            border-bottom: 1px solid rgba(255,68,68,0.2);
+            padding: 12px 15px;
+          ">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">❌</span>
+              <h3 style="margin: 0; color: #ff6b6b; font-size: 15px;">
+                Not Submitted (${data.notSubmittedCount})
+              </h3>
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            ${data.notSubmitted.map((member, index) => `
+              <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 14px 15px;
+                border-bottom: ${index < data.notSubmitted.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};
+                transition: background 0.2s ease;
+              " onmouseover="this.style.background='rgba(255,68,68,0.05)';" 
+                 onmouseout="this.style.background='transparent';">
+                <div style="flex: 1;">
+                  <div style="
+                    color: #fff;
+                    font-weight: 600;
+                    font-size: 14px;
+                    margin-bottom: 4px;
+                  ">${sanitize(member.name)}</div>
+                  <div style="
+                    color: #666;
+                    font-size: 11px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                  ">
+                    <span>@${sanitize(member.instagram)}</span>
+                    <span style="color: #444;">•</span>
+                    <span>${member.agentNo}</span>
+                  </div>
+                </div>
+                <button 
+                  onclick="markMemberAttendance('${member.agentNo}', '${sanitize(member.name).replace(/'/g, "\\'")}')" 
+                  style="
+                    padding: 9px 18px;
+                    background: linear-gradient(135deg, #00ff88, #00cc6a);
+                    border: none;
+                    border-radius: 8px;
+                    color: #000;
+                    font-size: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 2px 8px rgba(0,255,136,0.3);
+                  "
+                  onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,255,136,0.4)';"
+                  onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,255,136,0.3)';"
+                >
+                  ✓ Mark Present
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+      
+      <!-- Submitted List -->
+      ${data.submittedCount > 0 ? `
+        <div class="card" style="
+          background: linear-gradient(135deg, rgba(0,255,136,0.08), var(--bg-card));
+          border-color: #00ff8840;
+        ">
+          <div class="card-header" style="
+            background: rgba(0,255,136,0.1);
+            border-bottom: 1px solid rgba(0,255,136,0.2);
+            padding: 12px 15px;
+          ">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">✅</span>
+              <h3 style="margin: 0; color: #00ff88; font-size: 15px;">
+                Submitted (${data.submittedCount})
+              </h3>
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            ${data.submitted.map((member, index) => `
+              <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 14px 15px;
+                border-bottom: ${index < data.submitted.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};
+                transition: background 0.2s ease;
+              " onmouseover="this.style.background='rgba(0,255,136,0.03)';" 
+                 onmouseout="this.style.background='transparent';">
+                <div style="flex: 1;">
+                  <div style="
+                    color: #fff;
+                    font-weight: 600;
+                    font-size: 14px;
+                    margin-bottom: 4px;
+                  ">${sanitize(member.name)}</div>
+                  <div style="
+                    color: #666;
+                    font-size: 11px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 4px;
+                  ">
+                    <span>@${sanitize(member.instagram)}</span>
+                    <span style="color: #444;">•</span>
+                    <span>${member.agentNo}</span>
+                  </div>
+                  ${member.submittedAt ? `
+                    <div style="
+                      color: #00ff88;
+                      font-size: 10px;
+                      display: flex;
+                      align-items: center;
+                      gap: 5px;
+                    ">
+                      <span>✓</span>
+                      <span>${formatTime(member.submittedAt)}</span>
+                    </div>
+                  ` : ''}
+                </div>
+                <button 
+                  onclick="unmarkMemberAttendance('${member.agentNo}', '${sanitize(member.name).replace(/'/g, "\\'")}')" 
+                  style="
+                    padding: 7px 14px;
+                    background: rgba(255,255,255,0.05);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    border-radius: 6px;
+                    color: #888;
+                    font-size: 11px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                  "
+                  onmouseover="this.style.background='rgba(255,68,68,0.1)'; this.style.borderColor='#ff4444'; this.style.color='#ff6b6b';"
+                  onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='rgba(255,255,255,0.1)'; this.style.color='#888';"
+                >
+                  ✕ Unmark
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+      
+      <style>
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      </style>
+    `;
+    
+  } catch (e) {
+    console.error('Attendance checker error:', e);
+    container.innerHTML = `
+      <div style="
+        min-height: 50vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+      ">
+        <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;">❌</div>
+        <p style="color: #ff6b6b; margin: 0 0 20px 0; font-size: 15px;">
+          Failed to load attendance data
+        </p>
+        <button 
+          onclick="loadPage('attendance-checker')" 
+          class="btn-primary" 
+          style="
+            padding: 12px 24px;
+            font-size: 14px;
+          "
+        >
+          🔄 Retry
+        </button>
+      </div>
+    `;
+  } finally {
+    loading(false);
+  }
+}
+// ==================== POLICE PANEL UI (THEME MATCHED) ====================
+
+async function renderPolicePanel() {
+  // Check if user has police role
+  const hasPoliceRole = await checkMyRole('police');
+  
+  if (!hasPoliceRole) {
+    const container = $('police-panel-content') || document.createElement('div');
+    container.id = 'police-panel-content';
+    container.innerHTML = `
+      <div style="
+        min-height: 60vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+      ">
+        <div style="font-size: 80px; margin-bottom: 20px; opacity: 0.3;">🔒</div>
+        <h3 style="color: #fff; margin: 0 0 10px 0; font-size: 20px;">Access Denied</h3>
+        <p style="color: #888; margin: 0; font-size: 14px;">
+          You need Police Agent role to access this page.
+        </p>
+      </div>
+    `;
+    return;
+  }
+  
+  let container = $('police-panel-content');
+  if (!container) {
+    const page = $('page-police-panel');
+    if (page) {
+      page.innerHTML = '<div id="police-panel-content"></div>';
+      container = $('police-panel-content');
+    }
+  }
+  if (!container) return;
+  
+  loading(true);
+  
+  try {
+    const team = STATE.data?.profile?.team;
+    const data = await api('getPoliceReports', { 
+      week: STATE.week, 
+      team: team 
+    });
+    
+    const teamColor = CONFIG.TEAMS[team]?.color || '#7b2cbf';
+    const isDisqualified = data.summary.disqualified;
+    const maxReports = CONFIG.MAX_POLICE_REPORTS || 3;
+    const violatorsRemaining = maxReports - data.summary.uniqueViolators;
+    
+    container.innerHTML = `
+      <!-- Guide Card -->
+      ${renderGuide('police-panel') || `
+        <div class="card guide-card" style="
+          background: linear-gradient(135deg, rgba(255,68,68,0.15), rgba(255,68,68,0.05));
+          border-left: 3px solid #ff4444;
+          margin-bottom: 20px;
+        ">
+          <div class="card-body" style="
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            padding: 15px;
+          ">
+            <div style="font-size: 28px;">👮</div>
+            <div style="flex: 1;">
+              <h4 style="margin: 0 0 8px 0; color: #fff; font-size: 15px; font-weight: 600;">
+                Police Agent Instructions
+              </h4>
+              <p style="margin: 0; color: #aaa; font-size: 13px; line-height: 1.6;">
+                1. Monitor team streaming activity<br>
+                2. Report violations: <strong style="color:#ff6b6b;">Looping</strong> or <strong style="color:#ff6b6b;">Wrong Playlist</strong><br>
+                3. Max <strong style="color:#ffd700;">${maxReports} unique violators</strong> allowed<br>
+                4. More than ${maxReports} = <strong style="color:#ff4444;">Team disqualified</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      `}
+      
+      <!-- Stats Overview Card -->
+      <div class="card" style="
+        background: linear-gradient(135deg, ${teamColor}11, var(--bg-card));
+        border-color: ${teamColor}40;
+        margin-bottom: 20px;
+      ">
+        <div class="card-header" style="
+          border-bottom: 1px solid ${teamColor}22;
+          padding: 15px;
+        ">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; color: #fff; font-size: 16px;">
+              ${team} - ${STATE.week}
+            </h3>
+            <span class="week-badge" style="
+              background: ${isDisqualified ? '#ff444433' : '#00ff8833'};
+              color: ${isDisqualified ? '#ff6b6b' : '#00ff88'};
+              padding: 4px 12px;
+              border-radius: 12px;
+              font-size: 11px;
+              font-weight: 600;
+            ">${isDisqualified ? '❌ DQ' : '✅ OK'}</span>
+          </div>
+        </div>
+        
+        <div class="card-body" style="padding: 20px;">
+          <!-- Quick Stats Grid -->
+          <div style="
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+          ">
+            <!-- Total Reports -->
+            <div style="
+              text-align: center;
+              padding: 16px 10px;
+              background: rgba(255,255,255,0.03);
+              border-radius: 12px;
+              border: 1px solid rgba(255,255,255,0.05);
+            ">
+              <div style="font-size: 24px; font-weight: bold; color: #fff; margin-bottom: 4px;">
+                ${data.summary.total}
+              </div>
+              <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                Reports
+              </div>
+            </div>
+            
+            <!-- Looping -->
+            <div style="
+              text-align: center;
+              padding: 16px 10px;
+              background: linear-gradient(135deg, rgba(255,165,0,0.15), rgba(255,165,0,0.05));
+              border-radius: 12px;
+              border: 1px solid rgba(255,165,0,0.2);
+            ">
+              <div style="font-size: 24px; font-weight: bold; color: #ffa500; margin-bottom: 4px;">
+                ${data.summary.looping}
+              </div>
+              <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                🔁 Looping
+              </div>
+            </div>
+            
+            <!-- Wrong Playlist -->
+            <div style="
+              text-align: center;
+              padding: 16px 10px;
+              background: linear-gradient(135deg, rgba(255,68,68,0.15), rgba(255,68,68,0.05));
+              border-radius: 12px;
+              border: 1px solid rgba(255,68,68,0.2);
+            ">
+              <div style="font-size: 24px; font-weight: bold; color: #ff6b6b; margin-bottom: 4px;">
+                ${data.summary.wrong_playlist}
+              </div>
+              <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                ❌ Wrong PL
+              </div>
+            </div>
+            
+            <!-- Unique Violators -->
+            <div style="
+              text-align: center;
+              padding: 16px 10px;
+              background: linear-gradient(135deg, ${isDisqualified ? 'rgba(255,68,68,0.2)' : 'rgba(0,255,136,0.15)'}, ${isDisqualified ? 'rgba(255,68,68,0.1)' : 'rgba(0,255,136,0.05)'});
+              border-radius: 12px;
+              border: 1px solid ${isDisqualified ? 'rgba(255,68,68,0.3)' : 'rgba(0,255,136,0.2)'};
+            ">
+              <div style="font-size: 24px; font-weight: bold; color: ${isDisqualified ? '#ff6b6b' : '#00ff88'}; margin-bottom: 4px;">
+                ${data.summary.uniqueViolators}/${maxReports}
+              </div>
+              <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                Violators
+              </div>
+            </div>
+          </div>
+          
+          <!-- Status Banner -->
+          ${isDisqualified ? `
+            <div style="
+              padding: 14px 16px;
+              background: linear-gradient(135deg, rgba(255,68,68,0.25), rgba(255,68,68,0.15));
+              border: 1px solid rgba(255,68,68,0.5);
+              border-radius: 12px;
+              text-align: center;
+              box-shadow: 0 4px 15px rgba(255,68,68,0.3);
+              animation: pulseDanger 2s ease-in-out infinite;
+            ">
+              <div style="
+                color: #ff6b6b;
+                font-size: 14px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+              ">
+                <span style="font-size: 20px;">⚠️</span>
+                <span>DISQUALIFIED - More than ${maxReports} violators</span>
+              </div>
+            </div>
+          ` : `
+            <div style="
+              padding: 14px 16px;
+              background: linear-gradient(135deg, rgba(0,255,136,0.2), rgba(0,255,136,0.1));
+              border: 1px solid rgba(0,255,136,0.4);
+              border-radius: 12px;
+              text-align: center;
+              box-shadow: 0 4px 15px rgba(0,255,136,0.2);
+            ">
+              <div style="
+                color: #00ff88;
+                font-size: 14px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+              ">
+                <span style="font-size: 20px;">✅</span>
+                <span>Under limit (${violatorsRemaining} violation${violatorsRemaining !== 1 ? 's' : ''} remaining)</span>
+              </div>
+            </div>
+          `}
+        </div>
+      </div>
+      
+      <!-- Submit Report Button -->
+      <button 
+        onclick="showReportForm()" 
+        class="btn-primary" 
+        style="
+          width: 100%;
+          padding: 15px;
+          margin-bottom: 20px;
+          font-size: 15px;
+          font-weight: 600;
+          background: linear-gradient(135deg, #ff4444, #cc0000);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        "
+      >
+        <span style="font-size: 18px;">📝</span>
+        <span>Submit New Report</span>
+      </button>
+      
+      <!-- Reports List -->
+      ${data.reports.length > 0 ? `
+        <div class="card">
+          <div class="card-header" style="padding: 12px 15px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">📋</span>
+              <h3 style="margin: 0; color: #fff; font-size: 15px;">
+                Reports (${data.reports.length})
+              </h3>
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            ${data.reports.map((report, index) => {
+              const isLooping = report.violationType === 'looping';
+              const bgColor = isLooping ? 'rgba(255,165,0,0.05)' : 'rgba(255,68,68,0.05)';
+              const badgeColor = isLooping ? '#ffa500' : '#ff6b6b';
+              const badgeBg = isLooping ? '#ffa50022' : '#ff444422';
+              
+              return `
+                <div style="
+                  padding: 15px;
+                  border-bottom: ${index < data.reports.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'};
+                  background: ${bgColor};
+                  transition: background 0.2s ease;
+                " onmouseover="this.style.background='${isLooping ? 'rgba(255,165,0,0.08)' : 'rgba(255,68,68,0.08)'}'" 
+                   onmouseout="this.style.background='${bgColor}'">
+                  
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div style="flex: 1;">
+                      <!-- Badge & Name -->
+                      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <span style="
+                          padding: 4px 10px;
+                          background: ${badgeBg};
+                          border: 1px solid ${badgeColor}44;
+                          border-radius: 6px;
+                          color: ${badgeColor};
+                          font-size: 10px;
+                          font-weight: 700;
+                          text-transform: uppercase;
+                          letter-spacing: 0.5px;
+                        ">${isLooping ? '🔁 Looping' : '❌ Wrong PL'}</span>
+                        <span style="color: #fff; font-weight: 600; font-size: 14px;">
+                          ${sanitize(report.agentName)}
+                        </span>
+                      </div>
+                      
+                      <!-- Agent No -->
+                      <div style="color: #666; font-size: 11px; margin-bottom: 8px;">
+                        ${report.agentNo}
+                      </div>
+                      
+                      <!-- Notes -->
+                      ${report.notes ? `
+                        <div style="
+                          color: #888;
+                          font-size: 12px;
+                          font-style: italic;
+                          background: rgba(0,0,0,0.2);
+                          padding: 8px 10px;
+                          border-radius: 6px;
+                          margin-bottom: 8px;
+                          border-left: 2px solid ${badgeColor}44;
+                        ">
+                          "${sanitize(report.notes)}"
+                        </div>
+                      ` : ''}
+                      
+                      <!-- Footer -->
+                      <div style="
+                        color: #555;
+                        font-size: 10px;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                      ">
+                        <span>👮 ${report.reportedBy}</span>
+                        <span>•</span>
+                        <span>${formatTime(report.timestamp)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      ` : `
+        <div class="card">
+          <div class="card-body" style="text-align: center; padding: 50px 20px;">
+            <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;">✅</div>
+            <h3 style="color: #fff; margin: 0 0 10px 0; font-size: 18px;">
+              No Reports Yet
+            </h3>
+            <p style="color: #888; margin: 0; font-size: 14px;">
+              All team members are following the rules!
+            </p>
+          </div>
+        </div>
+      `}
+      
+      <style>
+        @keyframes pulseDanger {
+          0%, 100% { 
+            box-shadow: 0 4px 15px rgba(255,68,68,0.3);
+          }
+          50% { 
+            box-shadow: 0 4px 25px rgba(255,68,68,0.5);
+          }
+        }
+      </style>
+    `;
+    
+  } catch (e) {
+    console.error('Police panel error:', e);
+    container.innerHTML = `
+      <div style="
+        min-height: 50vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+      ">
+        <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;">❌</div>
+        <p style="color: #ff6b6b; margin: 0 0 20px 0; font-size: 15px;">
+          Failed to load police reports
+        </p>
+        <button 
+          onclick="loadPage('police-panel')" 
+          class="btn-primary" 
+          style="padding: 12px 24px; font-size: 14px;"
+        >
+          🔄 Retry
+        </button>
+      </div>
+    `;
+  } finally {
+    loading(false);
+  }
+}
+
+// ==================== REPORT FORM POPUP ====================
+
+function showReportForm() {
+  // Remove existing
+  document.querySelectorAll('.report-form-popup').forEach(p => p.remove());
+  
+  const popup = document.createElement('div');
+  popup.className = 'report-form-popup';
+  popup.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 99999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+  `;
+  
+  popup.innerHTML = `
+    <div style="
+      background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+      border-radius: 20px;
+      border: 2px solid #ff4444;
+      max-width: 480px;
+      width: 100%;
+      padding: 30px;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(255,68,68,0.4);
+      animation: slideUp 0.4s ease;
+    ">
+      <!-- Close Button -->
+      <button 
+        onclick="this.closest('.report-form-popup').remove()" 
+        style="
+          position: absolute;
+          top: 15px;
+          right: 15px;
+          background: rgba(255,255,255,0.05);
+          border: none;
+          color: #888;
+          font-size: 24px;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s;
+        "
+        onmouseover="this.style.background='rgba(255,68,68,0.2)'; this.style.color='#ff6b6b';"
+        onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.color='#888';"
+      >×</button>
+      
+      <!-- Header -->
+      <div style="margin-bottom: 25px;">
+        <div style="
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 8px;
+        ">
+          <span style="font-size: 32px;">📝</span>
+          <h3 style="margin: 0; color: #fff; font-size: 20px;">
+            Submit Police Report
+          </h3>
+        </div>
+        <p style="margin: 5px 0 0 44px; color: #888; font-size: 12px;">
+          Report rule violations to maintain fair play
+        </p>
+      </div>
+      
+      <!-- Form -->
+      <div style="margin-bottom: 20px;">
+        <!-- Agent Number -->
+        <div style="margin-bottom: 18px;">
+          <label style="
+            color: #888;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+          ">
+            Violator's Agent Number <span style="color:#ff6b6b;">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="report-agent-no" 
+            placeholder="e.g., AGENT123"
+            style="
+              width: 100%;
+              background: #12121a;
+              border: 1px solid #333;
+              border-radius: 10px;
+              padding: 12px 14px;
+              color: #fff;
+              font-size: 14px;
+              text-transform: uppercase;
+              transition: all 0.3s;
+            "
+            onfocus="this.style.borderColor='#7b2cbf'; this.style.boxShadow='0 0 0 3px rgba(123,44,191,0.1)';"
+            onblur="this.style.borderColor='#333'; this.style.boxShadow='none';"
+          >
+        </div>
+        
+        <!-- Violation Type -->
+        <div style="margin-bottom: 18px;">
+          <label style="
+            color: #888;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+          ">
+            Violation Type <span style="color:#ff6b6b;">*</span>
+          </label>
+          
+          <div style="display: grid; gap: 10px;">
+            <!-- Looping Option -->
+            <label class="violation-option" style="
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              padding: 14px 16px;
+              background: linear-gradient(135deg, rgba(255,165,0,0.1), rgba(255,165,0,0.05));
+              border: 2px solid transparent;
+              border-radius: 12px;
+              cursor: pointer;
+              transition: all 0.3s;
+            " onmouseover="this.style.borderColor='#ffa500'; this.style.background='linear-gradient(135deg, rgba(255,165,0,0.15), rgba(255,165,0,0.08))';" 
+               onmouseout="if(!this.querySelector('input').checked) { this.style.borderColor='transparent'; this.style.background='linear-gradient(135deg, rgba(255,165,0,0.1), rgba(255,165,0,0.05))'; }">
+              <input 
+                type="radio" 
+                name="violation-type" 
+                value="looping"
+                style="
+                  width: 18px;
+                  height: 18px;
+                  accent-color: #ffa500;
+                  cursor: pointer;
+                "
+                onchange="document.querySelectorAll('.violation-option').forEach(el => { el.style.borderColor='transparent'; el.style.background='linear-gradient(135deg, rgba(255,165,0,0.1), rgba(255,165,0,0.05))'; }); this.parentElement.style.borderColor='#ffa500'; this.parentElement.style.background='linear-gradient(135deg, rgba(255,165,0,0.2), rgba(255,165,0,0.1))';"
+              >
+              <div style="flex: 1;">
+                <div style="
+                  color: #ffa500;
+                  font-weight: 600;
+                  font-size: 14px;
+                  margin-bottom: 3px;
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                ">
+                  <span style="font-size: 16px;">🔁</span>
+                  <span>Looping</span>
+                </div>
+                <div style="color: #888; font-size: 11px;">
+                  Playing same song on repeat
+                </div>
+              </div>
+            </label>
+            
+            <!-- Wrong Playlist Option -->
+            <label class="violation-option" style="
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              padding: 14px 16px;
+              background: linear-gradient(135deg, rgba(255,68,68,0.1), rgba(255,68,68,0.05));
+              border: 2px solid transparent;
+              border-radius: 12px;
+              cursor: pointer;
+              transition: all 0.3s;
+            " onmouseover="this.style.borderColor='#ff6b6b'; this.style.background='linear-gradient(135deg, rgba(255,68,68,0.15), rgba(255,68,68,0.08))';" 
+               onmouseout="if(!this.querySelector('input').checked) { this.style.borderColor='transparent'; this.style.background='linear-gradient(135deg, rgba(255,68,68,0.1), rgba(255,68,68,0.05))'; }">
+              <input 
+                type="radio" 
+                name="violation-type" 
+                value="wrong_playlist"
+                style="
+                  width: 18px;
+                  height: 18px;
+                  accent-color: #ff6b6b;
+                  cursor: pointer;
+                "
+                onchange="document.querySelectorAll('.violation-option').forEach(el => { el.style.borderColor='transparent'; el.style.background='linear-gradient(135deg, rgba(255,68,68,0.1), rgba(255,68,68,0.05))'; }); this.parentElement.style.borderColor='#ff6b6b'; this.parentElement.style.background='linear-gradient(135deg, rgba(255,68,68,0.2), rgba(255,68,68,0.1))';"
+              >
+              <div style="flex: 1;">
+                <div style="
+                  color: #ff6b6b;
+                  font-weight: 600;
+                  font-size: 14px;
+                  margin-bottom: 3px;
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                ">
+                  <span style="font-size: 16px;">❌</span>
+                  <span>Wrong Playlist</span>
+                </div>
+                <div style="color: #888; font-size: 11px;">
+                  Not using official playlists
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+        
+        <!-- Notes -->
+        <div>
+          <label style="
+            color: #888;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+          ">
+            Notes <span style="color:#666;">(Optional)</span>
+          </label>
+          <textarea 
+            id="report-notes" 
+            placeholder="Add any additional details about the violation..."
+            style="
+              width: 100%;
+              min-height: 90px;
+              background: #12121a;
+              border: 1px solid #333;
+              border-radius: 10px;
+              padding: 12px 14px;
+              color: #fff;
+              font-size: 13px;
+              resize: vertical;
+              font-family: inherit;
+              transition: all 0.3s;
+            "
+            onfocus="this.style.borderColor='#7b2cbf'; this.style.boxShadow='0 0 0 3px rgba(123,44,191,0.1)';"
+            onblur="this.style.borderColor='#333'; this.style.boxShadow='none';"
+          ></textarea>
+        </div>
+      </div>
+      
+      <!-- Buttons -->
+      <div style="display: flex; gap: 12px;">
+        <button 
+          onclick="submitReport()" 
+          class="btn-primary" 
+          style="
+            flex: 1;
+            padding: 14px;
+            background: linear-gradient(135deg, #ff6b6b, #ff4444);
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+          "
+        >
+          <span>📤</span>
+          <span>Submit Report</span>
+        </button>
+        <button 
+          onclick="this.closest('.report-form-popup').remove()" 
+          class="btn-secondary" 
+          style="
+            flex: 1;
+            padding: 14px;
+            font-size: 14px;
+          "
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+    
+    <style>
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      @keyframes slideUp {
+        from { 
+          transform: translateY(30px);
+          opacity: 0;
+        }
+        to { 
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+    </style>
+  `;
+  
+  document.body.appendChild(popup);
+  
+  // Focus input
+  setTimeout(() => {
+    const input = document.getElementById('report-agent-no');
+    if (input) input.focus();
+  }, 100);
+}
+
+// ==================== SUBMIT REPORT ====================
+
+async function submitReport() {
+  const agentNo = document.getElementById('report-agent-no')?.value?.trim().toUpperCase();
+  const violationType = document.querySelector('input[name="violation-type"]:checked')?.value;
+  const notes = document.getElementById('report-notes')?.value?.trim();
+  
+  // Validation
+  if (!agentNo) {
+    showToast('Please enter Agent Number', 'error');
+    return;
+  }
+  
+  if (!violationType) {
+    showToast('Please select violation type', 'error');
+    return;
+  }
+  
+  loading(true);
+  
+  try {
+    const result = await api('submitPoliceReport', {
+      week: STATE.week,
+      reportedBy: STATE.agentNo,
+      agentNo: agentNo,
+      violationType: violationType,
+      notes: notes
+    });
+    
+    if (result.success) {
+      showToast('✅ Report submitted', 'success');
+      
+      // Close popup
+      const popup = document.querySelector('.report-form-popup');
+      if (popup) {
+        popup.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => popup.remove(), 300);
+      }
+      
+      // Reload panel
+      await renderPolicePanel();
+    } else {
+      showToast('❌ ' + result.error, 'error');
+    }
+  } catch (e) {
+    console.error('Submit report error:', e);
+    showToast('Failed to submit report', 'error');
+  } finally {
+    loading(false);
+  }
 }
 
 // ==================== TEAM LEVEL ====================
