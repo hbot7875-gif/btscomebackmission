@@ -10316,9 +10316,6 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-// ==================== FUNCTION ALIASES ====================
-// Create aliases for any renamed functions
-const respondToVoting = handleVotingResponse;
 
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
