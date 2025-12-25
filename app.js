@@ -281,14 +281,16 @@ const PAGE_GUIDES = {
     'home': { 
         icon: '🏠', 
         title: 'Welcome to Headquarters!', 
-        text: "You will receive missions every week. BTS Comeback is REAL - let's stream like our life depends on it! 💜\n\n🤫 Pro tip: Don't reveal your Agent ID to others - keep the mystery alive!" 
+        text: "You will receive missions every week. BTS Comeback is REAL - let's stream like our life depends on it! 💜\n\n🤫 Pro tip: Don't reveal your Agent ID to others - keep the mystery alive!",
+        isWarning: false
     },
     'goals': { 
         icon: '🎯', 
         title: 'Team Goal Progress', 
-        text: "Focus on these tracks. Don't loop one track - variety is key!" 
+        text: "Focus on these tracks. Don't loop one track - variety is key!",
+        isWarning: false
     },
-   'album2x': { 
+    'album2x': { 
         icon: '🎧', 
         title: `The ${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Challenge`,
         text: `Listen to every song on this album at least ${CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS} times.\n\n⚠️ IMPORTANT: EVERYONE in your team must complete this for the team to pass!\n\n🎖️ Complete this challenge to earn a special badge!`,
@@ -297,17 +299,20 @@ const PAGE_GUIDES = {
     'secret-missions': { 
         icon: '🕵️', 
         title: 'Classified Tasks', 
-        text: "Bonus XP tasks from HQ. Complete them and send proofs in team gc for extra team XP!" 
+        text: "Bonus XP tasks from HQ. Complete them and send proofs in team gc for extra team XP!",
+        isWarning: false
     },
-     'team-level': { 
+    'team-level': { 
         icon: '🚀', 
         title: 'Leveling Up & Winning', 
-        text: "To WIN the week, your team must:\n1️⃣ Complete ALL 3 missions (Track + Album + 2X)\n2️⃣ Have the highest XP among eligible teams\n\n🏆 Winner team members all get a Champion Badge!" 
+        text: "To WIN the week, your team must:\n1️⃣ Complete ALL 3 missions (Track + Album + 2X)\n2️⃣ Have the highest XP among eligible teams\n\n🏆 Winner team members all get a Champion Badge!",
+        isWarning: false
     },
     'rankings': { 
         icon: '🏆', 
         title: 'Friendly Competition', 
-        text: "We are one big team. Rankings are just for fun and motivation!\n\n🤫 Remember: Keep your Agent ID secret to make it more mysterious!" 
+        text: "We are one big team. Rankings are just for fun and motivation!\n\n🤫 Remember: Keep your Agent ID secret to make it more mysterious!",
+        isWarning: false
     },
     'playlists': {
         icon: '⚠️',
@@ -318,7 +323,8 @@ const PAGE_GUIDES = {
     'announcements': {
         icon: '📢',
         title: 'HQ Announcements',
-        text: "Important news and updates regarding BTS comeback directly from Admin. Check regularly!"
+        text: "Important news and updates regarding BTS comeback directly from Admin. Check regularly!",
+        isWarning: false
     },
     'chat': {
         icon: '💬',
@@ -329,33 +335,28 @@ const PAGE_GUIDES = {
     'gc-links': {
         icon: '👥',
         title: 'Instagram Group Chats',
-        text: "Connect with your team for mission coordination. Join the GCs below!"
+        text: "Connect with your team for mission coordination. Join the GCs below!",
+        isWarning: false
     },
     'helper-roles': {
         icon: '🎖️',
         title: 'Helper Army Roles',
-        text: "Want to help HQ? Check available roles below. More roles coming based on mission needs!"
+        text: "Want to help HQ? Check available roles below. More roles coming based on mission needs!",
+        isWarning: false
     },
     'drawer': {
         icon: '🎖️',
         title: 'Your Badge Collection',
-        text: "Earn badges by:\n• Every 50 XP = 1 Badge 🎖️\n• Complete Album 2X = Special Badge ✨\n• Team Wins Week = Winner Badge 🏆"
+        text: "Earn badges by:\n• Every 50 XP = 1 Badge 🎖️\n• Complete Album 2X = Special Badge ✨\n• Team Wins Week = Winner Badge 🏆",
+        isWarning: false
     },
-    'attendance-checker': {
-    icon: '📋',
-    title: 'Attendance Checker Instructions',
-    text: '1. Check Team GC for screenshot submissions\n2. Mark attendance for members who submitted\n3. Deadline: Sunday 3:00 PM IST\n4. 100% attendance required for team eligibility',
-    isWarning: false
-  },
-  
-  'police-panel': {
-    icon: '👮',
-    title: 'Police Agent Instructions',
-    text: '1. Monitor team streaming activity\n2. Report violations: Looping or Wrong Playlist\n3. Max 3 unique violators per team\n4. More than 3 = Team disqualified',
-    isWarning: true
-  }
-};
-
+    'guide': {
+        icon: '📚',
+        title: 'Agent Training Manual',
+        text: 'Everything you need to know about the BTS Comeback Mission!',
+        isWarning: false
+    }
+};  
 function renderGuide(pageName) {
     const guide = PAGE_GUIDES[pageName];
     if (!guide) return '';
@@ -2411,6 +2412,48 @@ function getAllBadges(agentNo, totalXP, week = STATE.week) {
     const specialBadges = getSpecialBadges(agentNo, week);
     return [...specialBadges, ...xpBadges];
 }
+function isTeamEligibleForWin(teamInfo) {
+    return (
+        teamInfo.trackGoalPassed === true &&
+        teamInfo.albumGoalPassed === true &&
+        teamInfo.album2xPassed === true &&
+        teamInfo.attendanceConfirmed === true &&
+        teamInfo.policeConfirmed === true
+    );
+}
+
+// Get winner from teams data
+function getWeekWinner(teams) {
+    const teamEntries = Object.entries(teams || {});
+    
+    // Filter only eligible teams
+    const eligibleTeams = teamEntries.filter(([teamName, info]) => 
+        isTeamEligibleForWin(info)
+    );
+    
+    if (eligibleTeams.length === 0) return null;
+    
+    // Sort by XP (highest first)
+    eligibleTeams.sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
+    
+    return eligibleTeams[0][0]; // Return winning team name
+}
+
+// Get team eligibility status details
+function getTeamEligibilityStatus(teamInfo) {
+    const checks = [
+        { key: 'trackGoals', label: '🎵 Track Goals', passed: teamInfo.trackGoalPassed },
+        { key: 'albumGoals', label: '💿 Album Goals', passed: teamInfo.albumGoalPassed },
+        { key: 'album2x', label: '✨ Album 2X', passed: teamInfo.album2xPassed },
+        { key: 'attendance', label: '📋 Attendance', passed: teamInfo.attendanceConfirmed },
+        { key: 'police', label: '👮 Police Report', passed: teamInfo.policeConfirmed }
+    ];
+    
+    const passedCount = checks.filter(c => c.passed).length;
+    const allPassed = passedCount === checks.length;
+    
+    return { checks, passedCount, totalChecks: checks.length, allPassed };
+}
 // ==================== ADMIN FUNCTIONS ====================
 function isAdminAgent() {
     return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
@@ -2580,12 +2623,14 @@ function showAdminPanel() {
         <div class="admin-panel-tabs" id="admin-tabs-container">
             <button type="button" class="admin-tab active" data-tab="create">Create Mission</button>
             <button type="button" class="admin-tab" data-tab="active">Active</button>
+            <button type="button" class="admin-tab" data-tab="confirm">📋 Confirm</button>
             <button type="button" class="admin-tab" data-tab="assets">Badge Preview</button>
             <button type="button" class="admin-tab" data-tab="history">History</button>
         </div>
         <div class="admin-panel-content" id="admin-panel-body">
             <div id="admin-tab-create" class="admin-tab-content active"></div>
             <div id="admin-tab-active" class="admin-tab-content"></div>
+            <div id="admin-tab-confirm" class="admin-tab-content"></div>
             <div id="admin-tab-assets" class="admin-tab-content"></div>
             <div id="admin-tab-history" class="admin-tab-content"></div>
         </div>
@@ -2655,6 +2700,9 @@ function switchAdminTab(tabName) {
             break;
         case 'active':
             loadActiveTeamMissions();
+            break;
+        case 'confirm':                    
+            renderWeekConfirmation();
             break;
         case 'assets':
             renderAdminAssets();
@@ -3032,7 +3080,267 @@ async function loadMissionHistory() {
         `; 
     }
 }
+// ==================== ADMIN WEEK CONFIRMATION ====================
 
+async function renderWeekConfirmation() {
+    const container = document.getElementById('admin-tab-confirm');
+    if (!container) {
+        console.error('❌ Confirm tab container not found');
+        return;
+    }
+    
+    container.innerHTML = '<div class="loading-text" style="padding:40px;text-align:center;">⏳ Loading week status...</div>';
+    
+    try {
+        const summary = await api('getWeeklySummary', { week: STATE.week });
+        const teams = summary.teams || {};
+        const isCompleted = isWeekCompleted(STATE.week);
+        
+        container.innerHTML = `
+            <div style="margin-bottom:20px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <h4 style="color:#fff;margin:0;">📋 ${STATE.week} Confirmations</h4>
+                    <span style="
+                        padding: 6px 12px;
+                        background: ${isCompleted ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};
+                        border: 1px solid ${isCompleted ? 'rgba(0,255,136,0.3)' : 'rgba(255,165,0,0.3)'};
+                        border-radius: 20px;
+                        color: ${isCompleted ? '#00ff88' : '#ffa500'};
+                        font-size: 11px;
+                    ">${isCompleted ? '✅ Week Ended' : '⏳ In Progress'}</span>
+                </div>
+                <p style="color:#888;font-size:12px;margin-top:8px;">
+                    Confirm attendance and police reports for each team.<br>
+                    <span style="color:#ffa500;">Deadline: Sunday 4:00 PM IST</span>
+                </p>
+            </div>
+            
+            <!-- Deadline Warning -->
+            <div style="
+                background: rgba(255,68,68,0.1);
+                border: 1px solid rgba(255,68,68,0.3);
+                border-radius: 12px;
+                padding: 15px;
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            ">
+                <span style="font-size:24px;">⚠️</span>
+                <div>
+                    <div style="color:#ff6b6b;font-weight:600;font-size:13px;">Important!</div>
+                    <div style="color:#ccc;font-size:11px;">
+                        Only confirm AFTER you receive reports from Attendance Checkers and Police Agents.
+                        Teams without both confirmations are NOT eligible to win.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Team Cards -->
+            ${Object.entries(teams).map(([teamName, info]) => {
+                const eligibility = getTeamEligibilityStatus(info);
+                const tColor = teamColor(teamName);
+                
+                return `
+                    <div style="
+                        background: linear-gradient(145deg, #1a1a2e, #12121a);
+                        border: 1px solid ${tColor}44;
+                        border-radius: 12px;
+                        padding: 18px;
+                        margin-bottom: 12px;
+                    ">
+                        <!-- Team Header -->
+                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;">
+                            ${teamPfp(teamName) ? `<img src="${teamPfp(teamName)}" style="width:40px;height:40px;border-radius:50%;border:2px solid ${tColor};">` : ''}
+                            <div style="flex:1;">
+                                <div style="color:${tColor};font-weight:600;font-size:15px;">${teamName}</div>
+                                <div style="color:#888;font-size:11px;">${fmt(info.teamXP || 0)} XP</div>
+                            </div>
+                            <div style="
+                                padding: 4px 12px;
+                                border-radius: 12px;
+                                font-size: 11px;
+                                background: ${eligibility.allPassed ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};
+                                color: ${eligibility.allPassed ? '#00ff88' : '#ffa500'};
+                            ">${eligibility.passedCount}/${eligibility.totalChecks} ✓</div>
+                        </div>
+                        
+                        <!-- Mission Status -->
+                        <div style="
+                            display: grid;
+                            grid-template-columns: repeat(5, 1fr);
+                            gap: 6px;
+                            margin-bottom: 15px;
+                            text-align: center;
+                        ">
+                            <div style="padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
+                                <div style="font-size:16px;">${info.trackGoalPassed ? '✅' : '❌'}</div>
+                                <div style="font-size:9px;color:#888;margin-top:4px;">Tracks</div>
+                            </div>
+                            <div style="padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
+                                <div style="font-size:16px;">${info.albumGoalPassed ? '✅' : '❌'}</div>
+                                <div style="font-size:9px;color:#888;margin-top:4px;">Albums</div>
+                            </div>
+                            <div style="padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
+                                <div style="font-size:16px;">${info.album2xPassed ? '✅' : '❌'}</div>
+                                <div style="font-size:9px;color:#888;margin-top:4px;">2X</div>
+                            </div>
+                            <div style="padding:8px;background:${info.attendanceConfirmed ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};border-radius:8px;border:1px solid ${info.attendanceConfirmed ? 'rgba(0,255,136,0.3)' : 'rgba(255,165,0,0.3)'};">
+                                <div style="font-size:16px;">${info.attendanceConfirmed ? '✅' : '⏳'}</div>
+                                <div style="font-size:9px;color:#888;margin-top:4px;">Attend</div>
+                            </div>
+                            <div style="padding:8px;background:${info.policeConfirmed ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};border-radius:8px;border:1px solid ${info.policeConfirmed ? 'rgba(0,255,136,0.3)' : 'rgba(255,165,0,0.3)'};">
+                                <div style="font-size:16px;">${info.policeConfirmed ? '✅' : '⏳'}</div>
+                                <div style="font-size:9px;color:#888;margin-top:4px;">Police</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Confirmation Buttons -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <button onclick="adminConfirmAttendance('${teamName}', ${!info.attendanceConfirmed})" style="
+                                padding: 12px;
+                                background: ${info.attendanceConfirmed ? 'rgba(0,255,136,0.15)' : 'rgba(123,44,191,0.2)'};
+                                border: 1px solid ${info.attendanceConfirmed ? 'rgba(0,255,136,0.4)' : 'rgba(123,44,191,0.4)'};
+                                border-radius: 8px;
+                                color: ${info.attendanceConfirmed ? '#00ff88' : '#c9a0ff'};
+                                font-size: 12px;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 6px;
+                            ">
+                                <span>📋</span>
+                                <span>${info.attendanceConfirmed ? 'Attendance ✓' : 'Confirm Attendance'}</span>
+                            </button>
+                            
+                            <button onclick="adminConfirmPolice('${teamName}', ${!info.policeConfirmed})" style="
+                                padding: 12px;
+                                background: ${info.policeConfirmed ? 'rgba(0,255,136,0.15)' : 'rgba(123,44,191,0.2)'};
+                                border: 1px solid ${info.policeConfirmed ? 'rgba(0,255,136,0.4)' : 'rgba(123,44,191,0.4)'};
+                                border-radius: 8px;
+                                color: ${info.policeConfirmed ? '#00ff88' : '#c9a0ff'};
+                                font-size: 12px;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 6px;
+                            ">
+                                <span>👮</span>
+                                <span>${info.policeConfirmed ? 'Police ✓' : 'Confirm Police'}</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+            
+            <!-- Eligible Teams Summary -->
+            <div style="
+                margin-top: 20px;
+                padding: 15px;
+                background: rgba(255,215,0,0.05);
+                border: 1px solid rgba(255,215,0,0.2);
+                border-radius: 12px;
+            ">
+                <div style="color:#ffd700;font-weight:600;font-size:13px;margin-bottom:10px;">🏆 Eligible to Win</div>
+                ${(() => {
+                    const eligible = Object.entries(teams).filter(([t, info]) => isTeamEligibleForWin(info));
+                    if (eligible.length === 0) {
+                        return '<div style="color:#888;font-size:12px;">No team is fully eligible yet. Confirm attendance and police reports.</div>';
+                    }
+                    const sorted = eligible.sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
+                    const winner = sorted[0][0];
+                    return `
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                            ${sorted.map(([t, info], i) => `
+                                <div style="
+                                    display:flex;
+                                    align-items:center;
+                                    gap:6px;
+                                    padding:6px 12px;
+                                    background:${i === 0 ? 'rgba(255,215,0,0.15)' : 'rgba(0,255,136,0.1)'};
+                                    border:1px solid ${i === 0 ? 'rgba(255,215,0,0.4)' : 'rgba(0,255,136,0.3)'};
+                                    border-radius:20px;
+                                ">
+                                    ${i === 0 ? '<span>👑</span>' : '<span>✓</span>'}
+                                    <span style="color:${teamColor(t)};font-weight:600;font-size:12px;">${t}</span>
+                                    <span style="color:#888;font-size:10px;">${fmt(info.teamXP)} XP</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="margin-top:10px;color:#00ff88;font-size:12px;">
+                            🏆 Current Winner: <strong>${winner}</strong>
+                        </div>
+                    `;
+                })()}
+            </div>
+        `;
+        
+    } catch (e) {
+        console.error('❌ Error loading week confirmation:', e);
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px;">
+                <p style="color:#ff4444;">❌ Error loading data</p>
+                <button onclick="renderWeekConfirmation()" class="btn-secondary" style="margin-top:15px;">🔄 Retry</button>
+            </div>
+        `;
+    }
+}
+
+// Admin action: Confirm Attendance
+async function adminConfirmAttendance(teamName, confirm) {
+    if (!confirm && !window.confirm(`Remove attendance confirmation for ${teamName}?`)) return;
+    
+    loading(true);
+    try {
+        const result = await api('confirmTeamAttendance', {
+            week: STATE.week,
+            team: teamName,
+            confirmed: confirm,
+            agentNo: STATE.agentNo,
+            sessionToken: STATE.adminSession
+        });
+        
+        if (result.success) {
+            showToast(`✅ ${teamName} attendance ${confirm ? 'confirmed' : 'removed'}`, 'success');
+            renderWeekConfirmation();
+        } else {
+            showToast('❌ ' + (result.error || 'Failed'), 'error');
+        }
+    } catch (e) {
+        showToast('❌ Error: ' + e.message, 'error');
+    } finally {
+        loading(false);
+    }
+}
+
+// Admin action: Confirm Police
+async function adminConfirmPolice(teamName, confirm) {
+    if (!confirm && !window.confirm(`Remove police confirmation for ${teamName}?`)) return;
+    
+    loading(true);
+    try {
+        const result = await api('confirmTeamPolice', {
+            week: STATE.week,
+            team: teamName,
+            confirmed: confirm,
+            agentNo: STATE.agentNo,
+            sessionToken: STATE.adminSession
+        });
+        
+        if (result.success) {
+            showToast(`✅ ${teamName} police report ${confirm ? 'confirmed' : 'removed'}`, 'success');
+            renderWeekConfirmation();
+        } else {
+            showToast('❌ ' + (result.error || 'Failed'), 'error');
+        }
+    } catch (e) {
+        showToast('❌ Error: ' + e.message, 'error');
+    } finally {
+        loading(false);
+    }
+}
 async function setTodaysSong() {
     const title = prompt('Song Title:');
     if (!title) return;
@@ -3435,6 +3743,7 @@ const ROUTES = {
     'drawer': 'drawer',
     'summary': 'summary',
     'song-of-day': 'song-of-day',
+    'guide': 'guide',
     'login': 'login'
 };
 
@@ -3457,6 +3766,7 @@ const PAGE_TO_ROUTE = {
     'helper-roles': 'helper-roles',
     'drawer': 'drawer',
     'summary': 'summary',
+    'guide': 'guide',
     'login': 'login'
 };
 
@@ -3625,6 +3935,7 @@ async function renderPageByRoute(pageName) {
             case 'helper-roles': await renderHelperRoles(); break;
             case 'chat': await renderChat(); break;
             case 'song-of-day': await renderSongOfDay(); break;
+            case 'guide': await renderGuidePage(); break; 
         }
     } catch (e) {
         console.error('Page render error:', e);
@@ -7299,7 +7610,7 @@ async function submitReport() {
   }
 }
 
-// ==================== TEAM LEVEL ====================
+// ==================== TEAM LEVEL (UPDATED WITH ADMIN CONFIRMATION) ====================
 async function renderTeamLevel() {
     const container = $('team-level-content');
     try {
@@ -7310,20 +7621,21 @@ async function renderTeamLevel() {
         const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
         const isCompleted = isWeekCompleted(STATE.week);
         
-        // Find teams that completed all missions
-        const teamsWithAllMissions = sortedTeams.filter(([t, info]) => 
-            info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed
-        );
+        // Find teams that meet ALL requirements including admin confirmations
+        const eligibleTeams = sortedTeams.filter(([t, info]) => isTeamEligibleForWin(info));
         
-        // Winner is the team with highest XP that completed ALL missions
-        const winnerTeam = teamsWithAllMissions.length > 0 ? teamsWithAllMissions[0][0] : null;
+        // Winner is the team with highest XP that meets ALL requirements
+        const winnerTeam = eligibleTeams.length > 0 ? eligibleTeams[0][0] : null;
         const leadingTeam = sortedTeams[0]?.[0];
-        const leadingHasAllMissions = teamsWithAllMissions.some(([t]) => t === leadingTeam);
+        
+        // Check if leading team is missing any requirements
+        const leadingTeamInfo = teams[leadingTeam] || {};
+        const leadingStatus = getTeamEligibilityStatus(leadingTeamInfo);
         
         container.innerHTML = `
             ${renderGuide('team-level')}
             
-            <!-- Winner Rules Explanation -->
+            <!-- Winner Rules Explanation with Admin Confirmation -->
             <div class="card" style="background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(123,44,191,0.05)); border-color: rgba(255,215,0,0.3); margin-bottom: 20px;">
                 <div class="card-body" style="padding: 20px;">
                     <div style="text-align: center; margin-bottom: 15px;">
@@ -7337,21 +7649,44 @@ async function renderTeamLevel() {
                         padding: 15px;
                         margin-bottom: 15px;
                     ">
-                        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+                        <!-- Requirement 1: Complete Missions -->
+                        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
                             <span style="font-size: 20px;">1️⃣</span>
                             <div>
-                                <div style="color: #fff; font-size: 13px; font-weight: 600;">Complete ALL 3 Missions</div>
+                                <div style="color: #fff; font-size: 13px; font-weight: 600;">Complete ALL 3 Streaming Missions</div>
                                 <div style="color: #888; font-size: 11px; margin-top: 3px;">
-                                    🎵 Track Goals + 💿 Album Goals + ✨ Album 2X
+                                    🎵 Track Goals + 💿 Album Goals + ✨ Album 2X (100% team)
                                 </div>
                             </div>
                         </div>
-                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        
+                        <!-- Requirement 2: Admin Confirmations -->
+                        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
                             <span style="font-size: 20px;">2️⃣</span>
+                            <div>
+                                <div style="color: #fff; font-size: 13px; font-weight: 600;">Pass Attendance & Police Check</div>
+                                <div style="color: #888; font-size: 11px; margin-top: 3px;">
+                                    📋 100% Attendance + 👮 No more than 3 violations
+                                </div>
+                                <div style="
+                                    margin-top: 8px;
+                                    padding: 6px 10px;
+                                    background: rgba(255,165,0,0.15);
+                                    border-radius: 6px;
+                                    display: inline-block;
+                                ">
+                                    <span style="color:#ffa500;font-size:10px;">⏰ Deadline: Sunday 4:00 PM IST</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Requirement 3: Highest XP -->
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <span style="font-size: 20px;">3️⃣</span>
                             <div>
                                 <div style="color: #fff; font-size: 13px; font-weight: 600;">Have the Highest XP</div>
                                 <div style="color: #888; font-size: 11px; margin-top: 3px;">
-                                    Among teams that completed all missions
+                                    Among teams that completed all above requirements
                                 </div>
                             </div>
                         </div>
@@ -7368,7 +7703,7 @@ async function renderTeamLevel() {
                     ">
                         <span style="font-size: 18px;">⚠️</span>
                         <span style="color: #ff6b6b; font-size: 12px;">
-                            <strong>Important:</strong> A team with high XP but incomplete missions <strong>CANNOT</strong> win!
+                            <strong>Important:</strong> Teams missing ANY requirement are <strong>NOT eligible</strong> to win!
                         </span>
                     </div>
                     
@@ -7387,7 +7722,7 @@ async function renderTeamLevel() {
                                     <span style="color: #00ff88; font-size: 12px;">👑 Currently Winning:</span>
                                     <span style="color: ${teamColor(winnerTeam)}; font-weight: 600;">${winnerTeam}</span>
                                 </div>
-                            ` : leadingTeam ? `
+                            ` : eligibleTeams.length === 0 ? `
                                 <div style="
                                     display: inline-flex;
                                     align-items: center;
@@ -7397,15 +7732,15 @@ async function renderTeamLevel() {
                                     border: 1px solid rgba(255,165,0,0.3);
                                     border-radius: 20px;
                                 ">
-                                    <span style="color: #ffa500; font-size: 12px;">⚡ Leading in XP:</span>
-                                    <span style="color: ${teamColor(leadingTeam)}; font-weight: 600;">${leadingTeam}</span>
-                                    <span style="color: #888; font-size: 10px;">(needs all missions)</span>
+                                    <span style="color: #ffa500; font-size: 12px;">⏳ No team is fully eligible yet</span>
                                 </div>
-                            ` : `
-                                <div style="color: #888; font-size: 12px;">
-                                    No team has completed all missions yet
-                                </div>
-                            `}
+                                ${leadingTeam ? `
+                                    <div style="margin-top:8px;color:#888;font-size:11px;">
+                                        Leading in XP: <span style="color:${teamColor(leadingTeam)}">${leadingTeam}</span>
+                                        (${leadingStatus.passedCount}/${leadingStatus.totalChecks} requirements met)
+                                    </div>
+                                ` : ''}
+                            ` : ''}
                         </div>
                     ` : ''}
                 </div>
@@ -7436,10 +7771,9 @@ async function renderTeamLevel() {
             <div class="team-level-grid">
                 ${sortedTeams.map(([t, info], index) => { 
                     const isMyTeam = t === myTeam;
-                    const hasAllMissions = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
+                    const eligibility = getTeamEligibilityStatus(info);
                     const isCurrentWinner = t === winnerTeam;
                     const tColor = teamColor(t);
-                    const missions = (info.trackGoalPassed ? 1 : 0) + (info.albumGoalPassed ? 1 : 0) + (info.album2xPassed ? 1 : 0); 
                     
                     return `
                         <div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="
@@ -7448,19 +7782,25 @@ async function renderTeamLevel() {
                         ">
                             ${isMyTeam ? '<div class="my-team-badge">Your Team</div>' : ''}
                             ${isCurrentWinner && !isCompleted ? '<div style="position:absolute;top:10px;right:10px;font-size:20px;" title="Currently Winning">👑</div>' : ''}
-                            ${!hasAllMissions && index === 0 ? '<div style="position:absolute;top:10px;right:10px;font-size:14px;color:#ffa500;" title="Highest XP but missing missions">⚡</div>' : ''}
+                            ${!eligibility.allPassed && index === 0 ? '<div style="position:absolute;top:10px;right:10px;font-size:14px;color:#ffa500;" title="Highest XP but missing requirements">⚡</div>' : ''}
+                            
                             ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${isCurrentWinner ? '#ffd700' : tColor}">` : ''}
                             <div class="team-level-name" style="color:${tColor}">${t}</div>
                             <div class="team-level-num">${info.level || 1}</div>
                             <div class="team-level-label">LEVEL</div>
                             <div class="team-level-xp">${fmt(info.teamXP)} XP</div>
-                            <div class="team-level-missions">
-                                <div class="mission-check" title="Track Goals">${info.trackGoalPassed ? '🎵✅' : '🎵❌'}</div>
-                                <div class="mission-check" title="Album Goals">${info.albumGoalPassed ? '💿✅' : '💿❌'}</div>
-                                <div class="mission-check" title="Album 2X">${info.album2xPassed ? '✨✅' : '✨❌'}</div>
+                            
+                            <!-- Show ALL 5 requirements -->
+                            <div class="team-level-missions" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:8px;">
+                                <div class="mission-check" title="Track Goals" style="font-size:11px;">${info.trackGoalPassed ? '🎵✅' : '🎵❌'}</div>
+                                <div class="mission-check" title="Album Goals" style="font-size:11px;">${info.albumGoalPassed ? '💿✅' : '💿❌'}</div>
+                                <div class="mission-check" title="Album 2X" style="font-size:11px;">${info.album2xPassed ? '✨✅' : '✨❌'}</div>
+                                <div class="mission-check" title="Attendance Confirmed" style="font-size:11px;">${info.attendanceConfirmed ? '📋✅' : '📋⏳'}</div>
+                                <div class="mission-check" title="Police Check Passed" style="font-size:11px;">${info.policeConfirmed ? '👮✅' : '👮⏳'}</div>
                             </div>
-                            <div class="team-level-status ${missions === 3 ? 'complete' : ''}" style="${isCurrentWinner ? 'color:#ffd700;' : ''}">
-                                ${isCurrentWinner ? '👑 Winning!' : `${missions}/3 missions`}
+                            
+                            <div class="team-level-status ${eligibility.allPassed ? 'complete' : ''}" style="${isCurrentWinner ? 'color:#ffd700;' : ''}">
+                                ${isCurrentWinner ? '👑 Winning!' : `${eligibility.passedCount}/${eligibility.totalChecks} complete`}
                             </div>
                         </div>
                     `; 
@@ -7470,19 +7810,35 @@ async function renderTeamLevel() {
             <!-- Mission Status Legend -->
             <div class="card" style="margin-top: 20px; background: rgba(255,255,255,0.02);">
                 <div class="card-body" style="padding: 15px;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; text-align: center;">
+                    <div style="font-size:12px;color:#888;margin-bottom:12px;text-align:center;">Legend</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; text-align: center; font-size:11px;">
                         <div>
-                            <span style="font-size: 18px;">👑</span>
-                            <div style="color: #888; font-size: 10px; margin-top: 4px;">Currently Winning</div>
+                            <span style="font-size: 16px;">🎵</span>
+                            <div style="color: #888; margin-top: 3px;">Track Goals</div>
                         </div>
                         <div>
-                            <span style="font-size: 18px;">⚡</span>
-                            <div style="color: #888; font-size: 10px; margin-top: 4px;">High XP, Missing Missions</div>
+                            <span style="font-size: 16px;">💿</span>
+                            <div style="color: #888; margin-top: 3px;">Album Goals</div>
                         </div>
                         <div>
-                            <span style="font-size: 18px;">✅✅✅</span>
-                            <div style="color: #888; font-size: 10px; margin-top: 4px;">All Missions Complete</div>
+                            <span style="font-size: 16px;">✨</span>
+                            <div style="color: #888; margin-top: 3px;">Album 2X</div>
                         </div>
+                        <div>
+                            <span style="font-size: 16px;">📋</span>
+                            <div style="color: #888; margin-top: 3px;">Attendance</div>
+                        </div>
+                        <div>
+                            <span style="font-size: 16px;">👮</span>
+                            <div style="color: #888; margin-top: 3px;">Police Check</div>
+                        </div>
+                    </div>
+                    <div style="text-align:center;margin-top:12px;">
+                        <span style="color:#00ff88;font-size:11px;">✅ = Confirmed</span>
+                        <span style="margin:0 10px;color:#666;">|</span>
+                        <span style="color:#ffa500;font-size:11px;">⏳ = Pending</span>
+                        <span style="margin:0 10px;color:#666;">|</span>
+                        <span style="color:#ff6b6b;font-size:11px;">❌ = Failed</span>
                     </div>
                 </div>
             </div>
@@ -7492,7 +7848,6 @@ async function renderTeamLevel() {
         container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; 
     }
 }
-
 // ==================== COMPARISON (MOBILE FIXED) ====================
 async function renderComparison() {
     const container = $('comparison-content');
@@ -9348,7 +9703,812 @@ async function renderHelperRoles() {
         $('roles-list').innerHTML = '<p style="color:red;">Failed to load roles</p>'; 
     }
 }
+async function renderGuidePage() {
+    let container = $('guide-content');
+    
+    // Create page if doesn't exist
+    if (!container) {
+        let page = $('page-guide');
+        if (!page) {
+            const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
+            if (mainContent) {
+                page = document.createElement('section');
+                page.id = 'page-guide';
+                page.className = 'page';
+                page.innerHTML = '<div id="guide-content"></div>';
+                mainContent.appendChild(page);
+            }
+        }
+        container = $('guide-content');
+    }
+    
+    if (!container) return;
+    
+    const myTeam = STATE.data?.profile?.team || 'Your Team';
+    const teamAlbum = CONFIG.TEAMS[myTeam]?.album || 'Team Album';
+    
+    container.innerHTML = `
+        <style>
+            .guide-page { max-width: 800px; margin: 0 auto; padding: 15px; padding-bottom: 100px; }
+            
+            .guide-header {
+                text-align: center;
+                padding: 30px 20px;
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                border-radius: 20px;
+                margin-bottom: 20px;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .guide-header::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                left: -50%;
+                width: 200%;
+                height: 200%;
+                background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+                animation: guideShimmer 3s ease-in-out infinite;
+            }
+            
+            @keyframes guideShimmer {
+                0%, 100% { transform: translate(-10%, -10%); }
+                50% { transform: translate(10%, 10%); }
+            }
+            
+            .guide-header h1 { color: #fff; font-size: 24px; margin: 0 0 8px 0; position: relative; }
+            .guide-header p { color: rgba(255,255,255,0.8); font-size: 13px; margin: 0; position: relative; }
+            
+            .guide-nav {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-bottom: 20px;
+                padding: 12px;
+                background: rgba(123,44,191,0.1);
+                border-radius: 12px;
+                border: 1px solid rgba(123,44,191,0.2);
+            }
+            
+            .guide-nav-btn {
+                padding: 8px 14px;
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 20px;
+                color: #aaa;
+                font-size: 11px;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+            
+            .guide-nav-btn:hover, .guide-nav-btn.active {
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                color: #fff;
+                border-color: #7b2cbf;
+            }
+            
+            .guide-section {
+                background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+                border-radius: 16px;
+                border: 1px solid rgba(123,44,191,0.2);
+                margin-bottom: 15px;
+                overflow: hidden;
+            }
+            
+            .guide-section-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 16px 18px;
+                background: rgba(123,44,191,0.1);
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+            
+            .guide-section-header:hover { background: rgba(123,44,191,0.2); }
+            .guide-section-icon { font-size: 22px; }
+            .guide-section-title { flex: 1; color: #fff; font-size: 15px; font-weight: 600; }
+            .guide-section-toggle { color: #7b2cbf; font-size: 18px; transition: transform 0.3s; }
+            .guide-section.open .guide-section-toggle { transform: rotate(180deg); }
+            
+            .guide-section-content {
+                padding: 0;
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.4s ease, padding 0.4s ease;
+            }
+            
+            .guide-section.open .guide-section-content {
+                padding: 18px;
+                max-height: 3000px;
+            }
+            
+            .guide-text { color: #ccc; font-size: 13px; line-height: 1.7; margin-bottom: 12px; }
+            .guide-text:last-child { margin-bottom: 0; }
+            
+            .guide-highlight {
+                background: rgba(255,215,0,0.08);
+                border-left: 4px solid #ffd700;
+                padding: 14px;
+                border-radius: 0 10px 10px 0;
+                margin: 14px 0;
+            }
+            
+            .guide-highlight-title {
+                color: #ffd700;
+                font-weight: 600;
+                font-size: 12px;
+                margin-bottom: 8px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .guide-warning {
+                background: rgba(255,68,68,0.08);
+                border-left: 4px solid #ff4444;
+                padding: 14px;
+                border-radius: 0 10px 10px 0;
+                margin: 14px 0;
+            }
+            
+            .guide-warning-title {
+                color: #ff6b6b;
+                font-weight: 600;
+                font-size: 12px;
+                margin-bottom: 8px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .guide-success {
+                background: rgba(0,255,136,0.08);
+                border-left: 4px solid #00ff88;
+                padding: 14px;
+                border-radius: 0 10px 10px 0;
+                margin: 14px 0;
+            }
+            
+            .guide-success-title {
+                color: #00ff88;
+                font-weight: 600;
+                font-size: 12px;
+                margin-bottom: 8px;
+            }
+            
+            .guide-list {
+                list-style: none;
+                padding: 0;
+                margin: 14px 0;
+            }
+            
+            .guide-list li {
+                color: #ccc;
+                font-size: 12px;
+                padding: 10px 14px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 8px;
+                margin-bottom: 6px;
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+                line-height: 1.5;
+            }
+            
+            .guide-list li::before {
+                content: '→';
+                color: #7b2cbf;
+                font-weight: bold;
+                flex-shrink: 0;
+            }
+            
+            .guide-numbered-list {
+                counter-reset: guide-counter;
+                list-style: none;
+                padding: 0;
+                margin: 14px 0;
+            }
+            
+            .guide-numbered-list li {
+                counter-increment: guide-counter;
+                color: #ccc;
+                font-size: 12px;
+                padding: 12px 14px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 8px;
+                margin-bottom: 6px;
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                line-height: 1.5;
+            }
+            
+            .guide-numbered-list li::before {
+                content: counter(guide-counter);
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                color: #fff;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 11px;
+                font-weight: bold;
+                flex-shrink: 0;
+            }
+            
+            .guide-teams-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                margin: 14px 0;
+            }
+            
+            .guide-team-card {
+                padding: 14px;
+                border-radius: 12px;
+                text-align: center;
+                border: 2px solid;
+            }
+            
+            .guide-team-card.indigo { background: rgba(75,0,130,0.15); border-color: rgba(75,0,130,0.4); }
+            .guide-team-card.echo { background: rgba(0,191,255,0.15); border-color: rgba(0,191,255,0.4); }
+            .guide-team-card.agustd { background: rgba(220,20,60,0.15); border-color: rgba(220,20,60,0.4); }
+            .guide-team-card.jitb { background: rgba(50,205,50,0.15); border-color: rgba(50,205,50,0.4); }
+            
+            .guide-team-name { color: #fff; font-weight: bold; font-size: 13px; }
+            .guide-team-album { color: #aaa; font-size: 10px; margin-top: 4px; }
+            
+            .guide-gc-grid { display: grid; gap: 8px; margin: 14px 0; }
+            
+            .guide-gc-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px 14px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 10px;
+            }
+            
+            .guide-gc-icon { font-size: 18px; }
+            .guide-gc-info { flex: 1; }
+            .guide-gc-name { color: #fff; font-weight: 600; font-size: 12px; }
+            .guide-gc-desc { color: #888; font-size: 10px; margin-top: 2px; }
+            
+            .guide-steps { margin: 14px 0; }
+            
+            .guide-step {
+                display: flex;
+                gap: 14px;
+                padding: 14px 0;
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+            }
+            
+            .guide-step:last-child { border-bottom: none; }
+            
+            .guide-step-num {
+                width: 32px;
+                height: 32px;
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-weight: bold;
+                flex-shrink: 0;
+                font-size: 14px;
+            }
+            
+            .guide-step-content { flex: 1; }
+            .guide-step-title { color: #fff; font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+            .guide-step-desc { color: #888; font-size: 11px; line-height: 1.5; }
+            
+            .guide-cross-check { margin: 14px 0; }
+            
+            .guide-cross-check-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 14px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 8px;
+                margin-bottom: 6px;
+            }
+            
+            .guide-cross-check-from, .guide-cross-check-to { color: #fff; font-size: 12px; font-weight: 600; }
+            .guide-cross-check-arrow { color: #7b2cbf; font-size: 16px; }
+            
+            .watermark-example {
+                background: rgba(0,0,0,0.3);
+                border-radius: 12px;
+                padding: 18px;
+                text-align: center;
+                margin: 14px 0;
+                border: 2px dashed rgba(123,44,191,0.3);
+            }
+            
+            .watermark-preview {
+                background: linear-gradient(145deg, #222, #1a1a1a);
+                border-radius: 10px;
+                padding: 35px 18px;
+                margin-bottom: 14px;
+                position: relative;
+            }
+            
+            .watermark-text {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                background: rgba(0,0,0,0.7);
+                color: #fff;
+                padding: 4px 10px;
+                border-radius: 5px;
+                font-size: 10px;
+                font-weight: bold;
+            }
+            
+            .watermark-preview-label { color: #666; font-size: 11px; }
+            .watermark-instructions { color: #aaa; font-size: 11px; line-height: 1.6; }
+            
+            .quick-links {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                margin-top: 20px;
+            }
+            
+            .quick-link {
+                padding: 14px;
+                background: linear-gradient(145deg, rgba(123,44,191,0.15), rgba(123,44,191,0.08));
+                border-radius: 12px;
+                border: 1px solid rgba(123,44,191,0.3);
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+            
+            .quick-link:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(123,44,191,0.3);
+            }
+            
+            .quick-link-icon { font-size: 22px; margin-bottom: 6px; }
+            .quick-link-text { color: #fff; font-size: 12px; font-weight: 600; }
+            
+            @media (max-width: 500px) {
+                .guide-teams-grid, .quick-links { grid-template-columns: 1fr; }
+            }
+        </style>
+        
+        <div class="guide-page">
+            <!-- Header -->
+            <div class="guide-header">
+                <h1>📚 Agent Training Manual</h1>
+                <p>Everything you need to know about BTS Comeback Mission</p>
+            </div>
+            
+            <!-- Quick Navigation -->
+            <div class="guide-nav">
+                <button class="guide-nav-btn active" onclick="scrollToGuideSection('what-is')">Mission</button>
+                <button class="guide-nav-btn" onclick="scrollToGuideSection('teams')">Teams</button>
+                <button class="guide-nav-btn" onclick="scrollToGuideSection('goals')">Goals & XP</button>
+                <button class="guide-nav-btn" onclick="scrollToGuideSection('winning')">How to Win</button>
+                <button class="guide-nav-btn" onclick="scrollToGuideSection('rules')">Rules</button>
+                <button class="guide-nav-btn" onclick="scrollToGuideSection('attendance')">Attendance</button>
+            </div>
+            
+            <!-- Section 1: What Is This Mission -->
+            <div class="guide-section open" id="guide-what-is">
+                <div class="guide-section-header" onclick="toggleGuideSection(this)">
+                    <span class="guide-section-icon">🎯</span>
+                    <span class="guide-section-title">What Is This Mission?</span>
+                    <span class="guide-section-toggle">▼</span>
+                </div>
+                <div class="guide-section-content">
+                    <p class="guide-text">
+                        This is a <strong style="color:#ffd700;">weekly streaming mission</strong> designed to prepare us for BTS' comeback. Think of it like a game where your team works together to level up! 🚀
+                    </p>
+                    
+                    <div class="guide-highlight">
+                        <div class="guide-highlight-title">💡 Every Week, Your Team Works On:</div>
+                        <div style="color:#fff;font-size:12px;line-height:1.8;">
+                            • <strong>Track Goals</strong> (team combined streams for specific songs)<br>
+                            • <strong>Album Goals</strong> (team combined streams for albums)<br>
+                            • <strong>${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Rule</strong> (stream your team album ${CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS}X each)<br>
+                            • <strong>Secret Missions</strong> (special bonus challenges)
+                        </div>
+                    </div>
+                    
+                    <p class="guide-text">
+                        <strong style="color:#00ff88;">Each week = 1 level for your team.</strong><br>
+                        Don't worry about the complexity — we have designated helper roles who will support you anytime! 💜
+                    </p>
+                    
+                    <div class="guide-success">
+                        <div class="guide-success-title">✅ It's Super Simple Once You Start!</div>
+                        <div style="color:#fff;font-size:12px;">
+                            Read everything patiently. Don't stress about these instructions - you'll always get help whenever you feel stuck!
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 2: Teams -->
+            <div class="guide-section" id="guide-teams">
+                <div class="guide-section-header" onclick="toggleGuideSection(this)">
+                    <span class="guide-section-icon">👥</span>
+                    <span class="guide-section-title">The 4 Teams</span>
+                    <span class="guide-section-toggle">▼</span>
+                </div>
+                <div class="guide-section-content">
+                    <p class="guide-text">
+                        We have 4 teams, each with their own team album to stream:
+                    </p>
+                    
+                    <div class="guide-teams-grid">
+                        <div class="guide-team-card indigo">
+                            <div class="guide-team-name">🟣 Team Indigo</div>
+                            <div class="guide-team-album">Album: Indigo</div>
+                        </div>
+                        <div class="guide-team-card echo">
+                            <div class="guide-team-name">🔵 Team Echo</div>
+                            <div class="guide-team-album">Album: Echo</div>
+                        </div>
+                        <div class="guide-team-card agustd">
+                            <div class="guide-team-name">🔴 Team Agust D</div>
+                            <div class="guide-team-album">Album: D-Day</div>
+                        </div>
+                        <div class="guide-team-card jitb">
+                            <div class="guide-team-name">🟢 Team JITB</div>
+                            <div class="guide-team-album">Album: Jack in the Box</div>
+                        </div>
+                    </div>
+                    
+                    <div class="guide-highlight">
+                        <div class="guide-highlight-title">🎧 Your Team: ${sanitize(myTeam)}</div>
+                        <div style="color:#fff;font-size:12px;">
+                            Your team album is <strong style="color:#ffd700;">${sanitize(teamAlbum)}</strong>.<br>
+                            You must stream this album <strong>top to bottom, ${CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS} times per week</strong>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 3: Goals & XP -->
+            <div class="guide-section" id="guide-goals">
+                <div class="guide-section-header" onclick="toggleGuideSection(this)">
+                    <span class="guide-section-icon">⭐</span>
+                    <span class="guide-section-title">Track Goals, Album Goals & XP</span>
+                    <span class="guide-section-toggle">▼</span>
+                </div>
+                <div class="guide-section-content">
+                    <p class="guide-text">
+                        Goals are <strong style="color:#ffd700;">team-based</strong>, not individual. Everyone's streams are added together!
+                    </p>
+                    
+                    <div class="guide-highlight">
+                        <div class="guide-highlight-title">📊 Example: Track Goal</div>
+                        <div style="color:#fff;font-size:12px;line-height:1.8;">
+                            If the goal is <strong>2,000 streams</strong> for "Life Goes On":<br>
+                            • Every member's scrobbles for that song are combined<br>
+                            • If team total reaches 2,000 → <span style="color:#00ff88;">GOAL PASSED ✓</span><br>
+                            • If below 2,000 → <span style="color:#ff6b6b;">GOAL FAILED ✗</span><br><br>
+                            <em>Same rule applies to album goals!</em>
+                        </div>
+                    </div>
+                    
+                    <h4 style="color:#fff;margin:18px 0 10px;">💫 How XP Works</h4>
+                    
+                    <ul class="guide-list">
+                        <li><strong style="color:#ffd700;">10 streams</strong> from track/album goals = <strong style="color:#00ff88;">1 XP</strong></li>
+                        <li>Example: 200 combined scrobbles = 20 XP</li>
+                        <li>All team members' XP is combined = <strong>Total Team XP</strong></li>
+                        <li>Think of XP as your power level — just like in games! 🎮</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Section 4: How to Win -->
+            <div class="guide-section" id="guide-winning">
+                <div class="guide-section-header" onclick="toggleGuideSection(this)">
+                    <span class="guide-section-icon">🏆</span>
+                    <span class="guide-section-title">How to Win the Week</span>
+                    <span class="guide-section-toggle">▼</span>
+                </div>
+                <div class="guide-section-content">
+                    <div class="guide-warning">
+                        <div class="guide-warning-title">⚠️ IMPORTANT: Winning Requires ALL of These!</div>
+                        <div style="color:#fff;font-size:12px;">
+                            A team with high XP but incomplete requirements <strong>CANNOT</strong> win!
+                        </div>
+                    </div>
+                    
+                    <h4 style="color:#fff;margin:18px 0 10px;">✅ To Win the Week, Your Team Must:</h4>
+                    
+                    <ol class="guide-numbered-list">
+                        <li><strong style="color:#fff;">Complete Track Goals</strong> - All track streaming goals met</li>
+                        <li><strong style="color:#fff;">Complete Album Goals</strong> - All album streaming goals met</li>
+                        <li><strong style="color:#fff;">Complete ${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Challenge</strong> - EVERY member streams team album ${CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS}X</li>
+                        <li><strong style="color:#fff;">100% Attendance</strong> - All members submit Spotify screenshots</li>
+                        <li><strong style="color:#fff;">Pass Police Check</strong> - No more than 3 violations</li>
+                        <li><strong style="color:#fff;">Highest XP</strong> - Among teams that completed all above!</li>
+                    </ol>
+                    
+                    <div class="guide-success">
+                        <div class="guide-success-title">🎖️ Winner Reward</div>
+                        <div style="color:#fff;font-size:12px;">
+                            All members of the winning team get a special <strong style="color:#ffd700;">Champion Badge</strong>! 🏆
+                        </div>
+                    </div>
+                    
+                    <div style="
+                        margin-top: 15px;
+                        padding: 12px;
+                        background: rgba(255,165,0,0.1);
+                        border: 1px solid rgba(255,165,0,0.3);
+                        border-radius: 10px;
+                    ">
+                        <div style="color:#ffa500;font-size:12px;font-weight:600;margin-bottom:6px;">
+                            ⏰ Deadline: Sunday 4:00 PM IST
+                        </div>
+                        <div style="color:#888;font-size:11px;">
+                            Attendance and Police reports must be confirmed by Admin before results are finalized.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 5: Streaming Rules -->
+            <div class="guide-section" id="guide-rules">
+                <div class="guide-section-header" onclick="toggleGuideSection(this)">
+                    <span class="guide-section-icon">📜</span>
+                    <span class="guide-section-title">Important Streaming Rules</span>
+                    <span class="guide-section-toggle">▼</span>
+                </div>
+                <div class="guide-section-content">
+                    <div class="guide-warning">
+                        <div class="guide-warning-title">⚠️ MUST FOLLOW THESE RULES</div>
+                        <div style="color:#fff;font-size:12px;">
+                            These rules protect everyone's hard work and prevent streams from being deleted!
+                        </div>
+                    </div>
+                    
+                    <ol class="guide-numbered-list">
+                        <li>Stream <strong style="color:#ffd700;">ONLY from the playlists given</strong> — available on HopeTracker or in the Playlist GC</li>
+                        <li>Need a custom playlist? Ask the <strong>Playlist Makers</strong> — they'll create one that's safe</li>
+                        <li><strong style="color:#ff6b6b;">NO looping!</strong> Don't repeat the same playlist continuously</li>
+                        <li>Every <strong style="color:#ffd700;">Sunday</strong>, you must show your Spotify listening history (100% attendance mandatory)</li>
+                    </ol>
+                    
+                    <h4 style="color:#fff;margin:18px 0 10px;">💬 Group Chats (GCs)</h4>
+                    
+                    <div class="guide-gc-grid">
+                        <div class="guide-gc-item">
+                            <span class="guide-gc-icon">🌐</span>
+                            <div class="guide-gc-info">
+                                <div class="guide-gc-name">Main GC</div>
+                                <div class="guide-gc-desc">All teams together</div>
+                            </div>
+                        </div>
+                        <div class="guide-gc-item">
+                            <span class="guide-gc-icon">💭</span>
+                            <div class="guide-gc-info">
+                                <div class="guide-gc-name">Discussion GC</div>
+                                <div class="guide-gc-desc">Common doubts for all teams</div>
+                            </div>
+                        </div>
+                        <div class="guide-gc-item">
+                            <span class="guide-gc-icon">👥</span>
+                            <div class="guide-gc-info">
+                                <div class="guide-gc-name">Team GCs</div>
+                                <div class="guide-gc-desc">Only your team members</div>
+                            </div>
+                        </div>
+                        <div class="guide-gc-item">
+                            <span class="guide-gc-icon">🎵</span>
+                            <div class="guide-gc-info">
+                                <div class="guide-gc-name">Playlist GC</div>
+                                <div class="guide-gc-desc">Playlist sharing & requests</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="guide-warning">
+                        <div class="guide-warning-title">🚫 GC Rule</div>
+                        <div style="color:#fff;font-size:12px;">
+                            In ALL GCs, you can <strong>only talk about the battle</strong>.<br>
+                            No random chats, off-topic discussions, or memes!
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 6: Attendance & Screenshots -->
+            <div class="guide-section" id="guide-attendance">
+                <div class="guide-section-header" onclick="toggleGuideSection(this)">
+                    <span class="guide-section-icon">📸</span>
+                    <span class="guide-section-title">Weekly Attendance & Screenshots</span>
+                    <span class="guide-section-toggle">▼</span>
+                </div>
+                <div class="guide-section-content">
+                    <div class="guide-highlight">
+                        <div class="guide-highlight-title">⏰ Submission Window</div>
+                        <div style="color:#fff;font-size:12px;">
+                            <strong>Saturday 3:00 PM</strong> → <strong>Sunday 3:00 PM</strong> (IST)<br>
+                            You have 24 hours — no excuses!
+                        </div>
+                    </div>
+                    
+                    <h4 style="color:#fff;margin:18px 0 10px;">📱 How To Send Your Screenshots</h4>
+                    
+                    <div class="guide-steps">
+                        <div class="guide-step">
+                            <div class="guide-step-num">1</div>
+                            <div class="guide-step-content">
+                                <div class="guide-step-title">Open Spotify</div>
+                                <div class="guide-step-desc">Launch the Spotify app on your phone</div>
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <div class="guide-step-num">2</div>
+                            <div class="guide-step-content">
+                                <div class="guide-step-title">Go to Your Profile</div>
+                                <div class="guide-step-desc">Tap your profile icon (top-left corner)</div>
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <div class="guide-step-num">3</div>
+                            <div class="guide-step-content">
+                                <div class="guide-step-title">Open Recents</div>
+                                <div class="guide-step-desc">Find and tap on "Recents" or "Recently Played"</div>
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <div class="guide-step-num">4</div>
+                            <div class="guide-step-content">
+                                <div class="guide-step-title">Scroll Down & Screenshot</div>
+                                <div class="guide-step-desc">Capture history from last Sunday till Saturday</div>
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <div class="guide-step-num">5</div>
+                            <div class="guide-step-content">
+                                <div class="guide-step-title">Add Watermark & Send</div>
+                                <div class="guide-step-desc">Add your Instagram username, then post in Team GC</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="guide-warning" id="guide-watermark">
+                        <div class="guide-warning-title">🏷️ IMPORTANT: Add Watermark!</div>
+                        <div style="color:#fff;font-size:12px;">
+                            You MUST add your <strong>Instagram username as a watermark</strong> on your screenshots!
+                        </div>
+                    </div>
+                    
+                    <div class="watermark-example">
+                        <div class="watermark-preview">
+                            <div class="watermark-text">@your_username</div>
+                            <div class="watermark-preview-label">📱 Your Spotify History Screenshot</div>
+                        </div>
+                        <div class="watermark-instructions">
+                            Add your Instagram username in the corner of each screenshot.<br>
+                            You can use any photo editing app or the markup tool on your phone.
+                        </div>
+                    </div>
+                    
+                    <h4 style="color:#fff;margin:18px 0 10px;">🔍 Cross-Check System</h4>
+                    <p class="guide-text">To keep things fair, teams cross-check each other:</p>
+                    
+                    <div class="guide-cross-check">
+                        <div class="guide-cross-check-item">
+                            <span class="guide-cross-check-from">🟣 Team Indigo</span>
+                            <span class="guide-cross-check-arrow">→</span>
+                            <span class="guide-cross-check-to">🔵 Team Echo</span>
+                        </div>
+                        <div class="guide-cross-check-item">
+                            <span class="guide-cross-check-from">🔵 Team Echo</span>
+                            <span class="guide-cross-check-arrow">→</span>
+                            <span class="guide-cross-check-to">🔴 Team Agust D</span>
+                        </div>
+                        <div class="guide-cross-check-item">
+                            <span class="guide-cross-check-from">🔴 Team Agust D</span>
+                            <span class="guide-cross-check-arrow">→</span>
+                            <span class="guide-cross-check-to">🟢 Team JITB</span>
+                        </div>
+                        <div class="guide-cross-check-item">
+                            <span class="guide-cross-check-from">🟢 Team JITB</span>
+                            <span class="guide-cross-check-arrow">→</span>
+                            <span class="guide-cross-check-to">🟣 Team Indigo</span>
+                        </div>
+                    </div>
+                    
+                    <div class="guide-warning">
+                        <div class="guide-warning-title">⚠️ Consequences (After Week 1)</div>
+                        <div style="color:#fff;font-size:12px;line-height:1.8;">
+                            • Week 1 is practice — no action taken<br><br>
+                            • <strong>From Week 2:</strong><br>
+                            → If 3+ members loop or don't use correct playlists = Team's streams NOT counted<br>
+                            → If 100% attendance not met = Team disqualified for that week
+                        </div>
+                    </div>
+                    
+                    <div class="guide-success">
+                        <div class="guide-success-title">💡 Can't Submit On Time?</div>
+                        <div style="color:#fff;font-size:12px;">
+                            Send your screenshots to a teammate or team helper, and they can submit on your behalf!
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 7: Final Words -->
+            <div class="guide-section" id="guide-final">
+                <div class="guide-section-header" onclick="toggleGuideSection(this)">
+                    <span class="guide-section-icon">💜</span>
+                    <span class="guide-section-title">Final Words</span>
+                    <span class="guide-section-toggle">▼</span>
+                </div>
+                <div class="guide-section-content">
+                    <div style="text-align:center;padding:15px;">
+                        <div style="font-size:48px;margin-bottom:12px;">💜</div>
+                        <p class="guide-text" style="text-align:center;font-size:15px;color:#fff;">
+                            <strong>Read everything patiently.</strong><br>
+                            Don't stress about all these instructions!
+                        </p>
+                        <p class="guide-text" style="text-align:center;">
+                            It's super simple once you start, and you'll always get help whenever you feel stuck.
+                        </p>
+                        <p class="guide-text" style="text-align:center;color:#ffd700;font-weight:bold;">
+                            Let's work together and make this comeback legendary! 🚀
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Links -->
+            <div class="quick-links">
+                <div class="quick-link" onclick="loadPage('home')">
+                    <div class="quick-link-icon">🏠</div>
+                    <div class="quick-link-text">Dashboard</div>
+                </div>
+                <div class="quick-link" onclick="loadPage('goals')">
+                    <div class="quick-link-icon">🎯</div>
+                    <div class="quick-link-text">Goals</div>
+                </div>
+                <div class="quick-link" onclick="loadPage('playlists')">
+                    <div class="quick-link-icon">🎵</div>
+                    <div class="quick-link-text">Playlists</div>
+                </div>
+                <div class="quick-link" onclick="loadPage('gc-links')">
+                    <div class="quick-link-icon">👥</div>
+                    <div class="quick-link-text">GC Links</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
+// Toggle guide section
+function toggleGuideSection(header) {
+    const section = header.parentElement;
+    section.classList.toggle('open');
+}
+
+// Scroll to guide section
+function scrollToGuideSection(sectionId) {
+    const section = document.getElementById('guide-' + sectionId);
+    if (section) {
+        section.classList.add('open');
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        document.querySelectorAll('.guide-nav-btn').forEach(btn => btn.classList.remove('active'));
+    }
+}
 // ==================== MISSING FUNCTION: showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
@@ -9515,5 +10675,14 @@ window.respondToVoting = respondToVoting;
 window.dismissVotingPopup = dismissVotingPopup;
 window.checkVotingAnnouncement = checkVotingAnnouncement;
 window.showVotingPopup = showVotingPopup;
+window.renderGuidePage = renderGuidePage;
+window.toggleGuideSection = toggleGuideSection;
+window.scrollToGuideSection = scrollToGuideSection;
+window.renderWeekConfirmation = renderWeekConfirmation;
+window.adminConfirmAttendance = adminConfirmAttendance;
+window.adminConfirmPolice = adminConfirmPolice;
+window.isTeamEligibleForWin = isTeamEligibleForWin;
+window.getTeamEligibilityStatus = getTeamEligibilityStatus;
+window.getWeekWinner = getWeekWinner;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded with Voting System 🗳️💜');
