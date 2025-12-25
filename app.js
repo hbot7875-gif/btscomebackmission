@@ -407,15 +407,14 @@ function preloadDashboardData() {
         api('getWeeklySummary', { week: STATE.week }).catch(() => {});
     }
 }
-// ==================== NOTIFICATION & VOTING SYSTEM (COMBINED V3) ====================
+// ==================== NOTIFICATION & VOTING SYSTEM (COMBINED V4) ====================
 
 // 🔴 INCREMENT THESE when making breaking changes
-const NOTIFICATION_SYSTEM_VERSION = 3;
-const VOTING_STORAGE_VERSION = 2;
+const NOTIFICATION_SYSTEM_VERSION = 4;
+const VOTING_STORAGE_VERSION = 3;
 
 // ==================== NOTIFICATION STATE MANAGEMENT ====================
 
-// Initialize notification state structure
 function initNotificationState() {
     return {
         version: NOTIFICATION_SYSTEM_VERSION,
@@ -425,7 +424,7 @@ function initNotificationState() {
         album2xBadge: {},
         _badgesInitialized: false,
         
-        // Content-based tracking (prevents re-notification on code updates)
+        // Content-based tracking
         seenAnnouncementIds: [],
         lastAnnouncementTimestamp: null,
         
@@ -437,6 +436,8 @@ function initNotificationState() {
         
         // Date-based tracking
         songOfDay: null,
+        
+        // Week results - SMART: only track recent weeks
         weekResults: [],
         
         // System flags
@@ -446,19 +447,28 @@ function initNotificationState() {
     };
 }
 
-// Load saved notification state with migration support
 function loadNotificationState() {
     try {
-        const storageKey = 'notificationState_v3_' + STATE.agentNo;
-        const legacyKey = 'notificationState_' + STATE.agentNo;
+        const storageKey = 'notificationState_v4_' + STATE.agentNo;
+        const legacyKeys = [
+            'notificationState_v3_' + STATE.agentNo,
+            'notificationState_' + STATE.agentNo
+        ];
         
         let saved = localStorage.getItem(storageKey);
         let isLegacy = false;
+        let legacyKey = null;
         
-        // Try legacy key if new key not found
+        // Try legacy keys if new key not found
         if (!saved) {
-            saved = localStorage.getItem(legacyKey);
-            isLegacy = true;
+            for (const key of legacyKeys) {
+                saved = localStorage.getItem(key);
+                if (saved) {
+                    isLegacy = true;
+                    legacyKey = key;
+                    break;
+                }
+            }
         }
         
         if (saved) {
@@ -467,7 +477,6 @@ function loadNotificationState() {
             
             console.log(`📌 Found notification state v${savedVersion}${isLegacy ? ' (legacy)' : ''}`);
             
-            // Smart merge - preserve existing values, add new defaults
             STATE.lastChecked = smartMergeState(
                 initNotificationState(),
                 parsed.lastChecked || {}
@@ -476,22 +485,19 @@ function loadNotificationState() {
             STATE.dismissedPopups = parsed.dismissedPopups || {};
             STATE.shownPopupsThisSession = {};
             
-            // Run migration if version changed
             if (savedVersion < NOTIFICATION_SYSTEM_VERSION) {
-                migrateNotificationState(savedVersion, isLegacy);
+                migrateNotificationState(savedVersion);
             }
             
-            // Update version
             STATE.lastChecked.version = NOTIFICATION_SYSTEM_VERSION;
             
             // Clean up legacy storage
-            if (isLegacy) {
+            if (isLegacy && legacyKey) {
                 localStorage.removeItem(legacyKey);
                 saveNotificationState();
             }
             
         } else {
-            // Truly first time user - initialize with current data as baseline
             console.log('📌 First time user - initializing notification baseline');
             initializeNotificationBaseline();
         }
@@ -501,22 +507,16 @@ function loadNotificationState() {
     }
 }
 
-// Smart merge that preserves user data while adding new fields
 function smartMergeState(defaults, saved) {
     const merged = { ...defaults };
     
     for (const key in saved) {
         if (saved[key] !== undefined && saved[key] !== null) {
-            // For arrays, keep existing data and dedupe
             if (Array.isArray(defaults[key]) && Array.isArray(saved[key])) {
                 merged[key] = [...new Set([...saved[key]])];
-            }
-            // For objects, merge deeply
-            else if (typeof defaults[key] === 'object' && typeof saved[key] === 'object' && !Array.isArray(defaults[key])) {
+            } else if (typeof defaults[key] === 'object' && typeof saved[key] === 'object' && !Array.isArray(defaults[key])) {
                 merged[key] = { ...defaults[key], ...saved[key] };
-            }
-            // For primitives, keep saved value
-            else {
+            } else {
                 merged[key] = saved[key];
             }
         }
@@ -525,90 +525,112 @@ function smartMergeState(defaults, saved) {
     return merged;
 }
 
-// Migration function for version upgrades
-function migrateNotificationState(fromVersion, isLegacy) {
+function migrateNotificationState(fromVersion) {
     console.log(`🔄 Migrating notification state from v${fromVersion} to v${NOTIFICATION_SYSTEM_VERSION}`);
     
     const state = STATE.lastChecked;
     
-    // v1 -> v2+: Convert count-based to ID-based tracking
     if (fromVersion < 2) {
-        console.log('  → Converting to ID-based tracking');
-        
-        // Convert old playlist count to new system
         if (typeof state.playlists === 'number' && state.playlists > 0) {
             state.playlistCount = state.playlists;
             state.seenPlaylistIds = [];
         }
-        
-        // Convert old mission count
         if (typeof state.missions === 'number' && state.missions > 0) {
             state.missionCount = state.missions;
         }
-        
-        // Preserve missionIds if they exist
         if (Array.isArray(state.missionIds)) {
             state.seenMissionIds = [...state.missionIds];
         }
-        
-        // Convert announcements timestamp
         if (state.announcements) {
             state.lastAnnouncementTimestamp = state.announcements;
         }
     }
     
-    // v2 -> v3: Add additional safeguards
     if (fromVersion < 3) {
-        console.log('  → Adding migration safeguards');
-        
-        // Ensure arrays exist
         state.seenAnnouncementIds = state.seenAnnouncementIds || [];
         state.seenPlaylistIds = state.seenPlaylistIds || [];
         state.seenMissionIds = state.seenMissionIds || state.missionIds || [];
         state.weekResults = state.weekResults || [];
-        
-        // Mark as properly initialized
         state._initialized = true;
         state._badgesInitialized = true;
+    }
+    
+    // v4: Clean up old week results (only keep last 2 weeks)
+    if (fromVersion < 4) {
+        console.log('  → Cleaning up old week results');
+        state.weekResults = cleanupOldWeekResults(state.weekResults);
     }
     
     state._lastMigration = Date.now();
     state._migratedFrom = fromVersion;
     
-    // Save immediately after migration
     saveNotificationState();
-    
     console.log('✅ Migration complete');
 }
 
-// Set baseline counts to avoid notification spam on first load
+// Clean up old week results - only keep recent ones
+function cleanupOldWeekResults(weekResults) {
+    if (!Array.isArray(weekResults)) return [];
+    if (!STATE.weeks || STATE.weeks.length === 0) return weekResults;
+    
+    // Get current week index
+    const currentWeekIndex = STATE.weeks.indexOf(STATE.week);
+    if (currentWeekIndex === -1) return weekResults;
+    
+    // Only keep results for current week and 1 previous week
+    const recentWeeks = STATE.weeks.slice(Math.max(0, currentWeekIndex - 1), currentWeekIndex + 1);
+    
+    return weekResults.filter(week => recentWeeks.includes(week));
+}
+
+// Get weeks that are relevant for notifications (current and previous only)
+function getRelevantWeeksForNotification() {
+    if (!STATE.weeks || STATE.weeks.length === 0) return [];
+    
+    const currentWeekIndex = STATE.weeks.indexOf(STATE.week);
+    if (currentWeekIndex === -1) return [STATE.week];
+    
+    // Only current week and immediately previous week
+    const relevant = [];
+    if (currentWeekIndex > 0) {
+        relevant.push(STATE.weeks[currentWeekIndex - 1]); // Previous week
+    }
+    relevant.push(STATE.week); // Current week
+    
+    return relevant;
+}
+
 async function initializeNotificationBaseline() {
     console.log('📌 Initializing notification baseline...');
     
     const currentXP = parseInt(STATE.data?.stats?.totalXP) || 0;
     const album2xPassed = STATE.data?.album2xStatus?.passed || false;
     
-    // Initialize with current state as baseline
     STATE.lastChecked = initNotificationState();
     STATE.lastChecked.badges = Math.floor(currentXP / 50);
     STATE.lastChecked._badgesInitialized = true;
     STATE.lastChecked.lastAnnouncementTimestamp = Date.now();
     STATE.lastChecked.songOfDay = new Date().toDateString();
     
-    // Album 2X badge
     if (album2xPassed && STATE.week) {
         STATE.lastChecked.album2xBadge[STATE.week] = true;
     }
     
-    // Copy existing seen results
+    // Mark ALL old weeks as seen (only notify for future results)
+    if (STATE.weeks && STATE.weeks.length > 0) {
+        const currentWeekIndex = STATE.weeks.indexOf(STATE.week);
+        // Mark all weeks before current as "seen"
+        STATE.lastChecked.weekResults = STATE.weeks.slice(0, currentWeekIndex);
+    }
+    
     if (STATE.hasSeenResults) {
-        STATE.lastChecked.weekResults = Object.keys(STATE.hasSeenResults);
+        const existingSeen = Object.keys(STATE.hasSeenResults);
+        STATE.lastChecked.weekResults = [...new Set([...STATE.lastChecked.weekResults, ...existingSeen])];
     }
     
     STATE.dismissedPopups = {};
     STATE.shownPopupsThisSession = {};
     
-    // Fetch current counts to set baseline (async)
     try {
         await setInitialBaselines();
     } catch (e) {
@@ -619,21 +641,17 @@ async function initializeNotificationBaseline() {
     console.log('✅ Notification baseline initialized');
 }
 
-// Fetch current data to set as baseline
 async function setInitialBaselines() {
     const promises = [];
     
-    // Get current playlists
     promises.push(
         api('getPlaylists').then(data => {
             const playlists = data.playlists || [];
             STATE.lastChecked.playlistCount = playlists.length;
             STATE.lastChecked.seenPlaylistIds = playlists.map(p => p.id || p.name).filter(Boolean);
-            console.log(`  → Baseline: ${playlists.length} playlists`);
         }).catch(() => {})
     );
     
-    // Get current announcements
     promises.push(
         api('getAnnouncements', { week: STATE.week }).then(data => {
             const announcements = data.announcements || [];
@@ -642,11 +660,9 @@ async function setInitialBaselines() {
                 const sorted = announcements.sort((a, b) => new Date(b.created || 0) - new Date(a.created || 0));
                 STATE.lastChecked.lastAnnouncementTimestamp = new Date(sorted[0].created).getTime();
             }
-            console.log(`  → Baseline: ${announcements.length} announcements`);
         }).catch(() => {})
     );
     
-    // Get current missions
     const team = STATE.data?.profile?.team;
     if (team) {
         promises.push(
@@ -654,7 +670,6 @@ async function setInitialBaselines() {
                 const missions = data.active || [];
                 STATE.lastChecked.missionCount = missions.length;
                 STATE.lastChecked.seenMissionIds = missions.map(m => m.id).filter(Boolean);
-                console.log(`  → Baseline: ${missions.length} missions`);
             }).catch(() => {})
         );
     }
@@ -662,10 +677,9 @@ async function setInitialBaselines() {
     await Promise.allSettled(promises);
 }
 
-// Save notification state
 function saveNotificationState() {
     try {
-        const storageKey = 'notificationState_v3_' + STATE.agentNo;
+        const storageKey = 'notificationState_v4_' + STATE.agentNo;
         localStorage.setItem(storageKey, JSON.stringify({
             lastChecked: STATE.lastChecked,
             dismissedPopups: STATE.dismissedPopups || {}
@@ -675,7 +689,6 @@ function saveNotificationState() {
     }
 }
 
-// Generate unique key for notification
 function getNotificationKey(notif) {
     if (!notif) return 'unknown_' + Date.now();
     
@@ -695,21 +708,15 @@ function getNotificationKey(notif) {
 // ==================== MAIN NOTIFICATION CHECK ====================
 
 async function checkNotifications() {
-    // Prevent concurrent checks
     if (STATE.isCheckingNotifications) {
-        console.log('⏳ Already checking notifications, skipping...');
         return;
     }
     
-    // Don't check if not logged in or no data
     if (!STATE.agentNo || !STATE.data) {
-        console.log('⚠️ Cannot check notifications - not logged in');
         return;
     }
     
-    // Ensure state is initialized
     if (!STATE.lastChecked || !STATE.lastChecked._initialized) {
-        console.log('⚠️ Notification state not initialized, loading...');
         loadNotificationState();
         return;
     }
@@ -718,7 +725,6 @@ async function checkNotifications() {
     console.log('🔔 Checking notifications...');
     
     try {
-        // Run all checks in PARALLEL for speed
         const results = await Promise.allSettled([
             checkNewBadges(),
             checkNewAnnouncements(),
@@ -730,7 +736,6 @@ async function checkNotifications() {
         const notifications = [];
         const checkNames = ['badges', 'announcements', 'playlists', 'missions', 'sotd'];
         
-        // Collect successful results
         results.forEach((result, index) => {
             if (result.status === 'fulfilled' && result.value) {
                 if (Array.isArray(result.value)) {
@@ -738,35 +743,27 @@ async function checkNotifications() {
                 } else {
                     notifications.push(result.value);
                 }
-                console.log(`✅ ${checkNames[index]}: found notification`);
-            } else if (result.status === 'rejected') {
-                console.log(`❌ ${checkNames[index]} check failed:`, result.reason);
             }
         });
         
-        // Check week results (sync, no API call needed)
+        // Check week results (SMART - only recent weeks)
         const resultsNotif = checkWeekResults();
         if (resultsNotif) {
             notifications.push(resultsNotif);
-            console.log('✅ Week results notification added');
         }
         
-        // Filter out dismissed notifications
+        // Filter out dismissed
         const newNotifications = notifications.filter(n => {
             if (!n) return false;
             const key = getNotificationKey(n);
-            const isDismissed = STATE.dismissedPopups?.[key];
-            if (isDismissed) console.log(`🔕 Filtered out dismissed: ${key}`);
-            return !isDismissed;
+            return !STATE.dismissedPopups?.[key];
         });
         
-        // Update state
         STATE.notifications = newNotifications;
         updateNotificationBadge();
         
         console.log(`🔔 Found ${newNotifications.length} new notifications`);
         
-        // Show popup logic
         if (newNotifications.length > 0) {
             const highPriorityNew = newNotifications.filter(n => n.priority === 'high');
             const hasUnshownHighPriority = highPriorityNew.some(n => {
@@ -774,11 +771,9 @@ async function checkNotifications() {
                 return !STATE.shownPopupsThisSession?.[key];
             });
             
-            // Show popup for: high priority OR first time this session
             if (hasUnshownHighPriority || !STATE.hasShownPopupThisSession) {
                 showNotificationPopup(newNotifications);
                 
-                // Track shown popups
                 if (!STATE.shownPopupsThisSession) STATE.shownPopupsThisSession = {};
                 newNotifications.forEach(n => {
                     STATE.shownPopupsThisSession[getNotificationKey(n)] = true;
@@ -787,7 +782,7 @@ async function checkNotifications() {
             }
         }
         
-        // Also check voting announcements (separate system)
+        // Check voting (with session protection)
         await checkVotingAnnouncement();
         
     } catch (e) {
@@ -799,7 +794,6 @@ async function checkNotifications() {
 
 // ==================== INDIVIDUAL CHECK FUNCTIONS ====================
 
-// Check for new XP badges
 async function checkNewBadges() {
     try {
         const stats = STATE.data?.stats || {};
@@ -809,16 +803,13 @@ async function checkNewBadges() {
         
         const notifications = [];
         
-        // First load protection
         if (!STATE.lastChecked._badgesInitialized) {
             STATE.lastChecked.badges = currentBadgeCount;
             STATE.lastChecked._badgesInitialized = true;
             saveNotificationState();
-            console.log('  → Badges initialized at:', currentBadgeCount);
             return null;
         }
         
-        // New badges earned
         if (currentBadgeCount > lastBadgeCount) {
             const newBadges = currentBadgeCount - lastBadgeCount;
             
@@ -837,7 +828,6 @@ async function checkNewBadges() {
             saveNotificationState();
         }
         
-        // Check for 2X badge (per week)
         const album2xStatus = STATE.data?.album2xStatus || {};
         const album2xKey = STATE.week;
         
@@ -861,12 +851,10 @@ async function checkNewBadges() {
         
         return notifications.length > 0 ? notifications : null;
     } catch (e) {
-        console.log('Badge check error:', e);
         return null;
     }
 }
 
-// Check for new announcements (ID-based)
 async function checkNewAnnouncements() {
     try {
         const data = await api('getAnnouncements', { week: STATE.week });
@@ -874,10 +862,8 @@ async function checkNewAnnouncements() {
         
         if (announcements.length === 0) return null;
         
-        // Get seen announcement IDs
         const seenIds = STATE.lastChecked.seenAnnouncementIds || [];
         
-        // Find unseen announcements
         const unseen = announcements.filter(a => {
             const id = a.id || a.created;
             return id && !seenIds.includes(id);
@@ -885,13 +871,11 @@ async function checkNewAnnouncements() {
         
         if (unseen.length === 0) return null;
         
-        // Get the newest unseen
         const sorted = unseen.sort((a, b) => 
             new Date(b.created || 0) - new Date(a.created || 0)
         );
         const latest = sorted[0];
         
-        // Mark all current announcements as seen
         STATE.lastChecked.seenAnnouncementIds = announcements
             .map(a => a.id || a.created)
             .filter(Boolean);
@@ -911,43 +895,35 @@ async function checkNewAnnouncements() {
         };
         
     } catch (e) {
-        console.log('Announcement check error:', e);
         return null;
     }
 }
 
-// Check for new playlists (ID-based)
 async function checkNewPlaylists() {
     try {
         const data = await api('getPlaylists');
         const playlists = data.playlists || [];
         
-        // Get seen playlist IDs
         const seenIds = STATE.lastChecked.seenPlaylistIds || [];
         const lastCount = STATE.lastChecked.playlistCount ?? -1;
         
-        // First initialization - mark all as seen
         if (lastCount === -1 || seenIds.length === 0) {
             STATE.lastChecked.playlistCount = playlists.length;
             STATE.lastChecked.seenPlaylistIds = playlists.map(p => p.id || p.name).filter(Boolean);
             saveNotificationState();
-            console.log('  → Playlists initialized at:', playlists.length);
             return null;
         }
         
-        // Find unseen playlists
         const unseen = playlists.filter(p => {
             const id = p.id || p.name;
             return id && !seenIds.includes(id);
         });
         
         if (unseen.length === 0) {
-            // Update count silently
             STATE.lastChecked.playlistCount = playlists.length;
             return null;
         }
         
-        // Mark all as seen
         STATE.lastChecked.playlistCount = playlists.length;
         STATE.lastChecked.seenPlaylistIds = playlists.map(p => p.id || p.name).filter(Boolean);
         saveNotificationState();
@@ -964,12 +940,10 @@ async function checkNewPlaylists() {
         };
         
     } catch (e) {
-        console.log('Playlist check error:', e);
         return null;
     }
 }
 
-// Check for new secret missions (ID-based)
 async function checkNewMissions() {
     try {
         const team = STATE.data?.profile?.team;
@@ -984,20 +958,16 @@ async function checkNewMissions() {
         const activeMissions = data.active || [];
         const myAssigned = data.myAssigned || [];
         
-        // Get seen mission IDs
         const seenIds = STATE.lastChecked.seenMissionIds || [];
         const lastCount = STATE.lastChecked.missionCount ?? -1;
         
-        // First initialization
         if (lastCount === -1 || (seenIds.length === 0 && activeMissions.length > 0)) {
             STATE.lastChecked.missionCount = activeMissions.length;
             STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
             saveNotificationState();
-            console.log('  → Missions initialized at:', activeMissions.length);
             return null;
         }
         
-        // Check for personally assigned missions (HIGH PRIORITY)
         const unseenAssigned = myAssigned.filter(m => 
             m.id && !seenIds.includes(m.id)
         );
@@ -1005,7 +975,6 @@ async function checkNewMissions() {
         if (unseenAssigned.length > 0) {
             const mission = unseenAssigned[0];
             
-            // Mark as seen
             STATE.lastChecked.seenMissionIds = [
                 ...seenIds,
                 ...unseenAssigned.map(m => m.id)
@@ -1025,13 +994,11 @@ async function checkNewMissions() {
             };
         }
         
-        // Check for new team missions
         const unseenMissions = activeMissions.filter(m => 
             m.id && !seenIds.includes(m.id)
         );
         
         if (unseenMissions.length > 0) {
-            // Mark all as seen
             STATE.lastChecked.missionCount = activeMissions.length;
             STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
             saveNotificationState();
@@ -1048,17 +1015,14 @@ async function checkNewMissions() {
             };
         }
         
-        // Update count silently
         STATE.lastChecked.missionCount = activeMissions.length;
         
         return null;
     } catch (e) {
-        console.log('Mission check error:', e);
         return null;
     }
 }
 
-// Check for Song of the Day
 async function checkNewSongOfDay() {
     try {
         const data = await api('getSongOfDay', {});
@@ -1068,7 +1032,6 @@ async function checkNewSongOfDay() {
         const today = new Date().toDateString();
         const lastCheckedDate = STATE.lastChecked.songOfDay;
         
-        // Check if user already answered today
         const storageKey = 'song_answered_' + STATE.agentNo + '_' + today;
         const alreadyAnswered = localStorage.getItem(storageKey);
         
@@ -1077,7 +1040,6 @@ async function checkNewSongOfDay() {
             return null;
         }
         
-        // New day, new song
         if (lastCheckedDate !== today) {
             return {
                 type: 'sotd',
@@ -1097,57 +1059,55 @@ async function checkNewSongOfDay() {
         
         return null;
     } catch (e) {
-        console.log('SOTD check error:', e);
         return null;
     }
 }
 
-// Check for completed week results
+// SMART Week Results Check - Only notify for RECENT completed weeks
 function checkWeekResults() {
     if (!STATE.weeks || STATE.weeks.length === 0) return null;
     
     const seenResults = STATE.lastChecked.weekResults || [];
+    const currentWeekIndex = STATE.weeks.indexOf(STATE.week);
     
-    // Find completed weeks that user hasn't seen
-    const unseenCompletedWeeks = STATE.weeks.filter(week => {
-        const completed = typeof isWeekCompleted === 'function' ? isWeekCompleted(week) : false;
-        const seen = STATE.hasSeenResults?.[week] || seenResults.includes(week);
-        return completed && !seen;
-    });
+    if (currentWeekIndex === -1) return null;
     
-    if (unseenCompletedWeeks.length === 0) return null;
+    // Only check the IMMEDIATELY PREVIOUS week (not old weeks)
+    // If we're in Week 3, only check Week 2
+    const previousWeekIndex = currentWeekIndex - 1;
     
-    // Get the most recent completed week
-    const latestCompleted = unseenCompletedWeeks.sort((a, b) => {
-        const dateA = new Date(CONFIG.WEEK_DATES?.[a] || 0);
-        const dateB = new Date(CONFIG.WEEK_DATES?.[b] || 0);
-        return dateB - dateA;
-    })[0];
+    if (previousWeekIndex < 0) return null; // No previous week
     
-    if (!latestCompleted) return null;
+    const previousWeek = STATE.weeks[previousWeekIndex];
     
+    // Check if previous week is completed and not seen
+    const isCompleted = typeof isWeekCompleted === 'function' ? isWeekCompleted(previousWeek) : false;
+    const isSeen = STATE.hasSeenResults?.[previousWeek] || seenResults.includes(previousWeek);
+    
+    if (!isCompleted || isSeen) return null;
+    
+    // Only notify for the immediately previous week
     return {
         type: 'results',
         icon: '🏆',
         title: 'Week Results Ready!',
-        message: `${latestCompleted} has ended. See the final standings!`,
+        message: `${previousWeek} has ended. See the final standings!`,
         action: () => {
-            STATE.week = latestCompleted;
+            STATE.week = previousWeek;
             const weekSelect = document.getElementById('week-select');
-            if (weekSelect) weekSelect.value = latestCompleted;
-            if (typeof markResultsSeen === 'function') markResultsSeen(latestCompleted);
+            if (weekSelect) weekSelect.value = previousWeek;
+            if (typeof markResultsSeen === 'function') markResultsSeen(previousWeek);
             loadPage('summary');
         },
         actionText: 'View Results',
         priority: 'high',
-        week: latestCompleted,
-        id: `results_${latestCompleted}`
+        week: previousWeek,
+        id: `results_${previousWeek}`
     };
 }
 
 // ==================== NOTIFICATION UI ====================
 
-// Update notification badge in header
 function updateNotificationBadge() {
     const count = (STATE.notifications || []).length;
     let badge = document.getElementById('notification-badge');
@@ -1186,14 +1146,11 @@ function updateNotificationBadge() {
     }
 }
 
-// Show notification popup
 function showNotificationPopup(notifications) {
     if (!notifications || notifications.length === 0) return;
     
-    // Remove existing popup
     document.querySelectorAll('.notification-popup').forEach(p => p.remove());
     
-    // Sort by priority (high first)
     const sorted = [...notifications].sort((a, b) => {
         if (a.priority === 'high' && b.priority !== 'high') return -1;
         if (b.priority === 'high' && a.priority !== 'high') return 1;
@@ -1224,61 +1181,27 @@ function showNotificationPopup(notifications) {
                 opacity: 0;
                 transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             }
-            
-            .notification-popup.show {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            
-            .notification-popup.hide {
-                transform: translateX(120%);
-                opacity: 0;
-            }
-            
+            .notification-popup.show { transform: translateX(0); opacity: 1; }
+            .notification-popup.hide { transform: translateX(120%); opacity: 0; }
             .notif-popup-content {
                 display: flex;
                 align-items: flex-start;
                 gap: 12px;
                 padding: 16px;
             }
-            
             .notif-popup-content.high-priority {
                 background: linear-gradient(135deg, rgba(255,68,68,0.1), rgba(255,68,68,0.05));
                 border-left: 3px solid #ff4444;
             }
-            
-            .notif-popup-icon {
-                font-size: 28px;
-                flex-shrink: 0;
-            }
-            
-            .notif-popup-icon.bounce {
-                animation: iconBounce 1s ease infinite;
-            }
-            
+            .notif-popup-icon { font-size: 28px; flex-shrink: 0; }
+            .notif-popup-icon.bounce { animation: iconBounce 1s ease infinite; }
             @keyframes iconBounce {
                 0%, 100% { transform: translateY(0); }
                 50% { transform: translateY(-5px); }
             }
-            
-            .notif-popup-text {
-                flex: 1;
-                min-width: 0;
-            }
-            
-            .notif-popup-title {
-                color: #fff;
-                font-weight: bold;
-                font-size: 14px;
-                margin-bottom: 4px;
-            }
-            
-            .notif-popup-message {
-                color: #aaa;
-                font-size: 12px;
-                line-height: 1.4;
-            }
-            
+            .notif-popup-text { flex: 1; min-width: 0; }
+            .notif-popup-title { color: #fff; font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+            .notif-popup-message { color: #aaa; font-size: 12px; line-height: 1.4; }
             .notif-popup-close {
                 background: none;
                 border: none;
@@ -1287,13 +1210,8 @@ function showNotificationPopup(notifications) {
                 cursor: pointer;
                 padding: 0;
                 line-height: 1;
-                transition: color 0.2s;
             }
-            
-            .notif-popup-close:hover {
-                color: #ff4444;
-            }
-            
+            .notif-popup-close:hover { color: #ff4444; }
             .notif-popup-actions {
                 display: flex;
                 align-items: center;
@@ -1302,7 +1220,6 @@ function showNotificationPopup(notifications) {
                 background: rgba(0,0,0,0.2);
                 border-top: 1px solid rgba(255,255,255,0.05);
             }
-            
             .notif-action-btn {
                 flex: 1;
                 padding: 10px 16px;
@@ -1315,32 +1232,14 @@ function showNotificationPopup(notifications) {
                 cursor: pointer;
                 transition: all 0.3s;
             }
-            
-            .notif-action-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 15px rgba(123,44,191,0.4);
-            }
-            
-            .notif-action-btn.pulse-btn {
-                animation: btnPulse 2s ease-in-out infinite;
-            }
-            
+            .notif-action-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(123,44,191,0.4); }
+            .notif-action-btn.pulse-btn { animation: btnPulse 2s ease-in-out infinite; }
             @keyframes btnPulse {
                 0%, 100% { box-shadow: 0 0 0 rgba(123,44,191,0); }
                 50% { box-shadow: 0 0 20px rgba(123,44,191,0.5); }
             }
-            
-            .notif-more {
-                color: #7b2cbf;
-                font-size: 12px;
-                cursor: pointer;
-                white-space: nowrap;
-            }
-            
-            .notif-more:hover {
-                text-decoration: underline;
-            }
-            
+            .notif-more { color: #7b2cbf; font-size: 12px; cursor: pointer; white-space: nowrap; }
+            .notif-more:hover { text-decoration: underline; }
             @keyframes notifPulse {
                 0%, 100% { transform: scale(1); }
                 50% { transform: scale(1.05); }
@@ -1360,22 +1259,18 @@ function showNotificationPopup(notifications) {
                 ${notif.actionText || 'View'}
             </button>
             ${notifications.length > 1 ? `
-                <span class="notif-more" onclick="showNotificationCenter()">
-                    +${notifications.length - 1} more
-                </span>
+                <span class="notif-more" onclick="showNotificationCenter()">+${notifications.length - 1} more</span>
             ` : ''}
         </div>
     `;
     
     document.body.appendChild(popup);
-    
     requestAnimationFrame(() => popup.classList.add('show'));
     
     const dismissTime = isHighPriority ? 10000 : 6000;
     setTimeout(() => dismissNotificationPopup(), dismissTime);
 }
 
-// Dismiss notification popup
 function dismissNotificationPopup() {
     const popup = document.querySelector('.notification-popup');
     if (popup) {
@@ -1385,30 +1280,25 @@ function dismissNotificationPopup() {
     }
 }
 
-// Handle notification action click
 function handleNotificationAction(index) {
     const notif = STATE.notifications?.[index];
     if (notif) {
         markNotificationSeen(notif);
         dismissNotificationPopup();
-        
         if (typeof notif.action === 'function') {
             notif.action();
         }
     }
 }
 
-// Mark notification as seen
 function markNotificationSeen(notif) {
     if (!notif) return;
     
     const key = getNotificationKey(notif);
     
-    // Mark as dismissed
     if (!STATE.dismissedPopups) STATE.dismissedPopups = {};
     STATE.dismissedPopups[key] = Date.now();
     
-    // Type-specific handling
     switch (notif.type) {
         case 'badge':
         case 'achievement': {
@@ -1422,10 +1312,6 @@ function markNotificationSeen(notif) {
             if (notif.id && !STATE.lastChecked.seenAnnouncementIds.includes(notif.id)) {
                 STATE.lastChecked.seenAnnouncementIds.push(notif.id);
             }
-            break;
-        }
-        case 'playlist': {
-            // Already marked in check function
             break;
         }
         case 'mission': {
@@ -1450,13 +1336,10 @@ function markNotificationSeen(notif) {
     }
     
     saveNotificationState();
-    
-    // Remove from active notifications
     STATE.notifications = (STATE.notifications || []).filter(n => n !== notif);
     updateNotificationBadge();
 }
 
-// Show notification center
 function showNotificationCenter() {
     document.querySelectorAll('.notification-center').forEach(c => c.remove());
     dismissNotificationPopup();
@@ -1468,164 +1351,52 @@ function showNotificationCenter() {
     center.innerHTML = `
         <style>
             .notification-center {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                z-index: 999999;
-                opacity: 0;
-                transition: opacity 0.3s;
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                z-index: 999999; opacity: 0; transition: opacity 0.3s;
             }
-            
-            .notification-center.show {
-                opacity: 1;
-            }
-            
-            .notification-center.hide {
-                opacity: 0;
-            }
-            
+            .notification-center.show { opacity: 1; }
+            .notification-center.hide { opacity: 0; }
             .notif-center-overlay {
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
+                position: absolute; top: 0; left: 0; right: 0; bottom: 0;
                 background: rgba(0,0,0,0.7);
             }
-            
             .notif-center-panel {
-                position: absolute;
-                top: 60px;
-                right: 20px;
-                width: 360px;
-                max-width: calc(100vw - 40px);
-                max-height: calc(100vh - 100px);
+                position: absolute; top: 60px; right: 20px;
+                width: 360px; max-width: calc(100vw - 40px); max-height: calc(100vh - 100px);
                 background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
-                border-radius: 16px;
-                border: 1px solid rgba(123,44,191,0.3);
+                border-radius: 16px; border: 1px solid rgba(123,44,191,0.3);
                 box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
+                overflow: hidden; display: flex; flex-direction: column;
             }
-            
             .notif-center-header {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding: 16px 20px;
-                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                display: flex; align-items: center; justify-content: space-between;
+                padding: 16px 20px; background: linear-gradient(135deg, #7b2cbf, #5a1f99);
             }
-            
-            .notif-center-header h3 {
-                margin: 0;
-                color: #fff;
-                font-size: 16px;
-            }
-            
+            .notif-center-header h3 { margin: 0; color: #fff; font-size: 16px; }
             .notif-center-header button {
-                background: rgba(255,255,255,0.2);
-                border: none;
-                color: #fff;
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                font-size: 18px;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: background 0.2s;
+                background: rgba(255,255,255,0.2); border: none; color: #fff;
+                width: 28px; height: 28px; border-radius: 50%; font-size: 18px;
+                cursor: pointer; display: flex; align-items: center; justify-content: center;
             }
-            
-            .notif-center-header button:hover {
-                background: rgba(255,255,255,0.3);
-            }
-            
-            .notif-center-list {
-                flex: 1;
-                overflow-y: auto;
-                padding: 10px;
-            }
-            
+            .notif-center-list { flex: 1; overflow-y: auto; padding: 10px; }
             .notif-center-item {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 14px;
-                background: rgba(255,255,255,0.03);
-                border-radius: 10px;
-                margin-bottom: 8px;
-                cursor: pointer;
-                transition: all 0.2s;
+                display: flex; align-items: center; gap: 12px; padding: 14px;
+                background: rgba(255,255,255,0.03); border-radius: 10px;
+                margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
             }
-            
-            .notif-center-item:hover {
-                background: rgba(123,44,191,0.15);
-                transform: translateX(5px);
-            }
-            
-            .notif-center-item.high-priority {
-                background: rgba(255,68,68,0.1);
-                border-left: 3px solid #ff4444;
-            }
-            
-            .notif-item-icon {
-                font-size: 24px;
-                flex-shrink: 0;
-            }
-            
-            .notif-item-content {
-                flex: 1;
-                min-width: 0;
-            }
-            
-            .notif-item-title {
-                color: #fff;
-                font-weight: 600;
-                font-size: 13px;
-                margin-bottom: 3px;
-            }
-            
-            .notif-item-message {
-                color: #888;
-                font-size: 11px;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-            
-            .notif-item-arrow {
-                color: #7b2cbf;
-                font-size: 16px;
-            }
-            
-            .notif-empty {
-                text-align: center;
-                padding: 40px 20px;
-            }
-            
-            .notif-center-footer {
-                padding: 12px;
-                border-top: 1px solid rgba(255,255,255,0.05);
-            }
-            
+            .notif-center-item:hover { background: rgba(123,44,191,0.15); transform: translateX(5px); }
+            .notif-center-item.high-priority { background: rgba(255,68,68,0.1); border-left: 3px solid #ff4444; }
+            .notif-item-icon { font-size: 24px; flex-shrink: 0; }
+            .notif-item-content { flex: 1; min-width: 0; }
+            .notif-item-title { color: #fff; font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+            .notif-item-message { color: #888; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .notif-item-arrow { color: #7b2cbf; font-size: 16px; }
+            .notif-empty { text-align: center; padding: 40px 20px; }
+            .notif-center-footer { padding: 12px; border-top: 1px solid rgba(255,255,255,0.05); }
             .notif-center-footer button {
-                width: 100%;
-                padding: 10px;
-                background: transparent;
-                border: 1px solid rgba(255,68,68,0.3);
-                border-radius: 8px;
-                color: #ff6b6b;
-                font-size: 12px;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-            
-            .notif-center-footer button:hover {
-                background: rgba(255,68,68,0.1);
+                width: 100%; padding: 10px; background: transparent;
+                border: 1px solid rgba(255,68,68,0.3); border-radius: 8px;
+                color: #ff6b6b; font-size: 12px; cursor: pointer;
             }
         </style>
         
@@ -1666,7 +1437,6 @@ function showNotificationCenter() {
     requestAnimationFrame(() => center.classList.add('show'));
 }
 
-// Close notification center
 function closeNotificationCenter() {
     const center = document.querySelector('.notification-center');
     if (center) {
@@ -1676,7 +1446,6 @@ function closeNotificationCenter() {
     }
 }
 
-// Clear all notifications
 function clearAllNotifications() {
     (STATE.notifications || []).forEach(n => markNotificationSeen(n));
     STATE.notifications = [];
@@ -1688,58 +1457,66 @@ function clearAllNotifications() {
 // ==================== VOTING ANNOUNCEMENT POPUP ====================
 
 async function checkVotingAnnouncement() {
+    // SESSION PROTECTION: Only check once per session
+    if (STATE._votingCheckedThisSession) {
+        return;
+    }
+    
     if (!STATE.agentNo) return;
     
     try {
         const data = await api('getActiveVotingAnnouncement');
         
-        if (!data.success || !data.voting) return;
+        if (!data.success || !data.voting) {
+            STATE._votingCheckedThisSession = true;
+            return;
+        }
         
         const voting = data.voting;
         const votingId = voting.id;
         
         if (!votingId) {
-            console.log('Voting has no ID, skipping');
+            STATE._votingCheckedThisSession = true;
             return;
         }
         
-        // Get stored response (version-safe)
         const responseData = getVotingResponse(votingId);
         
-        // If already voted or said yes, don't show again
+        // PERMANENT DISMISS: If yes or already_voted, NEVER show again
         if (responseData.response === 'yes' || responseData.response === 'already_voted') {
-            console.log('Already responded to voting:', votingId, responseData.response);
+            console.log('✅ User permanently responded to voting:', responseData.response);
+            STATE._votingCheckedThisSession = true;
             return;
         }
         
-        // If "not_now", check if reminder time has passed
+        // REMINDER: If not_now, check reminder time
         if (responseData.response === 'not_now') {
             if (responseData.reminderTime && Date.now() < responseData.reminderTime) {
-                console.log('Reminder not yet due, time left:', 
-                    Math.round((responseData.reminderTime - Date.now()) / 60000), 'minutes');
+                console.log('⏰ Voting reminder not due yet');
+                STATE._votingCheckedThisSession = true;
                 return;
             }
-            console.log('Reminder time passed, showing popup again');
         }
         
-        // Check if dismissed this session
+        // SESSION DISMISS: X button clicked this session
         const dismissKey = 'voting_dismissed_session_' + votingId;
         if (sessionStorage.getItem(dismissKey)) {
+            STATE._votingCheckedThisSession = true;
             return;
         }
         
-        // Store voting data for onclick handlers
+        // Mark as checked this session BEFORE showing popup
+        STATE._votingCheckedThisSession = true;
         STATE.currentVoting = voting;
         
-        // Show voting popup
         showVotingPopup(voting);
         
     } catch (e) {
-        console.log('Error checking voting announcement:', e);
+        console.log('Error checking voting:', e);
+        STATE._votingCheckedThisSession = true;
     }
 }
 
-// Version-safe response storage
 function getVotingResponse(votingId) {
     try {
         const key = 'voting_v' + VOTING_STORAGE_VERSION + '_' + STATE.agentNo + '_' + votingId;
@@ -1749,37 +1526,42 @@ function getVotingResponse(votingId) {
             return JSON.parse(data);
         }
         
-        // Check legacy storage and migrate
-        const legacyKey = 'voting_response_' + STATE.agentNo + '_' + votingId;
-        const legacyResponse = localStorage.getItem(legacyKey);
+        // Check legacy
+        const legacyKeys = [
+            'voting_v2_' + STATE.agentNo + '_' + votingId,
+            'voting_response_' + STATE.agentNo + '_' + votingId
+        ];
         
-        if (legacyResponse) {
-            // Migrate to new format
-            const migrated = {
-                response: legacyResponse,
-                timestamp: Date.now(),
-                version: VOTING_STORAGE_VERSION
-            };
-            
-            // Check for reminder time
-            const reminderKey = 'voting_reminder_' + votingId;
-            const reminderTime = localStorage.getItem(reminderKey);
-            if (reminderTime) {
-                migrated.reminderTime = parseInt(reminderTime);
-                localStorage.removeItem(reminderKey);
+        for (const legacyKey of legacyKeys) {
+            const legacyData = localStorage.getItem(legacyKey);
+            if (legacyData) {
+                try {
+                    const parsed = JSON.parse(legacyData);
+                    if (parsed.response) {
+                        // Migrate
+                        localStorage.setItem(key, JSON.stringify({
+                            ...parsed,
+                            version: VOTING_STORAGE_VERSION
+                        }));
+                        localStorage.removeItem(legacyKey);
+                        return parsed;
+                    }
+                } catch (e) {
+                    // Old format was just the response string
+                    const migrated = {
+                        response: legacyData,
+                        timestamp: Date.now(),
+                        version: VOTING_STORAGE_VERSION
+                    };
+                    localStorage.setItem(key, JSON.stringify(migrated));
+                    localStorage.removeItem(legacyKey);
+                    return migrated;
+                }
             }
-            
-            // Save new format
-            localStorage.setItem(key, JSON.stringify(migrated));
-            localStorage.removeItem(legacyKey);
-            
-            console.log('Migrated voting response for:', votingId);
-            return migrated;
         }
         
         return { response: null };
     } catch (e) {
-        console.log('Error reading voting response:', e);
         return { response: null };
     }
 }
@@ -1795,341 +1577,134 @@ function saveVotingResponse(votingId, response, extraData = {}) {
         };
         localStorage.setItem(key, JSON.stringify(data));
     } catch (e) {
-        console.log('Error saving voting response:', e);
+        console.log('Error saving voting response');
     }
 }
 
 function showVotingPopup(voting) {
-    // Remove any existing voting popup
     document.querySelectorAll('.voting-announcement-popup').forEach(p => p.remove());
     
     const popup = document.createElement('div');
     popup.className = 'voting-announcement-popup';
     popup.id = 'voting-popup-' + voting.id;
     
-    // Sanitize values for display
     const safeTitle = sanitize(voting.title || 'Voting Mission');
     const safeMessage = sanitize(voting.message || '');
     
     popup.innerHTML = `
         <style>
             .voting-announcement-popup {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.95);
-                z-index: 99999999;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-                animation: votingFadeIn 0.3s ease;
-                backdrop-filter: blur(5px);
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0, 0, 0, 0.95); z-index: 99999999;
+                display: flex; align-items: center; justify-content: center;
+                padding: 20px; animation: votingFadeIn 0.3s ease; backdrop-filter: blur(5px);
             }
-            
-            @keyframes votingFadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-            
-            @keyframes votingFadeOut {
-                from { opacity: 1; transform: scale(1); }
-                to { opacity: 0; transform: scale(0.95); }
-            }
-            
+            @keyframes votingFadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes votingFadeOut { from { opacity: 1; } to { opacity: 0; } }
             @keyframes votingSlideUp {
-                from { 
-                    transform: translateY(50px) scale(0.95);
-                    opacity: 0;
-                }
-                to { 
-                    transform: translateY(0) scale(1);
-                    opacity: 1;
-                }
+                from { transform: translateY(50px) scale(0.95); opacity: 0; }
+                to { transform: translateY(0) scale(1); opacity: 1; }
             }
-            
-            @keyframes votingBorderRotate {
-                0% { filter: hue-rotate(0deg); }
-                100% { filter: hue-rotate(360deg); }
-            }
-            
-            @keyframes votingUrgentPulse {
-                0%, 100% { background: linear-gradient(135deg, #ff0000, #cc0000); }
-                50% { background: linear-gradient(135deg, #ff4444, #ff0000); }
-            }
-            
-            @keyframes votingWarningPulse {
-                0%, 100% { 
-                    border-color: #ff4444;
-                    box-shadow: 0 0 0 rgba(255,68,68,0);
-                }
-                50% { 
-                    border-color: #ff6b6b;
-                    box-shadow: 0 0 15px rgba(255,68,68,0.3);
-                }
-            }
-            
+            @keyframes votingBorderRotate { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
             @keyframes votingGlow {
                 0%, 100% { box-shadow: 0 0 30px rgba(123,44,191,0.4); }
-                50% { box-shadow: 0 0 50px rgba(123,44,191,0.7), 0 0 80px rgba(255,20,147,0.3); }
+                50% { box-shadow: 0 0 50px rgba(123,44,191,0.7); }
             }
-            
             .voting-popup-content {
                 background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
-                border-radius: 20px;
-                border: 3px solid transparent;
-                background-clip: padding-box;
-                max-width: 480px;
-                width: 100%;
-                overflow: hidden;
-                position: relative;
+                border-radius: 20px; border: 3px solid transparent;
+                max-width: 480px; width: 100%; overflow: hidden; position: relative;
                 animation: votingSlideUp 0.4s ease, votingGlow 3s ease-in-out infinite;
             }
-            
             .voting-popup-content::before {
-                content: '';
-                position: absolute;
-                top: -3px;
-                left: -3px;
-                right: -3px;
-                bottom: -3px;
+                content: ''; position: absolute; top: -3px; left: -3px; right: -3px; bottom: -3px;
                 background: linear-gradient(45deg, #ffd700, #ff6b6b, #7b2cbf, #00d4ff, #00ff88, #ffd700);
-                border-radius: 22px;
-                z-index: -1;
-                animation: votingBorderRotate 4s linear infinite;
+                border-radius: 22px; z-index: -1; animation: votingBorderRotate 4s linear infinite;
             }
-            
             .voting-close-btn {
-                position: absolute;
-                top: 45px;
-                right: 10px;
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                border: none;
-                background: rgba(0,0,0,0.5);
-                color: #888;
-                font-size: 20px;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: all 0.3s;
-                z-index: 10;
+                position: absolute; top: 45px; right: 10px;
+                width: 32px; height: 32px; border-radius: 50%;
+                border: none; background: rgba(0,0,0,0.5); color: #888;
+                font-size: 20px; cursor: pointer; z-index: 10;
             }
-            
-            .voting-close-btn:hover {
-                background: rgba(255,68,68,0.3);
-                color: #ff6b6b;
-                transform: rotate(90deg);
-            }
-            
+            .voting-close-btn:hover { background: rgba(255,68,68,0.3); color: #ff6b6b; }
             .voting-btn-primary {
-                padding: 18px;
-                background: linear-gradient(135deg, #00ff88, #00cc6a);
-                border: none;
-                border-radius: 12px;
-                color: #000;
-                font-size: 17px;
-                font-weight: bold;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 10px;
-                transition: all 0.3s;
-                box-shadow: 0 4px 20px rgba(0,255,136,0.4);
-                width: 100%;
+                padding: 18px; background: linear-gradient(135deg, #00ff88, #00cc6a);
+                border: none; border-radius: 12px; color: #000; font-size: 17px;
+                font-weight: bold; cursor: pointer; width: 100%;
+                display: flex; align-items: center; justify-content: center; gap: 10px;
             }
-            
-            .voting-btn-primary:hover:not(:disabled) {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 25px rgba(0,255,136,0.5);
-            }
-            
-            .voting-btn-primary:disabled {
-                opacity: 0.6;
-                cursor: not-allowed;
-            }
-            
             .voting-btn-secondary {
-                padding: 14px;
-                background: rgba(123,44,191,0.2);
-                border: 1px solid rgba(123,44,191,0.5);
-                border-radius: 12px;
-                color: #c9a0ff;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 8px;
-                transition: all 0.3s;
-                width: 100%;
+                padding: 14px; background: rgba(123,44,191,0.2);
+                border: 1px solid rgba(123,44,191,0.5); border-radius: 12px;
+                color: #c9a0ff; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%;
+                display: flex; align-items: center; justify-content: center; gap: 8px;
             }
-            
-            .voting-btn-secondary:hover:not(:disabled) {
-                background: rgba(123,44,191,0.3);
-            }
-            
             .voting-btn-tertiary {
-                padding: 10px;
-                background: transparent;
-                border: 1px solid rgba(255,255,255,0.15);
-                border-radius: 8px;
-                color: #666;
-                font-size: 12px;
-                cursor: pointer;
-                transition: all 0.3s;
-                width: 100%;
-            }
-            
-            .voting-btn-tertiary:hover:not(:disabled) {
-                color: #888;
-                border-color: rgba(255,255,255,0.25);
+                padding: 10px; background: transparent;
+                border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+                color: #666; font-size: 12px; cursor: pointer; width: 100%;
             }
         </style>
         
         <div class="voting-popup-content">
-            <!-- Close Button -->
             <button class="voting-close-btn" onclick="dismissVotingPopup('${voting.id}')" title="Close">×</button>
             
-            <!-- URGENT Banner -->
-            <div style="
-                background: linear-gradient(135deg, #ff0000, #cc0000);
-                padding: 8px;
-                text-align: center;
-                animation: votingUrgentPulse 1.5s ease-in-out infinite;
-            ">
+            <div style="background:linear-gradient(135deg,#ff0000,#cc0000);padding:8px;text-align:center;">
                 <span style="color:#fff;font-size:11px;font-weight:bold;letter-spacing:2px;">
                     🚨 URGENT: EVERYONE MUST VOTE 🚨
                 </span>
             </div>
             
-            <!-- Header -->
-            <div style="
-                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                padding: 20px 25px;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-            ">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+            <div style="background:linear-gradient(135deg,#7b2cbf,#5a1f99);padding:20px 25px;">
+                <div style="display:flex;align-items:center;gap:12px;">
                     <span style="font-size:32px;">🗳️</span>
-                    <div style="flex:1;">
-                        <div style="color:#ffd700;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">
-                            🔥 FAN VOTING MISSION
-                        </div>
-                        <div style="color:#fff;font-size:16px;font-weight:bold;margin-top:4px;">
-                            ${safeTitle}
-                        </div>
+                    <div>
+                        <div style="color:#ffd700;font-size:11px;font-weight:600;">🔥 FAN VOTING MISSION</div>
+                        <div style="color:#fff;font-size:16px;font-weight:bold;margin-top:4px;">${safeTitle}</div>
                     </div>
                 </div>
             </div>
             
-            <!-- Message Body -->
             <div style="padding:25px;">
-                <!-- Important Notice -->
-                <div style="
-                    background: rgba(255, 68, 68, 0.15);
-                    border: 2px solid #ff4444;
-                    border-radius: 12px;
-                    padding: 15px;
-                    margin-bottom: 20px;
-                    animation: votingWarningPulse 2s ease-in-out infinite;
-                ">
+                <div style="background:rgba(255,68,68,0.15);border:2px solid #ff4444;border-radius:12px;padding:15px;margin-bottom:20px;">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                         <span style="font-size:24px;">⚠️</span>
-                        <div style="color:#ff6b6b;font-weight:bold;font-size:14px;">
-                            ALL AGENTS MUST PARTICIPATE!
-                        </div>
+                        <div style="color:#ff6b6b;font-weight:bold;font-size:14px;">ALL AGENTS MUST PARTICIPATE!</div>
                     </div>
                     <div style="color:#fff;font-size:12px;line-height:1.6;">
-                        This is a <strong style="color:#ffd700;">team mission</strong>. Every vote counts. 
-                        We need <strong style="color:#00ff88;">100% participation</strong> to support Jin! 💜
+                        This is a <strong style="color:#ffd700;">team mission</strong>. Every vote counts!
                     </div>
                 </div>
                 
-                <!-- Message Details -->
-                <div style="
-                    color:#fff;
-                    font-size:14px;
-                    line-height:1.7;
-                    white-space:pre-line;
-                    margin-bottom:20px;
-                    padding:15px;
-                    background:rgba(255,255,255,0.03);
-                    border-radius:10px;
-                    border-left:4px solid #7b2cbf;
-                    max-height: 150px;
-                    overflow-y: auto;
-                ">
+                <div style="color:#fff;font-size:14px;line-height:1.7;white-space:pre-line;margin-bottom:20px;padding:15px;background:rgba(255,255,255,0.03);border-radius:10px;border-left:4px solid #7b2cbf;max-height:150px;overflow-y:auto;">
                     ${safeMessage}
                 </div>
                 
-                <!-- Call to Action -->
-                <div style="
-                    background:linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05));
-                    border:2px solid rgba(255,215,0,0.4);
-                    border-radius:12px;
-                    padding:18px;
-                    margin-bottom:25px;
-                    text-align:center;
-                ">
+                <div style="background:linear-gradient(135deg,rgba(255,215,0,0.15),rgba(255,215,0,0.05));border:2px solid rgba(255,215,0,0.4);border-radius:12px;padding:18px;margin-bottom:25px;text-align:center;">
                     <div style="font-size:24px;margin-bottom:10px;">💜</div>
-                    <div style="color:#ffd700;font-size:15px;font-weight:bold;margin-bottom:6px;">
-                        Will you help vote for Jin?
-                    </div>
-                    <div style="color:#888;font-size:11px;">
-                        Your support matters! Let's take Jin to #1!
-                    </div>
+                    <div style="color:#ffd700;font-size:15px;font-weight:bold;">Will you help vote?</div>
                 </div>
                 
-                <!-- Response Buttons -->
-                <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:15px;">
-                    <!-- YES Button (Primary) -->
-                    <button id="voting-btn-yes" class="voting-btn-primary" onclick="handleVotingResponse('yes')">
-                        <span style="font-size:22px;">✓</span>
-                        <span>Yes! I'll Vote Now!</span>
-                        <span style="font-size:20px;">→</span>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <button id="voting-btn-yes" class="voting-btn-primary" onclick="respondToVoting('yes')">
+                        <span>✓</span><span>Yes! I'll Vote Now!</span><span>→</span>
                     </button>
-                    
-                    <!-- Already Voted Button -->
-                    <button id="voting-btn-voted" class="voting-btn-secondary" onclick="handleVotingResponse('already_voted')">
-                        <span>✔️</span>
-                        <span>I Already Voted!</span>
+                    <button id="voting-btn-voted" class="voting-btn-secondary" onclick="respondToVoting('already_voted')">
+                        <span>✔️</span><span>I Already Voted!</span>
                     </button>
-                    
-                    <!-- Not Now Button (Smallest) -->
-                    <button id="voting-btn-later" class="voting-btn-tertiary" onclick="handleVotingResponse('not_now')">
+                    <button id="voting-btn-later" class="voting-btn-tertiary" onclick="respondToVoting('not_now')">
                         Remind Me Later
                     </button>
-                </div>
-                
-                <!-- Team Mission Note -->
-                <div style="
-                    text-align:center;
-                    padding:12px;
-                    background:rgba(0,0,0,0.3);
-                    border-radius:8px;
-                ">
-                    <span style="color:#888;font-size:11px;">
-                        💜 Remember: This is a <strong style="color:#7b2cbf;">team mission</strong> - 
-                        let's show our support together! 💜
-                    </span>
                 </div>
             </div>
         </div>
     `;
     
     document.body.appendChild(popup);
-    
-    // Prevent body scroll
     document.body.style.overflow = 'hidden';
 }
 
-// Dismiss popup for this session only
 function dismissVotingPopup(votingId) {
     const popup = document.querySelector('.voting-announcement-popup');
     if (popup) {
@@ -2140,14 +1715,13 @@ function dismissVotingPopup(votingId) {
         }, 300);
     }
     
-    // Mark as dismissed for this session
     if (votingId) {
         sessionStorage.setItem('voting_dismissed_session_' + votingId, 'true');
     }
 }
 
-// Handle voting response (uses STATE.currentVoting)
-async function handleVotingResponse(response) {
+// Main voting response handler - THIS IS THE FUNCTION THAT WAS MISSING
+async function respondToVoting(response) {
     const voting = STATE.currentVoting;
     if (!voting || !STATE.agentNo) {
         showToast('❌ Error: Voting data not found', 'error');
@@ -2170,69 +1744,44 @@ async function handleVotingResponse(response) {
             btn.style.opacity = '0.5';
         });
     
-    // Show loading on clicked button
     if (button) {
         button.style.opacity = '0.8';
-        
-        const loadingText = {
-            'yes': '<span>⏳</span><span>Opening voting page...</span>',
-            'already_voted': '<span>⏳</span><span>Recording...</span>',
-            'not_now': '<span>⏳</span><span>Saving...</span>'
-        };
-        button.innerHTML = loadingText[response];
+        button.innerHTML = '<span>⏳</span><span>Processing...</span>';
     }
     
     try {
-        // Record response to server
+        // Record to server
         await api('recordVotingResponse', {
             agentNo: STATE.agentNo,
             votingId: votingId,
             response: response
         });
         
-        // Handle different responses
         if (response === 'yes') {
-            // Save response
             saveVotingResponse(votingId, 'yes');
-            
-            // Open voting link
             if (voting.link) {
                 window.open(voting.link, '_blank', 'noopener,noreferrer');
             }
-            
-            // Show success with confetti
             if (typeof confetti === 'function') {
-                confetti({
-                    particleCount: 100,
-                    spread: 70,
-                    origin: { y: 0.6 }
-                });
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             }
-            
-            showToast('🎉 Thank you! Voting page opened. Please complete your vote!', 'success');
+            showToast('🎉 Thank you! Voting page opened!', 'success');
             
         } else if (response === 'already_voted') {
-            // Save response
             saveVotingResponse(votingId, 'already_voted');
-            
-            showToast('✅ Great! Thank you for voting! 💜', 'success');
+            showToast('✅ Thank you for voting! 💜', 'success');
             
         } else if (response === 'not_now') {
-            // Save response with reminder time (4 hours)
             const reminderTime = Date.now() + (4 * 60 * 60 * 1000);
             saveVotingResponse(votingId, 'not_now', { reminderTime });
-            
-            showToast('⏰ We\'ll remind you in 4 hours. Please don\'t forget to vote!', 'info');
+            showToast('⏰ We\'ll remind you in 4 hours', 'info');
         }
         
-        // Close popup after delay
-        setTimeout(() => {
-            dismissVotingPopup(votingId);
-        }, 1500);
+        setTimeout(() => dismissVotingPopup(votingId), 1500);
         
     } catch (e) {
         console.error('Error recording vote:', e);
-        showToast('❌ Failed to save response. Please try again.', 'error');
+        showToast('❌ Failed to save. Please try again.', 'error');
         
         // Re-enable buttons
         document.querySelectorAll('.voting-btn-primary, .voting-btn-secondary, .voting-btn-tertiary')
@@ -2240,65 +1789,48 @@ async function handleVotingResponse(response) {
                 btn.disabled = false;
                 btn.style.opacity = '1';
             });
-        
-        // Restore button text
-        if (button) {
-            const originalText = {
-                'yes': '<span style="font-size:22px;">✓</span><span>Yes! I\'ll Vote Now!</span><span style="font-size:20px;">→</span>',
-                'already_voted': '<span>✔️</span><span>I Already Voted!</span>',
-                'not_now': 'Remind Me Later'
-            };
-            button.innerHTML = originalText[response];
-        }
     }
 }
 
-// ==================== DEBUG / RESET UTILITIES ====================
+// Alias for backward compatibility
+const handleVotingResponse = respondToVoting;
 
-// Reset notification baseline for testing
+// ==================== DEBUG / RESET ====================
+
 function resetNotificationBaseline() {
-    const storageKey = 'notificationState_v3_' + STATE.agentNo;
-    localStorage.removeItem(storageKey);
-    localStorage.removeItem('notificationState_' + STATE.agentNo); // Legacy
+    ['notificationState_v4_', 'notificationState_v3_', 'notificationState_'].forEach(prefix => {
+        localStorage.removeItem(prefix + STATE.agentNo);
+    });
     STATE.lastChecked = null;
     STATE.dismissedPopups = {};
     STATE.notifications = [];
+    STATE._votingCheckedThisSession = false;
     initializeNotificationBaseline();
-    console.log('🔄 Notification baseline reset');
     showToast('Notifications reset', 'success');
 }
 
-// Reset voting response for testing
 function resetVotingResponse(votingId) {
-    if (!STATE.agentNo || !votingId) {
-        console.log('Need agentNo and votingId');
-        return;
-    }
+    if (!STATE.agentNo || !votingId) return;
     
-    const key = 'voting_v' + VOTING_STORAGE_VERSION + '_' + STATE.agentNo + '_' + votingId;
-    localStorage.removeItem(key);
-    
-    // Also clear legacy
+    [3, 2, 1].forEach(v => {
+        localStorage.removeItem('voting_v' + v + '_' + STATE.agentNo + '_' + votingId);
+    });
     localStorage.removeItem('voting_response_' + STATE.agentNo + '_' + votingId);
-    localStorage.removeItem('voting_reminder_' + votingId);
     sessionStorage.removeItem('voting_dismissed_session_' + votingId);
+    STATE._votingCheckedThisSession = false;
     
-    console.log('Voting response reset for:', votingId);
     showToast('Voting response reset', 'success');
 }
 
-// Debug: Show current notification state
 function debugNotificationState() {
     console.log('=== NOTIFICATION DEBUG ===');
     console.log('Version:', NOTIFICATION_SYSTEM_VERSION);
     console.log('Last Checked:', STATE.lastChecked);
-    console.log('Dismissed Popups:', STATE.dismissedPopups);
-    console.log('Current Notifications:', STATE.notifications);
-    console.log('Session Shown:', STATE.shownPopupsThisSession);
+    console.log('Dismissed:', STATE.dismissedPopups);
+    console.log('Notifications:', STATE.notifications);
+    console.log('Voting Checked:', STATE._votingCheckedThisSession);
     console.log('========================');
 }
-
-// ==================== END NOTIFICATION & VOTING SYSTEM ====================
 
 // ==================== FIXED BADGE FUNCTIONS ====================
 
