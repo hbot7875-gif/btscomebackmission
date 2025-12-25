@@ -86,7 +86,7 @@
 
                 <div class="login-footer">
                     <div class="connection-status"><div class="pulse-dot"></div><span>SECURE CONNECTION ESTABLISHED</span></div>
-                    <div class="version-info">v4.0 | Hyung Line Edition</div>
+                    <div class="version-info">v5.0 | Hyung Line Edition + Compliance</div>
                 </div>
             </div>
         </div>
@@ -120,41 +120,120 @@
             </div>
 
             <nav class="nav-links" role="navigation">
+                <!-- MAIN Section -->
                 <div class="nav-section">
                     <span class="nav-section-title">MAIN</span>
-                    <a href="#" class="nav-link active" data-page="home"><span class="nav-icon">🏠</span><span class="nav-text">Mission Control</span></a>
-                    <a href="#" class="nav-link" data-page="profile"><span class="nav-icon">👤</span><span class="nav-text">Agent Profile</span></a>
-                    <a href="#" class="nav-link" data-page="playlists"><span class="nav-icon">🎧</span><span class="nav-text">Playlists</span></a>
-                    <a href="#" class="nav-link" data-page="rankings"><span class="nav-icon">🏆</span><span class="nav-text">Rankings</span></a>
-                    <a href="#" class="nav-link" data-page="drawer"><span class="nav-icon">🎒</span><span class="nav-text">My Drawer</span><span class="notification-dot" id="dot-drawer"></span></a>
+                    <a href="#" class="nav-link active" data-page="home">
+                        <span class="nav-icon">🏠</span>
+                        <span class="nav-text">Mission Control</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="profile">
+                        <span class="nav-icon">👤</span>
+                        <span class="nav-text">Agent Profile</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="playlists">
+                        <span class="nav-icon">🎧</span>
+                        <span class="nav-text">Playlists</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="rankings">
+                        <span class="nav-icon">🏆</span>
+                        <span class="nav-text">Rankings</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="drawer">
+                        <span class="nav-icon">🎒</span>
+                        <span class="nav-text">My Drawer</span>
+                        <span class="notification-dot" id="dot-drawer"></span>
+                    </a>
                 </div>
                 
+                <!-- MISSIONS Section -->
                 <div class="nav-section">
                     <span class="nav-section-title">MISSIONS</span>
-                    <a href="#" class="nav-link" data-page="goals"><span class="nav-icon">🎯</span><span class="nav-text">Goals Progress</span></a>
-                    <a href="#" class="nav-link" data-page="album2x"><span class="nav-icon">💿</span><span class="nav-text">Album 2X Mission</span></a>
-                    <a href="#" class="nav-link" data-page="secret-missions"><span class="nav-icon">🔒</span><span class="nav-text">Secret Missions</span><span class="notification-dot" id="dot-mission"></span></a>
+                    <a href="#" class="nav-link" data-page="goals">
+                        <span class="nav-icon">🎯</span>
+                        <span class="nav-text">Goals Progress</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="album2x">
+                        <span class="nav-icon">💿</span>
+                        <span class="nav-text">Album 2X Mission</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="secret-missions">
+                        <span class="nav-icon">🔒</span>
+                        <span class="nav-text">Secret Missions</span>
+                        <span class="notification-dot" id="dot-mission"></span>
+                    </a>
                 </div>
                 
+                <!-- ANALYTICS Section -->
                 <div class="nav-section">
                     <span class="nav-section-title">ANALYTICS</span>
-                    <a href="#" class="nav-link" data-page="team-level"><span class="nav-icon">📊</span><span class="nav-text">Team Levels</span></a>
-                    <a href="#" class="nav-link" data-page="comparison"><span class="nav-icon">⚔️</span><span class="nav-text">Team Comparison</span></a>
+                    <a href="#" class="nav-link" data-page="team-level">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text">Team Levels</span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="comparison">
+                        <span class="nav-icon">⚔️</span>
+                        <span class="nav-text">Team Comparison</span>
+                    </a>
                 </div>
                 
+                <!-- MORE Section -->
                 <div class="nav-section">
                     <span class="nav-section-title">MORE</span>
-                    <a href="#" class="nav-link" data-page="chat"><span class="nav-icon">💬</span><span class="nav-text">Secret Comms</span><span class="notification-dot" id="dot-chat"></span></a>
-                    <a href="#" class="nav-link" data-page="summary"><span class="nav-icon">📋</span><span class="nav-text">Weekly Summary</span><span class="notification-dot" id="dot-summary"></span></a>
-                    <a href="#" class="nav-link" data-page="announcements"><span class="nav-icon">📢</span><span class="nav-text">Announcements</span><span class="notification-dot" id="dot-announce"></span></a>
+                    <a href="#" class="nav-link" data-page="chat">
+                        <span class="nav-icon">💬</span>
+                        <span class="nav-text">Secret Comms</span>
+                        <span class="notification-dot" id="dot-chat"></span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="summary">
+                        <span class="nav-icon">📋</span>
+                        <span class="nav-text">Weekly Summary</span>
+                        <span class="notification-dot" id="dot-summary"></span>
+                    </a>
+                    <a href="#" class="nav-link" data-page="announcements">
+                        <span class="nav-icon">📢</span>
+                        <span class="nav-text">Announcements</span>
+                        <span class="notification-dot" id="dot-announce"></span>
+                    </a>
                 </div>
                 
-                <!-- 👇 THIS CONTAINER IS REQUIRED FOR THE ADMIN BUTTON 👇 -->
+                <!-- ========================================== -->
+                <!-- ✅ NEW: HELPER ARMY Section (Role-Based)  -->
+                <!-- ========================================== -->
+                <div class="nav-section" id="nav-section-helper" style="display:none;">
+                    <span class="nav-section-title">HELPER ARMY</span>
+                    
+                    <!-- Attendance Checker Link -->
+                    <a href="#" 
+                       class="nav-link" 
+                       data-page="attendance-checker" 
+                       id="nav-attendance-checker" 
+                       style="display:none;">
+                        <span class="nav-icon">📋</span>
+                        <span class="nav-text">Attendance Checker</span>
+                    </a>
+                    
+                    <!-- Police Panel Link -->
+                    <a href="#" 
+                       class="nav-link" 
+                       data-page="police-panel" 
+                       id="nav-police-panel" 
+                       style="display:none;">
+                        <span class="nav-icon">👮</span>
+                        <span class="nav-text">Police Panel</span>
+                    </a>
+                </div>
+                <!-- ========================================== -->
+                
+                <!-- Admin Section Container (for dynamic admin button) -->
                 <div class="nav-section nav-admin-section" id="nav-admin-container"></div>
             </nav>
 
             <div class="sidebar-footer">
-                <div class="sync-status"><span class="sync-icon">🔄</span><span id="last-update">--:--</span></div>
+                <div class="sync-status">
+                    <span class="sync-icon">🔄</span>
+                    <span id="last-update">--:--</span>
+                </div>
                 <button id="logout-btn">Logout</button>
             </div>
         </aside>
@@ -164,65 +243,187 @@
         <!-- ==================== MAIN CONTENT AREA ==================== -->
         <main class="main-content" role="main">
             <header class="mobile-header">
-                <button id="menu-btn" class="menu-btn"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></button>
-                <div class="header-logo"><span class="header-logo-icon">⟭⟬</span><span class="header-logo-text">BTS MISSION</span></div>
+                <button id="menu-btn" class="menu-btn">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                <div class="header-logo">
+                    <span class="header-logo-icon">⟭⟬</span>
+                    <span class="header-logo-text">BTS MISSION</span>
+                </div>
                 <div class="header-spacer"></div>
             </header>
 
             <div class="pages-wrapper">
                 
-                <!-- HOME -->
+                <!-- ==================== HOME PAGE ==================== -->
                 <section id="page-home" class="page active">
                     <div class="page-header">
-                        <div class="page-title-section"><h1>Mission Control</h1><p id="current-week" class="page-subtitle">Week: Loading...</p></div>
-                        <div class="page-actions"><button class="refresh-btn" onclick="loadPage('home')">🔄</button></div>
+                        <div class="page-title-section">
+                            <h1>Mission Control</h1>
+                            <p id="current-week" class="page-subtitle">Week: Loading...</p>
+                        </div>
+                        <div class="page-actions">
+                            <button class="refresh-btn" onclick="loadPage('home')">🔄</button>
+                        </div>
                     </div>
                     <div class="quick-stats-section"></div>
                     <div class="section-header"><h2>📋 Active Missions</h2></div>
                     <div class="missions-grid"></div>
-                    <div class="card"><div class="card-header"><h3><span class="header-icon">🏆</span> Top Agents</h3><a href="#" class="card-link" onclick="loadPage('rankings')">View All →</a></div><div class="card-body" id="home-top-agents"><div class="loading-skeleton"><div class="skeleton-item"></div></div></div></div>
-                    <div class="card"><div class="card-header"><h3><span class="header-icon">🎭</span> Battle Standings</h3><a href="#" class="card-link" onclick="loadPage('comparison')">Details →</a></div><div class="card-body" id="home-standings"><div class="loading-skeleton"><div class="skeleton-item"></div></div></div></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><span class="header-icon">🏆</span> Top Agents</h3>
+                            <a href="#" class="card-link" onclick="loadPage('rankings')">View All →</a>
+                        </div>
+                        <div class="card-body" id="home-top-agents">
+                            <div class="loading-skeleton"><div class="skeleton-item"></div></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><span class="header-icon">🎭</span> Battle Standings</h3>
+                            <a href="#" class="card-link" onclick="loadPage('comparison')">Details →</a>
+                        </div>
+                        <div class="card-body" id="home-standings">
+                            <div class="loading-skeleton"><div class="skeleton-item"></div></div>
+                        </div>
+                    </div>
                 </section>
 
-                <!-- PLAYLISTS (NEW) -->
+                <!-- ==================== PLAYLISTS PAGE ==================== -->
                 <section id="page-playlists" class="page">
                     <div class="page-header"><h1>Streaming Playlists</h1></div>
-                    <div id="playlists-content"><div class="loading-skeleton"><div class="skeleton-card"></div></div></div>
+                    <div id="playlists-content">
+                        <div class="loading-skeleton"><div class="skeleton-card"></div></div>
+                    </div>
                 </section>
 
-                <!-- PROFILE -->
+                <!-- ==================== PROFILE PAGE ==================== -->
                 <section id="page-profile" class="page">
                     <div class="page-header"><h1>Agent Profile</h1></div>
                     <div class="profile-card">
-                        <div class="profile-header"><div class="profile-avatar" id="profile-avatar"></div><div class="profile-info"><h2 id="profile-name">Agent Name</h2><p id="profile-team" class="profile-team-name">Team</p><p id="profile-id" class="profile-agent-id">Agent ID: ---</p></div></div>
+                        <div class="profile-header">
+                            <div class="profile-avatar" id="profile-avatar"></div>
+                            <div class="profile-info">
+                                <h2 id="profile-name">Agent Name</h2>
+                                <p id="profile-team" class="profile-team-name">Team</p>
+                                <p id="profile-id" class="profile-agent-id">Agent ID: ---</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="stats-grid" id="profile-stats"><div class="loading-skeleton"><div class="skeleton-stat"></div></div></div>
-                    <div class="card"><div class="card-header"><h3><span class="header-icon">🎵</span> Your Track Streams</h3></div><div class="card-body scrollable" id="profile-tracks"></div></div>
-                    <div class="card"><div class="card-header"><h3><span class="header-icon">💿</span> Your Album Streams</h3></div><div class="card-body scrollable" id="profile-albums"></div></div>
-                    <div class="card"><div class="card-header"><h3><span class="header-icon">🎖️</span> Badges Earned</h3></div><div class="card-body" id="profile-badges"></div></div>
+                    <div class="stats-grid" id="profile-stats">
+                        <div class="loading-skeleton"><div class="skeleton-stat"></div></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><span class="header-icon">🎵</span> Your Track Streams</h3>
+                        </div>
+                        <div class="card-body scrollable" id="profile-tracks"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><span class="header-icon">💿</span> Your Album Streams</h3>
+                        </div>
+                        <div class="card-body scrollable" id="profile-albums"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><span class="header-icon">🎖️</span> Badges Earned</h3>
+                        </div>
+                        <div class="card-body" id="profile-badges"></div>
+                    </div>
                 </section>
 
-                <!-- RANKINGS -->
+                <!-- ==================== RANKINGS PAGE ==================== -->
                 <section id="page-rankings" class="page">
-                    <div class="page-header"><h1>Agent Rankings</h1><p class="page-subtitle">Top performers this week</p></div>
-                    <div id="rankings-list"><div class="loading-skeleton"><div class="skeleton-card"></div></div></div>
+                    <div class="page-header">
+                        <h1>Agent Rankings</h1>
+                        <p class="page-subtitle">Top performers this week</p>
+                    </div>
+                    <div id="rankings-list">
+                        <div class="loading-skeleton"><div class="skeleton-card"></div></div>
+                    </div>
                 </section>
 
-                <!-- DRAWER -->
+                <!-- ==================== DRAWER PAGE ==================== -->
                 <section id="page-drawer" class="page">
-                    <div class="page-header"><h1>My Drawer</h1><p class="page-subtitle">Your badges & achievements</p></div>
-                    <div id="drawer-content"><div class="loading-skeleton"><div class="skeleton-card"></div></div></div>
+                    <div class="page-header">
+                        <h1>My Drawer</h1>
+                        <p class="page-subtitle">Your badges & achievements</p>
+                    </div>
+                    <div id="drawer-content">
+                        <div class="loading-skeleton"><div class="skeleton-card"></div></div>
+                    </div>
                 </section>
 
-                <!-- OTHER PAGES (Standard) -->
-                <section id="page-goals" class="page"><div class="page-header"><h1>Goals Progress</h1></div><div id="goals-content"></div></section>
-                <section id="page-album2x" class="page"><div class="page-header"><h1>Album 2X Mission</h1></div><div id="album2x-content"></div></section>
-                <section id="page-secret-missions" class="page"><div class="page-header"><h1>🔒 Secret Missions</h1></div><div id="secret-missions-content"></div></section>
-                <section id="page-team-level" class="page"><div class="page-header"><h1>Team Levels</h1></div><div id="team-level-content"></div></section>
-                <section id="page-comparison" class="page"><div class="page-header"><h1>Team Comparison</h1></div><div id="comparison-content"></div></section>
-                <section id="page-summary" class="page"><div class="page-header"><h1>Weekly Summary</h1></div><div id="summary-content"></div></section>
-                <section id="page-announcements" class="page"><div class="page-header"><h1>Announcements</h1></div><div id="announcements-content"></div></section>
-                <section id="page-chat" class="page"><div id="chat-content"></div></section>
+                <!-- ==================== OTHER STANDARD PAGES ==================== -->
+                <section id="page-goals" class="page">
+                    <div class="page-header"><h1>Goals Progress</h1></div>
+                    <div id="goals-content"></div>
+                </section>
+
+                <section id="page-album2x" class="page">
+                    <div class="page-header"><h1>Album 2X Mission</h1></div>
+                    <div id="album2x-content"></div>
+                </section>
+
+                <section id="page-secret-missions" class="page">
+                    <div class="page-header"><h1>🔒 Secret Missions</h1></div>
+                    <div id="secret-missions-content"></div>
+                </section>
+
+                <section id="page-team-level" class="page">
+                    <div class="page-header"><h1>Team Levels</h1></div>
+                    <div id="team-level-content"></div>
+                </section>
+
+                <section id="page-comparison" class="page">
+                    <div class="page-header"><h1>Team Comparison</h1></div>
+                    <div id="comparison-content"></div>
+                </section>
+
+                <section id="page-summary" class="page">
+                    <div class="page-header"><h1>Weekly Summary</h1></div>
+                    <div id="summary-content"></div>
+                </section>
+
+                <section id="page-announcements" class="page">
+                    <div class="page-header"><h1>Announcements</h1></div>
+                    <div id="announcements-content"></div>
+                </section>
+
+                <section id="page-chat" class="page">
+                    <div id="chat-content"></div>
+                </section>
+
+                <!-- ========================================== -->
+                <!-- ✅ NEW PAGES: ATTENDANCE & POLICE          -->
+                <!-- ========================================== -->
+
+                <!-- Attendance Checker Page -->
+                <section id="page-attendance-checker" class="page">
+                    <div class="page-header">
+                        <h1>📋 Attendance Checker</h1>
+                        <p class="page-subtitle">Track team attendance submissions</p>
+                    </div>
+                    <div id="attendance-checker-content">
+                        <div class="loading-skeleton"><div class="skeleton-card"></div></div>
+                    </div>
+                </section>
+
+                <!-- Police Panel Page -->
+                <section id="page-police-panel" class="page">
+                    <div class="page-header">
+                        <h1>👮 Police Panel</h1>
+                        <p class="page-subtitle">Monitor and report violations</p>
+                    </div>
+                    <div id="police-panel-content">
+                        <div class="loading-skeleton"><div class="skeleton-card"></div></div>
+                    </div>
+                </section>
+
+                <!-- ========================================== -->
 
             </div>
         </main>
