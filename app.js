@@ -411,7 +411,7 @@ function preloadDashboardData() {
 
 // 🔴 INCREMENT THESE when making breaking changes
 const NOTIFICATION_SYSTEM_VERSION = 4;
-const VOTING_STORAGE_VERSION = 3;
+const VOTING_STORAGE_VERSION = 2;
 
 // ==================== NOTIFICATION STATE MANAGEMENT ====================
 
@@ -1791,10 +1791,6 @@ async function respondToVoting(response) {
             });
     }
 }
-
-// Alias for backward compatibility
-const handleVotingResponse = respondToVoting;
-
 // ==================== DEBUG / RESET ====================
 
 function resetNotificationBaseline() {
