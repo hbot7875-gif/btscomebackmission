@@ -9209,7 +9209,7 @@ async function renderHelperRoles() {
     }
 }
 // ============================================
-// GUIDE PAGE - LEFT ALIGNED, NO HORIZONTAL SCROLL
+// GUIDE PAGE - FIXED QUICK LINKS
 // ============================================
 
 async function renderGuidePage() {
@@ -9856,7 +9856,15 @@ async function renderGuidePage() {
                 margin-bottom: 8px;
             }
             
-            /* ===== QUICK LINKS ===== */
+            /* ===== SECTION TITLES ===== */
+            .guide-section-subtitle {
+                color: #fff;
+                font-size: 12px;
+                font-weight: 600;
+                margin: 12px 0 8px 0;
+            }
+            
+            /* ===== QUICK LINKS - FIXED ===== */
             .quick-links {
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
@@ -9873,30 +9881,30 @@ async function renderGuidePage() {
                 cursor: pointer;
                 transition: all 0.2s ease;
                 touch-action: manipulation;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            .quick-link:hover {
+                background: linear-gradient(145deg, rgba(123,44,191,0.25), rgba(123,44,191,0.15));
             }
             
             .quick-link:active {
                 transform: scale(0.95);
-                background: linear-gradient(145deg, rgba(123,44,191,0.25), rgba(123,44,191,0.15));
+                background: linear-gradient(145deg, rgba(123,44,191,0.35), rgba(123,44,191,0.25));
             }
             
             .quick-link-icon { 
                 font-size: 18px; 
-                margin-bottom: 4px; 
+                margin-bottom: 4px;
+                display: block;
             }
             
             .quick-link-text { 
                 color: #fff; 
                 font-size: 10px; 
-                font-weight: 600; 
-            }
-            
-            /* ===== SECTION TITLES ===== */
-            .guide-section-subtitle {
-                color: #fff;
-                font-size: 12px;
                 font-weight: 600;
-                margin: 12px 0 8px 0;
+                display: block;
             }
             
             /* ===== RESPONSIVE ===== */
@@ -10297,30 +10305,30 @@ async function renderGuidePage() {
                 </div>
             </div>
             
-            <!-- Quick Links -->
-            <div class="quick-links" id="guideQuickLinks">
-                <div class="quick-link" data-page="home">
-                    <div class="quick-link-icon">🏠</div>
-                    <div class="quick-link-text">Dashboard</div>
+            <!-- Quick Links - USING ONCLICK DIRECTLY -->
+            <div class="quick-links">
+                <div class="quick-link" onclick="handleQuickLink('home')">
+                    <span class="quick-link-icon">🏠</span>
+                    <span class="quick-link-text">Dashboard</span>
                 </div>
-                <div class="quick-link" data-page="goals">
-                    <div class="quick-link-icon">🎯</div>
-                    <div class="quick-link-text">Goals</div>
+                <div class="quick-link" onclick="handleQuickLink('goals')">
+                    <span class="quick-link-icon">🎯</span>
+                    <span class="quick-link-text">Goals</span>
                 </div>
-                <div class="quick-link" data-page="playlists">
-                    <div class="quick-link-icon">🎵</div>
-                    <div class="quick-link-text">Playlists</div>
+                <div class="quick-link" onclick="handleQuickLink('playlists')">
+                    <span class="quick-link-icon">🎵</span>
+                    <span class="quick-link-text">Playlists</span>
                 </div>
-                <div class="quick-link" data-page="gc-links">
-                    <div class="quick-link-icon">👥</div>
-                    <div class="quick-link-text">GC Links</div>
+                <div class="quick-link" onclick="handleQuickLink('gc-links')">
+                    <span class="quick-link-icon">👥</span>
+                    <span class="quick-link-text">GC Links</span>
                 </div>
             </div>
         </div>
     `;
     
-    // Initialize interactions
-    initGuideInteractions();
+    // Initialize nav buttons
+    initGuideNav();
     
     // Scroll to top
     window.scrollTo(0, 0);
@@ -10329,30 +10337,113 @@ async function renderGuidePage() {
 }
 
 // ============================================
-// GUIDE INTERACTIONS
+// QUICK LINK HANDLER - GLOBAL FUNCTION
 // ============================================
 
-function initGuideInteractions() {
-    const navContainer = document.getElementById('guideNav');
-    const navBtns = document.querySelectorAll('.guide-nav-btn');
-    const quickLinks = document.querySelectorAll('#guideQuickLinks .quick-link');
+function handleQuickLink(pageName) {
+    console.log('Quick link clicked:', pageName);
     
-    // Nav button clicks
+    // Haptic feedback
+    if (navigator.vibrate) {
+        navigator.vibrate(10);
+    }
+    
+    // Try all possible navigation methods
+    if (typeof loadPage === 'function') {
+        console.log('Using loadPage()');
+        loadPage(pageName);
+        return;
+    }
+    
+    if (typeof renderPage === 'function') {
+        console.log('Using renderPage()');
+        renderPage(pageName);
+        return;
+    }
+    
+    if (typeof navigateTo === 'function') {
+        console.log('Using navigateTo()');
+        navigateTo(pageName);
+        return;
+    }
+    
+    if (typeof showPage === 'function') {
+        console.log('Using showPage()');
+        showPage(pageName);
+        return;
+    }
+    
+    if (typeof switchPage === 'function') {
+        console.log('Using switchPage()');
+        switchPage(pageName);
+        return;
+    }
+    
+    // Try global APP object
+    if (window.APP) {
+        if (typeof window.APP.loadPage === 'function') {
+            console.log('Using APP.loadPage()');
+            window.APP.loadPage(pageName);
+            return;
+        }
+        if (typeof window.APP.navigate === 'function') {
+            console.log('Using APP.navigate()');
+            window.APP.navigate(pageName);
+            return;
+        }
+    }
+    
+    // Try global app object
+    if (window.app) {
+        if (typeof window.app.loadPage === 'function') {
+            console.log('Using app.loadPage()');
+            window.app.loadPage(pageName);
+            return;
+        }
+        if (typeof window.app.navigate === 'function') {
+            console.log('Using app.navigate()');
+            window.app.navigate(pageName);
+            return;
+        }
+    }
+    
+    // Try clicking nav buttons
+    const navSelectors = [
+        `[data-page="${pageName}"]`,
+        `[data-target="${pageName}"]`,
+        `.nav-btn[data-page="${pageName}"]`,
+        `.nav-item[data-page="${pageName}"]`,
+        `button[data-page="${pageName}"]`,
+        `a[href="#${pageName}"]`,
+        `a[href="/${pageName}"]`
+    ];
+    
+    for (const selector of navSelectors) {
+        const btn = document.querySelector(selector);
+        if (btn) {
+            console.log('Clicking nav button:', selector);
+            btn.click();
+            return;
+        }
+    }
+    
+    // Fallback to hash
+    console.log('Using hash navigation');
+    window.location.hash = pageName;
+}
+
+// ============================================
+// INIT GUIDE NAV
+// ============================================
+
+function initGuideNav() {
+    const navBtns = document.querySelectorAll('.guide-nav-btn');
+    
     navBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const sectionId = this.getAttribute('data-section');
             if (sectionId) {
                 scrollToGuideSection(sectionId);
-            }
-        });
-    });
-    
-    // Quick links clicks
-    quickLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            const page = this.getAttribute('data-page');
-            if (page) {
-                navigateToPage(page);
             }
         });
     });
@@ -10427,49 +10518,6 @@ function scrollToGuideSection(sectionId) {
             behavior: 'smooth'
         });
     }, 150);
-}
-
-// ============================================
-// NAVIGATION HELPER
-// ============================================
-
-function navigateToPage(pageName) {
-    if (navigator.vibrate) {
-        navigator.vibrate(10);
-    }
-    
-    if (typeof loadPage === 'function') {
-        loadPage(pageName);
-        return;
-    }
-    
-    if (typeof renderPage === 'function') {
-        renderPage(pageName);
-        return;
-    }
-    
-    if (typeof navigateTo === 'function') {
-        navigateTo(pageName);
-        return;
-    }
-    
-    if (typeof showPage === 'function') {
-        showPage(pageName);
-        return;
-    }
-    
-    if (window.APP && typeof window.APP.loadPage === 'function') {
-        window.APP.loadPage(pageName);
-        return;
-    }
-    
-    if (window.app && typeof window.app.navigate === 'function') {
-        window.app.navigate(pageName);
-        return;
-    }
-    
-    window.location.hash = pageName;
-    console.log('Navigation attempted to:', pageName);
 }
 // ==================== showChatRules ====================
 function showChatRules() {
