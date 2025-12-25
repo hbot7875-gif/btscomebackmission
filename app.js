@@ -5238,85 +5238,6 @@ async function renderProfile() {
         }
     }
 }
-
-// ==================== HELPER FUNCTIONS ====================
-
-async function markMemberAttendance(agentNo, name) {
-  if (!confirm(`Mark ${name} as present?`)) return;
-  
-  loading(true);
-  try {
-    const result = await api('markAttendance', {
-      week: STATE.week,
-      agentNo: agentNo,
-      checkerAgentNo: STATE.agentNo
-    });
-    
-    if (result.success) {
-      showToast(`✅ ${name} marked present`, 'success');
-      
-      // Reload attendance checker
-      await renderAttendanceChecker();
-    } else {
-      showToast('❌ ' + result.error, 'error');
-    }
-  } catch (e) {
-    console.error('Mark attendance error:', e);
-    showToast('Failed to mark attendance', 'error');
-  } finally {
-    loading(false);
-  }
-}
-
-async function unmarkMemberAttendance(agentNo, name) {
-  if (!confirm(`Remove ${name} from attendance?`)) return;
-  
-  loading(true);
-  try {
-    const result = await api('unmarkAttendance', {
-      week: STATE.week,
-      agentNo: agentNo,
-      checkerAgentNo: STATE.agentNo
-    });
-    
-    if (result.success) {
-      showToast(`✅ ${name} unmarked`, 'success');
-      
-      // Reload attendance checker
-      await renderAttendanceChecker();
-    } else {
-      showToast('❌ ' + result.error, 'error');
-    }
-  } catch (e) {
-    console.error('Unmark attendance error:', e);
-    showToast('Failed to unmark attendance', 'error');
-  } finally {
-    loading(false);
-  }
-}
-
-async function checkMyRole(roleId) {
-  try {
-    const rolesData = await api('getHelperRoles');
-    const roles = rolesData.roles || [];
-    
-    const role = roles.find(r => r.id === roleId);
-    if (!role) return false;
-    
-    return role.agents.some(a => String(a.agentNo) === String(STATE.agentNo));
-  } catch (e) {
-    console.error('Check role error:', e);
-    return false;
-  }
-}
-
-// Add this to your PAGE_GUIDES config
-PAGE_GUIDES['attendance-checker'] = {
-  icon: '📋',
-  title: 'Attendance Checker Instructions',
-  text: '1. Check Team GC for screenshot submissions\n2. Mark attendance for members who submitted\n3. Deadline: Sunday 3:00 PM IST\n4. 100% attendance required for team eligibility',
-  isWarning: false
-};
 // ==================== GOALS (MOBILE FIXED) ====================
 async function renderGoals() {
     const container = $('goals-content');
@@ -10206,7 +10127,23 @@ function scrollToGuideSection(sectionId) {
         });
     }
 }
-// ==================== MISSING FUNCTION: showChatRules ====================
+async function renderGuidePage() {
+    console.log('1. Starting renderGuidePage');
+    
+    const getEl = (id) => document.getElementById(id);
+    
+    let page = getEl('page-guide');
+    console.log('2. page-guide exists:', !!page);
+    
+    let container = getEl('guide-content');
+    console.log('3. guide-content exists:', !!container);
+    
+    // ... rest of your code
+    
+    console.log('4. Content set, page should be visible');
+    console.log('5. Container innerHTML length:', container.innerHTML.length);
+}
+// ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
     popup.className = 'chat-rules-popup';
