@@ -9208,10 +9208,13 @@ async function renderHelperRoles() {
         $('roles-list').innerHTML = '<p style="color:red;">Failed to load roles</p>'; 
     }
 }
+// ============================================
+// GUIDE PAGE - LEFT ALIGNED, NO HORIZONTAL SCROLL
+// ============================================
+
 async function renderGuidePage() {
     const getEl = (id) => document.getElementById(id);
     
-    // STEP 1: Find or create the page element first
     let page = getEl('page-guide');
     
     if (!page) {
@@ -9244,7 +9247,6 @@ async function renderGuidePage() {
         return;
     }
     
-    // Show the page
     document.querySelectorAll('.page').forEach(p => {
         p.style.display = 'none';
         p.classList.remove('active');
@@ -9253,7 +9255,6 @@ async function renderGuidePage() {
     page.style.display = 'block';
     page.classList.add('active');
     
-    // Safe access with fallbacks
     const myTeam = (typeof STATE !== 'undefined' && STATE?.data?.profile?.team) 
         ? STATE.data.profile.team 
         : 'Your Team';
@@ -9282,42 +9283,58 @@ async function renderGuidePage() {
 
     container.innerHTML = `
         <style>
-            /* ===== MOBILE-FIRST BASE STYLES ===== */
-            * {
+            /* ===== FORCE NO HORIZONTAL SCROLL ===== */
+            html, body {
+                overflow-x: hidden !important;
+            }
+            
+            #page-guide,
+            #page-guide *,
+            #guide-content,
+            #guide-content * {
+                box-sizing: border-box !important;
                 -webkit-tap-highlight-color: transparent;
-                -webkit-touch-callout: none;
+                max-width: 100% !important;
             }
             
             #page-guide {
                 display: block !important;
-                width: 100%;
+                width: 100% !important;
+                max-width: 100% !important;
                 min-height: 100vh;
-                overflow-x: hidden;
+                overflow-x: hidden !important;
+                overflow-y: auto;
+                background: linear-gradient(180deg, #0a0a15 0%, #0f0f1f 100%);
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
             #guide-content {
-                width: 100%;
+                width: 100% !important;
+                max-width: 100% !important;
                 min-height: 100vh;
-                overflow-x: hidden;
+                overflow-x: hidden !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
             .guide-page { 
-                max-width: 800px; 
-                margin: 0 auto; 
-                padding: 12px;
-                padding-bottom: 120px; /* Extra space for bottom nav */
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 10px !important;
+                padding-bottom: 120px !important;
                 min-height: 100vh;
-                box-sizing: border-box;
-                overflow-x: hidden;
+                overflow-x: hidden !important;
             }
             
             /* ===== HEADER ===== */
             .guide-header {
-                text-align: center;
-                padding: 25px 15px;
+                text-align: left;
+                padding: 20px 15px;
                 background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                border-radius: 16px;
-                margin-bottom: 15px;
+                border-radius: 12px;
+                margin-bottom: 10px;
                 position: relative;
                 overflow: hidden;
             }
@@ -9340,11 +9357,11 @@ async function renderGuidePage() {
             
             .guide-header h1 { 
                 color: #fff; 
-                font-size: 20px; 
-                margin: 0 0 6px 0; 
+                font-size: 18px; 
+                margin: 0 0 5px 0; 
                 position: relative;
-                word-break: break-word;
                 line-height: 1.3;
+                word-wrap: break-word;
             }
             
             .guide-header p { 
@@ -9353,18 +9370,20 @@ async function renderGuidePage() {
                 margin: 0; 
                 position: relative;
                 line-height: 1.4;
+                word-wrap: break-word;
             }
             
-            /* ===== NAVIGATION - SCROLLABLE ON MOBILE ===== */
+            /* ===== NAVIGATION ===== */
             .guide-nav {
                 display: flex;
-                gap: 8px;
-                margin-bottom: 15px;
-                padding: 10px;
+                gap: 6px;
+                margin-bottom: 10px;
+                padding: 8px;
                 background: rgba(123,44,191,0.1);
-                border-radius: 12px;
+                border-radius: 10px;
                 border: 1px solid rgba(123,44,191,0.2);
                 overflow-x: auto;
+                overflow-y: hidden;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
                 -ms-overflow-style: none;
@@ -9375,16 +9394,17 @@ async function renderGuidePage() {
             }
             
             .guide-nav-btn {
-                padding: 8px 14px;
+                flex: 0 0 auto;
+                padding: 6px 12px;
                 background: rgba(255,255,255,0.05);
                 border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 20px;
+                border-radius: 18px;
                 color: #aaa;
-                font-size: 11px;
+                font-size: 10px;
+                font-weight: 500;
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: all 0.2s ease;
                 white-space: nowrap;
-                flex-shrink: 0;
                 touch-action: manipulation;
             }
             
@@ -9393,15 +9413,14 @@ async function renderGuidePage() {
                 background: linear-gradient(135deg, #7b2cbf, #5a1f99);
                 color: #fff;
                 border-color: #7b2cbf;
-                transform: scale(0.95);
             }
             
             /* ===== SECTIONS ===== */
             .guide-section {
                 background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
-                border-radius: 14px;
+                border-radius: 12px;
                 border: 1px solid rgba(123,44,191,0.2);
-                margin-bottom: 12px;
+                margin-bottom: 10px;
                 overflow: hidden;
             }
             
@@ -9409,7 +9428,7 @@ async function renderGuidePage() {
                 display: flex;
                 align-items: center;
                 gap: 10px;
-                padding: 14px 15px;
+                padding: 12px;
                 background: rgba(123,44,191,0.1);
                 cursor: pointer;
                 transition: background 0.2s;
@@ -9422,22 +9441,23 @@ async function renderGuidePage() {
             }
             
             .guide-section-icon { 
-                font-size: 20px;
+                font-size: 18px;
                 flex-shrink: 0;
             }
             
             .guide-section-title { 
                 flex: 1; 
                 color: #fff; 
-                font-size: 14px; 
+                font-size: 13px; 
                 font-weight: 600;
                 line-height: 1.3;
+                word-wrap: break-word;
             }
             
             .guide-section-toggle { 
                 color: #7b2cbf; 
-                font-size: 16px; 
-                transition: transform 0.3s;
+                font-size: 14px; 
+                transition: transform 0.3s ease;
                 flex-shrink: 0;
             }
             
@@ -9446,24 +9466,25 @@ async function renderGuidePage() {
             }
             
             .guide-section-content {
-                padding: 0;
+                padding: 0 12px;
                 max-height: 0;
                 overflow: hidden;
-                transition: max-height 0.4s ease, padding 0.4s ease;
+                transition: all 0.4s ease;
             }
             
             .guide-section.open .guide-section-content {
-                padding: 15px;
-                max-height: 8000px; /* Increased for long content */
+                padding: 12px;
+                max-height: 8000px;
             }
             
             /* ===== TEXT STYLES ===== */
             .guide-text { 
                 color: #ccc; 
-                font-size: 13px; 
+                font-size: 12px; 
                 line-height: 1.6; 
-                margin-bottom: 12px;
+                margin-bottom: 10px;
                 word-wrap: break-word;
+                overflow-wrap: break-word;
             }
             
             .guide-text:last-child { margin-bottom: 0; }
@@ -9472,70 +9493,83 @@ async function renderGuidePage() {
             .guide-highlight {
                 background: rgba(255,215,0,0.08);
                 border-left: 3px solid #ffd700;
-                padding: 12px;
-                border-radius: 0 10px 10px 0;
-                margin: 12px 0;
+                padding: 10px;
+                border-radius: 0 8px 8px 0;
+                margin: 10px 0;
             }
             
             .guide-highlight-title {
                 color: #ffd700;
                 font-weight: 600;
-                font-size: 12px;
-                margin-bottom: 8px;
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                flex-wrap: wrap;
+                font-size: 11px;
+                margin-bottom: 6px;
+            }
+            
+            .guide-highlight-content {
+                color: #fff;
+                font-size: 11px;
+                line-height: 1.7;
+                word-wrap: break-word;
             }
             
             .guide-warning {
                 background: rgba(255,68,68,0.08);
                 border-left: 3px solid #ff4444;
-                padding: 12px;
-                border-radius: 0 10px 10px 0;
-                margin: 12px 0;
+                padding: 10px;
+                border-radius: 0 8px 8px 0;
+                margin: 10px 0;
             }
             
             .guide-warning-title {
                 color: #ff6b6b;
                 font-weight: 600;
-                font-size: 12px;
-                margin-bottom: 8px;
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                flex-wrap: wrap;
+                font-size: 11px;
+                margin-bottom: 6px;
+            }
+            
+            .guide-warning-content {
+                color: #fff;
+                font-size: 11px;
+                line-height: 1.7;
+                word-wrap: break-word;
             }
             
             .guide-success {
                 background: rgba(0,255,136,0.08);
                 border-left: 3px solid #00ff88;
-                padding: 12px;
-                border-radius: 0 10px 10px 0;
-                margin: 12px 0;
+                padding: 10px;
+                border-radius: 0 8px 8px 0;
+                margin: 10px 0;
             }
             
             .guide-success-title {
                 color: #00ff88;
                 font-weight: 600;
-                font-size: 12px;
-                margin-bottom: 8px;
+                font-size: 11px;
+                margin-bottom: 6px;
+            }
+            
+            .guide-success-content {
+                color: #fff;
+                font-size: 11px;
+                line-height: 1.7;
+                word-wrap: break-word;
             }
             
             /* ===== LISTS ===== */
             .guide-list {
                 list-style: none;
                 padding: 0;
-                margin: 12px 0;
+                margin: 10px 0;
             }
             
             .guide-list li {
                 color: #ccc;
-                font-size: 12px;
-                padding: 10px 12px;
+                font-size: 11px;
+                padding: 8px 10px;
                 background: rgba(255,255,255,0.03);
-                border-radius: 8px;
-                margin-bottom: 6px;
+                border-radius: 6px;
+                margin-bottom: 5px;
                 display: flex;
                 align-items: flex-start;
                 gap: 8px;
@@ -9554,20 +9588,20 @@ async function renderGuidePage() {
                 counter-reset: guide-counter;
                 list-style: none;
                 padding: 0;
-                margin: 12px 0;
+                margin: 10px 0;
             }
             
             .guide-numbered-list li {
                 counter-increment: guide-counter;
                 color: #ccc;
-                font-size: 12px;
-                padding: 10px 12px;
+                font-size: 11px;
+                padding: 8px 10px;
                 background: rgba(255,255,255,0.03);
-                border-radius: 8px;
-                margin-bottom: 6px;
+                border-radius: 6px;
+                margin-bottom: 5px;
                 display: flex;
                 align-items: flex-start;
-                gap: 10px;
+                gap: 8px;
                 line-height: 1.5;
                 word-wrap: break-word;
             }
@@ -9576,14 +9610,14 @@ async function renderGuidePage() {
                 content: counter(guide-counter);
                 background: linear-gradient(135deg, #7b2cbf, #5a1f99);
                 color: #fff;
-                width: 20px;
-                height: 20px;
-                min-width: 20px;
+                width: 18px;
+                height: 18px;
+                min-width: 18px;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 10px;
+                font-size: 9px;
                 font-weight: bold;
                 flex-shrink: 0;
             }
@@ -9592,14 +9626,14 @@ async function renderGuidePage() {
             .guide-teams-grid {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 8px;
-                margin: 12px 0;
+                gap: 6px;
+                margin: 10px 0;
             }
             
             .guide-team-card {
-                padding: 12px 8px;
-                border-radius: 10px;
-                text-align: center;
+                padding: 10px 8px;
+                border-radius: 8px;
+                text-align: left;
                 border: 2px solid;
             }
             
@@ -9623,63 +9657,74 @@ async function renderGuidePage() {
             .guide-team-name { 
                 color: #fff; 
                 font-weight: bold; 
-                font-size: 11px;
+                font-size: 10px;
                 line-height: 1.3;
             }
+            
             .guide-team-album { 
                 color: #aaa; 
                 font-size: 9px; 
-                margin-top: 3px; 
+                margin-top: 2px; 
             }
             
             /* ===== GC GRID ===== */
             .guide-gc-grid { 
                 display: grid; 
-                gap: 8px; 
-                margin: 12px 0; 
+                gap: 6px; 
+                margin: 10px 0; 
             }
             
             .guide-gc-item {
                 display: flex;
                 align-items: center;
                 gap: 10px;
-                padding: 10px 12px;
+                padding: 8px 10px;
                 background: rgba(255,255,255,0.03);
-                border-radius: 10px;
+                border-radius: 8px;
             }
             
             .guide-gc-icon { 
                 font-size: 16px;
                 flex-shrink: 0;
             }
-            .guide-gc-info { flex: 1; min-width: 0; }
+            
+            .guide-gc-info { 
+                flex: 1; 
+                min-width: 0;
+            }
+            
             .guide-gc-name { 
                 color: #fff; 
                 font-weight: 600; 
-                font-size: 12px; 
+                font-size: 11px; 
             }
+            
             .guide-gc-desc { 
                 color: #888; 
-                font-size: 10px; 
-                margin-top: 2px; 
+                font-size: 9px; 
+                margin-top: 1px; 
             }
             
             /* ===== STEPS ===== */
-            .guide-steps { margin: 12px 0; }
+            .guide-steps { 
+                margin: 10px 0; 
+            }
             
             .guide-step {
                 display: flex;
-                gap: 12px;
-                padding: 12px 0;
+                gap: 10px;
+                padding: 10px 0;
                 border-bottom: 1px solid rgba(255,255,255,0.05);
             }
             
-            .guide-step:last-child { border-bottom: none; }
+            .guide-step:last-child { 
+                border-bottom: none; 
+            }
             
             .guide-step-num {
-                width: 28px;
-                height: 28px;
-                min-width: 28px;
+                width: 24px;
+                height: 24px;
+                min-width: 24px;
                 background: linear-gradient(135deg, #7b2cbf, #5a1f99);
                 border-radius: 50%;
                 display: flex;
@@ -9687,110 +9732,146 @@ async function renderGuidePage() {
                 justify-content: center;
                 color: #fff;
                 font-weight: bold;
+                font-size: 10px;
                 flex-shrink: 0;
-                font-size: 12px;
             }
             
             .guide-step-content { 
                 flex: 1; 
                 min-width: 0;
             }
+            
             .guide-step-title { 
                 color: #fff; 
                 font-weight: 600; 
-                font-size: 12px; 
-                margin-bottom: 3px; 
+                font-size: 11px; 
+                margin-bottom: 2px; 
             }
+            
             .guide-step-desc { 
                 color: #888; 
-                font-size: 11px; 
+                font-size: 10px; 
                 line-height: 1.4;
                 word-wrap: break-word;
             }
             
             /* ===== CROSS CHECK ===== */
-            .guide-cross-check { margin: 12px 0; }
+            .guide-cross-check { 
+                margin: 10px 0; 
+            }
             
             .guide-cross-check-item {
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                padding: 10px 12px;
+                padding: 8px 10px;
                 background: rgba(255,255,255,0.03);
-                border-radius: 8px;
-                margin-bottom: 6px;
-                gap: 10px;
-                flex-wrap: wrap;
+                border-radius: 6px;
+                margin-bottom: 5px;
+                gap: 8px;
             }
             
             .guide-cross-check-from, 
             .guide-cross-check-to { 
                 color: #fff; 
-                font-size: 11px; 
+                font-size: 10px; 
                 font-weight: 600; 
             }
+            
             .guide-cross-check-arrow { 
                 color: #7b2cbf; 
-                font-size: 14px; 
+                font-size: 12px; 
             }
             
             /* ===== WATERMARK EXAMPLE ===== */
             .watermark-example {
                 background: rgba(0,0,0,0.3);
-                border-radius: 12px;
-                padding: 15px;
-                text-align: center;
-                margin: 12px 0;
+                border-radius: 10px;
+                padding: 12px;
+                margin: 10px 0;
                 border: 2px dashed rgba(123,44,191,0.3);
             }
             
             .watermark-preview {
                 background: linear-gradient(145deg, #222, #1a1a1a);
-                border-radius: 10px;
-                padding: 30px 15px;
-                margin-bottom: 12px;
+                border-radius: 8px;
+                padding: 20px 10px;
+                margin-bottom: 8px;
                 position: relative;
             }
             
             .watermark-text {
                 position: absolute;
-                top: 6px;
-                right: 6px;
+                top: 5px;
+                right: 5px;
                 background: rgba(0,0,0,0.7);
                 color: #fff;
-                padding: 3px 8px;
-                border-radius: 4px;
-                font-size: 9px;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-size: 8px;
                 font-weight: bold;
             }
             
             .watermark-preview-label { 
                 color: #666; 
-                font-size: 10px; 
+                font-size: 9px; 
             }
+            
             .watermark-instructions { 
                 color: #aaa; 
-                font-size: 10px; 
-                line-height: 1.5; 
+                font-size: 9px; 
+                line-height: 1.5;
+                word-wrap: break-word;
+            }
+            
+            /* ===== DEADLINE BOX ===== */
+            .guide-deadline-box {
+                margin-top: 10px;
+                padding: 10px;
+                background: rgba(255,165,0,0.1);
+                border: 1px solid rgba(255,165,0,0.3);
+                border-radius: 8px;
+            }
+            
+            .guide-deadline-title {
+                color: #ffa500;
+                font-size: 10px;
+                font-weight: 600;
+                margin-bottom: 3px;
+            }
+            
+            .guide-deadline-desc {
+                color: #888;
+                font-size: 9px;
+                word-wrap: break-word;
+            }
+            
+            /* ===== FINAL SECTION ===== */
+            .guide-final-content {
+                text-align: left;
+                padding: 8px 0;
+            }
+            
+            .guide-final-emoji {
+                font-size: 32px;
+                margin-bottom: 8px;
             }
             
             /* ===== QUICK LINKS ===== */
             .quick-links {
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-                margin-top: 20px;
-                padding-bottom: 20px;
+                gap: 8px;
+                margin-top: 15px;
             }
             
             .quick-link {
-                padding: 14px 10px;
+                padding: 12px 8px;
                 background: linear-gradient(145deg, rgba(123,44,191,0.15), rgba(123,44,191,0.08));
-                border-radius: 12px;
+                border-radius: 10px;
                 border: 1px solid rgba(123,44,191,0.3);
                 text-align: center;
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: all 0.2s ease;
                 touch-action: manipulation;
             }
             
@@ -9800,136 +9881,50 @@ async function renderGuidePage() {
             }
             
             .quick-link-icon { 
-                font-size: 20px; 
-                margin-bottom: 5px; 
+                font-size: 18px; 
+                margin-bottom: 4px; 
             }
+            
             .quick-link-text { 
                 color: #fff; 
-                font-size: 11px; 
+                font-size: 10px; 
                 font-weight: 600; 
             }
             
-            /* ===== RESPONSIVE BREAKPOINTS ===== */
+            /* ===== SECTION TITLES ===== */
+            .guide-section-subtitle {
+                color: #fff;
+                font-size: 12px;
+                font-weight: 600;
+                margin: 12px 0 8px 0;
+            }
             
-            /* Small phones */
-            @media (max-width: 360px) {
+            /* ===== RESPONSIVE ===== */
+            @media (max-width: 320px) {
                 .guide-page {
-                    padding: 10px;
-                    padding-bottom: 100px;
+                    padding: 8px !important;
                 }
                 
                 .guide-header {
-                    padding: 20px 12px;
+                    padding: 15px 12px;
                 }
                 
                 .guide-header h1 {
-                    font-size: 18px;
-                }
-                
-                .guide-section-title {
-                    font-size: 13px;
+                    font-size: 16px;
                 }
                 
                 .guide-teams-grid {
                     grid-template-columns: 1fr;
                 }
                 
-                .guide-nav-btn {
-                    padding: 6px 10px;
-                    font-size: 10px;
-                }
-                
-                .guide-text,
-                .guide-list li,
-                .guide-numbered-list li {
-                    font-size: 11px;
-                }
-            }
-            
-            /* Medium phones */
-            @media (min-width: 361px) and (max-width: 480px) {
-                .guide-header h1 {
-                    font-size: 19px;
-                }
-            }
-            
-            /* Tablets and larger */
-            @media (min-width: 600px) {
-                .guide-page {
-                    padding: 20px;
-                    padding-bottom: 100px;
-                }
-                
-                .guide-header {
-                    padding: 35px 25px;
-                    border-radius: 20px;
-                }
-                
-                .guide-header h1 {
-                    font-size: 26px;
-                }
-                
-                .guide-header p {
-                    font-size: 14px;
-                }
-                
-                .guide-section {
-                    border-radius: 16px;
-                }
-                
-                .guide-section-header {
-                    padding: 18px 20px;
-                }
-                
-                .guide-section-title {
-                    font-size: 16px;
-                }
-                
-                .guide-section.open .guide-section-content {
-                    padding: 20px;
-                }
-                
-                .guide-text {
-                    font-size: 14px;
-                }
-                
-                .guide-teams-grid {
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 12px;
-                }
-                
-                .guide-team-name {
-                    font-size: 13px;
-                }
-                
-                .guide-team-album {
-                    font-size: 10px;
-                }
-                
                 .quick-links {
-                    grid-template-columns: repeat(4, 1fr);
+                    grid-template-columns: 1fr 1fr;
                 }
             }
             
-            /* Landscape mode fix */
-            @media (max-height: 500px) and (orientation: landscape) {
-                .guide-header {
-                    padding: 15px;
-                }
-                
-                .guide-header h1 {
-                    font-size: 18px;
-                }
-                
-                .guide-section-header {
-                    padding: 12px;
-                }
-            }
-            
-            /* Safe area for notched phones */
             @supports (padding-bottom: env(safe-area-inset-bottom)) {
                 .guide-page {
-                    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+                    padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
                 }
             }
         </style>
@@ -9940,15 +9935,16 @@ async function renderGuidePage() {
                 <p>Everything you need to know about BTS Comeback Mission</p>
             </div>
             
-            <div class="guide-nav">
-                <button class="guide-nav-btn active" onclick="scrollToGuideSection('what-is')">Mission</button>
-                <button class="guide-nav-btn" onclick="scrollToGuideSection('teams')">Teams</button>
-                <button class="guide-nav-btn" onclick="scrollToGuideSection('goals')">Goals & XP</button>
-                <button class="guide-nav-btn" onclick="scrollToGuideSection('winning')">How to Win</button>
-                <button class="guide-nav-btn" onclick="scrollToGuideSection('rules')">Rules</button>
-                <button class="guide-nav-btn" onclick="scrollToGuideSection('attendance')">Attendance</button>
+            <div class="guide-nav" id="guideNav">
+                <button class="guide-nav-btn active" data-section="what-is">Mission</button>
+                <button class="guide-nav-btn" data-section="teams">Teams</button>
+                <button class="guide-nav-btn" data-section="goals">Goals & XP</button>
+                <button class="guide-nav-btn" data-section="winning">How to Win</button>
+                <button class="guide-nav-btn" data-section="rules">Rules</button>
+                <button class="guide-nav-btn" data-section="attendance">Attendance</button>
             </div>
             
+            <!-- Section 1: What Is This Mission -->
             <div class="guide-section open" id="guide-what-is">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">🎯</span>
@@ -9962,7 +9958,7 @@ async function renderGuidePage() {
                     
                     <div class="guide-highlight">
                         <div class="guide-highlight-title">💡 Every Week, Your Team Works On:</div>
-                        <div style="color:#fff;font-size:12px;line-height:1.8;">
+                        <div class="guide-highlight-content">
                             • <strong>Track Goals</strong> - team combined streams for specific songs<br>
                             • <strong>Album Goals</strong> - team combined streams for albums<br>
                             • <strong>${safeSanitize(albumChallengeName)} Rule</strong> - stream your team album ${requiredStreams}X each<br>
@@ -9977,13 +9973,14 @@ async function renderGuidePage() {
                     
                     <div class="guide-success">
                         <div class="guide-success-title">✅ It's Super Simple Once You Start!</div>
-                        <div style="color:#fff;font-size:12px;">
+                        <div class="guide-success-content">
                             Read everything patiently. Don't stress about these instructions - you'll always get help whenever you feel stuck!
                         </div>
                     </div>
                 </div>
             </div>
             
+            <!-- Section 2: Teams -->
             <div class="guide-section" id="guide-teams">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">👥</span>
@@ -10014,7 +10011,7 @@ async function renderGuidePage() {
                     
                     <div class="guide-highlight">
                         <div class="guide-highlight-title">🎧 Your Team: ${safeSanitize(myTeam)}</div>
-                        <div style="color:#fff;font-size:12px;">
+                        <div class="guide-highlight-content">
                             Your team album is <strong style="color:#ffd700;">${safeSanitize(teamAlbum)}</strong>.<br>
                             You must stream this album <strong>top to bottom, ${requiredStreams} times per week</strong>.
                         </div>
@@ -10022,6 +10019,7 @@ async function renderGuidePage() {
                 </div>
             </div>
             
+            <!-- Section 3: Goals & XP -->
             <div class="guide-section" id="guide-goals">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">⭐</span>
@@ -10035,7 +10033,7 @@ async function renderGuidePage() {
                     
                     <div class="guide-highlight">
                         <div class="guide-highlight-title">📊 Example: Track Goal</div>
-                        <div style="color:#fff;font-size:12px;line-height:1.8;">
+                        <div class="guide-highlight-content">
                             If the goal is <strong>2,000 streams</strong> for "Life Goes On":<br>
                             • Every member's scrobbles for that song are combined<br>
                             • If team total reaches 2,000 → <span style="color:#00ff88;">GOAL PASSED ✓</span><br>
@@ -10044,7 +10042,7 @@ async function renderGuidePage() {
                         </div>
                     </div>
                     
-                    <h4 style="color:#fff;margin:15px 0 10px;font-size:13px;">💫 How XP Works</h4>
+                    <div class="guide-section-subtitle">💫 How XP Works</div>
                     
                     <ul class="guide-list">
                         <li><strong style="color:#ffd700;">10 streams</strong> from track/album goals = <strong style="color:#00ff88;">1 XP</strong></li>
@@ -10055,6 +10053,7 @@ async function renderGuidePage() {
                 </div>
             </div>
             
+            <!-- Section 4: How to Win -->
             <div class="guide-section" id="guide-winning">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">🏆</span>
@@ -10064,12 +10063,12 @@ async function renderGuidePage() {
                 <div class="guide-section-content">
                     <div class="guide-warning">
                         <div class="guide-warning-title">⚠️ IMPORTANT</div>
-                        <div style="color:#fff;font-size:12px;">
+                        <div class="guide-warning-content">
                             A team with high XP but incomplete requirements <strong>CANNOT</strong> win!
                         </div>
                     </div>
                     
-                    <h4 style="color:#fff;margin:15px 0 10px;font-size:13px;">✅ To Win, Your Team Must:</h4>
+                    <div class="guide-section-subtitle">✅ To Win, Your Team Must:</div>
                     
                     <ol class="guide-numbered-list">
                         <li><strong style="color:#fff;">Complete Track Goals</strong> - All track streaming goals met</li>
@@ -10082,18 +10081,19 @@ async function renderGuidePage() {
                     
                     <div class="guide-success">
                         <div class="guide-success-title">🎖️ Winner Reward</div>
-                        <div style="color:#fff;font-size:12px;">
+                        <div class="guide-success-content">
                             All members of the winning team get a special <strong style="color:#ffd700;">Champion Badge</strong>! 🏆
                         </div>
                     </div>
                     
-                    <div style="margin-top:12px;padding:10px;background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:10px;">
-                        <div style="color:#ffa500;font-size:11px;font-weight:600;margin-bottom:4px;">⏰ Deadline: Sunday 4:00 PM IST</div>
-                        <div style="color:#888;font-size:10px;">Attendance and Police reports must be confirmed by Admin before results are finalized.</div>
+                    <div class="guide-deadline-box">
+                        <div class="guide-deadline-title">⏰ Deadline: Sunday 4:00 PM IST</div>
+                        <div class="guide-deadline-desc">Attendance and Police reports must be confirmed by Admin before results are finalized.</div>
                     </div>
                 </div>
             </div>
             
+            <!-- Section 5: Rules -->
             <div class="guide-section" id="guide-rules">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">📜</span>
@@ -10103,7 +10103,7 @@ async function renderGuidePage() {
                 <div class="guide-section-content">
                     <div class="guide-warning">
                         <div class="guide-warning-title">⚠️ MUST FOLLOW</div>
-                        <div style="color:#fff;font-size:12px;">These rules protect everyone's hard work!</div>
+                        <div class="guide-warning-content">These rules protect everyone's hard work!</div>
                     </div>
                     
                     <ol class="guide-numbered-list">
@@ -10113,7 +10113,7 @@ async function renderGuidePage() {
                         <li>Every <strong style="color:#ffd700;">Sunday</strong>, you must show your Spotify listening history</li>
                     </ol>
                     
-                    <h4 style="color:#fff;margin:15px 0 10px;font-size:13px;">💬 Group Chats (GCs)</h4>
+                    <div class="guide-section-subtitle">💬 Group Chats (GCs)</div>
                     
                     <div class="guide-gc-grid">
                         <div class="guide-gc-item">
@@ -10148,13 +10148,14 @@ async function renderGuidePage() {
                     
                     <div class="guide-warning">
                         <div class="guide-warning-title">🚫 GC Rule</div>
-                        <div style="color:#fff;font-size:12px;">
+                        <div class="guide-warning-content">
                             In ALL GCs, you can <strong>only talk about the battle</strong>. No random chats!
                         </div>
                     </div>
                 </div>
             </div>
             
+            <!-- Section 6: Attendance -->
             <div class="guide-section" id="guide-attendance">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">📸</span>
@@ -10164,13 +10165,13 @@ async function renderGuidePage() {
                 <div class="guide-section-content">
                     <div class="guide-highlight">
                         <div class="guide-highlight-title">⏰ Submission Window</div>
-                        <div style="color:#fff;font-size:12px;">
+                        <div class="guide-highlight-content">
                             <strong>Saturday 3:00 PM</strong> → <strong>Sunday 3:00 PM</strong> (IST)<br>
                             You have 24 hours — no excuses!
                         </div>
                     </div>
                     
-                    <h4 style="color:#fff;margin:15px 0 10px;font-size:13px;">📱 How To Send Your Screenshots</h4>
+                    <div class="guide-section-subtitle">📱 How To Send Your Screenshots</div>
                     
                     <div class="guide-steps">
                         <div class="guide-step">
@@ -10210,9 +10211,9 @@ async function renderGuidePage() {
                         </div>
                     </div>
                     
-                    <div class="guide-warning" id="guide-watermark">
+                    <div class="guide-warning">
                         <div class="guide-warning-title">🏷️ IMPORTANT: Add Watermark!</div>
-                        <div style="color:#fff;font-size:12px;">
+                        <div class="guide-warning-content">
                             You MUST add your <strong>Instagram username as a watermark</strong> on your screenshots!
                         </div>
                     </div>
@@ -10223,12 +10224,11 @@ async function renderGuidePage() {
                             <div class="watermark-preview-label">📱 Your Spotify History Screenshot</div>
                         </div>
                         <div class="watermark-instructions">
-                            Add your Instagram username in the corner of each screenshot.<br>
-                            You can use any photo editing app or the markup tool on your phone.
+                            Add your Instagram username in the corner of each screenshot.
                         </div>
                     </div>
                     
-                    <h4 style="color:#fff;margin:15px 0 10px;font-size:13px;">🔍 Cross-Check System</h4>
+                    <div class="guide-section-subtitle">🔍 Cross-Check System</div>
                     <p class="guide-text">To keep things fair, teams cross-check each other:</p>
                     
                     <div class="guide-cross-check">
@@ -10256,7 +10256,7 @@ async function renderGuidePage() {
                     
                     <div class="guide-warning">
                         <div class="guide-warning-title">⚠️ Consequences (After Week 1)</div>
-                        <div style="color:#fff;font-size:11px;line-height:1.7;">
+                        <div class="guide-warning-content">
                             • Week 1 is practice — no action taken<br>
                             • <strong>From Week 2:</strong><br>
                             → 3+ members loop/wrong playlists = Streams NOT counted<br>
@@ -10266,13 +10266,14 @@ async function renderGuidePage() {
                     
                     <div class="guide-success">
                         <div class="guide-success-title">💡 Can't Submit On Time?</div>
-                        <div style="color:#fff;font-size:12px;">
+                        <div class="guide-success-content">
                             Send your screenshots to a teammate or team helper, and they can submit on your behalf!
                         </div>
                     </div>
                 </div>
             </div>
             
+            <!-- Section 7: Final -->
             <div class="guide-section" id="guide-final">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">💜</span>
@@ -10280,36 +10281,37 @@ async function renderGuidePage() {
                     <span class="guide-section-toggle">▼</span>
                 </div>
                 <div class="guide-section-content">
-                    <div style="text-align:center;padding:10px;">
-                        <div style="font-size:40px;margin-bottom:10px;">💜</div>
-                        <p class="guide-text" style="text-align:center;font-size:14px;color:#fff;">
+                    <div class="guide-final-content">
+                        <div class="guide-final-emoji">💜</div>
+                        <p class="guide-text" style="font-size:13px;color:#fff;">
                             <strong>Read everything patiently.</strong><br>
                             Don't stress about all these instructions!
                         </p>
-                        <p class="guide-text" style="text-align:center;">
+                        <p class="guide-text">
                             It's super simple once you start, and you'll always get help whenever you feel stuck.
                         </p>
-                        <p class="guide-text" style="text-align:center;color:#ffd700;font-weight:bold;">
+                        <p class="guide-text" style="color:#ffd700;font-weight:bold;">
                             Let's work together and make this comeback legendary! 🚀
                         </p>
                     </div>
                 </div>
             </div>
             
-            <div class="quick-links">
-                <div class="quick-link" onclick="if(typeof loadPage==='function')loadPage('home');else window.location.hash='home';">
+            <!-- Quick Links -->
+            <div class="quick-links" id="guideQuickLinks">
+                <div class="quick-link" data-page="home">
                     <div class="quick-link-icon">🏠</div>
                     <div class="quick-link-text">Dashboard</div>
                 </div>
-                <div class="quick-link" onclick="if(typeof loadPage==='function')loadPage('goals');else window.location.hash='goals';">
+                <div class="quick-link" data-page="goals">
                     <div class="quick-link-icon">🎯</div>
                     <div class="quick-link-text">Goals</div>
                 </div>
-                <div class="quick-link" onclick="if(typeof loadPage==='function')loadPage('playlists');else window.location.hash='playlists';">
+                <div class="quick-link" data-page="playlists">
                     <div class="quick-link-icon">🎵</div>
                     <div class="quick-link-text">Playlists</div>
                 </div>
-                <div class="quick-link" onclick="if(typeof loadPage==='function')loadPage('gc-links');else window.location.hash='gc-links';">
+                <div class="quick-link" data-page="gc-links">
                     <div class="quick-link-icon">👥</div>
                     <div class="quick-link-text">GC Links</div>
                 </div>
@@ -10317,60 +10319,157 @@ async function renderGuidePage() {
         </div>
     `;
     
+    // Initialize interactions
+    initGuideInteractions();
+    
     // Scroll to top
     window.scrollTo(0, 0);
     
     console.log('Guide page rendered successfully');
 }
 
-// Toggle guide section - improved for mobile
-function toggleGuideSection(header) {
-    if (!header) return;
-    const section = header.parentElement;
-    if (section) {
-        section.classList.toggle('open');
-        
-        // Haptic feedback for mobile (if supported)
-        if (navigator.vibrate) {
-            navigator.vibrate(10);
-        }
-    }
+// ============================================
+// GUIDE INTERACTIONS
+// ============================================
+
+function initGuideInteractions() {
+    const navContainer = document.getElementById('guideNav');
+    const navBtns = document.querySelectorAll('.guide-nav-btn');
+    const quickLinks = document.querySelectorAll('#guideQuickLinks .quick-link');
+    
+    // Nav button clicks
+    navBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sectionId = this.getAttribute('data-section');
+            if (sectionId) {
+                scrollToGuideSection(sectionId);
+            }
+        });
+    });
+    
+    // Quick links clicks
+    quickLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            const page = this.getAttribute('data-page');
+            if (page) {
+                navigateToPage(page);
+            }
+        });
+    });
 }
 
-// Scroll to guide section - improved for mobile
+// ============================================
+// TOGGLE SECTION
+// ============================================
+
+function toggleGuideSection(header) {
+    if (!header) return;
+    
+    const section = header.parentElement;
+    if (!section) return;
+    
+    if (navigator.vibrate) {
+        navigator.vibrate(10);
+    }
+    
+    section.classList.toggle('open');
+}
+
+// ============================================
+// SCROLL TO SECTION
+// ============================================
+
 function scrollToGuideSection(sectionId) {
     const section = document.getElementById('guide-' + sectionId);
-    if (section) {
-        // Close all sections first
-        document.querySelectorAll('.guide-section').forEach(s => {
-            if (s !== section) {
-                s.classList.remove('open');
-            }
-        });
-        
-        // Open target section
-        section.classList.add('open');
-        
-        // Scroll with offset for fixed header
-        setTimeout(() => {
-            const headerOffset = 70; // Adjust based on your header height
-            const elementPosition = section.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-            
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: 'smooth'
-            });
-        }, 150);
-        
-        // Update nav buttons
-        document.querySelectorAll('.guide-nav-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.getAttribute('onclick')?.includes(sectionId)) {
-                btn.classList.add('active');
-            }
-        });
+    const navContainer = document.getElementById('guideNav');
+    
+    if (!section) return;
+    
+    if (navigator.vibrate) {
+        navigator.vibrate(10);
     }
+    
+    // Close all sections first
+    document.querySelectorAll('.guide-section').forEach(s => {
+        if (s !== section) {
+            s.classList.remove('open');
+        }
+    });
+    
+    // Open target section
+    section.classList.add('open');
+    
+    // Update nav buttons
+    document.querySelectorAll('.guide-nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-section') === sectionId) {
+            btn.classList.add('active');
+            
+            // Scroll nav to show active button (horizontal only)
+            if (navContainer) {
+                const scrollLeft = btn.offsetLeft - (navContainer.offsetWidth / 2) + (btn.offsetWidth / 2);
+                navContainer.scrollTo({
+                    left: Math.max(0, scrollLeft),
+                    behavior: 'smooth'
+                });
+            }
+        }
+    });
+    
+    // Scroll to section with offset
+    setTimeout(() => {
+        const headerOffset = 60;
+        const elementPosition = section.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        
+        window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+        });
+    }, 150);
+}
+
+// ============================================
+// NAVIGATION HELPER
+// ============================================
+
+function navigateToPage(pageName) {
+    if (navigator.vibrate) {
+        navigator.vibrate(10);
+    }
+    
+    if (typeof loadPage === 'function') {
+        loadPage(pageName);
+        return;
+    }
+    
+    if (typeof renderPage === 'function') {
+        renderPage(pageName);
+        return;
+    }
+    
+    if (typeof navigateTo === 'function') {
+        navigateTo(pageName);
+        return;
+    }
+    
+    if (typeof showPage === 'function') {
+        showPage(pageName);
+        return;
+    }
+    
+    if (window.APP && typeof window.APP.loadPage === 'function') {
+        window.APP.loadPage(pageName);
+        return;
+    }
+    
+    if (window.app && typeof window.app.navigate === 'function') {
+        window.app.navigate(pageName);
+        return;
+    }
+    
+    window.location.hash = pageName;
+    console.log('Navigation attempted to:', pageName);
 }
 // ==================== showChatRules ====================
 function showChatRules() {
