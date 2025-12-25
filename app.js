@@ -7359,4 +7359,4 @@ window.dismissVotingPopup = dismissVotingPopup;
 window.checkVotingAnnouncement = checkVotingAnnouncement;
 window.showVotingPopup = showVotingPopup;
 
-console.log('🎮 BTS Spy Battle v5.0 Loaded with Voting System 🗳️💜');;
+console.log('🎮 BTS Spy Battle v5.0 Loaded with Voting System 🗳️💜');
