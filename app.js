@@ -7958,9 +7958,7 @@ async function renderHelperRoles() {
         $('roles-list').innerHTML = '<p style="color:red;">Failed to load roles</p>'; 
     }
 }
-// ============================================
 // GUIDE PAGE - SCOPED STYLES, NO INTERFERENCE
-// ============================================
 
 async function renderGuidePage() {
     const getEl = (id) => document.getElementById(id);
@@ -8000,13 +7998,9 @@ async function renderGuidePage() {
     // ✅ FIXED: Don't use inline styles - let CSS handle visibility
     document.querySelectorAll('.page').forEach(p => {
         p.classList.remove('active');
-        p.style.display = '';  // ✅ Clear inline styles
+        p.style.display = '';  // Clear any inline styles
     });
     
-    page.classList.add('active');
-    });
-    
-    page.style.display = 'block';
     page.classList.add('active');
     
     const myTeam = (typeof STATE !== 'undefined' && STATE?.data?.profile?.team) 
