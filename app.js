@@ -9209,7 +9209,7 @@ async function renderHelperRoles() {
     }
 }
 // ============================================
-// GUIDE PAGE - FIXED QUICK LINKS
+// GUIDE PAGE - SCOPED STYLES, NO INTERFERENCE
 // ============================================
 
 async function renderGuidePage() {
@@ -9283,55 +9283,38 @@ async function renderGuidePage() {
 
     container.innerHTML = `
         <style>
-            /* ===== FORCE NO HORIZONTAL SCROLL ===== */
-            html, body {
-                overflow-x: hidden !important;
-            }
-            
-            #page-guide,
-            #page-guide *,
-            #guide-content,
-            #guide-content * {
-                box-sizing: border-box !important;
-                -webkit-tap-highlight-color: transparent;
-                max-width: 100% !important;
-            }
-            
-            #page-guide {
-                display: block !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                min-height: 100vh;
-                overflow-x: hidden !important;
-                overflow-y: auto;
-                background: linear-gradient(180deg, #0a0a15 0%, #0f0f1f 100%);
-                margin: 0 !important;
-                padding: 0 !important;
-            }
+            /* ===== ALL STYLES SCOPED TO #guide-content ===== */
             
             #guide-content {
-                width: 100% !important;
-                max-width: 100% !important;
+                width: 100%;
                 min-height: 100vh;
-                overflow-x: hidden !important;
-                margin: 0 !important;
-                padding: 0 !important;
+                overflow-x: hidden;
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
             }
             
-            .guide-page { 
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-                padding: 10px !important;
-                padding-bottom: 120px !important;
+            #guide-content .guide-page {
+                width: 100%;
+                margin: 0;
+                padding: 12px;
+                padding-bottom: 100px;
                 min-height: 100vh;
-                overflow-x: hidden !important;
+                overflow-x: hidden;
+                box-sizing: border-box;
+            }
+            
+            #guide-content .guide-page * {
+                box-sizing: border-box;
+                max-width: 100%;
+                -webkit-tap-highlight-color: transparent;
             }
             
             /* ===== HEADER ===== */
-            .guide-header {
+            #guide-content .guide-header {
+                width: 100%;
                 text-align: left;
-                padding: 20px 15px;
+                padding: 18px 14px;
                 background: linear-gradient(135deg, #7b2cbf, #5a1f99);
                 border-radius: 12px;
                 margin-bottom: 10px;
@@ -9339,7 +9322,7 @@ async function renderGuidePage() {
                 overflow: hidden;
             }
             
-            .guide-header::before {
+            #guide-content .guide-header::before {
                 content: '';
                 position: absolute;
                 top: -50%;
@@ -9355,26 +9338,27 @@ async function renderGuidePage() {
                 50% { transform: translate(10%, 10%); }
             }
             
-            .guide-header h1 { 
-                color: #fff; 
-                font-size: 18px; 
-                margin: 0 0 5px 0; 
+            #guide-content .guide-header h1 {
+                color: #fff;
+                font-size: 17px;
+                margin: 0 0 4px 0;
                 position: relative;
                 line-height: 1.3;
                 word-wrap: break-word;
             }
             
-            .guide-header p { 
-                color: rgba(255,255,255,0.8); 
-                font-size: 12px; 
-                margin: 0; 
+            #guide-content .guide-header p {
+                color: rgba(255,255,255,0.8);
+                font-size: 11px;
+                margin: 0;
                 position: relative;
                 line-height: 1.4;
                 word-wrap: break-word;
             }
             
             /* ===== NAVIGATION ===== */
-            .guide-nav {
+            #guide-content .guide-nav {
+                width: 100%;
                 display: flex;
                 gap: 6px;
                 margin-bottom: 10px;
@@ -9389,16 +9373,16 @@ async function renderGuidePage() {
                 -ms-overflow-style: none;
             }
             
-            .guide-nav::-webkit-scrollbar {
+            #guide-content .guide-nav::-webkit-scrollbar {
                 display: none;
             }
             
-            .guide-nav-btn {
+            #guide-content .guide-nav-btn {
                 flex: 0 0 auto;
-                padding: 6px 12px;
+                padding: 6px 11px;
                 background: rgba(255,255,255,0.05);
                 border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 18px;
+                border-radius: 16px;
                 color: #aaa;
                 font-size: 10px;
                 font-weight: 500;
@@ -9408,23 +9392,25 @@ async function renderGuidePage() {
                 touch-action: manipulation;
             }
             
-            .guide-nav-btn:active,
-            .guide-nav-btn.active {
+            #guide-content .guide-nav-btn:active,
+            #guide-content .guide-nav-btn.active {
                 background: linear-gradient(135deg, #7b2cbf, #5a1f99);
                 color: #fff;
                 border-color: #7b2cbf;
             }
             
             /* ===== SECTIONS ===== */
-            .guide-section {
+            #guide-content .guide-section {
+                width: 100%;
                 background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
-                border-radius: 12px;
+                border-radius: 10px;
                 border: 1px solid rgba(123,44,191,0.2);
-                margin-bottom: 10px;
+                margin-bottom: 8px;
                 overflow: hidden;
             }
             
-            .guide-section-header {
+            #guide-content .guide-section-header {
+                width: 100%;
                 display: flex;
                 align-items: center;
                 gap: 10px;
@@ -9436,140 +9422,146 @@ async function renderGuidePage() {
                 touch-action: manipulation;
             }
             
-            .guide-section-header:active { 
-                background: rgba(123,44,191,0.25); 
+            #guide-content .guide-section-header:active {
+                background: rgba(123,44,191,0.25);
             }
             
-            .guide-section-icon { 
-                font-size: 18px;
+            #guide-content .guide-section-icon {
+                font-size: 16px;
                 flex-shrink: 0;
             }
             
-            .guide-section-title { 
-                flex: 1; 
-                color: #fff; 
-                font-size: 13px; 
+            #guide-content .guide-section-title {
+                flex: 1;
+                color: #fff;
+                font-size: 12px;
                 font-weight: 600;
                 line-height: 1.3;
                 word-wrap: break-word;
             }
             
-            .guide-section-toggle { 
-                color: #7b2cbf; 
-                font-size: 14px; 
+            #guide-content .guide-section-toggle {
+                color: #7b2cbf;
+                font-size: 12px;
                 transition: transform 0.3s ease;
                 flex-shrink: 0;
             }
             
-            .guide-section.open .guide-section-toggle { 
-                transform: rotate(180deg); 
+            #guide-content .guide-section.open .guide-section-toggle {
+                transform: rotate(180deg);
             }
             
-            .guide-section-content {
-                padding: 0 12px;
+            #guide-content .guide-section-content {
+                width: 100%;
+                padding: 0;
                 max-height: 0;
                 overflow: hidden;
-                transition: all 0.4s ease;
+                transition: all 0.35s ease;
             }
             
-            .guide-section.open .guide-section-content {
+            #guide-content .guide-section.open .guide-section-content {
                 padding: 12px;
-                max-height: 8000px;
+                max-height: 5000px;
             }
             
-            /* ===== TEXT STYLES ===== */
-            .guide-text { 
-                color: #ccc; 
-                font-size: 12px; 
-                line-height: 1.6; 
+            /* ===== TEXT ===== */
+            #guide-content .guide-text {
+                color: #ccc;
+                font-size: 11px;
+                line-height: 1.6;
                 margin-bottom: 10px;
                 word-wrap: break-word;
-                overflow-wrap: break-word;
             }
             
-            .guide-text:last-child { margin-bottom: 0; }
+            #guide-content .guide-text:last-child {
+                margin-bottom: 0;
+            }
             
-            /* ===== HIGHLIGHT BOXES ===== */
-            .guide-highlight {
+            /* ===== BOXES ===== */
+            #guide-content .guide-highlight,
+            #guide-content .guide-warning,
+            #guide-content .guide-success {
+                width: 100%;
+                padding: 10px;
+                border-radius: 0 8px 8px 0;
+                margin: 10px 0;
+            }
+            
+            #guide-content .guide-highlight {
                 background: rgba(255,215,0,0.08);
                 border-left: 3px solid #ffd700;
-                padding: 10px;
-                border-radius: 0 8px 8px 0;
-                margin: 10px 0;
             }
             
-            .guide-highlight-title {
+            #guide-content .guide-highlight-title {
                 color: #ffd700;
                 font-weight: 600;
-                font-size: 11px;
-                margin-bottom: 6px;
+                font-size: 10px;
+                margin-bottom: 5px;
             }
             
-            .guide-highlight-content {
+            #guide-content .guide-highlight-content {
                 color: #fff;
-                font-size: 11px;
+                font-size: 10px;
                 line-height: 1.7;
                 word-wrap: break-word;
             }
             
-            .guide-warning {
+            #guide-content .guide-warning {
                 background: rgba(255,68,68,0.08);
                 border-left: 3px solid #ff4444;
-                padding: 10px;
-                border-radius: 0 8px 8px 0;
-                margin: 10px 0;
             }
             
-            .guide-warning-title {
+            #guide-content .guide-warning-title {
                 color: #ff6b6b;
                 font-weight: 600;
-                font-size: 11px;
-                margin-bottom: 6px;
+                font-size: 10px;
+                margin-bottom: 5px;
             }
             
-            .guide-warning-content {
+            #guide-content .guide-warning-content {
                 color: #fff;
-                font-size: 11px;
+                font-size: 10px;
                 line-height: 1.7;
                 word-wrap: break-word;
             }
             
-            .guide-success {
+            #guide-content .guide-success {
                 background: rgba(0,255,136,0.08);
                 border-left: 3px solid #00ff88;
-                padding: 10px;
-                border-radius: 0 8px 8px 0;
-                margin: 10px 0;
             }
             
-            .guide-success-title {
+            #guide-content .guide-success-title {
                 color: #00ff88;
                 font-weight: 600;
-                font-size: 11px;
-                margin-bottom: 6px;
+                font-size: 10px;
+                margin-bottom: 5px;
             }
             
-            .guide-success-content {
+            #guide-content .guide-success-content {
                 color: #fff;
-                font-size: 11px;
+                font-size: 10px;
                 line-height: 1.7;
                 word-wrap: break-word;
             }
             
             /* ===== LISTS ===== */
-            .guide-list {
+            #guide-content .guide-list,
+            #guide-content .guide-numbered-list {
+                width: 100%;
                 list-style: none;
                 padding: 0;
                 margin: 10px 0;
             }
             
-            .guide-list li {
+            #guide-content .guide-list li,
+            #guide-content .guide-numbered-list li {
+                width: 100%;
                 color: #ccc;
-                font-size: 11px;
-                padding: 8px 10px;
+                font-size: 10px;
+                padding: 8px;
                 background: rgba(255,255,255,0.03);
                 border-radius: 6px;
-                margin-bottom: 5px;
+                margin-bottom: 4px;
                 display: flex;
                 align-items: flex-start;
                 gap: 8px;
@@ -9577,154 +9569,149 @@ async function renderGuidePage() {
                 word-wrap: break-word;
             }
             
-            .guide-list li::before {
+            #guide-content .guide-list li::before {
                 content: '→';
                 color: #7b2cbf;
                 font-weight: bold;
                 flex-shrink: 0;
             }
             
-            .guide-numbered-list {
+            #guide-content .guide-numbered-list {
                 counter-reset: guide-counter;
-                list-style: none;
-                padding: 0;
-                margin: 10px 0;
             }
             
-            .guide-numbered-list li {
+            #guide-content .guide-numbered-list li {
                 counter-increment: guide-counter;
-                color: #ccc;
-                font-size: 11px;
-                padding: 8px 10px;
-                background: rgba(255,255,255,0.03);
-                border-radius: 6px;
-                margin-bottom: 5px;
-                display: flex;
-                align-items: flex-start;
-                gap: 8px;
-                line-height: 1.5;
-                word-wrap: break-word;
             }
             
-            .guide-numbered-list li::before {
+            #guide-content .guide-numbered-list li::before {
                 content: counter(guide-counter);
                 background: linear-gradient(135deg, #7b2cbf, #5a1f99);
                 color: #fff;
-                width: 18px;
-                height: 18px;
-                min-width: 18px;
+                width: 16px;
+                height: 16px;
+                min-width: 16px;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 9px;
+                font-size: 8px;
                 font-weight: bold;
                 flex-shrink: 0;
             }
             
-            /* ===== TEAMS GRID ===== */
-            .guide-teams-grid {
+            /* ===== TEAMS ===== */
+            #guide-content .guide-teams-grid {
+                width: 100%;
                 display: grid;
                 grid-template-columns: 1fr 1fr;
                 gap: 6px;
                 margin: 10px 0;
             }
             
-            .guide-team-card {
-                padding: 10px 8px;
+            #guide-content .guide-team-card {
+                width: 100%;
+                padding: 8px;
                 border-radius: 8px;
                 text-align: left;
                 border: 2px solid;
             }
             
-            .guide-team-card.indigo { 
-                background: rgba(75,0,130,0.15); 
-                border-color: rgba(75,0,130,0.4); 
-            }
-            .guide-team-card.echo { 
-                background: rgba(0,191,255,0.15); 
-                border-color: rgba(0,191,255,0.4); 
-            }
-            .guide-team-card.agustd { 
-                background: rgba(220,20,60,0.15); 
-                border-color: rgba(220,20,60,0.4); 
-            }
-            .guide-team-card.jitb { 
-                background: rgba(50,205,50,0.15); 
-                border-color: rgba(50,205,50,0.4); 
+            #guide-content .guide-team-card.indigo {
+                background: rgba(75,0,130,0.15);
+                border-color: rgba(75,0,130,0.4);
             }
             
-            .guide-team-name { 
-                color: #fff; 
-                font-weight: bold; 
-                font-size: 10px;
+            #guide-content .guide-team-card.echo {
+                background: rgba(0,191,255,0.15);
+                border-color: rgba(0,191,255,0.4);
+            }
+            
+            #guide-content .guide-team-card.agustd {
+                background: rgba(220,20,60,0.15);
+                border-color: rgba(220,20,60,0.4);
+            }
+            
+            #guide-content .guide-team-card.jitb {
+                background: rgba(50,205,50,0.15);
+                border-color: rgba(50,205,50,0.4);
+            }
+            
+            #guide-content .guide-team-name {
+                color: #fff;
+                font-weight: bold;
+                font-size: 9px;
                 line-height: 1.3;
             }
             
-            .guide-team-album { 
-                color: #aaa; 
-                font-size: 9px; 
-                margin-top: 2px; 
+            #guide-content .guide-team-album {
+                color: #aaa;
+                font-size: 8px;
+                margin-top: 2px;
             }
             
             /* ===== GC GRID ===== */
-            .guide-gc-grid { 
-                display: grid; 
-                gap: 6px; 
-                margin: 10px 0; 
+            #guide-content .guide-gc-grid {
+                width: 100%;
+                display: grid;
+                gap: 5px;
+                margin: 10px 0;
             }
             
-            .guide-gc-item {
+            #guide-content .guide-gc-item {
+                width: 100%;
                 display: flex;
                 align-items: center;
-                gap: 10px;
-                padding: 8px 10px;
+                gap: 8px;
+                padding: 8px;
                 background: rgba(255,255,255,0.03);
-                border-radius: 8px;
+                border-radius: 6px;
             }
             
-            .guide-gc-icon { 
-                font-size: 16px;
+            #guide-content .guide-gc-icon {
+                font-size: 14px;
                 flex-shrink: 0;
             }
             
-            .guide-gc-info { 
-                flex: 1; 
+            #guide-content .guide-gc-info {
+                flex: 1;
                 min-width: 0;
             }
             
-            .guide-gc-name { 
-                color: #fff; 
-                font-weight: 600; 
-                font-size: 11px; 
+            #guide-content .guide-gc-name {
+                color: #fff;
+                font-weight: 600;
+                font-size: 10px;
             }
             
-            .guide-gc-desc { 
-                color: #888; 
-                font-size: 9px; 
-                margin-top: 1px; 
+            #guide-content .guide-gc-desc {
+                color: #888;
+                font-size: 8px;
+                margin-top: 1px;
             }
             
             /* ===== STEPS ===== */
-            .guide-steps { 
-                margin: 10px 0; 
+            #guide-content .guide-steps {
+                width: 100%;
+                margin: 10px 0;
             }
             
-            .guide-step {
+            #guide-content .guide-step {
+                width: 100%;
                 display: flex;
-                gap: 10px;
-                padding: 10px 0;
+                gap: 8px;
+                padding: 8px 0;
                 border-bottom: 1px solid rgba(255,255,255,0.05);
             }
             
-            .guide-step:last-child { 
-                border-bottom: none; 
+            #guide-content .guide-step:last-child {
+                border-bottom: none;
             }
             
-            .guide-step-num {
-                width: 24px;
-                height: 24px;
-                min-width: 24px;
+            #guide-content .guide-step-num {
+                width: 20px;
+                height: 20px;
+                min-width: 20px;
                 background: linear-gradient(135deg, #7b2cbf, #5a1f99);
                 border-radius: 50%;
                 display: flex;
@@ -9732,148 +9719,154 @@ async function renderGuidePage() {
                 justify-content: center;
                 color: #fff;
                 font-weight: bold;
-                font-size: 10px;
+                font-size: 9px;
                 flex-shrink: 0;
             }
             
-            .guide-step-content { 
-                flex: 1; 
+            #guide-content .guide-step-content {
+                flex: 1;
                 min-width: 0;
             }
             
-            .guide-step-title { 
-                color: #fff; 
-                font-weight: 600; 
-                font-size: 11px; 
-                margin-bottom: 2px; 
+            #guide-content .guide-step-title {
+                color: #fff;
+                font-weight: 600;
+                font-size: 10px;
+                margin-bottom: 2px;
             }
             
-            .guide-step-desc { 
-                color: #888; 
-                font-size: 10px; 
+            #guide-content .guide-step-desc {
+                color: #888;
+                font-size: 9px;
                 line-height: 1.4;
                 word-wrap: break-word;
             }
             
             /* ===== CROSS CHECK ===== */
-            .guide-cross-check { 
-                margin: 10px 0; 
+            #guide-content .guide-cross-check {
+                width: 100%;
+                margin: 10px 0;
             }
             
-            .guide-cross-check-item {
+            #guide-content .guide-cross-check-item {
+                width: 100%;
                 display: flex;
                 align-items: center;
-                padding: 8px 10px;
+                padding: 6px 8px;
                 background: rgba(255,255,255,0.03);
                 border-radius: 6px;
-                margin-bottom: 5px;
-                gap: 8px;
+                margin-bottom: 4px;
+                gap: 6px;
             }
             
-            .guide-cross-check-from, 
-            .guide-cross-check-to { 
-                color: #fff; 
-                font-size: 10px; 
-                font-weight: 600; 
+            #guide-content .guide-cross-check-from,
+            #guide-content .guide-cross-check-to {
+                color: #fff;
+                font-size: 9px;
+                font-weight: 600;
             }
             
-            .guide-cross-check-arrow { 
-                color: #7b2cbf; 
-                font-size: 12px; 
+            #guide-content .guide-cross-check-arrow {
+                color: #7b2cbf;
+                font-size: 10px;
             }
             
-            /* ===== WATERMARK EXAMPLE ===== */
-            .watermark-example {
+            /* ===== WATERMARK ===== */
+            #guide-content .watermark-example {
+                width: 100%;
                 background: rgba(0,0,0,0.3);
-                border-radius: 10px;
-                padding: 12px;
+                border-radius: 8px;
+                padding: 10px;
                 margin: 10px 0;
                 border: 2px dashed rgba(123,44,191,0.3);
             }
             
-            .watermark-preview {
-                background: linear-gradient(145deg, #222, #1a1a1a);
-                border-radius: 8px;
-                padding: 20px 10px;
-                margin-bottom: 8px;
+            #guide-content .watermark-preview {
+                width: 100%;
+                background: #1a1a1a;
+                border-radius: 6px;
+                padding: 16px 8px;
+                margin-bottom: 6px;
                 position: relative;
             }
             
-            .watermark-text {
+            #guide-content .watermark-text {
                 position: absolute;
-                top: 5px;
-                right: 5px;
+                top: 4px;
+                right: 4px;
                 background: rgba(0,0,0,0.7);
                 color: #fff;
-                padding: 2px 6px;
+                padding: 2px 5px;
                 border-radius: 3px;
-                font-size: 8px;
+                font-size: 7px;
                 font-weight: bold;
             }
             
-            .watermark-preview-label { 
-                color: #666; 
-                font-size: 9px; 
+            #guide-content .watermark-preview-label {
+                color: #666;
+                font-size: 8px;
             }
             
-            .watermark-instructions { 
-                color: #aaa; 
-                font-size: 9px; 
+            #guide-content .watermark-instructions {
+                color: #aaa;
+                font-size: 8px;
                 line-height: 1.5;
-                word-wrap: break-word;
             }
             
-            /* ===== DEADLINE BOX ===== */
-            .guide-deadline-box {
+            /* ===== DEADLINE ===== */
+            #guide-content .guide-deadline-box {
+                width: 100%;
                 margin-top: 10px;
-                padding: 10px;
+                padding: 8px;
                 background: rgba(255,165,0,0.1);
                 border: 1px solid rgba(255,165,0,0.3);
-                border-radius: 8px;
+                border-radius: 6px;
             }
             
-            .guide-deadline-title {
+            #guide-content .guide-deadline-title {
                 color: #ffa500;
-                font-size: 10px;
-                font-weight: 600;
-                margin-bottom: 3px;
-            }
-            
-            .guide-deadline-desc {
-                color: #888;
                 font-size: 9px;
-                word-wrap: break-word;
-            }
-            
-            /* ===== FINAL SECTION ===== */
-            .guide-final-content {
-                text-align: left;
-                padding: 8px 0;
-            }
-            
-            .guide-final-emoji {
-                font-size: 32px;
-                margin-bottom: 8px;
-            }
-            
-            /* ===== SECTION TITLES ===== */
-            .guide-section-subtitle {
-                color: #fff;
-                font-size: 12px;
                 font-weight: 600;
-                margin: 12px 0 8px 0;
+                margin-bottom: 2px;
             }
             
-            /* ===== QUICK LINKS - FIXED ===== */
-            .quick-links {
+            #guide-content .guide-deadline-desc {
+                color: #888;
+                font-size: 8px;
+            }
+            
+            /* ===== FINAL ===== */
+            #guide-content .guide-final-content {
+                width: 100%;
+                text-align: left;
+                padding: 6px 0;
+            }
+            
+            #guide-content .guide-final-emoji {
+                font-size: 28px;
+                margin-bottom: 6px;
+            }
+            
+            /* ===== SECTION SUBTITLE ===== */
+            #guide-content .guide-section-subtitle {
+                color: #fff;
+                font-size: 11px;
+                font-weight: 600;
+                margin: 10px 0 6px 0;
+            }
+            
+            /* ===== QUICK LINKS ===== */
+            #guide-content .guide-quick-links {
+                width: 100%;
                 display: grid;
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: 1fr 1fr;
                 gap: 8px;
-                margin-top: 15px;
+                margin-top: 12px;
             }
             
-            .quick-link {
-                padding: 12px 8px;
+            #guide-content .guide-quick-link {
+                width: 100%;
+                padding: 12px 6px;
                 background: linear-gradient(145deg, rgba(123,44,191,0.15), rgba(123,44,191,0.08));
                 border-radius: 10px;
                 border: 1px solid rgba(123,44,191,0.3);
@@ -9885,55 +9878,22 @@ async function renderGuidePage() {
                 user-select: none;
             }
             
-            .quick-link:hover {
-                background: linear-gradient(145deg, rgba(123,44,191,0.25), rgba(123,44,191,0.15));
-            }
-            
-            .quick-link:active {
+            #guide-content .guide-quick-link:active {
                 transform: scale(0.95);
-                background: linear-gradient(145deg, rgba(123,44,191,0.35), rgba(123,44,191,0.25));
+                background: rgba(123,44,191,0.3);
             }
             
-            .quick-link-icon { 
-                font-size: 18px; 
+            #guide-content .guide-quick-link-icon {
+                font-size: 18px;
                 margin-bottom: 4px;
                 display: block;
             }
             
-            .quick-link-text { 
-                color: #fff; 
-                font-size: 10px; 
+            #guide-content .guide-quick-link-text {
+                color: #fff;
+                font-size: 10px;
                 font-weight: 600;
                 display: block;
-            }
-            
-            /* ===== RESPONSIVE ===== */
-            @media (max-width: 320px) {
-                .guide-page {
-                    padding: 8px !important;
-                }
-                
-                .guide-header {
-                    padding: 15px 12px;
-                }
-                
-                .guide-header h1 {
-                    font-size: 16px;
-                }
-                
-                .guide-teams-grid {
-                    grid-template-columns: 1fr;
-                }
-                
-                .quick-links {
-                    grid-template-columns: 1fr 1fr;
-                }
-            }
-            
-            @supports (padding-bottom: env(safe-area-inset-bottom)) {
-                .guide-page {
-                    padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
-                }
             }
         </style>
         
@@ -9952,7 +9912,7 @@ async function renderGuidePage() {
                 <button class="guide-nav-btn" data-section="attendance">Attendance</button>
             </div>
             
-            <!-- Section 1: What Is This Mission -->
+            <!-- Section 1 -->
             <div class="guide-section open" id="guide-what-is">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">🎯</span>
@@ -9988,7 +9948,7 @@ async function renderGuidePage() {
                 </div>
             </div>
             
-            <!-- Section 2: Teams -->
+            <!-- Section 2 -->
             <div class="guide-section" id="guide-teams">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">👥</span>
@@ -10027,7 +9987,7 @@ async function renderGuidePage() {
                 </div>
             </div>
             
-            <!-- Section 3: Goals & XP -->
+            <!-- Section 3 -->
             <div class="guide-section" id="guide-goals">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">⭐</span>
@@ -10061,7 +10021,7 @@ async function renderGuidePage() {
                 </div>
             </div>
             
-            <!-- Section 4: How to Win -->
+            <!-- Section 4 -->
             <div class="guide-section" id="guide-winning">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">🏆</span>
@@ -10101,7 +10061,7 @@ async function renderGuidePage() {
                 </div>
             </div>
             
-            <!-- Section 5: Rules -->
+            <!-- Section 5 -->
             <div class="guide-section" id="guide-rules">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">📜</span>
@@ -10163,7 +10123,7 @@ async function renderGuidePage() {
                 </div>
             </div>
             
-            <!-- Section 6: Attendance -->
+            <!-- Section 6 -->
             <div class="guide-section" id="guide-attendance">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">📸</span>
@@ -10281,7 +10241,7 @@ async function renderGuidePage() {
                 </div>
             </div>
             
-            <!-- Section 7: Final -->
+            <!-- Section 7 -->
             <div class="guide-section" id="guide-final">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
                     <span class="guide-section-icon">💜</span>
@@ -10291,7 +10251,7 @@ async function renderGuidePage() {
                 <div class="guide-section-content">
                     <div class="guide-final-content">
                         <div class="guide-final-emoji">💜</div>
-                        <p class="guide-text" style="font-size:13px;color:#fff;">
+                        <p class="guide-text" style="font-size:12px;color:#fff;">
                             <strong>Read everything patiently.</strong><br>
                             Don't stress about all these instructions!
                         </p>
@@ -10305,29 +10265,29 @@ async function renderGuidePage() {
                 </div>
             </div>
             
-            <!-- Quick Links - USING ONCLICK DIRECTLY -->
-            <div class="quick-links">
-                <div class="quick-link" onclick="handleQuickLink('home')">
-                    <span class="quick-link-icon">🏠</span>
-                    <span class="quick-link-text">Dashboard</span>
+            <!-- Quick Links -->
+            <div class="guide-quick-links">
+                <div class="guide-quick-link" onclick="handleGuideQuickLink('home')">
+                    <span class="guide-quick-link-icon">🏠</span>
+                    <span class="guide-quick-link-text">Dashboard</span>
                 </div>
-                <div class="quick-link" onclick="handleQuickLink('goals')">
-                    <span class="quick-link-icon">🎯</span>
-                    <span class="quick-link-text">Goals</span>
+                <div class="guide-quick-link" onclick="handleGuideQuickLink('goals')">
+                    <span class="guide-quick-link-icon">🎯</span>
+                    <span class="guide-quick-link-text">Goals</span>
                 </div>
-                <div class="quick-link" onclick="handleQuickLink('playlists')">
-                    <span class="quick-link-icon">🎵</span>
-                    <span class="quick-link-text">Playlists</span>
+                <div class="guide-quick-link" onclick="handleGuideQuickLink('playlists')">
+                    <span class="guide-quick-link-icon">🎵</span>
+                    <span class="guide-quick-link-text">Playlists</span>
                 </div>
-                <div class="quick-link" onclick="handleQuickLink('gc-links')">
-                    <span class="quick-link-icon">👥</span>
-                    <span class="quick-link-text">GC Links</span>
+                <div class="guide-quick-link" onclick="handleGuideQuickLink('gc-links')">
+                    <span class="guide-quick-link-icon">👥</span>
+                    <span class="guide-quick-link-text">GC Links</span>
                 </div>
             </div>
         </div>
     `;
     
-    // Initialize nav buttons
+    // Initialize nav
     initGuideNav();
     
     // Scroll to top
@@ -10337,186 +10297,79 @@ async function renderGuidePage() {
 }
 
 // ============================================
-// QUICK LINK HANDLER - GLOBAL FUNCTION
+// HELPER FUNCTIONS - UNIQUE NAMES
 // ============================================
 
-function handleQuickLink(pageName) {
-    console.log('Quick link clicked:', pageName);
+function handleGuideQuickLink(pageName) {
+    console.log('Guide quick link clicked:', pageName);
     
-    // Haptic feedback
-    if (navigator.vibrate) {
-        navigator.vibrate(10);
-    }
+    if (navigator.vibrate) navigator.vibrate(10);
     
-    // Try all possible navigation methods
-    if (typeof loadPage === 'function') {
-        console.log('Using loadPage()');
-        loadPage(pageName);
-        return;
-    }
+    // Try all navigation methods
+    if (typeof loadPage === 'function') { loadPage(pageName); return; }
+    if (typeof renderPage === 'function') { renderPage(pageName); return; }
+    if (typeof navigateTo === 'function') { navigateTo(pageName); return; }
+    if (typeof showPage === 'function') { showPage(pageName); return; }
+    if (typeof switchPage === 'function') { switchPage(pageName); return; }
+    if (window.APP?.loadPage) { window.APP.loadPage(pageName); return; }
+    if (window.app?.navigate) { window.app.navigate(pageName); return; }
     
-    if (typeof renderPage === 'function') {
-        console.log('Using renderPage()');
-        renderPage(pageName);
-        return;
-    }
+    // Try clicking existing nav
+    const btn = document.querySelector(`[data-page="${pageName}"]`);
+    if (btn) { btn.click(); return; }
     
-    if (typeof navigateTo === 'function') {
-        console.log('Using navigateTo()');
-        navigateTo(pageName);
-        return;
-    }
-    
-    if (typeof showPage === 'function') {
-        console.log('Using showPage()');
-        showPage(pageName);
-        return;
-    }
-    
-    if (typeof switchPage === 'function') {
-        console.log('Using switchPage()');
-        switchPage(pageName);
-        return;
-    }
-    
-    // Try global APP object
-    if (window.APP) {
-        if (typeof window.APP.loadPage === 'function') {
-            console.log('Using APP.loadPage()');
-            window.APP.loadPage(pageName);
-            return;
-        }
-        if (typeof window.APP.navigate === 'function') {
-            console.log('Using APP.navigate()');
-            window.APP.navigate(pageName);
-            return;
-        }
-    }
-    
-    // Try global app object
-    if (window.app) {
-        if (typeof window.app.loadPage === 'function') {
-            console.log('Using app.loadPage()');
-            window.app.loadPage(pageName);
-            return;
-        }
-        if (typeof window.app.navigate === 'function') {
-            console.log('Using app.navigate()');
-            window.app.navigate(pageName);
-            return;
-        }
-    }
-    
-    // Try clicking nav buttons
-    const navSelectors = [
-        `[data-page="${pageName}"]`,
-        `[data-target="${pageName}"]`,
-        `.nav-btn[data-page="${pageName}"]`,
-        `.nav-item[data-page="${pageName}"]`,
-        `button[data-page="${pageName}"]`,
-        `a[href="#${pageName}"]`,
-        `a[href="/${pageName}"]`
-    ];
-    
-    for (const selector of navSelectors) {
-        const btn = document.querySelector(selector);
-        if (btn) {
-            console.log('Clicking nav button:', selector);
-            btn.click();
-            return;
-        }
-    }
-    
-    // Fallback to hash
-    console.log('Using hash navigation');
     window.location.hash = pageName;
 }
 
-// ============================================
-// INIT GUIDE NAV
-// ============================================
-
 function initGuideNav() {
-    const navBtns = document.querySelectorAll('.guide-nav-btn');
-    
+    const navBtns = document.querySelectorAll('#guide-content .guide-nav-btn');
     navBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const sectionId = this.getAttribute('data-section');
-            if (sectionId) {
-                scrollToGuideSection(sectionId);
-            }
+            if (sectionId) scrollToGuideSection(sectionId);
         });
     });
 }
 
-// ============================================
-// TOGGLE SECTION
-// ============================================
-
 function toggleGuideSection(header) {
     if (!header) return;
-    
     const section = header.parentElement;
     if (!section) return;
-    
-    if (navigator.vibrate) {
-        navigator.vibrate(10);
-    }
-    
+    if (navigator.vibrate) navigator.vibrate(10);
     section.classList.toggle('open');
 }
-
-// ============================================
-// SCROLL TO SECTION
-// ============================================
 
 function scrollToGuideSection(sectionId) {
     const section = document.getElementById('guide-' + sectionId);
     const navContainer = document.getElementById('guideNav');
-    
     if (!section) return;
     
-    if (navigator.vibrate) {
-        navigator.vibrate(10);
-    }
+    if (navigator.vibrate) navigator.vibrate(10);
     
-    // Close all sections first
-    document.querySelectorAll('.guide-section').forEach(s => {
-        if (s !== section) {
-            s.classList.remove('open');
-        }
+    // Close other sections
+    document.querySelectorAll('#guide-content .guide-section').forEach(s => {
+        if (s !== section) s.classList.remove('open');
     });
     
-    // Open target section
     section.classList.add('open');
     
-    // Update nav buttons
-    document.querySelectorAll('.guide-nav-btn').forEach(btn => {
+    // Update nav
+    document.querySelectorAll('#guide-content .guide-nav-btn').forEach(btn => {
         btn.classList.remove('active');
         if (btn.getAttribute('data-section') === sectionId) {
             btn.classList.add('active');
-            
-            // Scroll nav to show active button (horizontal only)
             if (navContainer) {
                 const scrollLeft = btn.offsetLeft - (navContainer.offsetWidth / 2) + (btn.offsetWidth / 2);
-                navContainer.scrollTo({
-                    left: Math.max(0, scrollLeft),
-                    behavior: 'smooth'
-                });
+                navContainer.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
             }
         }
     });
     
-    // Scroll to section with offset
+    // Scroll to section
     setTimeout(() => {
-        const headerOffset = 60;
-        const elementPosition = section.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-        
-        window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-        });
+        const offset = 60;
+        const pos = section.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top: pos, behavior: 'smooth' });
     }, 150);
 }
 // ==================== showChatRules ====================
