@@ -8851,7 +8851,7 @@ async function renderGuidePage() {
                 </div>
                 <div class="guide-section-content">
                     <p class="guide-text">
-                        All teams have same track and album goals.Goals are <strong style="color:#ffd700;">team-based</strong>, not individual. Everyone's streams are added together!
+                        All teams have same track and album goals. Goals are <strong style="color:#ffd700;">team-based</strong>, not individual. Everyone's streams are added together!
                     </p>
                     
                     <div class="guide-highlight">
