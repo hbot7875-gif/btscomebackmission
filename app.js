@@ -4080,6 +4080,32 @@ function renderNewYearBanner() {
     const highest = Math.max(...NewYearCelebration.milestones.map(m => m.streams));
     const agentName = NewYearCelebration.getAgentName();
     
+    // ==================== CALCULATE PERSONAL CONTRIBUTION ====================
+    let myTotalXP = 0;
+    let myTotalStreams = 0;
+    let weeksParticipated = 0;
+    
+    // Calculate from all weeks data
+    if (STATE.allWeeksData && typeof STATE.allWeeksData === 'object') {
+        for (const [weekNum, weekData] of Object.entries(STATE.allWeeksData)) {
+            if (weekData?.stats) {
+                const stats = weekData.stats;
+                myTotalXP += stats.totalXP || 0;
+                myTotalStreams += (stats.trackScrobbles || 0) + (stats.albumScrobbles || 0);
+                if ((stats.totalXP || 0) > 0) weeksParticipated++;
+            }
+        }
+    } else if (STATE.data?.stats) {
+        // Fallback to current week if allWeeksData not available
+        const stats = STATE.data.stats;
+        myTotalXP = stats.totalXP || 0;
+        myTotalStreams = (stats.trackScrobbles || 0) + (stats.albumScrobbles || 0);
+        weeksParticipated = myTotalXP > 0 ? 1 : 0;
+    }
+    
+    // Calculate contribution percentage
+    const contributionPercent = total > 0 ? ((myTotalStreams / total) * 100).toFixed(2) : 0;
+    
     return `
         <div class="ny-celebration-banner" id="ny-celebration-banner">
             <button class="ny-close-btn" onclick="NewYearCelebration.closeBanner()">×</button>
@@ -4106,11 +4132,43 @@ function renderNewYearBanner() {
                 <div class="ny-header">
                     <span class="ny-year-badge">${NewYearCelebration.year}</span>
                     <h2 class="ny-title">Happy New Year, ${sanitize(agentName)}!</h2>
-                    <span class="confetti-message-bts">Thank you for being part of this journey. BTS would be proud of you!</span>
+                    <p class="ny-subtitle">The year BTS returns. The year we're ready.</p>
+                    <p class="ny-thankyou">Thank you for being part of this journey. BTS would be proud of you! 💜</p>
                 </div>
                 
+                <!-- Personal Contribution Section -->
+                <div class="ny-my-stats">
+                    <div class="ny-my-stats-header">
+                        <span class="ny-my-icon">🎖️</span>
+                        <span class="ny-my-label">Your Contribution</span>
+                    </div>
+                    <div class="ny-my-stats-grid">
+                        <div class="ny-my-stat">
+                            <div class="ny-my-value">${myTotalStreams.toLocaleString()}</div>
+                            <div class="ny-my-name">Streams</div>
+                        </div>
+                        <div class="ny-my-stat">
+                            <div class="ny-my-value">${myTotalXP.toLocaleString()}</div>
+                            <div class="ny-my-name">XP Earned</div>
+                        </div>
+                        <div class="ny-my-stat">
+                            <div class="ny-my-value">${weeksParticipated}</div>
+                            <div class="ny-my-name">Weeks Active</div>
+                        </div>
+                    </div>
+                    <div class="ny-my-contribution">
+                        <div class="ny-contribution-bar">
+                            <div class="ny-contribution-fill" style="width: ${Math.min(contributionPercent * 10, 100)}%"></div>
+                        </div>
+                        <div class="ny-contribution-text">
+                            You contributed <strong>${contributionPercent}%</strong> to our ${total.toLocaleString()}+ total streams! ✨
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Team Stats Section -->
                 <div class="ny-stats">
-                    <div class="ny-stats-label">Our Journey So Far</div>
+                    <div class="ny-stats-label">Our Team Journey</div>
                     <div class="ny-stats-grid">
                         ${NewYearCelebration.milestones.map(m => `
                             <div class="ny-stat-item ${m.streams === highest ? 'ny-highlight' : ''}">
@@ -4125,7 +4183,7 @@ function renderNewYearBanner() {
                         <span class="ny-total-agents">${NewYearCelebration.totalAgents}+ agents united</span>
                     </div>
                 </div>
-
+                
                 <div class="ny-footer">
                     <span class="ny-heart">💜</span>
                     <span>Here's to more energy, better teamwork, and making this comeback legendary! 🚀</span>
@@ -4134,7 +4192,6 @@ function renderNewYearBanner() {
         </div>
     `;
 }
-
 // ==================== HOME RENDERER ====================
 async function renderHome() {
     const selectedWeek = STATE.week;
