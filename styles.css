@@ -7097,4 +7097,234 @@ body {
 .unread-badge.show {
     display: flex;
 }
+/* ==================== NEW YEAR BANNER ==================== */
+.ny-celebration-banner {
+    position: relative;
+    background: linear-gradient(135deg, #0d0015 0%, #1a0a2e 100%);
+    border-radius: 16px;
+    margin: 0 0 16px 0;
+    padding: 28px 24px;
+    overflow: hidden;
+    border: 1px solid rgba(123, 44, 191, 0.3);
+}
+
+.ny-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    color: #888;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ny-close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    transform: rotate(90deg);
+}
+
+.ny-fireworks { position: absolute; inset: 0; pointer-events: none; }
+
+.ny-fw {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: nyFirework 2s ease-out infinite;
+}
+
+.ny-fw-1 { top: 15%; left: 10%; background: #ffd700; box-shadow: 0 0 8px #ffd700; animation-delay: 0s; }
+.ny-fw-2 { top: 10%; right: 15%; background: #9d4edd; box-shadow: 0 0 8px #9d4edd; animation-delay: 0.5s; }
+.ny-fw-3 { top: 35%; left: 5%; background: #ff6b9d; box-shadow: 0 0 8px #ff6b9d; animation-delay: 1s; }
+.ny-fw-4 { top: 25%; right: 8%; background: #00d4ff; box-shadow: 0 0 8px #00d4ff; animation-delay: 1.5s; }
+
+@keyframes nyFirework {
+    0% { transform: scale(0); opacity: 0; }
+    10% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.8; }
+    100% { transform: scale(2); opacity: 0; }
+}
+
+.ny-sparkles { position: absolute; inset: 0; pointer-events: none; }
+
+.ny-sparkle {
+    position: absolute;
+    font-size: 12px;
+    color: #ffd700;
+    animation: nySparkle 2s ease-in-out infinite;
+    opacity: 0.6;
+}
+
+@keyframes nySparkle {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
+    50% { transform: translateY(-8px) scale(1.2); opacity: 1; }
+}
+
+.ny-glow {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at center, rgba(123, 44, 191, 0.15) 0%, transparent 50%);
+    animation: nyGlow 4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes nyGlow {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+}
+
+.ny-content { position: relative; z-index: 5; }
+.ny-header { text-align: center; margin-bottom: 24px; }
+
+.ny-year-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #7b2cbf;
+    background: rgba(123, 44, 191, 0.15);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+}
+
+.ny-title { color: #fff; font-size: 22px; font-weight: 600; margin: 0 0 6px 0; }
+.ny-subtitle { color: #888; font-size: 13px; margin: 0; }
+
+.ny-stats {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.ny-stats-label {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 16px;
+}
+
+.ny-stats-grid {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.ny-stat-item {
+    background: rgba(123, 44, 191, 0.1);
+    border: 1px solid rgba(123, 44, 191, 0.2);
+    border-radius: 10px;
+    padding: 14px 18px;
+    text-align: center;
+    min-width: 85px;
+}
+
+.ny-stat-item.ny-highlight {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.1));
+    border-color: rgba(255, 215, 0, 0.3);
+    position: relative;
+}
+
+.ny-stat-item.ny-highlight::after {
+    content: '🔥';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    font-size: 14px;
+}
+
+.ny-stat-item.ny-highlight .ny-stat-value { color: #ffd700; }
+
+.ny-stat-week { display: block; font-size: 10px; font-weight: 600; color: #666; letter-spacing: 1px; margin-bottom: 4px; }
+.ny-stat-value { display: block; font-size: 16px; font-weight: 700; color: #fff; }
+
+.ny-total { text-align: center; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.ny-total-label { display: block; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #666; margin-bottom: 6px; }
+.ny-total-value { display: block; font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #7b2cbf, #e0aaff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 4px; }
+.ny-total-agents { display: block; font-size: 12px; color: #00ff88; }
+
+.ny-footer { display: flex; align-items: center; justify-content: center; gap: 8px; color: #888; font-size: 12px; }
+.ny-heart { animation: nyHeart 1.5s ease-in-out infinite; }
+
+@keyframes nyHeart {
+    0%, 100% { transform: scale(1); }
+    25%, 75% { transform: scale(1.1); }
+}
+
+@keyframes bannerSlideOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-20px); }
+}
+
+/* Refresh Notice */
+.refresh-notice {
+    background: linear-gradient(135deg, rgba(123, 44, 191, 0.1), rgba(255, 165, 0, 0.08));
+    border: 1px solid rgba(255, 165, 0, 0.25);
+    border-left: 4px solid #ffa500;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.refresh-notice-icon { font-size: 28px; line-height: 1; }
+.refresh-notice-content { flex: 1; }
+.refresh-notice-title { color: #ffa500; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.refresh-notice-text { color: #aaa; font-size: 12px; line-height: 1.5; }
+.refresh-notice-text strong { color: #fff; }
+.refresh-notice-updated { margin-top: 10px; padding: 8px 12px; background: rgba(0,0,0,0.2); border-radius: 8px; display: inline-block; color: #888; font-size: 11px; }
+.refresh-notice-updated strong { color: #fff; }
+
+/* Home Tip */
+.home-tip {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(255, 140, 0, 0.06));
+    border: 1px solid rgba(255, 215, 0, 0.25);
+    border-radius: 12px;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.home-tip-icon { font-size: 24px; }
+.home-tip-content { flex: 1; }
+.home-tip-label { color: #ffd700; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.home-tip-text { color: #fff; font-size: 13px; margin-top: 3px; }
+.home-tip-text strong { color: #ffd700; }
+.text-success { color: #00ff88 !important; }
+
+.standing-members { font-size: 10px; color: #888; }
+
+/* Mobile */
+@media (max-width: 480px) {
+    .ny-celebration-banner { padding: 20px 16px; }
+    .ny-title { font-size: 18px; }
+    .ny-stats-grid { gap: 8px; }
+    .ny-stat-item { padding: 10px 12px; min-width: 70px; }
+    .ny-stat-value { font-size: 14px; }
+    .ny-total-value { font-size: 24px; }
+    .ny-fw-3, .ny-fw-4 { display: none; }
+}
 /* ==================== END OF STYLES ==================== */
