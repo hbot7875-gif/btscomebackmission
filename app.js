@@ -4072,7 +4072,6 @@ const NewYearCelebration = {
     }
 };
 
-// ==================== NEW YEAR BANNER RENDERER ====================
 function renderNewYearBanner() {
     if (!NewYearCelebration.shouldShowBanner()) return '';
     
@@ -4080,31 +4079,35 @@ function renderNewYearBanner() {
     const highest = Math.max(...NewYearCelebration.milestones.map(m => m.streams));
     const agentName = NewYearCelebration.getAgentName();
     
-    // ==================== CALCULATE PERSONAL CONTRIBUTION ====================
-    let myTotalXP = 0;
-    let myTotalStreams = 0;
+    // ==================== CALCULATE PERSONAL STATS (SAME AS DRAWER) ====================
+    let overallXP = 0;
+    let overallTrackStreams = 0;
+    let overallAlbumStreams = 0;
     let weeksParticipated = 0;
     
-    // Calculate from all weeks data
-    if (STATE.allWeeksData && typeof STATE.allWeeksData === 'object') {
-        for (const [weekNum, weekData] of Object.entries(STATE.allWeeksData)) {
-            if (weekData?.stats) {
-                const stats = weekData.stats;
-                myTotalXP += stats.totalXP || 0;
-                myTotalStreams += (stats.trackScrobbles || 0) + (stats.albumScrobbles || 0);
-                if ((stats.totalXP || 0) > 0) weeksParticipated++;
-            }
-        }
+    if (STATE.allWeeksData?.weeks?.length > 0) {
+        STATE.allWeeksData.weeks.forEach(weekData => {
+            const weekXP = parseInt(weekData.stats?.totalXP) || 0;
+            const weekTracks = parseInt(weekData.stats?.trackScrobbles) || 0;
+            const weekAlbums = parseInt(weekData.stats?.albumScrobbles) || 0;
+            
+            overallXP += weekXP;
+            overallTrackStreams += weekTracks;
+            overallAlbumStreams += weekAlbums;
+            
+            if (weekXP > 0) weeksParticipated++;
+        });
     } else if (STATE.data?.stats) {
-        // Fallback to current week if allWeeksData not available
+        // Fallback to current week
         const stats = STATE.data.stats;
-        myTotalXP = stats.totalXP || 0;
-        myTotalStreams = (stats.trackScrobbles || 0) + (stats.albumScrobbles || 0);
-        weeksParticipated = myTotalXP > 0 ? 1 : 0;
+        overallXP = parseInt(stats.totalXP) || 0;
+        overallTrackStreams = parseInt(stats.trackScrobbles) || 0;
+        overallAlbumStreams = parseInt(stats.albumScrobbles) || 0;
+        weeksParticipated = overallXP > 0 ? 1 : 0;
     }
     
-    // Calculate contribution percentage
-    const contributionPercent = total > 0 ? ((myTotalStreams / total) * 100).toFixed(2) : 0;
+    const totalStreams = overallTrackStreams + overallAlbumStreams;
+    const contributionPercent = total > 0 ? ((totalStreams / total) * 100).toFixed(2) : 0;
     
     return `
         <div class="ny-celebration-banner" id="ny-celebration-banner">
@@ -4144,11 +4147,11 @@ function renderNewYearBanner() {
                     </div>
                     <div class="ny-my-stats-grid">
                         <div class="ny-my-stat">
-                            <div class="ny-my-value">${myTotalStreams.toLocaleString()}</div>
+                            <div class="ny-my-value">${totalStreams.toLocaleString()}</div>
                             <div class="ny-my-name">Streams</div>
                         </div>
                         <div class="ny-my-stat">
-                            <div class="ny-my-value">${myTotalXP.toLocaleString()}</div>
+                            <div class="ny-my-value">${overallXP.toLocaleString()}</div>
                             <div class="ny-my-name">XP Earned</div>
                         </div>
                         <div class="ny-my-stat">
@@ -4158,7 +4161,7 @@ function renderNewYearBanner() {
                     </div>
                     <div class="ny-my-contribution">
                         <div class="ny-contribution-bar">
-                            <div class="ny-contribution-fill" style="width: ${Math.min(contributionPercent * 10, 100)}%"></div>
+                            <div class="ny-contribution-fill" style="width: ${Math.min(parseFloat(contributionPercent) * 20, 100)}%"></div>
                         </div>
                         <div class="ny-contribution-text">
                             You contributed <strong>${contributionPercent}%</strong> to our ${total.toLocaleString()}+ total streams! ✨
@@ -4197,6 +4200,15 @@ async function renderHome() {
     const selectedWeek = STATE.week;
     const weekEl = $('current-week');
     if (weekEl) weekEl.textContent = `Week: ${selectedWeek}`;
+
+    if (!STATE.allWeeksData) {
+        try {
+            STATE.allWeeksData = await api('getAllWeeksStats', { agentNo: STATE.agentNo });
+            console.log('Loaded allWeeksData for NY banner:', STATE.allWeeksData);
+        } catch (e) {
+            console.log('Could not load all weeks data:', e);
+        }
+    }
     
     // Guide HTML
     const guideHtml = renderGuide('home');
