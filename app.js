@@ -4106,7 +4106,7 @@ function renderNewYearBanner() {
                 <div class="ny-header">
                     <span class="ny-year-badge">${NewYearCelebration.year}</span>
                     <h2 class="ny-title">Happy New Year, ${sanitize(agentName)}!</h2>
-                    <p class="ny-subtitle">The year BTS returns. The year we're ready.</p>
+                    <span class="confetti-message-bts">Thank you for being part of this journey. BTS would be proud of you!</span>
                 </div>
                 
                 <div class="ny-stats">
@@ -4125,10 +4125,10 @@ function renderNewYearBanner() {
                         <span class="ny-total-agents">${NewYearCelebration.totalAgents}+ agents united</span>
                     </div>
                 </div>
-                
+
                 <div class="ny-footer">
                     <span class="ny-heart">💜</span>
-                    <span>Here's to stronger teamwork in ${NewYearCelebration.year}</span>
+                    <span>Here's to more energy, better teamwork, and making this comeback legendary! 🚀</span>
                 </div>
             </div>
         </div>
