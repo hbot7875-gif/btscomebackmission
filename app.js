@@ -4135,7 +4135,7 @@ function renderNewYearBanner() {
                 <div class="ny-header">
                     <span class="ny-year-badge">${NewYearCelebration.year}</span>
                     <h2 class="ny-title">Happy New Year, ${sanitize(agentName)}!</h2>
-                    <p class="ny-subtitle">The year BTS returns. The year we're ready.</p>
+                    <p class="ny-subtitle">🗓️ BTS Comeback: March 20th, 2026 — Let's get ready!🔥</p>
                     <p class="ny-thankyou">Thank you for being part of this journey. BTS would be proud of you! 💜</p>
                 </div>
                 
