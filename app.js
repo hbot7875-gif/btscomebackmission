@@ -4522,7 +4522,7 @@ async function renderHome() {
 const ConfettiCelebration = {
     config: {
         particleCount: 80,
-        duration: 6000,
+        duration: 20000,
         colors: ['#7b2cbf', '#9d4edd', '#c77dff', '#e0aaff', '#ffd700', '#ffed4a', '#fff', '#00ff88', '#ff6b9d', '#00d4ff'],
         emojis: ['💜', '✨', '⭐', '🎆', '🎇', '🎊', '🎉', '⟭⟬'],
         shapes: ['circle', 'square', 'star', 'ribbon'],
