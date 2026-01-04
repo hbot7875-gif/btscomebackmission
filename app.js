@@ -4337,6 +4337,9 @@ async function renderHome() {
         }
     }
     
+    // BTS Countdown HTML
+    const btsCountdownHtml = renderBTSCountdown();
+    
     // Guide HTML
     const guideHtml = renderGuide('home');
     
@@ -4420,10 +4423,11 @@ async function renderHome() {
             </div>
         ` : '';
         
-        // Quick Stats Section
+        // Quick Stats Section - ✅ ADDED BTS COUNTDOWN HERE
         const quickStatsEl = document.querySelector('.quick-stats-section');
         if (quickStatsEl) {
             quickStatsEl.innerHTML = `
+                ${btsCountdownHtml}
                 ${nyBannerHtml}
                 ${guideHtml}
                 ${refreshNotice}
@@ -4460,6 +4464,9 @@ async function renderHome() {
                     </div>
                 </div>
             `;
+            
+            // ✅ START THE COUNTDOWN TIMER
+            startBTSCountdown();
         }
         
         // Album goals and 2x status
@@ -4644,7 +4651,6 @@ async function renderHome() {
         showToast('Failed to load home', 'error'); 
     }
 }
-
 // ==================== CONFETTI CELEBRATION ====================
 const ConfettiCelebration = {
     config: {
