@@ -1,21 +1,19 @@
 const CONFIG = {
-    // YOUR GOOGLE SCRIPT URL
     API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
     
-    // Admin Settings
     ADMIN_AGENT_NO: 'AGENT000',
     
-    // End Dates (YYYY-MM-DD)
+    // ✅ UPDATED: Added Week 5
     WEEK_DATES: {
         'Test Week 1': '2025-11-29',
         'Test Week 2': '2025-12-06',
         'Week 1': '2025-12-13',
         'Week 2': '2025-12-20',
         'Week 3': '2025-12-27',
-        'Week 4': '2026-01-03'
+        'Week 4': '2026-01-03',
+        'Week 5': '2026-01-10'
     },
     
-    // ===== BADGE CONFIGURATION =====
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
     TOTAL_BADGE_IMAGES: 55,
     EXCLUDE_BADGES: [],
@@ -30,7 +28,6 @@ const CONFIG = {
         return pool;
     },
     
-    // ===== ALBUM CHALLENGE SETTINGS =====
     ALBUM_CHALLENGE: {
         REQUIRED_STREAMS: 2,
         CHALLENGE_NAME: "2X",
@@ -38,23 +35,50 @@ const CONFIG = {
         BADGE_DESCRIPTION: "Completed Album 2X Challenge"
     },
     
-    // ✅ FIXED: Added "Team " prefix to match your data
+    // ✅ UPDATED: Album names for Week 5+
     TEAMS: {
-        'Team Indigo': { color: '#FFE082', album: 'Indigo' },   
-        'Team Echo': { color: '#FAFAFA', album: 'Echo' },       
+        'Team Indigo': { color: '#FFE082', album: 'MOTS: Persona' },
+        'Team Echo': { color: '#FAFAFA', album: 'BE' },
         'Team Agust D': { color: '#B0BEC5', album: 'Agust D' }, 
         'Team JITB': { color: '#FF4081', album: 'Jack In The Box' }
     },
     
-    // ✅ FIXED: Added "Team " prefix
-    TEAM_ALBUM_TRACKS: {
-        "Team Indigo": ["Yun (with Erykah Badu)", "Still Life (with Anderson .Paak)", "All Day (with Tablo)", "Forg_tful (with Kim Sawol)", "Closer (with Paul Blanco, Mahalia)", "Change pt.2", "Lonely", "Hectic (with Colde)", "Wild Flower (with youjeen)", "No.2 (with parkjiyoon)"],
-        "Team Echo": ["Don't Say You Love Me", "Nothing Without Your Love", "Loser (feat. YENA)", "Rope It", "With the Clouds", "Background", "To Me, Today"],
-        "Team Agust D": ["Intro : Dt sugA", "Agust D", "Skit", "So far away (feat. Suran)", "140503 at Dawn", "Tony Montana", "give it to me", "Interlude : Dream, Reality", "The Last", "724148"],
-        "Team JITB": ["Intro", "Pandora's Box", "MORE", "STOP", "= (Equal Sign)", "Music Box : Reflection", "What if...", "Safety Zone", "Future", "Arson"]
+    // ==================== VERSIONED ALBUM SYSTEM ====================
+    ALBUM_VERSIONS: {
+        "v1": {
+            weeks: ["Week 1", "Week 2", "Week 3", "Week 4", "Test Week 1", "Test Week 2"],
+            albums: {
+                "Team Indigo": ["Yun (with Erykah Badu)", "Still Life (with Anderson .Paak)", "All Day (with Tablo)", "Forg_tful (with Kim Sawol)", "Closer (with Paul Blanco, Mahalia)", "Change pt.2", "Lonely", "Hectic (with Colde)", "Wild Flower (with youjeen)", "No.2 (with parkjiyoon)"],
+                "Team Echo": ["Don't Say You Love Me", "Nothing Without Your Love", "Loser (feat. YENA)", "Rope It", "With the Clouds", "Background", "To Me, Today"],
+                "Team Agust D": ["Intro : Dt sugA", "Agust D", "Skit", "So far away (feat. Suran)", "140503 at Dawn", "Tony Montana", "give it to me", "Interlude : Dream, Reality", "The Last", "724148"],
+                "Team JITB": ["Intro", "Pandora's Box", "MORE", "STOP", "= (Equal Sign)", "Music Box : Reflection", "What if...", "Safety Zone", "Future", "Arson"]
+            }
+        },
+        "v2": {
+            weeks: [],
+            albums: {
+                "Team Indigo": ["Intro: Persona", "Boy With Luv (feat. Halsey)", "Mikrokosmos", "Make It Right", "HOME", "Jamais Vu", "Dionysus"],
+                "Team Echo": ["Life Goes On", "Fly to My Room", "Blue & Grey", "Skit", "Telepathy", "Dis-ease", "Stay", "Dynamite"],
+                "Team Agust D": ["Intro : Dt sugA", "Agust D", "Skit", "So far away (feat. Suran)", "140503 at Dawn", "Tony Montana", "give it to me", "Interlude : Dream, Reality", "The Last", "724148"],
+                "Team JITB": ["Intro", "Pandora's Box", "MORE", "STOP", "= (Equal Sign)", "Music Box : Reflection", "What if...", "Safety Zone", "Future", "Arson"]
+            }
+        }
     },
     
-    // ✅ FIXED: Added "Team " prefix + raw URLs
+    // Helper to get tracks for specific week
+    getTeamAlbumTracksForWeek(weekLabel) {
+        if (this.ALBUM_VERSIONS.v1.weeks.includes(weekLabel)) {
+            return this.ALBUM_VERSIONS.v1.albums;
+        }
+        return this.ALBUM_VERSIONS.v2.albums;
+    },
+    
+    // Dynamic getter - uses current selected week
+    get TEAM_ALBUM_TRACKS() {
+        const week = (typeof STATE !== 'undefined' && STATE.week) ? STATE.week : 'Week 5';
+        return this.getTeamAlbumTracksForWeek(week);
+    },
+    
     TEAM_PFPS: {
         "Team Indigo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamindigo.jpg",
         "Team Echo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamecho.jpg",
@@ -62,7 +86,7 @@ const CONFIG = {
         "Team JITB": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamjitb.jpg"
     },
     
-    // Helper Army Roles
+    // ... rest of CONFIG remains the same
     HELPER_ROLES: [
         { id: 'pl_maker', name: 'Playlist Maker', icon: '🎵', description: 'Creates and maintains streaming playlists' },
         { id: 'goals_maker', name: 'Goals Maker', icon: '🎯', description: 'Sets weekly track and album goals' },
