@@ -2,7 +2,7 @@ const CONFIG = {
     API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
     
     ADMIN_AGENT_NO: 'AGENT000',
-    
+
     // ✅ UPDATED: Added Week 5
     WEEK_DATES: {
         'Test Week 1': '2025-11-29',
@@ -13,11 +13,11 @@ const CONFIG = {
         'Week 4': '2026-01-03',
         'Week 5': '2026-01-10'
     },
-    
+
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
     TOTAL_BADGE_IMAGES: 55,
     EXCLUDE_BADGES: [],
-    
+
     get BADGE_POOL() {
         const pool = [];
         for (let i = 1; i <= this.TOTAL_BADGE_IMAGES; i++) {
@@ -27,14 +27,14 @@ const CONFIG = {
         }
         return pool;
     },
-    
+
     ALBUM_CHALLENGE: {
         REQUIRED_STREAMS: 2,
         CHALLENGE_NAME: "2X",
         BADGE_NAME: "2X Master",
         BADGE_DESCRIPTION: "Completed Album 2X Challenge"
     },
-    
+
     // ✅ UPDATED: Album names for Week 5+
     TEAMS: {
         'Team Indigo': { color: '#FFE082', album: 'MOTS: Persona' },
@@ -42,7 +42,7 @@ const CONFIG = {
         'Team Agust D': { color: '#B0BEC5', album: 'Agust D' }, 
         'Team JITB': { color: '#FF4081', album: 'Jack In The Box' }
     },
-    
+
     // ==================== VERSIONED ALBUM SYSTEM ====================
     ALBUM_VERSIONS: {
         "v1": {
@@ -64,7 +64,7 @@ const CONFIG = {
             }
         }
     },
-    
+
     // Helper to get tracks for specific week
     getTeamAlbumTracksForWeek(weekLabel) {
         if (this.ALBUM_VERSIONS.v1.weeks.includes(weekLabel)) {
@@ -72,21 +72,20 @@ const CONFIG = {
         }
         return this.ALBUM_VERSIONS.v2.albums;
     },
-    
+
     // Dynamic getter - uses current selected week
     get TEAM_ALBUM_TRACKS() {
         const week = (typeof STATE !== 'undefined' && STATE.week) ? STATE.week : 'Week 5';
         return this.getTeamAlbumTracksForWeek(week);
     },
-    
+
     TEAM_PFPS: {
         "Team Indigo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamindigo.jpg",
         "Team Echo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamecho.jpg",
         "Team Agust D": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamagustd.jpg",
         "Team JITB": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamjitb.jpg"
     },
-    
-    // ... rest of CONFIG remains the same
+
     HELPER_ROLES: [
         { id: 'pl_maker', name: 'Playlist Maker', icon: '🎵', description: 'Creates and maintains streaming playlists' },
         { id: 'goals_maker', name: 'Goals Maker', icon: '🎯', description: 'Sets weekly track and album goals' },
@@ -96,21 +95,125 @@ const CONFIG = {
         { id: 'secret_missions', name: 'Secret Missions Maker', icon: '🕵️', description: 'Creates special team missions' },
         { id: 'attendance', name: 'Attendance Taker', icon: '📋', description: 'Tracks agent participation weekly' }
     ],
-    
+
     SECRET_MISSIONS: { 
         xpPerMission: 5, 
         maxMissionsPerTeam: 5, 
         maxTeamBonus: 25 
     },
-    
+
     MISSION_TYPES: {
         'switch_app': { name: 'Switch App', icon: '🔄', description: 'Switch to YouTube/Apple Music for 1 hour.' },
         'filler_mode': { name: 'Filler Mode', icon: '🧬', description: 'Stream 1 BTS Song + 2 Non-Kpop songs.' },
         'old_songs': { name: 'Old Songs', icon: '🕰️', description: 'Stream tracks older than 2 years.' },
         'stream_party': { name: 'Stream Party', icon: '🎉', description: 'Everyone streams the exact same playlist NOW.' },
         'custom': { name: 'Custom Task', icon: '⭐', description: 'Special instruction from Admin.' }
+    },
+
+    // ==================== BTS COMEBACK (INSIDE CONFIG) ====================
+    COMEBACK: {
+        ALBUM_NAME: "BTS 5th Album",
+        RELEASE_DATE: "2026-03-20T13:00:00+09:00",
+        SHOW_COUNTDOWN: true,
+        BTS_LOGO: "https://2026bts.com/images/logo.png",
+        ALBUM_COVER: "https://2026bts.com/images/cover.png"
     }
-};
+}; // ✅ CONFIG object properly closed here
+
+// ==================== BTS OFFICIAL COUNTDOWN FUNCTIONS ====================
+
+function renderBTSCountdown() {
+    if (!CONFIG.COMEBACK?.SHOW_COUNTDOWN) return '';
+
+    const now = new Date().getTime();
+    const target = new Date(CONFIG.COMEBACK.RELEASE_DATE).getTime();
+    const diff = target - now;
+
+    if (diff <= 0) {
+        return `
+            <div class="bts-countdown-wrap">
+                <div class="bts-ticker">
+                    <img src="${CONFIG.COMEBACK.ALBUM_COVER}" alt="BTS" class="bts-logo" onerror="this.outerHTML='<span class=\\'bts-logo-text\\'>BTS</span>'">
+                    <div class="bts-released">OUT NOW 🎉</div>
+                </div>
+                <div class="bts-credit">© BIGHIT MUSIC / HYBE</div>
+            </div>
+        `;
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+    return `
+        <div class="bts-countdown-wrap" id="bts-countdown">
+            <div class="bts-ticker">
+                <img src="${CONFIG.COMEBACK.ALBUM_COVER}" alt="BTS" class="bts-logo" onerror="this.outerHTML='<span class=\\'bts-logo-text\\'>BTS</span>'">
+                <div class="bts-countdown">
+                    <div class="bts-time-unit">
+                        <span class="bts-number" id="bts-days">${String(days).padStart(2,'0')}</span>
+                        <span class="bts-label">d</span>
+                    </div>
+                    <div class="bts-time-unit">
+                        <span class="bts-number" id="bts-hours">${String(hours).padStart(2,'0')}</span>
+                        <span class="bts-label">h</span>
+                    </div>
+                    <div class="bts-time-unit">
+                        <span class="bts-number" id="bts-mins">${String(mins).padStart(2,'0')}</span>
+                        <span class="bts-label">m</span>
+                    </div>
+                    <div class="bts-time-unit">
+                        <span class="bts-number" id="bts-secs">${String(secs).padStart(2,'0')}</span>
+                        <span class="bts-label">s</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bts-credit">© BIGHIT MUSIC / HYBE</div>
+        </div>
+    `;
+}
+
+function startBTSCountdown() {
+    if (!CONFIG.COMEBACK?.SHOW_COUNTDOWN) return;
+    if (window.btsCountdownInterval) clearInterval(window.btsCountdownInterval);
+
+    window.btsCountdownInterval = setInterval(() => {
+        const now = new Date().getTime();
+        const target = new Date(CONFIG.COMEBACK.RELEASE_DATE).getTime();
+        const diff = target - now;
+        
+        if (diff <= 0) {
+            clearInterval(window.btsCountdownInterval);
+            const el = document.getElementById('bts-countdown');
+            if (el) {
+                el.innerHTML = `
+                    <div class="bts-ticker">
+                        <img src="${CONFIG.COMEBACK.ALBUM_COVER}" alt="BTS" class="bts-logo" onerror="this.outerHTML='<span class=\\'bts-logo-text\\'>BTS</span>'">
+                        <div class="bts-released">OUT NOW 🎉</div>
+                    </div>
+                    <div class="bts-credit">© BIGHIT MUSIC / HYBE</div>
+                `;
+            }
+            return;
+        }
+        
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        const daysEl = document.getElementById('bts-days');
+        const hoursEl = document.getElementById('bts-hours');
+        const minsEl = document.getElementById('bts-mins');
+        const secsEl = document.getElementById('bts-secs');
+        
+        if (daysEl) daysEl.textContent = String(d).padStart(2,'0');
+        if (hoursEl) hoursEl.textContent = String(h).padStart(2,'0');
+        if (minsEl) minsEl.textContent = String(m).padStart(2,'0');
+        if (secsEl) secsEl.textContent = String(s).padStart(2,'0');
+    }, 1000);
+}
 // ==================== STATE ====================
 const STATE = {
     agentNo: null,
