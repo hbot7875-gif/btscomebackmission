@@ -7441,4 +7441,103 @@ body {
         font-size: 9px;
     }
 }
+/* ==================== BTS OFFICIAL COUNTDOWN ==================== */
+
+.bts-countdown-wrap {
+    text-align: center;
+    margin-bottom: 15px;
+    padding: 12px 15px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bts-ticker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.bts-logo {
+    width: 35px;
+    height: auto;
+    opacity: 0.9;
+}
+
+/* Text fallback if image fails */
+.bts-logo-text {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.1em;
+}
+
+.bts-countdown {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 15px;
+}
+
+.bts-time-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.bts-number {
+    font-family: 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1;
+    color: #fff;
+    letter-spacing: 0.02em;
+}
+
+.bts-label {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400;
+    font-size: 9px;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: lowercase;
+}
+
+.bts-released {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: #fff;
+    letter-spacing: 0.1em;
+    margin-top: 5px;
+}
+
+.bts-credit {
+    font-size: 8px;
+    color: rgba(255, 255, 255, 0.25);
+    margin-top: 8px;
+    letter-spacing: 0.05em;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .bts-countdown-wrap {
+        padding: 10px 12px;
+    }
+    
+    .bts-logo {
+        width: 28px;
+    }
+    
+    .bts-countdown {
+        gap: 12px;
+    }
+    
+    .bts-number {
+        font-size: 18px;
+    }
+}
 /* ==================== END OF STYLES ==================== */
