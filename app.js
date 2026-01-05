@@ -120,36 +120,34 @@ const CONFIG = {
     }
 }; // ✅ CONFIG object properly closed here
 
-// ==================== BTS OFFICIAL COUNTDOWN FUNCTIONS ====================
-
 function renderBTSCountdown() {
     if (!CONFIG.COMEBACK?.SHOW_COUNTDOWN) return '';
-
+    
     const now = new Date().getTime();
     const target = new Date(CONFIG.COMEBACK.RELEASE_DATE).getTime();
     const diff = target - now;
-
+    
     if (diff <= 0) {
         return `
             <div class="bts-countdown-wrap">
                 <div class="bts-ticker">
-                    <img src="${CONFIG.COMEBACK.ALBUM_COVER}" alt="BTS" class="bts-logo" onerror="this.outerHTML='<span class=\\'bts-logo-text\\'>BTS</span>'">
+                    <img src="${CONFIG.COMEBACK.BTS_LOGO}" alt="BTS" class="bts-countdown-logo" onerror="this.outerHTML='<span class=\\'bts-countdown-text\\'>BTS</span>'">
                     <div class="bts-released">OUT NOW 🎉</div>
                 </div>
                 <div class="bts-credit">© BIGHIT MUSIC / HYBE</div>
             </div>
         `;
     }
-
+    
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
-
+    
     return `
         <div class="bts-countdown-wrap" id="bts-countdown">
             <div class="bts-ticker">
-                <img src="${CONFIG.COMEBACK.ALBUM_COVER}" alt="BTS" class="bts-logo" onerror="this.outerHTML='<span class=\\'bts-logo-text\\'>BTS</span>'">
+                <img src="${CONFIG.COMEBACK.BTS_LOGO}" alt="BTS" class="bts-countdown-logo" onerror="this.outerHTML='<span class=\\'bts-countdown-text\\'>BTS</span>'">
                 <div class="bts-countdown">
                     <div class="bts-time-unit">
                         <span class="bts-number" id="bts-days">${String(days).padStart(2,'0')}</span>
