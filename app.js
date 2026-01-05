@@ -6108,465 +6108,225 @@ async function renderGoals() {
     }
 }
 
-// ==================== ALBUM CHALLENGE (Configurable) - FIXED ====================
+// ==================== ALBUM CHALLENGE - FRONTEND FIX ====================
 async function renderAlbum2x() {
     const container = $('album2x-content');
     const team = STATE.data?.profile?.team;
-    const album2xStatus = STATE.data?.album2xStatus || {};
-    const userTracks = album2xStatus.tracks || {};
-    
-    // ✅ FIX: Get tracks using the week-specific method
     const currentWeek = STATE.week || 'Week 5';
-    const allTeamTracks = CONFIG.getTeamAlbumTracksForWeek(currentWeek);
-    const teamTracks = allTeamTracks[team] || [];
-    const albumName = CONFIG.TEAMS[team]?.album || team;
     
-    // ✅ Use configurable settings
     const REQUIRED = CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS;
     const CHALLENGE_NAME = CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME;
     const BADGE_NAME = CONFIG.ALBUM_CHALLENGE.BADGE_NAME;
     
-    // ✅ DEBUG: Log to check what data we're receiving
+    // ✅ Get correct tracks for this week
+    const allTeamTracks = CONFIG.getTeamAlbumTracksForWeek(currentWeek);
+    const teamTracks = allTeamTracks[team] || [];
+    const albumName = CONFIG.TEAMS[team]?.album || team;
+    const currentTeamColor = CONFIG.TEAMS[team]?.color || '#7b2cbf';
+    
     console.log('=== ALBUM 2X DEBUG ===');
-    console.log('Current Week:', currentWeek);
-    console.log('Team:', team);
-    console.log('Team Tracks from CONFIG:', teamTracks);
-    console.log('User Tracks from API (raw):', userTracks);
-    console.log('User Track Keys:', Object.keys(userTracks));
-    console.log('User Track Values:', Object.values(userTracks));
+    console.log('Week:', currentWeek, '| Team:', team);
+    console.log('Config Tracks:', teamTracks);
     
-    // ✅ FIX: Create a normalized lookup map for userTracks
-    // This handles various key format issues from the API
-    const normalizedUserTracks = {};
+    // ✅ Fetch data with agentNo to get user's tracks
+    let userTracks = {};
+    let teamMembersStatus = [];
+    let teamPassed = 0, teamFailed = 0, totalMembers = 0;
     
-    for (const key in userTracks) {
-        if (!userTracks.hasOwnProperty(key)) continue;
+    try {
+        const album2xData = await api('getAlbum2xStatus', { 
+            week: currentWeek, 
+            team: team,
+            agentNo: STATE.agentNo  // ✅ Pass agentNo to get user tracks
+        });
         
-        const value = userTracks[key];
-        const strKey = String(key).trim();
-        const lowerKey = strKey.toLowerCase();
+        console.log('API Response:', album2xData);
         
-        // Normalize the value to a number
-        const numValue = parseInt(value, 10) || 0;
+        // ✅ Get user's track data from response
+        userTracks = album2xData.userTracks || {};
         
-        // Store with multiple key variations for matching
-        normalizedUserTracks[strKey] = numValue;
-        normalizedUserTracks[lowerKey] = numValue;
-        
-        // Also store a "cleaned" version (remove extra spaces, special chars normalized)
-        const cleanedKey = strKey.replace(/\s+/g, ' ').trim();
-        normalizedUserTracks[cleanedKey] = numValue;
-        normalizedUserTracks[cleanedKey.toLowerCase()] = numValue;
+        const teamData = album2xData.teams?.[team] || {};
+        teamMembersStatus = teamData.members || [];
+        teamPassed = teamData.passed || 0;
+        teamFailed = teamData.failed || 0;
+        totalMembers = teamData.totalMembers || teamMembersStatus.length;
+    } catch (e) {
+        console.error('API Error:', e);
     }
     
-    console.log('Normalized User Tracks:', normalizedUserTracks);
+    console.log('User Tracks:', userTracks);
     
-    // ✅ FIX: Better track matching function
+    // ✅ Smart track matching function
     function getTrackCount(trackName) {
         const track = String(trackName).trim();
+        
+        // Exact match
+        if (userTracks[track] !== undefined) return userTracks[track];
+        
+        // Case-insensitive match
         const trackLower = track.toLowerCase();
-        const trackCleaned = track.replace(/\s+/g, ' ');
-        
-        // Try exact match first
-        if (normalizedUserTracks[track] !== undefined) {
-            return normalizedUserTracks[track];
-        }
-        
-        // Try lowercase match
-        if (normalizedUserTracks[trackLower] !== undefined) {
-            return normalizedUserTracks[trackLower];
-        }
-        
-        // Try cleaned match
-        if (normalizedUserTracks[trackCleaned] !== undefined) {
-            return normalizedUserTracks[trackCleaned];
-        }
-        
-        // Try partial match (for cases where API returns slightly different names)
-        for (const key in normalizedUserTracks) {
-            if (key.toLowerCase().includes(trackLower) || trackLower.includes(key.toLowerCase())) {
-                console.log(`Partial match found: "${track}" matched with "${key}"`);
-                return normalizedUserTracks[key];
+        for (const key in userTracks) {
+            if (key.toLowerCase() === trackLower) {
+                return userTracks[key];
             }
         }
         
-        // Try matching without parentheses content
-        const trackNoParens = track.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
-        for (const key in normalizedUserTracks) {
-            const keyNoParens = key.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
-            if (trackNoParens === keyNoParens) {
-                console.log(`Match without parens: "${track}" matched with "${key}"`);
-                return normalizedUserTracks[key];
+        // Partial match (handles slight variations)
+        for (const key in userTracks) {
+            const keyLower = key.toLowerCase();
+            if (keyLower.includes(trackLower) || trackLower.includes(keyLower)) {
+                console.log(`Fuzzy match: "${track}" ≈ "${key}"`);
+                return userTracks[key];
             }
         }
         
         return 0;
     }
     
+    // ✅ Calculate completion
     let completedCount = 0;
-    const trackResults = teamTracks.map((track, index) => {
+    const trackResults = teamTracks.map((track, i) => {
         const count = getTrackCount(track);
         const passed = count >= REQUIRED;
         if (passed) completedCount++;
-        
-        console.log(`Track ${index + 1}: "${track}" -> Count: ${count}, Passed: ${passed}`);
-        
-        return { name: String(track), count, passed };
+        console.log(`${i+1}. "${track}" = ${count}/${REQUIRED} ${passed ? '✅' : '❌'}`);
+        return { name: track, count, passed };
     });
     
     const allComplete = completedCount === trackResults.length && trackResults.length > 0;
     const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
     
-    console.log('=== RESULTS ===');
-    console.log('Completed:', completedCount, '/', trackResults.length);
-    console.log('All Complete:', allComplete);
-    console.log('Percentage:', pct);
-    
-    // Fetch team status
-    let teamMembersStatus = [];
-    let teamPassed = 0;
-    let teamFailed = 0;
-    
-    try {
-        const album2xData = await api('getAlbum2xStatus', { week: STATE.week, team: team });
-        console.log('=== TEAM API RESPONSE ===', album2xData);
-        
-        const teamData = album2xData.teams?.[team] || {};
-        teamMembersStatus = teamData.members || [];
-        
-        // ✅ FIX: Calculate passed/failed from members array if not provided
-        if (teamMembersStatus.length > 0) {
-            teamPassed = teamMembersStatus.filter(m => m.passed === true).length;
-            teamFailed = teamMembersStatus.filter(m => m.passed !== true).length;
-        } else {
-            teamPassed = teamData.passed || 0;
-            teamFailed = teamData.failed || 0;
-        }
-        
-        console.log('Team Members Status:', teamMembersStatus);
-        console.log('Team Passed:', teamPassed, 'Team Failed:', teamFailed);
-    } catch (e) {
-        console.error('Could not fetch team status:', e);
-    }
-    
     const passedMembers = teamMembersStatus.filter(m => m.passed === true);
     const failedMembers = teamMembersStatus.filter(m => m.passed !== true);
-    const totalMembers = teamMembersStatus.length;
     const teamAllComplete = failedMembers.length === 0 && totalMembers > 0;
     
-    // ✅ Helper function for team color
-    function getTeamColor(teamName) {
-        return CONFIG.TEAMS[teamName]?.color || '#7b2cbf';
-    }
-    
-    const currentTeamColor = getTeamColor(team);
-    
+    // ✅ RENDER UI
     container.innerHTML = `
-        <!-- Guide with Important Notice -->
-        <div class="card guide-card" style="background: rgba(255, 68, 68, 0.1); border-left: 3px solid #ff6b6b; margin-bottom: 20px;">
-            <div class="card-body" style="display: flex; gap: 15px; align-items: flex-start; padding: 15px;">
-                <div style="font-size: 24px;">⚠️</div>
+        <!-- Header Info -->
+        <div class="card" style="background:rgba(123,44,191,0.1);border-left:3px solid #7b2cbf;margin-bottom:20px;">
+            <div class="card-body" style="display:flex;gap:15px;padding:15px;">
+                <div style="font-size:24px;">🎵</div>
                 <div>
-                    <h4 style="margin: 0 0 5px 0; color: #ff6b6b; font-size: 14px;">TEAM MISSION - Everyone Must Complete!</h4>
-                    <p style="margin: 0; color: #aaa; font-size: 13px; line-height: 1.5;">
-                        For your team to pass this mission, <strong style="color:#fff;">EVERY agent</strong> must stream each track at least <strong style="color:#ffd700;">${REQUIRED} times</strong>.
-                        <br><br>
-                        <span style="color:#ffd700;">🎖️ Reward:</span> Complete this to earn a special <strong style="color:#7b2cbf;">${BADGE_NAME} Badge!</strong>
-                        <br>
-                        <span style="color:#888;font-size:11px;">Current Week: ${sanitize(currentWeek)} | Album: ${sanitize(albumName)}</span>
+                    <h4 style="margin:0 0 5px;color:#7b2cbf;font-size:14px;">${CHALLENGE_NAME} Challenge - ${sanitize(albumName)}</h4>
+                    <p style="margin:0;color:#aaa;font-size:13px;">
+                        Stream each track <strong style="color:#ffd700;">${REQUIRED}x</strong> to complete
+                        <span style="color:#666;font-size:11px;display:block;margin-top:4px;">📅 ${sanitize(currentWeek)}</span>
                     </p>
                 </div>
             </div>
         </div>
         
-        <!-- Debug Info (remove in production) -->
-        <div class="card" style="background: rgba(255,165,0,0.1); border: 1px dashed #ffa500; margin-bottom: 15px; display: none;" id="debug-info">
-            <div class="card-body" style="padding: 10px; font-size: 11px; color: #ffa500;">
-                <strong>🔧 Debug Info:</strong><br>
-                Week: ${currentWeek}<br>
-                Team: ${team}<br>
-                Tracks in Config: ${teamTracks.length}<br>
-                Tracks from API: ${Object.keys(userTracks).length}<br>
-                API Keys: ${Object.keys(userTracks).slice(0, 5).join(', ')}${Object.keys(userTracks).length > 5 ? '...' : ''}
-            </div>
-        </div>
-        
-        <!-- Your Personal Progress Card -->
-        <div class="card" style="border-color:${allComplete ? 'var(--success)' : currentTeamColor}">
+        <!-- Your Progress -->
+        <div class="card" style="border-color:${allComplete ? '#00ff88' : currentTeamColor}">
             <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                <h3 style="margin:0;">📊 Your ${CHALLENGE_NAME} Progress</h3>
-                <span class="status-badge" style="
-                    padding: 4px 12px;
-                    border-radius: 12px;
-                    font-size: 11px;
-                    background: ${allComplete ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};
-                    color: ${allComplete ? '#00ff88' : '#ffa500'};
-                    border: 1px solid ${allComplete ? 'rgba(0,255,136,0.3)' : 'rgba(255,165,0,0.3)'};
-                ">${allComplete ? '✅ Complete' : '⏳ In Progress'}</span>
+                <h3 style="margin:0;">📊 Your Progress</h3>
+                <span style="padding:4px 12px;border-radius:12px;font-size:11px;
+                    background:${allComplete ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};
+                    color:${allComplete ? '#00ff88' : '#ffa500'};">
+                    ${allComplete ? '✅ Complete' : '⏳ In Progress'}
+                </span>
             </div>
-            <div class="card-body" style="text-align:center;padding:30px;">
-                <div style="font-size:56px;margin-bottom:16px;">${allComplete ? '🎉' : '⏳'}</div>
-                <h2 style="color:${currentTeamColor};margin-bottom:8px;">${sanitize(albumName)}</h2>
-                <p style="color:var(--text-dim);margin-bottom:20px;">Stream every track at least <strong>${REQUIRED} times</strong></p>
-                
-                <div style="font-size:48px;font-weight:700;color:${allComplete ? 'var(--success)' : 'var(--purple-glow)'}">${completedCount}/${trackResults.length}</div>
-                <p style="color:var(--text-dim);">Tracks completed</p>
-                
-                <div class="progress-bar" style="margin:20px auto;max-width:300px;height:12px;">
-                    <div class="progress-fill ${allComplete ? 'complete' : ''}" style="width:${pct}%;background:${allComplete ? 'var(--success)' : currentTeamColor}"></div>
+            <div class="card-body" style="text-align:center;padding:25px;">
+                <div style="font-size:50px;margin-bottom:15px;">${allComplete ? '🎉' : '⏳'}</div>
+                <div style="font-size:42px;font-weight:700;color:${allComplete ? '#00ff88' : '#7b2cbf'}">
+                    ${completedCount}/${trackResults.length}
                 </div>
-                
+                <p style="color:#888;margin:5px 0 15px;">tracks completed</p>
+                <div style="background:#222;border-radius:10px;height:12px;max-width:280px;margin:0 auto;overflow:hidden;">
+                    <div style="height:100%;width:${pct}%;background:${allComplete ? '#00ff88' : currentTeamColor};transition:width 0.3s;"></div>
+                </div>
                 ${allComplete ? `
-                    <div style="
-                        margin-top: 20px;
-                        padding: 15px;
-                        background: rgba(0,255,136,0.1);
-                        border: 1px solid rgba(0,255,136,0.3);
-                        border-radius: 10px;
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 10px;
-                    ">
-                        <span style="font-size: 24px;">🎖️</span>
-                        <div style="text-align: left;">
-                            <div style="color: #00ff88; font-weight: 600; font-size: 14px;">Badge Unlocked!</div>
-                            <div style="color: #888; font-size: 11px;">${BADGE_NAME} Badge earned</div>
-                        </div>
+                    <div style="margin-top:20px;padding:12px 20px;background:rgba(0,255,136,0.1);border-radius:10px;display:inline-flex;align-items:center;gap:10px;">
+                        <span style="font-size:22px;">🎖️</span>
+                        <span style="color:#00ff88;font-weight:600;">${BADGE_NAME} Earned!</span>
                     </div>
-                ` : `
-                    <div style="
-                        margin-top: 20px;
-                        padding: 12px 20px;
-                        background: rgba(123,44,191,0.1);
-                        border: 1px solid rgba(123,44,191,0.3);
-                        border-radius: 8px;
-                        display: inline-block;
-                    ">
-                        <span style="color: #888; font-size: 12px;">
-                            🎖️ Complete all tracks to earn the <span style="color:#7b2cbf;font-weight:600;">${BADGE_NAME} Badge</span>
-                        </span>
-                    </div>
-                `}
+                ` : ''}
             </div>
         </div>
         
-        <!-- Track Checklist -->
+        <!-- Track List -->
         <div class="card">
-            <div class="card-header"><h3>📋 Your Track Checklist</h3></div>
-            <div class="card-body">
+            <div class="card-header"><h3>📋 Track Checklist</h3></div>
+            <div class="card-body" style="padding:10px;">
                 ${trackResults.length === 0 ? `
-                    <div style="text-align:center;padding:20px;color:#888;">
-                        <div style="font-size:40px;margin-bottom:10px;">📭</div>
-                        <p>No tracks found for ${sanitize(team)} in ${sanitize(currentWeek)}</p>
-                        <p style="font-size:11px;color:#666;">Check CONFIG.ALBUM_VERSIONS configuration</p>
-                    </div>
+                    <p style="text-align:center;color:#888;padding:20px;">No tracks configured for ${sanitize(team)}</p>
                 ` : trackResults.map((t, i) => `
-                    <div class="track-item ${t.passed ? 'passed' : 'pending'}" style="
-                        display: flex;
-                        align-items: center;
-                        padding: 12px;
-                        margin-bottom: 8px;
-                        background: ${t.passed ? 'rgba(0,255,136,0.05)' : 'rgba(255,255,255,0.02)'};
-                        border-left: 3px solid ${t.passed ? 'var(--success)' : 'var(--danger)'};
-                        border-radius: 6px;
-                    ">
-                        <span class="track-num" style="
-                            width: 24px;
-                            height: 24px;
-                            background: ${t.passed ? 'var(--success)' : '#333'};
-                            color: ${t.passed ? '#000' : '#888'};
-                            border-radius: 50%;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 11px;
-                            font-weight: bold;
-                            margin-right: 12px;
-                            flex-shrink: 0;
-                        ">${i + 1}</span>
-                        <span class="track-name" style="flex:1;color:#fff;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sanitize(t.name)}</span>
-                        <span class="track-status" style="
-                            padding: 4px 10px;
-                            border-radius: 12px;
-                            font-size: 11px;
-                            font-weight: 600;
-                            background: ${t.passed ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)'};
-                            color: ${t.passed ? '#00ff88' : '#ff6b6b'};
-                            flex-shrink: 0;
-                            margin-left: 10px;
-                        ">${t.count}/${REQUIRED} ${t.passed ? '✅' : ''}</span>
+                    <div style="display:flex;align-items:center;padding:10px 12px;margin-bottom:6px;
+                        background:${t.passed ? 'rgba(0,255,136,0.05)' : 'rgba(255,255,255,0.02)'};
+                        border-left:3px solid ${t.passed ? '#00ff88' : '#ff6b6b'};border-radius:6px;">
+                        <span style="width:22px;height:22px;background:${t.passed ? '#00ff88' : '#333'};
+                            color:${t.passed ? '#000' : '#666'};border-radius:50%;display:flex;
+                            align-items:center;justify-content:center;font-size:10px;font-weight:bold;margin-right:10px;">
+                            ${i + 1}
+                        </span>
+                        <span style="flex:1;color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            ${sanitize(t.name)}
+                        </span>
+                        <span style="padding:4px 10px;border-radius:10px;font-size:11px;font-weight:600;margin-left:8px;
+                            background:${t.passed ? 'rgba(0,255,136,0.15)' : 'rgba(255,68,68,0.15)'};
+                            color:${t.passed ? '#00ff88' : '#ff6b6b'};">
+                            ${t.count}/${REQUIRED} ${t.passed ? '✓' : ''}
+                        </span>
                     </div>
                 `).join('')}
             </div>
         </div>
         
-        <!-- TEAM STATUS SECTION -->
-        <div class="card" style="border-color: ${teamAllComplete ? '#00ff88' : '#ff6b6b'}; margin-top: 20px;">
+        <!-- Team Status -->
+        <div class="card" style="margin-top:15px;border-color:${teamAllComplete ? '#00ff88' : '#ff6b6b'}">
             <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                <h3 style="margin:0;">👥 Team ${sanitize(team)} Status</h3>
-                <span style="
-                    padding: 4px 12px;
-                    border-radius: 12px;
-                    font-size: 11px;
-                    font-weight: 600;
-                    background: ${teamAllComplete ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)'};
-                    color: ${teamAllComplete ? '#00ff88' : '#ff6b6b'};
-                    border: 1px solid ${teamAllComplete ? 'rgba(0,255,136,0.3)' : 'rgba(255,68,68,0.3)'};
-                ">${totalMembers === 0 ? '⏳ Loading...' : teamAllComplete ? '✅ Team Passed!' : `❌ ${failedMembers.length} Missing`}</span>
+                <h3 style="margin:0;">👥 ${sanitize(team)}</h3>
+                <span style="padding:4px 12px;border-radius:12px;font-size:11px;
+                    background:${teamAllComplete ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)'};
+                    color:${teamAllComplete ? '#00ff88' : '#ff6b6b'};">
+                    ${totalMembers === 0 ? '⏳ Loading' : teamAllComplete ? '✅ All Passed!' : `❌ ${failedMembers.length} pending`}
+                </span>
             </div>
             <div class="card-body">
-                ${totalMembers === 0 ? `
-                    <div style="text-align:center;padding:20px;color:#888;">
-                        <div style="font-size:30px;margin-bottom:10px;">📊</div>
-                        <p>Team status data not available yet.</p>
-                        <p style="font-size:11px;color:#666;">Complete your tracks and check back later!</p>
-                    </div>
-                ` : `
-                    <!-- Team Progress Bar -->
-                    <div style="margin-bottom: 20px;">
-                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                            <span style="color:#888;font-size:12px;">Team ${CHALLENGE_NAME} Completion</span>
-                            <span style="color:#fff;font-size:12px;font-weight:600;">${teamPassed}/${totalMembers} agents</span>
+                ${totalMembers === 0 ? '<p style="color:#888;text-align:center;">Loading team data...</p>' : `
+                    <!-- Progress Bar -->
+                    <div style="margin-bottom:15px;">
+                        <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:6px;">
+                            <span>Team Progress</span>
+                            <span style="color:#fff;">${teamPassed}/${totalMembers}</span>
                         </div>
-                        <div class="progress-bar" style="height:10px;">
-                            <div class="progress-fill ${teamAllComplete ? 'complete' : ''}" style="
-                                width:${totalMembers > 0 ? (teamPassed/totalMembers)*100 : 0}%;
-                                background:${teamAllComplete ? '#00ff88' : currentTeamColor};
-                            "></div>
+                        <div style="background:#222;border-radius:8px;height:8px;overflow:hidden;">
+                            <div style="height:100%;width:${totalMembers?(teamPassed/totalMembers)*100:0}%;background:${teamAllComplete?'#00ff88':currentTeamColor};"></div>
                         </div>
                     </div>
                     
                     ${failedMembers.length > 0 ? `
-                        <!-- WHO MISSED - IMPORTANT SECTION -->
-                        <div style="
-                            background: rgba(255,68,68,0.08);
-                            border: 1px solid rgba(255,68,68,0.2);
-                            border-radius: 12px;
-                            padding: 15px;
-                            margin-bottom: 15px;
-                        ">
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-                                <span style="font-size:20px;">🚨</span>
-                                <div>
-                                    <div style="color:#ff6b6b;font-weight:600;font-size:14px;">Agents Who Need to Complete ${CHALLENGE_NAME}</div>
-                                    <div style="color:#888;font-size:11px;">Help remind them! The team needs everyone.</div>
-                                </div>
-                            </div>
-                            
-                            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                        <div style="background:rgba(255,68,68,0.08);border-radius:10px;padding:12px;margin-bottom:12px;">
+                            <div style="color:#ff6b6b;font-size:12px;font-weight:600;margin-bottom:8px;">🚨 Need to Complete (${failedMembers.length})</div>
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;">
                                 ${failedMembers.map(m => `
-                                    <div style="
-                                        display: flex;
-                                        align-items: center;
-                                        gap: 8px;
-                                        padding: 8px 12px;
-                                        background: rgba(255,68,68,0.1);
-                                        border: 1px solid rgba(255,68,68,0.2);
-                                        border-radius: 8px;
-                                    ">
-                                        <span style="font-size:14px;">❌</span>
-                                        <span style="color:#fff;font-size:12px;">${sanitize(m.name || m.agentName || 'Agent')}</span>
-                                        ${String(m.agentNo) === String(STATE.agentNo) ? `
-                                            <span style="
-                                                background:#ff6b6b;
-                                                color:#000;
-                                                padding:2px 6px;
-                                                border-radius:4px;
-                                                font-size:9px;
-                                                font-weight:bold;
-                                            ">YOU</span>
-                                        ` : ''}
-                                    </div>
+                                    <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
+                                        background:rgba(255,68,68,0.1);border-radius:6px;font-size:11px;color:#fff;">
+                                        ❌ ${sanitize(m.name)}
+                                        ${String(m.agentNo) === String(STATE.agentNo) ? 
+                                            '<span style="background:#ff6b6b;color:#000;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:bold;">YOU</span>' : ''}
+                                    </span>
                                 `).join('')}
-                            </div>
-                            
-                            <div style="
-                                margin-top: 12px;
-                                padding: 10px;
-                                background: rgba(255,165,0,0.1);
-                                border-radius: 8px;
-                                text-align: center;
-                            ">
-                                <span style="color:#ffa500;font-size:11px;">
-                                    💬 Gently remind them in the team GC or Secret Comms!
-                                </span>
                             </div>
                         </div>
                     ` : ''}
                     
                     ${passedMembers.length > 0 ? `
-                        <!-- Agents Who Completed -->
-                        <div style="
-                            background: rgba(0,255,136,0.05);
-                            border: 1px solid rgba(0,255,136,0.1);
-                            border-radius: 12px;
-                            padding: 15px;
-                        ">
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-                                <span style="font-size:20px;">🎉</span>
-                                <div>
-                                    <div style="color:#00ff88;font-weight:600;font-size:14px;">Agents Who Completed ${CHALLENGE_NAME}</div>
-                                    <div style="color:#888;font-size:11px;">${passedMembers.length} agent${passedMembers.length !== 1 ? 's' : ''} done!</div>
-                                </div>
-                            </div>
-                            
-                            <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                                ${passedMembers.slice(0, 20).map(m => `
-                                    <div style="
-                                        display: flex;
-                                        align-items: center;
-                                        gap: 6px;
-                                        padding: 6px 10px;
-                                        background: rgba(0,255,136,0.1);
-                                        border: 1px solid rgba(0,255,136,0.15);
-                                        border-radius: 6px;
-                                    ">
-                                        <span style="font-size:12px;">✅</span>
-                                        <span style="color:#ccc;font-size:11px;">${sanitize(m.name || m.agentName || 'Agent')}</span>
-                                        ${String(m.agentNo) === String(STATE.agentNo) ? `
-                                            <span style="
-                                                background:#00ff88;
-                                                color:#000;
-                                                padding:2px 6px;
-                                                border-radius:4px;
-                                                font-size:9px;
-                                                font-weight:bold;
-                                            ">YOU</span>
-                                        ` : ''}
-                                    </div>
+                        <div style="background:rgba(0,255,136,0.05);border-radius:10px;padding:12px;">
+                            <div style="color:#00ff88;font-size:12px;font-weight:600;margin-bottom:8px;">🎉 Completed (${passedMembers.length})</div>
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                                ${passedMembers.slice(0, 15).map(m => `
+                                    <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
+                                        background:rgba(0,255,136,0.1);border-radius:6px;font-size:11px;color:#ccc;">
+                                        ✅ ${sanitize(m.name)}
+                                        ${String(m.agentNo) === String(STATE.agentNo) ? 
+                                            '<span style="background:#00ff88;color:#000;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:bold;">YOU</span>' : ''}
+                                    </span>
                                 `).join('')}
-                                ${passedMembers.length > 20 ? `
-                                    <div style="color:#888;font-size:11px;padding:6px;">
-                                        +${passedMembers.length - 20} more...
-                                    </div>
-                                ` : ''}
+                                ${passedMembers.length > 15 ? `<span style="color:#888;font-size:11px;padding:5px;">+${passedMembers.length - 15} more</span>` : ''}
                             </div>
                         </div>
                     ` : ''}
-                `}
-            </div>
-        </div>
-        
-        <!-- Team Status Note -->
-        <div class="card" style="background: rgba(255,255,255,0.02); margin-top: 15px;">
-            <div class="card-body" style="text-align:center;padding:20px;">
-                ${teamAllComplete ? `
-                    <div style="font-size:40px;margin-bottom:10px;">🎊</div>
-                    <p style="color:#00ff88;font-size:14px;font-weight:600;margin:0 0 5px 0;">
-                        Amazing! Your entire team completed the ${CHALLENGE_NAME} Challenge!
-                    </p>
-                    <p style="color:#888;font-size:12px;margin:0;">
-                        This mission is PASSED! 🎖️
-                    </p>
-                ` : totalMembers === 0 ? `
-                    <p style="color:#888;font-size:12px;margin:0;">
-                        💜 Complete your tracks first, then help your teammates!
-                    </p>
-                ` : `
-                    <p style="color:#888;font-size:12px;margin:0;">
-                        💜 Help your teammates complete this challenge!<br>
-                        <span style="color:#ff6b6b;font-weight:600;">${failedMembers.length} agent${failedMembers.length !== 1 ? 's' : ''}</span> still need${failedMembers.length === 1 ? 's' : ''} to finish for the team to pass.
-                    </p>
                 `}
             </div>
         </div>
