@@ -116,7 +116,7 @@ const CONFIG = {
         RELEASE_DATE: "2026-03-20T13:00:00+09:00",
         SHOW_COUNTDOWN: true,
         BTS_LOGO: "https://2026bts.com/images/logo.png",
-        ALBUM_COVER: "https://2026bts.com/images/cover.png"
+        ALBUM_COVER: "https://github.com/hbot7875-gif/btscomebackmission/blob/4f6fef44395ff9ca1609131af105a19db01e4e19/team%20pfps/cover.png"
     }
 }; // ✅ CONFIG object properly closed here
 
