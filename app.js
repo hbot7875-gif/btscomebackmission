@@ -6387,11 +6387,7 @@ async function renderAlbum2x() {
             </div>
         </div>
         
-        <!-- Debug Info (remove in production) -->
-        <div style="margin-top:20px;padding:15px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:10px;color:#666;">
-            <details>
-                <summary style="cursor:pointer;color:#888;">🔧 Debug Info</summary>
-                <div style="margin-top:10px;white-space:pre-wrap;">
+        
 Week: ${currentWeek}
 Team: ${team}
 Total Members: ${totalMembers}
