@@ -7441,7 +7441,7 @@ body {
         font-size: 9px;
     }
 }
-/* ==================== BTS OFFICIAL COUNTDOWN ==================== */
+/* ==================== BTS COUNTDOWN (Separate from login) ==================== */
 
 .bts-countdown-wrap {
     text-align: center;
@@ -7459,14 +7459,16 @@ body {
     gap: 12px;
 }
 
-/* ✅ BIGGER LOGO */
-.bts-logo {
+/* ✅ NEW CLASS - won't affect login page */
+.bts-countdown-logo {
     width: 80px;
     height: auto;
     opacity: 0.95;
+    /* No background, border, or flex - just the image */
 }
 
-.bts-logo-text {
+/* Text fallback for countdown */
+.bts-countdown-text {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 28px;
     font-weight: 700;
@@ -7498,21 +7500,17 @@ body {
 }
 
 .bts-label {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-weight: 400;
     font-size: 10px;
-    line-height: 1;
     color: rgba(255, 255, 255, 0.5);
     text-transform: lowercase;
 }
 
 .bts-released {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-weight: 600;
     font-size: 20px;
     color: #fff;
     letter-spacing: 0.1em;
-    margin-top: 8px;
 }
 
 .bts-credit {
@@ -7522,13 +7520,12 @@ body {
     letter-spacing: 0.05em;
 }
 
-/* Mobile */
 @media (max-width: 480px) {
     .bts-countdown-wrap {
         padding: 12px 15px;
     }
     
-    .bts-logo {
+    .bts-countdown-logo {
         width: 60px;
     }
     
@@ -7537,10 +7534,6 @@ body {
     }
     
     .bts-number {
-        font-size: 22px;
-    }
-    
-    .bts-logo-text {
         font-size: 22px;
     }
 }
