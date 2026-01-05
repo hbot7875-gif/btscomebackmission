@@ -6108,135 +6108,88 @@ async function renderGoals() {
     }
 }
 
+// ==================== ALBUM CHALLENGE - FRONTEND FIX ====================
 async function renderAlbum2x() {
     const container = $('album2x-content');
-    
-    // ✅ DEBUG: Check all STATE values
-    console.log('=== ALBUM 2X DEBUG START ===');
-    console.log('STATE:', STATE);
-    console.log('STATE.data:', STATE.data);
-    console.log('STATE.week:', STATE.week);
-    console.log('STATE.agentNo:', STATE.agentNo);
-    
     const team = STATE.data?.profile?.team;
     const currentWeek = STATE.week || 'Week 5';
-    
-    console.log('Team:', team);
-    console.log('Current Week:', currentWeek);
-    
-    // ✅ Check if team is undefined
-    if (!team) {
-        container.innerHTML = `
-            <div class="card" style="border-color: #ff6b6b;">
-                <div class="card-body" style="text-align:center;padding:30px;">
-                    <div style="font-size:50px;margin-bottom:15px;">⚠️</div>
-                    <h3 style="color:#ff6b6b;">Team Not Found</h3>
-                    <p style="color:#888;">Your profile doesn't have a team assigned.</p>
-                    <p style="color:#666;font-size:12px;">STATE.data.profile: ${JSON.stringify(STATE.data?.profile)}</p>
-                </div>
-            </div>
-        `;
-        return;
-    }
     
     const REQUIRED = CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS;
     const CHALLENGE_NAME = CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME;
     const BADGE_NAME = CONFIG.ALBUM_CHALLENGE.BADGE_NAME;
     
+    // ✅ Get correct tracks for this week
     const allTeamTracks = CONFIG.getTeamAlbumTracksForWeek(currentWeek);
     const teamTracks = allTeamTracks[team] || [];
     const albumName = CONFIG.TEAMS[team]?.album || team;
     const currentTeamColor = CONFIG.TEAMS[team]?.color || '#7b2cbf';
     
-    console.log('Team Tracks:', teamTracks);
-    console.log('Album Name:', albumName);
+    console.log('=== ALBUM 2X DEBUG ===');
+    console.log('Week:', currentWeek, '| Team:', team);
+    console.log('Config Tracks:', teamTracks);
     
-    // ✅ Show loading state first
-    container.innerHTML = `
-        <div class="card">
-            <div class="card-body" style="text-align:center;padding:30px;">
-                <div style="font-size:30px;margin-bottom:10px;">⏳</div>
-                <p style="color:#888;">Loading ${CHALLENGE_NAME} data...</p>
-            </div>
-        </div>
-    `;
-    
-    // ✅ Try API call with detailed error handling
+    // ✅ Fetch data with agentNo to get user's tracks
     let userTracks = {};
     let teamMembersStatus = [];
     let teamPassed = 0, teamFailed = 0, totalMembers = 0;
-    let apiError = null;
-    let apiResponse = null;
     
     try {
-        console.log('Making API call with:', {
-            action: 'getAlbum2xStatus',
-            week: currentWeek,
-            team: team,
-            agentNo: STATE.agentNo
-        });
-        
-        apiResponse = await api('getAlbum2xStatus', { 
+        const album2xData = await api('getAlbum2xStatus', { 
             week: currentWeek, 
             team: team,
-            agentNo: STATE.agentNo
+            agentNo: STATE.agentNo  // ✅ Pass agentNo to get user tracks
         });
         
-        console.log('API Response (raw):', apiResponse);
-        console.log('API Response (stringified):', JSON.stringify(apiResponse, null, 2));
+        console.log('API Response:', album2xData);
         
-        if (apiResponse) {
-            userTracks = apiResponse.userTracks || {};
-            console.log('User Tracks:', userTracks);
-            
-            const teamData = apiResponse.teams?.[team];
-            console.log('Team Data for', team, ':', teamData);
-            
-            if (teamData) {
-                teamMembersStatus = teamData.members || [];
-                teamPassed = teamData.passed || 0;
-                teamFailed = teamData.failed || 0;
-                totalMembers = teamData.totalMembers || teamMembersStatus.length;
-            } else {
-                console.log('⚠️ No team data found for:', team);
-                console.log('Available teams:', Object.keys(apiResponse.teams || {}));
-            }
-        }
+        // ✅ Get user's track data from response
+        userTracks = album2xData.userTracks || {};
+        
+        const teamData = album2xData.teams?.[team] || {};
+        teamMembersStatus = teamData.members || [];
+        teamPassed = teamData.passed || 0;
+        teamFailed = teamData.failed || 0;
+        totalMembers = teamData.totalMembers || teamMembersStatus.length;
     } catch (e) {
         console.error('API Error:', e);
-        apiError = e.message || String(e);
     }
     
-    console.log('Final values:');
-    console.log('- userTracks:', userTracks);
-    console.log('- teamMembersStatus:', teamMembersStatus);
-    console.log('- totalMembers:', totalMembers);
-    console.log('- teamPassed:', teamPassed);
-    console.log('- teamFailed:', teamFailed);
+    console.log('User Tracks:', userTracks);
     
-    // ✅ Calculate track completion
-    let completedCount = 0;
-    const trackResults = teamTracks.map((track, i) => {
-        let count = 0;
+    // ✅ Smart track matching function
+    function getTrackCount(trackName) {
+        const track = String(trackName).trim();
         
-        // Try exact match
-        if (userTracks[track] !== undefined) {
-            count = userTracks[track];
-        } else {
-            // Try case-insensitive match
-            for (const key in userTracks) {
-                if (key.toLowerCase().trim() === String(track).toLowerCase().trim()) {
-                    count = userTracks[key];
-                    break;
-                }
+        // Exact match
+        if (userTracks[track] !== undefined) return userTracks[track];
+        
+        // Case-insensitive match
+        const trackLower = track.toLowerCase();
+        for (const key in userTracks) {
+            if (key.toLowerCase() === trackLower) {
+                return userTracks[key];
             }
         }
         
-        count = parseInt(count, 10) || 0;
+        // Partial match (handles slight variations)
+        for (const key in userTracks) {
+            const keyLower = key.toLowerCase();
+            if (keyLower.includes(trackLower) || trackLower.includes(keyLower)) {
+                console.log(`Fuzzy match: "${track}" ≈ "${key}"`);
+                return userTracks[key];
+            }
+        }
+        
+        return 0;
+    }
+    
+    // ✅ Calculate completion
+    let completedCount = 0;
+    const trackResults = teamTracks.map((track, i) => {
+        const count = getTrackCount(track);
         const passed = count >= REQUIRED;
         if (passed) completedCount++;
-        
-        console.log(`Track ${i+1}: "${track}" = ${count}/${REQUIRED} ${passed ? '✅' : '❌'}`);
+        console.log(`${i+1}. "${track}" = ${count}/${REQUIRED} ${passed ? '✅' : '❌'}`);
         return { name: track, count, passed };
     });
     
@@ -6247,29 +6200,8 @@ async function renderAlbum2x() {
     const failedMembers = teamMembersStatus.filter(m => m.passed !== true);
     const teamAllComplete = failedMembers.length === 0 && totalMembers > 0;
     
-    // ✅ RENDER with debug info
+    // ✅ RENDER UI
     container.innerHTML = `
-        <!-- Debug Panel (remove in production) -->
-        <div class="card" style="background:rgba(255,165,0,0.1);border:1px dashed #ffa500;margin-bottom:15px;">
-            <div class="card-header" style="cursor:pointer;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
-                <h3 style="margin:0;color:#ffa500;font-size:14px;">🔧 Debug Info (click to toggle)</h3>
-            </div>
-            <div class="card-body" style="display:none;font-size:11px;color:#ffa500;max-height:300px;overflow:auto;">
-                <p><strong>Week:</strong> ${currentWeek}</p>
-                <p><strong>Team:</strong> ${team}</p>
-                <p><strong>Agent:</strong> ${STATE.agentNo}</p>
-                <p><strong>API Error:</strong> ${apiError || 'None'}</p>
-                <p><strong>Total Members:</strong> ${totalMembers}</p>
-                <p><strong>Passed:</strong> ${teamPassed} | <strong>Failed:</strong> ${teamFailed}</p>
-                <hr style="border-color:#ffa500;opacity:0.3;">
-                <p><strong>User Tracks (${Object.keys(userTracks).length}):</strong></p>
-                <pre style="background:#222;padding:10px;border-radius:5px;overflow:auto;max-height:150px;">${JSON.stringify(userTracks, null, 2)}</pre>
-                <hr style="border-color:#ffa500;opacity:0.3;">
-                <p><strong>API Response:</strong></p>
-                <pre style="background:#222;padding:10px;border-radius:5px;overflow:auto;max-height:150px;">${JSON.stringify(apiResponse, null, 2)}</pre>
-            </div>
-        </div>
-        
         <!-- Header Info -->
         <div class="card" style="background:rgba(123,44,191,0.1);border-left:3px solid #7b2cbf;margin-bottom:20px;">
             <div class="card-body" style="display:flex;gap:15px;padding:15px;">
@@ -6303,6 +6235,12 @@ async function renderAlbum2x() {
                 <div style="background:#222;border-radius:10px;height:12px;max-width:280px;margin:0 auto;overflow:hidden;">
                     <div style="height:100%;width:${pct}%;background:${allComplete ? '#00ff88' : currentTeamColor};transition:width 0.3s;"></div>
                 </div>
+                ${allComplete ? `
+                    <div style="margin-top:20px;padding:12px 20px;background:rgba(0,255,136,0.1);border-radius:10px;display:inline-flex;align-items:center;gap:10px;">
+                        <span style="font-size:22px;">🎖️</span>
+                        <span style="color:#00ff88;font-weight:600;">${BADGE_NAME} Earned!</span>
+                    </div>
+                ` : ''}
             </div>
         </div>
         
@@ -6311,7 +6249,7 @@ async function renderAlbum2x() {
             <div class="card-header"><h3>📋 Track Checklist</h3></div>
             <div class="card-body" style="padding:10px;">
                 ${trackResults.length === 0 ? `
-                    <p style="text-align:center;color:#888;padding:20px;">No tracks configured for ${sanitize(team)} in ${sanitize(currentWeek)}</p>
+                    <p style="text-align:center;color:#888;padding:20px;">No tracks configured for ${sanitize(team)}</p>
                 ` : trackResults.map((t, i) => `
                     <div style="display:flex;align-items:center;padding:10px 12px;margin-bottom:6px;
                         background:${t.passed ? 'rgba(0,255,136,0.05)' : 'rgba(255,255,255,0.02)'};
@@ -6335,30 +6273,17 @@ async function renderAlbum2x() {
         </div>
         
         <!-- Team Status -->
-        <div class="card" style="margin-top:15px;border-color:${teamAllComplete ? '#00ff88' : totalMembers === 0 ? '#ffa500' : '#ff6b6b'}">
+        <div class="card" style="margin-top:15px;border-color:${teamAllComplete ? '#00ff88' : '#ff6b6b'}">
             <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
                 <h3 style="margin:0;">👥 ${sanitize(team)}</h3>
                 <span style="padding:4px 12px;border-radius:12px;font-size:11px;
-                    background:${teamAllComplete ? 'rgba(0,255,136,0.1)' : totalMembers === 0 ? 'rgba(255,165,0,0.1)' : 'rgba(255,68,68,0.1)'};
-                    color:${teamAllComplete ? '#00ff88' : totalMembers === 0 ? '#ffa500' : '#ff6b6b'};">
-                    ${totalMembers === 0 ? '⚠️ No Data' : teamAllComplete ? '✅ All Passed!' : `❌ ${failedMembers.length} pending`}
+                    background:${teamAllComplete ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)'};
+                    color:${teamAllComplete ? '#00ff88' : '#ff6b6b'};">
+                    ${totalMembers === 0 ? '⏳ Loading' : teamAllComplete ? '✅ All Passed!' : `❌ ${failedMembers.length} pending`}
                 </span>
             </div>
             <div class="card-body">
-                ${totalMembers === 0 ? `
-                    <div style="text-align:center;padding:20px;">
-                        <p style="color:#ffa500;margin-bottom:10px;">⚠️ No team data found</p>
-                        <p style="color:#888;font-size:12px;">
-                            Possible reasons:<br>
-                            • No data for "${currentWeek}" in the sheet<br>
-                            • Team name mismatch ("${team}")<br>
-                            • API not returning userTracks
-                        </p>
-                        <p style="color:#666;font-size:11px;margin-top:10px;">
-                            Check the Debug Info panel above ☝️
-                        </p>
-                    </div>
-                ` : `
+                ${totalMembers === 0 ? '<p style="color:#888;text-align:center;">Loading team data...</p>' : `
                     <!-- Progress Bar -->
                     <div style="margin-bottom:15px;">
                         <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:6px;">
@@ -6406,8 +6331,6 @@ async function renderAlbum2x() {
             </div>
         </div>
     `;
-    
-    console.log('=== ALBUM 2X DEBUG END ===');
 }
 // ==================== RANKINGS ====================
 async function renderRankings() {
