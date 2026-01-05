@@ -6117,7 +6117,7 @@ async function renderAlbum2x() {
     const CHALLENGE_NAME = CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME;
     const BADGE_NAME = CONFIG.ALBUM_CHALLENGE.BADGE_NAME;
     
-    // ✅ Get correct tracks for this week
+    // Get correct tracks for this week
     const allTeamTracks = CONFIG.getTeamAlbumTracksForWeek(currentWeek);
     const teamTracks = allTeamTracks[team] || [];
     const albumName = CONFIG.TEAMS[team]?.album || team;
@@ -6125,9 +6125,10 @@ async function renderAlbum2x() {
     
     console.log('=== ALBUM 2X DEBUG ===');
     console.log('Week:', currentWeek, '| Team:', team);
-    console.log('Config Tracks:', teamTracks);
+    console.log('Required:', REQUIRED);
+    console.log('Team Tracks:', teamTracks);
     
-    // Show loading state
+    // Show loading
     container.innerHTML = `
         <div style="text-align:center;padding:40px;">
             <div style="font-size:32px;margin-bottom:10px;">⏳</div>
@@ -6136,8 +6137,9 @@ async function renderAlbum2x() {
     `;
     
     let userTracks = {};
-    let teamMembersStatus = [];
-    let teamPassed = 0, teamFailed = 0, totalMembers = 0;
+    let passedMembers = [];
+    let failedMembers = [];
+    let totalMembers = 0;
     
     try {
         const album2xData = await api('getAlbum2xStatus', { 
@@ -6147,100 +6149,74 @@ async function renderAlbum2x() {
         });
         
         console.log('API Response:', album2xData);
-        console.log('API Response teams:', album2xData.teams);
-        console.log('API Response userTracks:', album2xData.userTracks);
         
-        // ✅ Get user's track data
+        // Get user's track data
         userTracks = album2xData.userTracks || {};
         
-        // ✅ FALLBACK: If API doesn't return userTracks, use STATE.data
+        // Fallback to STATE.data if needed
         if (Object.keys(userTracks).length === 0) {
-            console.log('⚠️ No userTracks from API, using STATE.data fallback');
             userTracks = STATE.data?.album2xStatus?.tracks || {};
         }
         
-        // ✅ Get team data
+        // Get team members (backend now calculates passed correctly!)
         const teamData = album2xData.teams?.[team] || {};
-        console.log('Team Data for', team, ':', teamData);
+        const allMembers = teamData.members || [];
         
-        teamMembersStatus = teamData.members || [];
-        teamPassed = teamData.passed || 0;
-        teamFailed = teamData.failed || 0;
-        totalMembers = teamData.totalMembers || teamMembersStatus.length || 0;
+        // ✅ Simple filter - backend already calculated correctly
+        passedMembers = allMembers.filter(m => m.passed === true);
+        failedMembers = allMembers.filter(m => m.passed !== true);
+        totalMembers = allMembers.length;
         
-        console.log('Team Members Status:', teamMembersStatus);
-        console.log('Passed:', teamPassed, 'Failed:', teamFailed, 'Total:', totalMembers);
+        console.log('Passed:', passedMembers.length);
+        console.log('Failed:', failedMembers.length);
+        console.log('Total:', totalMembers);
         
     } catch (e) {
         console.error('API Error:', e);
         userTracks = STATE.data?.album2xStatus?.tracks || {};
     }
     
-    console.log('Final User Tracks:', userTracks);
-    
-    // ✅ Smart track matching function
+    // Smart track matching
     function getTrackCount(trackName) {
         const track = String(trackName).trim();
         
         // Exact match
-        if (userTracks[track] !== undefined) return userTracks[track];
+        if (userTracks[track] !== undefined) return Number(userTracks[track]) || 0;
         
-        // Case-insensitive match
+        // Case-insensitive
         const trackLower = track.toLowerCase();
         for (const key in userTracks) {
             if (key.toLowerCase() === trackLower) {
-                return userTracks[key];
-            }
-        }
-        
-        // Normalized match
-        const normalize = (s) => s.toLowerCase()
-            .replace(/[^\w\s]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-        
-        const trackNorm = normalize(track);
-        for (const key in userTracks) {
-            if (normalize(key) === trackNorm) {
-                return userTracks[key];
+                return Number(userTracks[key]) || 0;
             }
         }
         
         // Partial match
         for (const key in userTracks) {
-            const keyLower = key.toLowerCase();
-            if (keyLower.includes(trackLower) || trackLower.includes(keyLower)) {
-                return userTracks[key];
+            if (key.toLowerCase().includes(trackLower) || trackLower.includes(key.toLowerCase())) {
+                return Number(userTracks[key]) || 0;
             }
         }
         
         return 0;
     }
     
-    // ✅ Calculate completion
+    // Calculate YOUR progress
     let completedCount = 0;
     const trackResults = teamTracks.map((track, i) => {
         const count = getTrackCount(track);
         const passed = count >= REQUIRED;
         if (passed) completedCount++;
-        console.log(`${i+1}. "${track}" = ${count}/${REQUIRED} ${passed ? '✅' : '❌'}`);
         return { name: track, count, passed };
     });
     
-    const allComplete = completedCount === trackResults.length && trackResults.length > 0;
+    const myPassed = completedCount === trackResults.length && trackResults.length > 0;
     const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
+    const teamAllComplete = failedMembers.length === 0 && totalMembers > 0;
     
-    // ✅ FIX: Properly filter passed/failed members
-    const passedMembers = teamMembersStatus.filter(m => m.passed === true);
-    const failedMembers = teamMembersStatus.filter(m => m.passed === false || m.passed !== true);
-    const teamAllComplete = passedMembers.length === totalMembers && totalMembers > 0;
-    
-    console.log('Passed Members:', passedMembers);
-    console.log('Failed Members:', failedMembers);
-    
-    // ✅ RENDER UI
+    // ✅ RENDER
     container.innerHTML = `
-        <!-- Header Info -->
+        <!-- Header -->
         <div class="card" style="background:rgba(123,44,191,0.1);border-left:3px solid #7b2cbf;margin-bottom:20px;">
             <div class="card-body" style="display:flex;gap:15px;padding:15px;">
                 <div style="font-size:24px;">🎵</div>
@@ -6255,25 +6231,25 @@ async function renderAlbum2x() {
         </div>
         
         <!-- Your Progress -->
-        <div class="card" style="border-color:${allComplete ? '#00ff88' : currentTeamColor}">
+        <div class="card" style="border-color:${myPassed ? '#00ff88' : currentTeamColor}">
             <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
                 <h3 style="margin:0;">📊 Your Progress</h3>
                 <span style="padding:4px 12px;border-radius:12px;font-size:11px;
-                    background:${allComplete ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};
-                    color:${allComplete ? '#00ff88' : '#ffa500'};">
-                    ${allComplete ? '✅ Complete' : '⏳ In Progress'}
+                    background:${myPassed ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};
+                    color:${myPassed ? '#00ff88' : '#ffa500'};">
+                    ${myPassed ? '✅ Complete' : '⏳ In Progress'}
                 </span>
             </div>
             <div class="card-body" style="text-align:center;padding:25px;">
-                <div style="font-size:50px;margin-bottom:15px;">${allComplete ? '🎉' : '⏳'}</div>
-                <div style="font-size:42px;font-weight:700;color:${allComplete ? '#00ff88' : '#7b2cbf'}">
+                <div style="font-size:50px;margin-bottom:15px;">${myPassed ? '🎉' : '⏳'}</div>
+                <div style="font-size:42px;font-weight:700;color:${myPassed ? '#00ff88' : '#7b2cbf'}">
                     ${completedCount}/${trackResults.length}
                 </div>
                 <p style="color:#888;margin:5px 0 15px;">tracks completed</p>
                 <div style="background:#222;border-radius:10px;height:12px;max-width:280px;margin:0 auto;overflow:hidden;">
-                    <div style="height:100%;width:${pct}%;background:${allComplete ? '#00ff88' : currentTeamColor};transition:width 0.3s;"></div>
+                    <div style="height:100%;width:${pct}%;background:${myPassed ? '#00ff88' : currentTeamColor};transition:width 0.3s;"></div>
                 </div>
-                ${allComplete ? `
+                ${myPassed ? `
                     <div style="margin-top:20px;padding:12px 20px;background:rgba(0,255,136,0.1);border-radius:10px;display:inline-flex;align-items:center;gap:10px;">
                         <span style="font-size:22px;">🎖️</span>
                         <span style="color:#00ff88;font-weight:600;">${BADGE_NAME} Earned!</span>
@@ -6324,8 +6300,7 @@ async function renderAlbum2x() {
                 ${totalMembers === 0 ? `
                     <p style="color:#888;text-align:center;padding:20px;">
                         <span style="font-size:24px;">📊</span><br><br>
-                        Loading team data...<br>
-                        <span style="font-size:11px;color:#666;">If this persists, try refreshing the page</span>
+                        Loading team data...
                     </p>
                 ` : `
                     <!-- Progress Bar -->
@@ -6344,8 +6319,8 @@ async function renderAlbum2x() {
                             <div style="color:#ff6b6b;font-size:12px;font-weight:600;margin-bottom:8px;">
                                 🚨 Need to Complete (${failedMembers.length})
                             </div>
-                            <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                                ${failedMembers.map(m => `
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;">
+                                ${failedMembers.slice(0, 50).map(m => `
                                     <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
                                         background:rgba(255,68,68,0.1);border-radius:6px;font-size:11px;color:#fff;">
                                         ❌ ${sanitize(m.name || m.agentNo)}
@@ -6353,6 +6328,7 @@ async function renderAlbum2x() {
                                             '<span style="background:#ff6b6b;color:#000;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:bold;">YOU</span>' : ''}
                                     </span>
                                 `).join('')}
+                                ${failedMembers.length > 50 ? `<span style="color:#888;font-size:11px;padding:5px;">+${failedMembers.length - 50} more</span>` : ''}
                             </div>
                         </div>
                     ` : ''}
@@ -6362,8 +6338,8 @@ async function renderAlbum2x() {
                             <div style="color:#00ff88;font-size:12px;font-weight:600;margin-bottom:8px;">
                                 🎉 Completed (${passedMembers.length})
                             </div>
-                            <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                                ${passedMembers.slice(0, 20).map(m => `
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;">
+                                ${passedMembers.slice(0, 50).map(m => `
                                     <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
                                         background:rgba(0,255,136,0.1);border-radius:6px;font-size:11px;color:#ccc;">
                                         ✅ ${sanitize(m.name || m.agentNo)}
@@ -6371,31 +6347,18 @@ async function renderAlbum2x() {
                                             '<span style="background:#00ff88;color:#000;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:bold;">YOU</span>' : ''}
                                     </span>
                                 `).join('')}
-                                ${passedMembers.length > 20 ? `
-                                    <span style="color:#888;font-size:11px;padding:5px;">+${passedMembers.length - 20} more</span>
-                                ` : ''}
+                                ${passedMembers.length > 50 ? `<span style="color:#888;font-size:11px;padding:5px;">+${passedMembers.length - 50} more</span>` : ''}
                             </div>
                         </div>
                     ` : `
                         <div style="text-align:center;padding:20px;color:#888;">
                             <span style="font-size:32px;">🎯</span>
-                            <p style="margin:10px 0 0;">No team members have completed the challenge yet.</p>
-                            <p style="font-size:11px;color:#666;">Be the first to complete it!</p>
+                            <p style="margin:10px 0 0;">No team members have completed yet.</p>
+                            <p style="font-size:11px;color:#666;">Be the first!</p>
                         </div>
                     `}
                 `}
             </div>
-        </div>
-        
-        
-Week: ${currentWeek}
-Team: ${team}
-Total Members: ${totalMembers}
-Passed: ${passedMembers.length}
-Failed: ${failedMembers.length}
-Your Tracks: ${JSON.stringify(userTracks, null, 2)}
-                </div>
-            </details>
         </div>
     `;
 }
