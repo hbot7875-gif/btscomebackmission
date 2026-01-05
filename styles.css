@@ -7446,52 +7446,52 @@ body {
 .bts-countdown-wrap {
     text-align: center;
     margin-bottom: 15px;
-    padding: 12px 15px;
+    padding: 15px 20px;
     background: rgba(0, 0, 0, 0.4);
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .bts-ticker {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
 }
 
+/* ✅ BIGGER LOGO */
 .bts-logo {
-    width: 35px;
+    width: 80px;
     height: auto;
-    opacity: 0.9;
+    opacity: 0.95;
 }
 
-/* Text fallback if image fails */
 .bts-logo-text {
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    font-size: 20px;
+    font-size: 28px;
     font-weight: 700;
     color: #fff;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
 }
 
 .bts-countdown {
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    gap: 15px;
+    gap: 20px;
 }
 
 .bts-time-unit {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
 }
 
 .bts-number {
     font-family: 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
     font-weight: 500;
-    font-size: 22px;
+    font-size: 28px;
     line-height: 1;
     color: #fff;
     letter-spacing: 0.02em;
@@ -7500,7 +7500,7 @@ body {
 .bts-label {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-weight: 400;
-    font-size: 9px;
+    font-size: 10px;
     line-height: 1;
     color: rgba(255, 255, 255, 0.5);
     text-transform: lowercase;
@@ -7509,35 +7509,38 @@ body {
 .bts-released {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 20px;
     color: #fff;
     letter-spacing: 0.1em;
-    margin-top: 5px;
+    margin-top: 8px;
 }
 
 .bts-credit {
     font-size: 8px;
     color: rgba(255, 255, 255, 0.25);
-    margin-top: 8px;
+    margin-top: 10px;
     letter-spacing: 0.05em;
 }
 
 /* Mobile */
 @media (max-width: 480px) {
     .bts-countdown-wrap {
-        padding: 10px 12px;
+        padding: 12px 15px;
     }
     
     .bts-logo {
-        width: 28px;
+        width: 60px;
     }
     
     .bts-countdown {
-        gap: 12px;
+        gap: 15px;
     }
     
     .bts-number {
-        font-size: 18px;
+        font-size: 22px;
+    }
+    
+    .bts-logo-text {
+        font-size: 22px;
     }
 }
-/* ==================== END OF STYLES ==================== */
