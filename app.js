@@ -6909,35 +6909,18 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
     `;
 }
 
-// ==================== SONG OF THE DAY (WITH 2 CHANCES - FIXED) ====================
+// ==================== SONG OF THE DAY (FIXED) ====================
 async function renderSongOfDay() {
-    // Create page container if needed
-    let page = $('page-song-of-day');
-    if (!page) {
-        const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
-        if (mainContent) {
-            page = document.createElement('section');
-            page.id = 'page-song-of-day';
-            page.className = 'page active';
-            page.innerHTML = '<div id="song-of-day-content"></div>';
-            mainContent.appendChild(page);
-        }
-    } else {
-        page.classList.add('active');
-    }
-    
-    let container = $('song-of-day-content');
-    if (!container && page) {
-        page.innerHTML = '<div id="song-of-day-content"></div>';
-        container = $('song-of-day-content');
-    }
+    // Get the content container (NOT the page, just the content div)
+    const container = $('song-of-day-content');
     
     if (!container) {
+        console.error('❌ song-of-day-content container not found');
         showToast('Failed to load page', 'error');
         return;
     }
     
-    // ✅ GET TODAY'S DATE FOR DISPLAY
+    // Get today's date for display
     const today = new Date();
     const dateDisplay = today.toLocaleDateString('en-US', { 
         weekday: 'long', 
@@ -6951,6 +6934,7 @@ async function renderSongOfDay() {
         year: 'numeric'
     });
     
+    // Show loading state
     container.innerHTML = `
         <div style="text-align:center;padding:40px;color:#888;">
             <div class="loading-spinner" style="
@@ -6968,11 +6952,12 @@ async function renderSongOfDay() {
     `;
     
     try {
-        // ✅ IMPORTANT: Pass agentNo to get user state from server
+        // Fetch song data from API
         const data = await api('getSongOfDay', { agentNo: STATE.agentNo });
         
-        console.log('🎬 Song of Day data:', data);
+        console.log('🎬 Song of Day API response:', data);
         
+        // Handle no song case
         if (!data || !data.success || !data.song) {
             container.innerHTML = `
                 <div class="card" style="text-align:center;padding:40px;">
@@ -6999,36 +6984,33 @@ async function renderSongOfDay() {
         const song = data.song;
         const todayStr = today.toDateString();
         
-        // ✅ STORAGE KEYS FOR 2 CHANCES
+        // Storage keys for attempts tracking
         const attemptsKey = 'song_attempts_' + STATE.agentNo + '_' + todayStr;
         const correctKey = 'song_correct_' + STATE.agentNo + '_' + todayStr;
         
-        // ✅ Get from localStorage first (using let so we can update)
+        // Get attempt data (sync with server if available)
         let attempts = parseInt(localStorage.getItem(attemptsKey) || '0');
         let wasCorrect = localStorage.getItem(correctKey) === 'true';
         
-        // ✅ SYNC WITH SERVER STATE - This is the key fix!
+        // Sync with server state if provided
         if (data.userAttempts !== undefined) {
             attempts = data.userAttempts;
             localStorage.setItem(attemptsKey, attempts.toString());
-            console.log('📊 Synced attempts from server:', attempts);
         }
         if (data.userCorrect !== undefined) {
             wasCorrect = data.userCorrect;
             localStorage.setItem(correctKey, wasCorrect ? 'true' : 'false');
-            console.log('📊 Synced correct status from server:', wasCorrect);
         }
         
         const maxAttempts = 2;
         const attemptsRemaining = Math.max(0, maxAttempts - attempts);
-        
-        // ✅ CHECK IF USER CAN STILL ANSWER
         const canAnswer = !wasCorrect && attempts < maxAttempts;
         
         console.log('🎬 SOTD State:', { attempts, wasCorrect, canAnswer, attemptsRemaining });
         
+        // Render the main content
         container.innerHTML = `
-            <!-- ✅ PROMINENT DATE HEADER -->
+            <!-- Date Header -->
             <div style="
                 background: linear-gradient(135deg, #ff000022, #ff000011);
                 border: 1px solid #ff000044;
@@ -7040,7 +7022,6 @@ async function renderSongOfDay() {
                 <div style="font-size:40px;margin-bottom:10px;">🎬</div>
                 <h2 style="color:#fff;margin:0 0 8px 0;">Song of the Day</h2>
                 
-                <!-- ✅ DATE BADGE -->
                 <div style="
                     display: inline-flex;
                     align-items: center;
@@ -7100,7 +7081,6 @@ async function renderSongOfDay() {
                 <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
                     <h3 style="margin:0;">${!canAnswer ? '📋 Your Result' : '🔗 Your Answer'}</h3>
                     ${canAnswer ? `
-                        <!-- ✅ ATTEMPTS REMAINING BADGE -->
                         <div style="
                             display: flex;
                             align-items: center;
@@ -7140,7 +7120,6 @@ async function renderSongOfDay() {
                                     : `You used all ${maxAttempts} chances. Better luck tomorrow!`}
                             </div>
                             
-                            <!-- ✅ ATTEMPTS USED INDICATOR -->
                             ${!wasCorrect ? `
                                 <div style="
                                     margin-top: 15px;
@@ -7181,7 +7160,6 @@ async function renderSongOfDay() {
                                     ` : ''}
                                 </div>
                                 
-                                <!-- Watch on YouTube Button -->
                                 ${song.youtubeId ? `
                                     <div style="
                                         margin-top:20px;
@@ -7223,7 +7201,6 @@ async function renderSongOfDay() {
                     ` : `
                         <!-- Submit Answer Form -->
                         
-                        <!-- ✅ PREVIOUS ATTEMPT WARNING (if this is 2nd attempt) -->
                         ${attempts === 1 ? `
                             <div style="
                                 padding: 12px;
@@ -7302,7 +7279,6 @@ async function renderSongOfDay() {
                             <span>Submit Answer</span>
                         </button>
                         
-                        <!-- ✅ 2 CHANCES INFO -->
                         <div style="
                             margin-top: 15px;
                             text-align: center;
@@ -7327,20 +7303,6 @@ async function renderSongOfDay() {
                             </div>
                         </div>
                     `}
-                </div>
-            </div>
-            
-            <!-- How to Play -->
-            <div class="card" style="background:rgba(255,255,255,0.02);margin-top:20px;">
-                <div class="card-body" style="padding:15px;">
-                    <div style="color:#888;font-size:12px;line-height:1.8;">
-                        <strong style="color:#fff;">📖 How to Play:</strong><br>
-                        1️⃣ Read the hint above<br>
-                        2️⃣ Find the matching BTS song on YouTube<br>
-                        3️⃣ Copy & paste the YouTube link<br>
-                        4️⃣ Submit and earn XP if correct! 🎉<br>
-                        <span style="color:#00ff88;">💡 You get <strong>2 chances</strong> per day!</span>
-                    </div>
                 </div>
             </div>
             
@@ -7389,8 +7351,12 @@ async function renderSongOfDay() {
         STATE.lastChecked.songOfDay = todayStr;
         saveNotificationState();
         
+        // Remove notification dot since user viewed the page
+        const sotdDot = document.getElementById('dot-sotd');
+        if (sotdDot) sotdDot.classList.remove('active');
+        
     } catch (e) {
-        console.error('Song of day error:', e);
+        console.error('❌ Song of day error:', e);
         container.innerHTML = `
             <div class="card" style="text-align:center;padding:40px;">
                 <div style="font-size:48px;margin-bottom:15px;">❌</div>
@@ -7402,7 +7368,6 @@ async function renderSongOfDay() {
         `;
     }
 }
-
 // ==================== DEBUG: Clear SOTD localStorage ====================
 function clearSOTDLocalStorage() {
     const today = new Date().toDateString();
