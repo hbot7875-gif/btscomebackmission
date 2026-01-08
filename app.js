@@ -3451,14 +3451,13 @@ const ROUTES = {
     'helper-roles': 'helper-roles',
     'drawer': 'drawer',
     'summary': 'summary',
-    'song-of-day': 'song-of-day',
+    'sotd': 'sotd',                    // ✅ ADD THIS
+    'song-of-day': 'sotd',             // ✅ ADD THIS (alias)
     'guide': 'guide',
+    'streaming-tips': 'streaming-tips', // ✅ ADD THIS
     'login': 'login'
 };
 
-/**
- * Reverse mapping: page names to URL routes
- */
 const PAGE_TO_ROUTE = {
     'home': 'home',
     'profile': 'profile',
@@ -3475,7 +3474,9 @@ const PAGE_TO_ROUTE = {
     'helper-roles': 'helper-roles',
     'drawer': 'drawer',
     'summary': 'summary',
+    'sotd': 'sotd',                    // ✅ ADD THIS
     'guide': 'guide',
+    'streaming-tips': 'streaming-tips', // ✅ ADD THIS
     'login': 'login'
 };
 
@@ -3643,6 +3644,8 @@ async function renderPageByRoute(pageName) {
             case 'gc-links': await renderGCLinks(); break;
             case 'helper-roles': await renderHelperRoles(); break;
             case 'chat': await renderChat(); break;
+            case 'sotd': await renderSOTD(); break;
+            case 'streaming-tips': await renderStreamingTips(); break;
             case 'song-of-day': await renderSongOfDay(); break;
             case 'guide': await renderGuidePage(); break; 
         }
@@ -6909,72 +6912,45 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
     `;
 }
 
-// ==================== SONG OF THE DAY (FIXED) ====================
-async function renderSongOfDay() {
-    // Get the content container (NOT the page, just the content div)
-    const container = $('song-of-day-content');
+// ==================== SONG OF THE DAY (SOTD) ====================
+async function renderSOTD() {
+    console.log('🎬 renderSOTD called');
+    
+    const container = document.getElementById('sotd-content');
     
     if (!container) {
-        console.error('❌ song-of-day-content container not found');
-        showToast('Failed to load page', 'error');
+        console.error('❌ sotd-content not found!');
+        showToast('Page container not found', 'error');
         return;
     }
     
-    // Get today's date for display
-    const today = new Date();
-    const dateDisplay = today.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-    });
-    const shortDate = today.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: 'numeric'
-    });
-    
-    // Show loading state
+    // Show loading
     container.innerHTML = `
-        <div style="text-align:center;padding:40px;color:#888;">
-            <div class="loading-spinner" style="
-                width: 40px;
-                height: 40px;
-                border: 3px solid #333;
-                border-top-color: #7b2cbf;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-                margin: 0 auto;
-            "></div>
-            <p style="margin-top:15px;">Loading today's challenge...</p>
+        <div style="text-align:center;padding:60px 20px;">
+            <div style="font-size:40px;margin-bottom:15px;">🎬</div>
+            <p style="color:#888;">Loading Song of the Day...</p>
         </div>
-        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
     `;
     
     try {
-        // Fetch song data from API
         const data = await api('getSongOfDay', { agentNo: STATE.agentNo });
+        console.log('🎬 SOTD API Response:', data);
         
-        console.log('🎬 Song of Day API response:', data);
+        // Get dates
+        const today = new Date();
+        const dateDisplay = today.toLocaleDateString('en-US', { 
+            weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' 
+        });
+        const todayStr = today.toDateString();
         
-        // Handle no song case
-        if (!data || !data.success || !data.song) {
+        // No song set
+        if (!data?.success || !data?.song) {
             container.innerHTML = `
-                <div class="card" style="text-align:center;padding:40px;">
-                    <div style="
-                        background: linear-gradient(135deg, #7b2cbf22, #7b2cbf11);
-                        border: 1px solid #7b2cbf44;
-                        border-radius: 12px;
-                        padding: 12px 20px;
-                        margin-bottom: 25px;
-                        display: inline-block;
-                    ">
-                        <span style="color: #7b2cbf; font-size: 14px; font-weight: 600;">📅 ${dateDisplay}</span>
-                    </div>
-                    
-                    <div style="font-size:64px;margin-bottom:20px;">🎬</div>
-                    <h3 style="color:#fff;margin-bottom:10px;">No Song Today</h3>
-                    <p style="color:#888;margin-bottom:20px;">Check back later!</p>
+                <div class="card" style="text-align:center;padding:50px 20px;">
+                    <div style="font-size:60px;margin-bottom:20px;">🎬</div>
+                    <h3 style="color:#fff;margin:0 0 10px;">No Song Today</h3>
+                    <p style="color:#888;margin:0 0 5px;">📅 ${dateDisplay}</p>
+                    <p style="color:#666;font-size:13px;margin:0 0 25px;">Admin hasn't set today's challenge yet.</p>
                     <button onclick="loadPage('home')" class="btn-secondary">← Back to Home</button>
                 </div>
             `;
@@ -6982,20 +6958,18 @@ async function renderSongOfDay() {
         }
         
         const song = data.song;
-        const todayStr = today.toDateString();
         
-        // Storage keys for attempts tracking
-        const attemptsKey = 'song_attempts_' + STATE.agentNo + '_' + todayStr;
-        const correctKey = 'song_correct_' + STATE.agentNo + '_' + todayStr;
+        // Get user's attempt state
+        const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + todayStr;
+        const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + todayStr;
         
-        // Get attempt data (sync with server if available)
         let attempts = parseInt(localStorage.getItem(attemptsKey) || '0');
         let wasCorrect = localStorage.getItem(correctKey) === 'true';
         
-        // Sync with server state if provided
+        // Sync with server if available
         if (data.userAttempts !== undefined) {
             attempts = data.userAttempts;
-            localStorage.setItem(attemptsKey, attempts.toString());
+            localStorage.setItem(attemptsKey, String(attempts));
         }
         if (data.userCorrect !== undefined) {
             wasCorrect = data.userCorrect;
@@ -7003,75 +6977,54 @@ async function renderSongOfDay() {
         }
         
         const maxAttempts = 2;
-        const attemptsRemaining = Math.max(0, maxAttempts - attempts);
+        const remaining = Math.max(0, maxAttempts - attempts);
         const canAnswer = !wasCorrect && attempts < maxAttempts;
         
-        console.log('🎬 SOTD State:', { attempts, wasCorrect, canAnswer, attemptsRemaining });
-        
-        // Render the main content
+        // Build the page
         container.innerHTML = `
-            <!-- Date Header -->
-            <div style="
-                background: linear-gradient(135deg, #ff000022, #ff000011);
-                border: 1px solid #ff000044;
-                border-radius: 16px;
-                padding: 20px;
-                text-align: center;
-                margin-bottom: 20px;
-            ">
-                <div style="font-size:40px;margin-bottom:10px;">🎬</div>
-                <h2 style="color:#fff;margin:0 0 8px 0;">Song of the Day</h2>
-                
-                <div style="
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 8px 20px;
-                    background: rgba(255,255,255,0.1);
-                    border: 1px solid rgba(255,255,255,0.2);
-                    border-radius: 25px;
-                    margin-bottom: 10px;
-                ">
-                    <span style="font-size: 18px;">📅</span>
-                    <span style="color: #fff; font-size: 14px; font-weight: 600;">${dateDisplay}</span>
+            <!-- Header -->
+            <div class="card" style="background:linear-gradient(135deg, #ff000015, #ff000008);border-color:#ff000033;margin-bottom:16px;">
+                <div class="card-body" style="text-align:center;padding:25px;">
+                    <div style="font-size:50px;margin-bottom:12px;">🎬</div>
+                    <h2 style="color:#fff;margin:0 0 8px;font-size:20px;">Song of the Day</h2>
+                    <div style="
+                        display:inline-block;
+                        padding:8px 18px;
+                        background:rgba(255,255,255,0.1);
+                        border:1px solid rgba(255,255,255,0.2);
+                        border-radius:20px;
+                        margin-bottom:8px;
+                    ">
+                        <span style="color:#fff;font-size:13px;">📅 ${dateDisplay}</span>
+                    </div>
+                    <p style="color:#888;font-size:12px;margin:0;">Guess the BTS song from the hint!</p>
                 </div>
-                
-                <p style="color:#888;margin:0;font-size:12px;">Find the correct YouTube link & earn XP!</p>
             </div>
             
-            <!-- Hint Card -->
-            <div class="card" style="margin-bottom:20px;">
-                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <!-- Hint -->
+            <div class="card" style="margin-bottom:16px;">
+                <div class="card-header">
                     <h3 style="margin:0;">💡 Today's Hint</h3>
-                    <span style="
-                        padding: 4px 12px;
-                        background: rgba(255,0,0,0.1);
-                        border: 1px solid rgba(255,0,0,0.3);
-                        border-radius: 12px;
-                        color: #ff6b6b;
-                        font-size: 11px;
-                    ">${shortDate}</span>
                 </div>
                 <div class="card-body" style="text-align:center;padding:25px;">
                     <div style="
-                        font-size: 18px;
-                        color: #ffd700;
-                        line-height: 1.6;
-                        font-style: italic;
-                        padding: 15px;
-                        background: rgba(255,215,0,0.05);
-                        border-radius: 12px;
-                        border: 1px dashed rgba(255,215,0,0.3);
-                    ">"${sanitize(song.hint || 'No hint available!')}"</div>
-                    
+                        font-size:18px;
+                        color:#ffd700;
+                        font-style:italic;
+                        padding:18px;
+                        background:rgba(255,215,0,0.08);
+                        border:1px dashed rgba(255,215,0,0.3);
+                        border-radius:12px;
+                        line-height:1.6;
+                    ">"${sanitize(song.hint || 'Listen carefully...')}"</div>
                     <div style="
-                        margin-top: 15px;
-                        padding: 10px 20px;
-                        background: rgba(0,255,136,0.1);
-                        border-radius: 20px;
-                        display: inline-block;
+                        margin-top:15px;
+                        padding:10px 20px;
+                        background:rgba(0,255,136,0.1);
+                        border-radius:20px;
+                        display:inline-block;
                     ">
-                        <span style="color:#00ff88;font-size:14px;">🎁 Reward: +${song.xpReward || 1} XP</span>
+                        <span style="color:#00ff88;font-size:14px;font-weight:600;">🎁 +${song.xpReward || 1} XP Reward</span>
                     </div>
                 </div>
             </div>
@@ -7079,310 +7032,286 @@ async function renderSongOfDay() {
             <!-- Answer Section -->
             <div class="card" style="border-color:${!canAnswer ? (wasCorrect ? '#00ff88' : '#ff4444') : '#7b2cbf'};">
                 <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                    <h3 style="margin:0;">${!canAnswer ? '📋 Your Result' : '🔗 Your Answer'}</h3>
+                    <h3 style="margin:0;">${canAnswer ? '🔗 Submit Answer' : '📋 Result'}</h3>
                     ${canAnswer ? `
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 5px;
-                            padding: 6px 12px;
-                            background: ${attemptsRemaining === 1 ? 'rgba(255,165,0,0.15)' : 'rgba(0,255,136,0.1)'};
-                            border: 1px solid ${attemptsRemaining === 1 ? 'rgba(255,165,0,0.4)' : 'rgba(0,255,136,0.3)'};
-                            border-radius: 20px;
-                        ">
-                            <span style="font-size:12px;">🎯</span>
-                            <span style="
-                                color: ${attemptsRemaining === 1 ? '#ffa500' : '#00ff88'};
-                                font-size: 12px;
-                                font-weight: 600;
-                            ">${attemptsRemaining} ${attemptsRemaining === 1 ? 'Chance' : 'Chances'} Left</span>
-                        </div>
+                        <span style="
+                            padding:5px 12px;
+                            background:${remaining === 1 ? 'rgba(255,165,0,0.15)' : 'rgba(0,255,136,0.1)'};
+                            border:1px solid ${remaining === 1 ? 'rgba(255,165,0,0.4)' : 'rgba(0,255,136,0.3)'};
+                            border-radius:15px;
+                            color:${remaining === 1 ? '#ffa500' : '#00ff88'};
+                            font-size:11px;
+                            font-weight:600;
+                        ">🎯 ${remaining} ${remaining === 1 ? 'Chance' : 'Chances'} Left</span>
                     ` : ''}
                 </div>
-                <div class="card-body" style="padding:20px;">
-                    ${!canAnswer ? `
-                        <!-- Already Answered / Out of Attempts -->
-                        <div style="text-align:center;padding:20px;">
-                            <div style="font-size:64px;margin-bottom:15px;">
-                                ${wasCorrect ? '🎉' : '😅'}
-                            </div>
-                            <div style="
-                                color: ${wasCorrect ? '#00ff88' : '#ff4444'};
-                                font-size: 24px;
-                                font-weight: bold;
-                                margin-bottom: 10px;
-                            ">
-                                ${wasCorrect ? 'Correct!' : 'Out of Attempts!'}
-                            </div>
-                            <div style="color:#888;font-size:14px;">
-                                ${wasCorrect 
-                                    ? `You earned +${song.xpReward || 1} XP! 💜` 
-                                    : `You used all ${maxAttempts} chances. Better luck tomorrow!`}
-                            </div>
-                            
-                            ${!wasCorrect ? `
-                                <div style="
-                                    margin-top: 15px;
-                                    display: flex;
-                                    justify-content: center;
-                                    gap: 8px;
-                                ">
-                                    ${Array(maxAttempts).fill(0).map((_, i) => `
-                                        <div style="
-                                            width: 12px;
-                                            height: 12px;
-                                            border-radius: 50%;
-                                            background: ${i < attempts ? '#ff4444' : '#333'};
-                                            border: 1px solid ${i < attempts ? '#ff4444' : '#555'};
-                                        "></div>
-                                    `).join('')}
-                                </div>
-                                <div style="color:#666;font-size:11px;margin-top:8px;">
-                                    ${attempts}/${maxAttempts} attempts used
-                                </div>
-                            ` : ''}
-                            
-                            ${song.title ? `
-                                <div style="
-                                    margin-top: 20px;
-                                    padding: 15px;
-                                    background: ${wasCorrect ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.05)'};
-                                    border-radius: 12px;
-                                    border: 1px solid ${wasCorrect ? 'rgba(0,255,136,0.3)' : 'rgba(255,255,255,0.1)'};
-                                ">
-                                    <div style="color:${wasCorrect ? '#00ff88' : '#fff'};font-size:16px;font-weight:600;">
-                                        🎵 ${sanitize(song.title)}
-                                    </div>
-                                    ${song.artist ? `
-                                        <div style="color:#888;font-size:12px;margin-top:5px;">
-                                            ${sanitize(song.artist)}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                                
-                                ${song.youtubeId ? `
-                                    <div style="
-                                        margin-top:20px;
-                                        padding:15px;
-                                        background:rgba(255,0,0,0.1);
-                                        border:1px solid rgba(255,0,0,0.3);
-                                        border-radius:12px;
-                                    ">
-                                        <p style="color:#fff;font-size:13px;margin:0 0 12px 0;">
-                                            🎬 <strong>Watch the full video</strong> to support BTS!
-                                        </p>
-                                        <a href="https://youtube.com/watch?v=${song.youtubeId}" 
-                                           target="_blank" 
-                                           rel="noopener noreferrer"
-                                           style="
-                                               display:inline-flex;
-                                               align-items:center;
-                                               gap:8px;
-                                               padding:10px 24px;
-                                               background:linear-gradient(135deg, #ff0000, #cc0000);
-                                               color:#fff;
-                                               border-radius:25px;
-                                               text-decoration:none;
-                                               font-size:14px;
-                                               font-weight:600;
-                                               box-shadow:0 4px 15px rgba(255,0,0,0.3);
-                                           ">
-                                            <span>▶️</span>
-                                            <span>Watch on YouTube</span>
-                                        </a>
-                                    </div>
-                                ` : ''}
-                            ` : ''}
-                            
-                            <div style="margin-top:20px;color:#666;font-size:12px;">
-                                ⏰ New song tomorrow at midnight!
-                            </div>
-                        </div>
-                    ` : `
-                        <!-- Submit Answer Form -->
-                        
+                <div class="card-body" style="padding:25px;">
+                    ${canAnswer ? `
+                        <!-- Input Form -->
                         ${attempts === 1 ? `
                             <div style="
-                                padding: 12px;
-                                background: rgba(255,165,0,0.1);
-                                border: 1px solid rgba(255,165,0,0.3);
-                                border-radius: 10px;
-                                margin-bottom: 15px;
-                                display: flex;
-                                align-items: center;
-                                gap: 10px;
+                                padding:12px;
+                                background:rgba(255,165,0,0.1);
+                                border:1px solid rgba(255,165,0,0.3);
+                                border-radius:10px;
+                                margin-bottom:15px;
+                                display:flex;
+                                align-items:center;
+                                gap:10px;
                             ">
                                 <span style="font-size:20px;">⚠️</span>
                                 <div>
                                     <div style="color:#ffa500;font-size:13px;font-weight:600;">Last Chance!</div>
-                                    <div style="color:#888;font-size:11px;">Your first answer was wrong. This is your final attempt!</div>
+                                    <div style="color:#888;font-size:11px;">Your first guess was wrong.</div>
                                 </div>
                             </div>
                         ` : ''}
                         
-                        <div style="margin-bottom:15px;">
-                            <label style="color:#888;font-size:12px;display:block;margin-bottom:8px;">
-                                Paste YouTube Link:
-                            </label>
-                            <input 
-                                type="text" 
-                                id="youtube-answer" 
-                                placeholder="https://youtube.com/watch?v=..."
-                                autocomplete="off"
-                                style="
-                                    width: 100%;
-                                    box-sizing: border-box;
-                                    background: #1a1a2e;
-                                    border: 1px solid #333;
-                                    border-radius: 10px;
-                                    padding: 15px;
-                                    color: #fff;
-                                    font-size: 14px;
-                                "
-                            >
-                        </div>
-                        
-                        <div style="
-                            padding: 12px;
-                            background: rgba(255,255,255,0.03);
-                            border-radius: 8px;
-                            margin-bottom: 15px;
-                        ">
-                            <div style="color:#888;font-size:11px;line-height:1.6;">
-                                ✅ Accepted formats:<br>
-                                • youtube.com/watch?v=xxxxx<br>
-                                • youtu.be/xxxxx<br>
-                                • m.youtube.com/watch?v=xxxxx
-                            </div>
-                        </div>
-                        
-                        <button 
-                            id="submit-song-btn"
-                            onclick="submitSongAnswer()"
+                        <label style="color:#888;font-size:12px;display:block;margin-bottom:8px;">
+                            Paste the YouTube link of the song:
+                        </label>
+                        <input 
+                            type="text" 
+                            id="sotd-answer-input" 
+                            placeholder="https://youtube.com/watch?v=..."
+                            autocomplete="off"
                             style="
-                                width: 100%;
-                                padding: 15px;
-                                background: linear-gradient(135deg, #ff0000, #cc0000);
-                                border: none;
-                                border-radius: 12px;
-                                color: #fff;
-                                font-size: 16px;
-                                font-weight: bold;
-                                cursor: pointer;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                gap: 10px;
+                                width:100%;
+                                box-sizing:border-box;
+                                background:#1a1a2e;
+                                border:1px solid #444;
+                                border-radius:10px;
+                                padding:14px;
+                                color:#fff;
+                                font-size:14px;
+                                margin-bottom:15px;
                             "
                         >
-                            <span>▶️</span>
-                            <span>Submit Answer</span>
-                        </button>
                         
-                        <div style="
-                            margin-top: 15px;
-                            text-align: center;
-                            padding: 12px;
-                            background: rgba(123,44,191,0.1);
-                            border: 1px solid rgba(123,44,191,0.3);
-                            border-radius: 10px;
-                        ">
-                            <div style="display:flex;justify-content:center;gap:6px;margin-bottom:8px;">
-                                ${Array(maxAttempts).fill(0).map((_, i) => `
-                                    <div style="
-                                        width: 10px;
-                                        height: 10px;
-                                        border-radius: 50%;
-                                        background: ${i < attempts ? '#ff4444' : '#7b2cbf'};
-                                        border: 1px solid ${i < attempts ? '#ff4444' : '#7b2cbf'};
-                                    "></div>
-                                `).join('')}
-                            </div>
-                            <div style="color:#7b2cbf;font-size:12px;">
-                                🎯 You have <strong>${attemptsRemaining}</strong> ${attemptsRemaining === 1 ? 'chance' : 'chances'} to guess correctly!
-                            </div>
+                        <button 
+                            id="sotd-submit-btn"
+                            onclick="submitSOTDAnswer()"
+                            style="
+                                width:100%;
+                                padding:14px;
+                                background:linear-gradient(135deg, #ff0000, #cc0000);
+                                border:none;
+                                border-radius:10px;
+                                color:#fff;
+                                font-size:15px;
+                                font-weight:bold;
+                                cursor:pointer;
+                            "
+                        >▶️ Submit Answer</button>
+                        
+                        <div style="margin-top:12px;text-align:center;color:#666;font-size:11px;">
+                            Accepted: youtube.com/watch?v=... or youtu.be/...
+                        </div>
+                    ` : `
+                        <!-- Result Display -->
+                        <div style="text-align:center;">
+                            <div style="font-size:60px;margin-bottom:15px;">${wasCorrect ? '🎉' : '😔'}</div>
+                            <div style="
+                                color:${wasCorrect ? '#00ff88' : '#ff6b6b'};
+                                font-size:22px;
+                                font-weight:bold;
+                                margin-bottom:10px;
+                            ">${wasCorrect ? 'Correct! +' + (song.xpReward || 1) + ' XP' : 'Out of Attempts'}</div>
+                            <p style="color:#888;font-size:13px;margin:0 0 20px;">
+                                ${wasCorrect ? 'Great job! 💜' : 'Better luck tomorrow!'}
+                            </p>
+                            
+                            ${song.title ? `
+                                <div style="
+                                    padding:15px;
+                                    background:rgba(123,44,191,0.1);
+                                    border:1px solid rgba(123,44,191,0.3);
+                                    border-radius:12px;
+                                    margin-bottom:15px;
+                                ">
+                                    <div style="color:#fff;font-size:16px;font-weight:600;">🎵 ${sanitize(song.title)}</div>
+                                    ${song.artist ? `<div style="color:#888;font-size:12px;margin-top:5px;">${sanitize(song.artist)}</div>` : ''}
+                                </div>
+                            ` : ''}
+                            
+                            ${song.youtubeId ? `
+                                <a href="https://youtube.com/watch?v=${song.youtubeId}" 
+                                   target="_blank" 
+                                   style="
+                                       display:inline-flex;
+                                       align-items:center;
+                                       gap:8px;
+                                       padding:12px 24px;
+                                       background:linear-gradient(135deg, #ff0000, #cc0000);
+                                       color:#fff;
+                                       border-radius:25px;
+                                       text-decoration:none;
+                                       font-size:14px;
+                                       font-weight:600;
+                                   ">▶️ Watch on YouTube</a>
+                            ` : ''}
+                            
+                            <p style="color:#666;font-size:11px;margin-top:20px;">⏰ New challenge at midnight!</p>
                         </div>
                     `}
                 </div>
             </div>
             
             <!-- Back Button -->
-            <button onclick="loadPage('home')" class="btn-secondary" style="width:100%;margin-top:20px;padding:15px;">
+            <button onclick="loadPage('home')" class="btn-secondary" style="width:100%;margin-top:16px;padding:14px;">
                 ← Back to Home
             </button>
             
             ${STATE.isAdmin ? `
-                <!-- Admin Section -->
-                <div class="card" style="margin-top:20px;border-color:#ffd700;">
+                <div class="card" style="margin-top:16px;border-color:#ffd700;">
                     <div class="card-header" style="background:rgba(255,215,0,0.05);">
-                        <h3 style="margin:0;color:#ffd700;">👑 Admin Controls</h3>
+                        <h3 style="margin:0;color:#ffd700;">👑 Admin</h3>
                     </div>
                     <div class="card-body">
-                        <button onclick="setTodaysSong()" class="btn-primary" style="
+                        <button onclick="setTodaysSong()" style="
                             width:100%;
+                            padding:12px;
                             background:linear-gradient(135deg, #ffd700, #ff8c00);
+                            border:none;
+                            border-radius:8px;
                             color:#000;
-                            margin-bottom:10px;
-                        ">
-                            🎵 Set Today's Song
-                        </button>
-                        <button onclick="clearSOTDLocalStorage()" class="btn-secondary" style="width:100%;">
-                            🧹 Clear Local Storage (Debug)
+                            font-weight:bold;
+                            cursor:pointer;
+                            margin-bottom:8px;
+                        ">🎵 Set Today's Song</button>
+                        <button onclick="resetSOTDProgress()" class="btn-secondary" style="width:100%;padding:10px;font-size:12px;">
+                            🔄 Reset My Progress (Debug)
                         </button>
                     </div>
                 </div>
             ` : ''}
         `;
         
-        // Focus input and setup enter key
+        // Setup enter key
         if (canAnswer) {
             setTimeout(() => {
-                const input = $('youtube-answer');
+                const input = document.getElementById('sotd-answer-input');
                 if (input) {
                     input.focus();
-                    input.addEventListener('keypress', e => {
-                        if (e.key === 'Enter') submitSongAnswer();
-                    });
+                    input.onkeypress = (e) => {
+                        if (e.key === 'Enter') submitSOTDAnswer();
+                    };
                 }
             }, 100);
         }
         
-        // Update notification state
-        STATE.lastChecked.songOfDay = todayStr;
-        saveNotificationState();
-        
-        // Remove notification dot since user viewed the page
-        const sotdDot = document.getElementById('dot-sotd');
-        if (sotdDot) sotdDot.classList.remove('active');
+        // Clear notification dot
+        const dot = document.getElementById('dot-sotd');
+        if (dot) dot.classList.remove('active');
         
     } catch (e) {
-        console.error('❌ Song of day error:', e);
+        console.error('❌ SOTD Error:', e);
         container.innerHTML = `
-            <div class="card" style="text-align:center;padding:40px;">
-                <div style="font-size:48px;margin-bottom:15px;">❌</div>
-                <h3 style="color:#ff4444;margin-bottom:10px;">Failed to Load</h3>
-                <p style="color:#888;margin-bottom:20px;">${sanitize(e.message)}</p>
-                <button onclick="renderSongOfDay()" class="btn-primary" style="margin-right:10px;">🔄 Retry</button>
-                <button onclick="loadPage('home')" class="btn-secondary">← Back</button>
+            <div class="card" style="text-align:center;padding:50px 20px;">
+                <div style="font-size:50px;margin-bottom:15px;">❌</div>
+                <h3 style="color:#ff6b6b;margin:0 0 10px;">Failed to Load</h3>
+                <p style="color:#888;margin:0 0 20px;">${sanitize(e.message)}</p>
+                <button onclick="renderSOTD()" class="btn-primary" style="margin-right:10px;">🔄 Retry</button>
+                <button onclick="loadPage('home')" class="btn-secondary">← Home</button>
             </div>
         `;
     }
 }
-// ==================== DEBUG: Clear SOTD localStorage ====================
-function clearSOTDLocalStorage() {
+
+// ==================== SUBMIT SOTD ANSWER ====================
+async function submitSOTDAnswer() {
+    const input = document.getElementById('sotd-answer-input');
+    const btn = document.getElementById('sotd-submit-btn');
+    
+    if (!input) return;
+    
+    const answer = input.value.trim();
+    if (!answer) {
+        showToast('Please paste a YouTube link!', 'error');
+        input.focus();
+        return;
+    }
+    
     const today = new Date().toDateString();
-    const attemptsKey = 'song_attempts_' + STATE.agentNo + '_' + today;
-    const correctKey = 'song_correct_' + STATE.agentNo + '_' + today;
+    const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + today;
+    const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + today;
     
-    localStorage.removeItem(attemptsKey);
-    localStorage.removeItem(correctKey);
+    // Check if already done
+    if (localStorage.getItem(correctKey) === 'true') {
+        showToast('Already answered correctly!', 'info');
+        renderSOTD();
+        return;
+    }
     
-    showToast('SOTD localStorage cleared!', 'success');
-    renderSongOfDay();
+    const currentAttempts = parseInt(localStorage.getItem(attemptsKey) || '0');
+    if (currentAttempts >= 2) {
+        showToast('No more attempts today!', 'error');
+        renderSOTD();
+        return;
+    }
+    
+    // Disable button
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Checking...';
+        btn.style.opacity = '0.6';
+    }
+    
+    try {
+        const result = await api('submitSongAnswer', {
+            agentNo: STATE.agentNo,
+            answer: answer
+        });
+        
+        console.log('🎬 Submit result:', result);
+        
+        // Increment attempts
+        const newAttempts = currentAttempts + 1;
+        localStorage.setItem(attemptsKey, String(newAttempts));
+        
+        if (result.correct) {
+            localStorage.setItem(correctKey, 'true');
+            showToast('🎉 Correct! +' + (result.xpAwarded || 1) + ' XP!', 'success');
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+        } else {
+            const left = 2 - newAttempts;
+            if (left > 0) {
+                showToast(`❌ Wrong! ${left} chance left.`, 'error');
+            } else {
+                showToast('❌ Wrong! No more chances today.', 'error');
+            }
+        }
+        
+        setTimeout(() => renderSOTD(), 1000);
+        
+    } catch (e) {
+        console.error('Submit error:', e);
+        showToast('Error: ' + e.message, 'error');
+        
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '▶️ Submit Answer';
+            btn.style.opacity = '1';
+        }
+    }
 }
 
-// Make sure to export
-window.clearSOTDLocalStorage = clearSOTDLocalStorage;
+// ==================== RESET SOTD (DEBUG) ====================
+function resetSOTDProgress() {
+    const today = new Date().toDateString();
+    localStorage.removeItem('sotd_attempts_' + STATE.agentNo + '_' + today);
+    localStorage.removeItem('sotd_correct_' + STATE.agentNo + '_' + today);
+    showToast('Progress reset!', 'success');
+    renderSOTD();
+}
+
+// ==================== STREAMING TIPS PAGE ====================
+async function renderStreamingTips() {
+    // Page already has static content in HTML, nothing to render dynamically
+    console.log('📚 Streaming Tips page loaded');
+}
 
 // ==================== SUBMIT SONG ANSWER (2 CHANCES - FIXED) ====================
 async function submitSongAnswer() {
