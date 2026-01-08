@@ -105,7 +105,7 @@ const CONFIG = {
     ALBUM_NAME: "BTS 5th Album",
     RELEASE_DATE: "2026-03-20T13:00:00+09:00",
     SHOW_COUNTDOWN: true,
-    BTS_LOGO: "https://2026bts.com/images/logo.png",
+    BTS_LOGO: "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/4f6fef44395ff9ca1609131af105a19db01e4e19/team%20pfps/cover.png",
     ALBUM_COVER: "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/4f6fef44395ff9ca1609131af105a19db01e4e19/team%20pfps/cover.png"
 }
 };
