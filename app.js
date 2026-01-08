@@ -4147,179 +4147,6 @@ async function logout() {
 document.addEventListener('DOMContentLoaded', initApp);
 // ==================== START APP ====================
 document.addEventListener('DOMContentLoaded', initApp);
-
-// ==================== NEW YEAR 2026 CONFIG ====================
-const NewYearCelebration = {
-    year: 2026,
-    showBannerUntil: 7,
-    showConfettiUntil: 3,
-    milestones: [
-        { week: 1, streams: 166132 },
-        { week: 2, streams: 167355 },
-        { week: 3, streams: 183743 }
-    ],
-    totalAgents: 180,
-    
-    // Get agent's name for personalization
-    getAgentName() {
-        return STATE?.data?.profile?.name || 
-               STATE?.data?.profile?.instagram || 
-               'Agent';
-    },
-    
-    isNewYearPeriod(maxDay) {
-        const now = new Date();
-        return now.getMonth() === 0 && now.getDate() <= maxDay;
-    },
-    
-    shouldShowBanner() {
-        return this.isNewYearPeriod(this.showBannerUntil) && 
-               !sessionStorage.getItem('ny_banner_closed');
-    },
-    
-    shouldShowConfetti() {
-        if (!this.isNewYearPeriod(this.showConfettiUntil)) return false;
-        const lastShown = localStorage.getItem('ny2026_confetti');
-        return lastShown !== new Date().toDateString();
-    },
-    
-    getTotalStreams() {
-        return this.milestones.reduce((sum, m) => sum + m.streams, 0);
-    },
-    
-    closeBanner() {
-        const banner = document.getElementById('ny-celebration-banner');
-        if (banner) {
-            banner.style.animation = 'bannerSlideOut 0.3s ease forwards';
-            setTimeout(() => banner.remove(), 300);
-            sessionStorage.setItem('ny_banner_closed', 'true');
-        }
-    }
-};
-
-function renderNewYearBanner() {
-    if (!NewYearCelebration.shouldShowBanner()) return '';
-    
-    const total = NewYearCelebration.getTotalStreams();
-    const highest = Math.max(...NewYearCelebration.milestones.map(m => m.streams));
-    const agentName = NewYearCelebration.getAgentName();
-    
-    // ==================== CALCULATE PERSONAL STATS (SAME AS DRAWER) ====================
-    let overallXP = 0;
-    let overallTrackStreams = 0;
-    let overallAlbumStreams = 0;
-    let weeksParticipated = 0;
-    
-    if (STATE.allWeeksData?.weeks?.length > 0) {
-        STATE.allWeeksData.weeks.forEach(weekData => {
-            const weekXP = parseInt(weekData.stats?.totalXP) || 0;
-            const weekTracks = parseInt(weekData.stats?.trackScrobbles) || 0;
-            const weekAlbums = parseInt(weekData.stats?.albumScrobbles) || 0;
-            
-            overallXP += weekXP;
-            overallTrackStreams += weekTracks;
-            overallAlbumStreams += weekAlbums;
-            
-            if (weekXP > 0) weeksParticipated++;
-        });
-    } else if (STATE.data?.stats) {
-        // Fallback to current week
-        const stats = STATE.data.stats;
-        overallXP = parseInt(stats.totalXP) || 0;
-        overallTrackStreams = parseInt(stats.trackScrobbles) || 0;
-        overallAlbumStreams = parseInt(stats.albumScrobbles) || 0;
-        weeksParticipated = overallXP > 0 ? 1 : 0;
-    }
-    
-    const totalStreams = overallTrackStreams + overallAlbumStreams;
-    const contributionPercent = total > 0 ? ((totalStreams / total) * 100).toFixed(2) : 0;
-    
-    return `
-        <div class="ny-celebration-banner" id="ny-celebration-banner">
-            <button class="ny-close-btn" onclick="NewYearCelebration.closeBanner()">×</button>
-            
-            <!-- Fireworks -->
-            <div class="ny-fireworks">
-                <div class="ny-fw ny-fw-1"></div>
-                <div class="ny-fw ny-fw-2"></div>
-                <div class="ny-fw ny-fw-3"></div>
-                <div class="ny-fw ny-fw-4"></div>
-            </div>
-            
-            <!-- Sparkles -->
-            <div class="ny-sparkles">
-                <span class="ny-sparkle" style="top:10%;left:15%;">✦</span>
-                <span class="ny-sparkle" style="top:15%;right:20%;">✧</span>
-                <span class="ny-sparkle" style="top:35%;left:8%;">✦</span>
-                <span class="ny-sparkle" style="top:25%;right:12%;">✧</span>
-            </div>
-            
-            <div class="ny-glow"></div>
-            
-            <div class="ny-content">
-                <div class="ny-header">
-                    <span class="ny-year-badge">${NewYearCelebration.year}</span>
-                    <h2 class="ny-title">Happy New Year, ${sanitize(agentName)}!</h2>
-                    <p class="ny-subtitle">🗓️ BTS Comeback: March 20th, 2026 — Let's get ready!🔥</p>
-                    <p class="ny-thankyou">Thank you for being part of this journey. BTS would be proud of you! 💜</p>
-                </div>
-                
-                <!-- Personal Contribution Section -->
-                <div class="ny-my-stats">
-                    <div class="ny-my-stats-header">
-                        <span class="ny-my-icon">🎖️</span>
-                        <span class="ny-my-label">Your Contribution</span>
-                    </div>
-                    <div class="ny-my-stats-grid">
-                        <div class="ny-my-stat">
-                            <div class="ny-my-value">${totalStreams.toLocaleString()}</div>
-                            <div class="ny-my-name">Streams</div>
-                        </div>
-                        <div class="ny-my-stat">
-                            <div class="ny-my-value">${overallXP.toLocaleString()}</div>
-                            <div class="ny-my-name">XP Earned</div>
-                        </div>
-                        <div class="ny-my-stat">
-                            <div class="ny-my-value">${weeksParticipated}</div>
-                            <div class="ny-my-name">Weeks Active</div>
-                        </div>
-                    </div>
-                    <div class="ny-my-contribution">
-                        <div class="ny-contribution-bar">
-                            <div class="ny-contribution-fill" style="width: ${Math.min(parseFloat(contributionPercent) * 20, 100)}%"></div>
-                        </div>
-                        <div class="ny-contribution-text">
-                            You contributed <strong>${contributionPercent}%</strong> to our ${total.toLocaleString()}+ total streams! ✨
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Team Stats Section -->
-                <div class="ny-stats">
-                    <div class="ny-stats-label">Our Team Journey</div>
-                    <div class="ny-stats-grid">
-                        ${NewYearCelebration.milestones.map(m => `
-                            <div class="ny-stat-item ${m.streams === highest ? 'ny-highlight' : ''}">
-                                <span class="ny-stat-week">W${m.week}</span>
-                                <span class="ny-stat-value">${m.streams.toLocaleString()}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="ny-total">
-                        <span class="ny-total-label">Total Impact</span>
-                        <span class="ny-total-value">${total.toLocaleString()}+</span>
-                        <span class="ny-total-agents">${NewYearCelebration.totalAgents}+ agents united</span>
-                    </div>
-                </div>
-                
-                <div class="ny-footer">
-                    <span class="ny-heart">💜</span>
-                    <span>Here's to more energy, better teamwork, and making this comeback legendary! 🚀</span>
-                </div>
-            </div>
-        </div>
-    `;
-}
 // ==================== HOME RENDERER ====================
 async function renderHome() {
     const selectedWeek = STATE.week;
@@ -4341,8 +4168,6 @@ async function renderHome() {
     // Guide HTML
     const guideHtml = renderGuide('home');
     
-    // New Year Banner (only shows during New Year period)
-    const nyBannerHtml = renderNewYearBanner();
     
     // Hourly Update Notice
     const refreshNotice = `
@@ -4421,51 +4246,50 @@ async function renderHome() {
             </div>
         ` : '';
         
-        // Quick Stats Section - ✅ ADDED BTS COUNTDOWN HERE
-        const quickStatsEl = document.querySelector('.quick-stats-section');
-        if (quickStatsEl) {
-            quickStatsEl.innerHTML = `
-                ${btsCountdownHtml}
-                ${nyBannerHtml}
-                ${guideHtml}
-                ${refreshNotice}
-                ${tipHtml}
-                
-                <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
-                    <div class="card-body">
-                        <div class="quick-header">
-                            ${teamPfp(team) ? `<img src="${teamPfp(team)}" class="quick-pfp" style="border-color:${teamColor(team)}">` : ''}
-                            <div class="quick-info">
-                                <div class="quick-name">Welcome, ${sanitize(agentName)}!</div>
-                                <div class="quick-team" style="color:${teamColor(team)}">${team} • Rank #${STATE.data?.rank || 'N/A'}</div>
-                            </div>
-                        </div>
-                        <div class="quick-stats-grid">
-                            <div class="quick-stat">
-                                <div class="quick-stat-value">${fmt(myStats.totalXP)}</div>
-                                <div class="quick-stat-label">XP</div>
-                            </div>
-                            <div class="quick-stat">
-                                <div class="quick-stat-value">${fmt(myStats.trackScrobbles || 0)}</div>
-                                <div class="quick-stat-label">Track Streams</div>
-                            </div>
-                            <div class="quick-stat">
-                                <div class="quick-stat-value">${fmt(myStats.albumScrobbles || 0)}</div>
-                                <div class="quick-stat-label">Album Streams</div>
-                            </div>
-                        </div>
-                        <div class="battle-timer ${isCompleted ? 'ended' : ''}">
-                            ${isCompleted ? '🏆 Week Completed' : (daysLeft <= 1 ? '🚀 Final Day!' : `⏰ ${daysLeft} days left`)}
-                        </div>
-                        ${isCompleted ? `<div class="results-alert" onclick="loadPage('summary')">🏆 View Final Results →</div>` : ''}
-                        ${STATE.lastUpdated ? `<div class="last-updated-mini">Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
+        // In renderHome() - Find this section and replace it:
+
+const quickStatsEl = document.querySelector('.quick-stats-section');
+if (quickStatsEl) {
+    quickStatsEl.innerHTML = `
+        ${btsCountdownHtml}
+        ${guideHtml}
+        ${refreshNotice}
+        
+        <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
+            <div class="card-body">
+                <div class="quick-header">
+                    ${teamPfp(team) ? `<img src="${teamPfp(team)}" class="quick-pfp" style="border-color:${teamColor(team)}">` : ''}
+                    <div class="quick-info">
+                        <div class="quick-name">Welcome, ${sanitize(agentName)}!</div>
+                        <div class="quick-team" style="color:${teamColor(team)}">${team} • Rank #${STATE.data?.rank || 'N/A'}</div>
                     </div>
                 </div>
-            `;
-            
-            // ✅ START THE COUNTDOWN TIMER
-            startBTSCountdown();
-        }
+                <div class="quick-stats-grid">
+                    <div class="quick-stat">
+                        <div class="quick-stat-value">${fmt(myStats.totalXP)}</div>
+                        <div class="quick-stat-label">XP</div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-value">${fmt(myStats.trackScrobbles || 0)}</div>
+                        <div class="quick-stat-label">Track Streams</div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-value">${fmt(myStats.albumScrobbles || 0)}</div>
+                        <div class="quick-stat-label">Album Streams</div>
+                    </div>
+                </div>
+                <div class="battle-timer ${isCompleted ? 'ended' : ''}">
+                    ${isCompleted ? '🏆 Week Completed' : (daysLeft <= 1 ? '🚀 Final Day!' : `⏰ ${daysLeft} days left`)}
+                </div>
+                ${isCompleted ? `<div class="results-alert" onclick="loadPage('summary')">🏆 View Final Results →</div>` : ''}
+                ${STATE.lastUpdated ? `<div class="last-updated-mini">Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
+            </div>
+        </div>
+    `;
+    
+    // Start the countdown timer
+    startBTSCountdown();
+}
         
         // Album goals and 2x status
         const albumGoals = goals.albumGoals || {};
@@ -4495,98 +4319,94 @@ async function renderHome() {
         });
         
         // Mission Cards
-        const missionCardsContainer = document.querySelector('.missions-grid');
-        if (missionCardsContainer) {
-            missionCardsContainer.innerHTML = `
-                <div class="mission-card expanded" onclick="loadPage('goals')">
-                    <div class="mission-icon">🎵</div>
-                    <h3>Track Goals</h3>
-                    <div class="mission-status ${teamData.trackGoalPassed ? 'complete' : ''}">
-                        ${teamData.trackGoalPassed ? '✅ Complete' : '⏳ In Progress'}
+        // In renderHome() - Find missionCardsContainer and replace with this:
+
+const missionCardsContainer = document.querySelector('.missions-grid');
+if (missionCardsContainer) {
+    missionCardsContainer.innerHTML = `
+        <div class="mission-card expanded" onclick="loadPage('goals')">
+            <div class="mission-icon">🎵</div>
+            <h3>Track Goals</h3>
+            <div class="mission-status ${teamData.trackGoalPassed ? 'complete' : ''}">
+                ${teamData.trackGoalPassed ? '✅ Complete' : '⏳ In Progress'}
+            </div>
+            <div class="goals-list">
+                ${trackGoalsList.length ? trackGoalsList.map(g => `
+                    <div class="goal-mini ${g.done ? 'done' : ''}">
+                        <span class="goal-name">${sanitize(g.name)}</span>
+                        <span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span>
                     </div>
-                    <div class="goals-list">
-                        ${trackGoalsList.length ? trackGoalsList.map(g => `
-                            <div class="goal-mini ${g.done ? 'done' : ''}">
-                                <span class="goal-name">${sanitize(g.name)}</span>
-                                <span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span>
-                            </div>
-                        `).join('') : '<p class="no-goals">No track goals</p>'}
+                `).join('') : '<p class="no-goals">No track goals</p>'}
+            </div>
+        </div>
+        
+        <div class="mission-card expanded" onclick="loadPage('goals')">
+            <div class="mission-icon">💿</div>
+            <h3>Album Goals</h3>
+            <div class="mission-status ${teamData.albumGoalPassed ? 'complete' : ''}">
+                ${teamData.albumGoalPassed ? '✅ Complete' : '⏳ In Progress'}
+            </div>
+            <div class="goals-list">
+                ${albumGoalsList.length ? albumGoalsList.map(g => `
+                    <div class="goal-mini ${g.done ? 'done' : ''}">
+                        <span class="goal-name">${sanitize(g.name)}</span>
+                        <span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span>
                     </div>
+                `).join('') : '<p class="no-goals">No album goals</p>'}
+            </div>
+        </div>
+        
+        <div class="mission-card" onclick="loadPage('album2x')">
+            <div class="mission-icon">✨</div>
+            <h3>Album 2X</h3>
+            <div class="mission-subtitle">${sanitize(CONFIG.TEAMS[team]?.album || team)}</div>
+            <div class="mission-status ${album2xStatus.passed ? 'complete' : ''}">
+                ${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}
+            </div>
+            <div class="mission-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" 
+                         style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div>
                 </div>
-                
-                <div class="mission-card expanded" onclick="loadPage('goals')">
-                    <div class="mission-icon">💿</div>
-                    <h3>Album Goals</h3>
-                    <div class="mission-status ${teamData.albumGoalPassed ? 'complete' : ''}">
-                        ${teamData.albumGoalPassed ? '✅ Complete' : '⏳ In Progress'}
-                    </div>
-                    <div class="goals-list">
-                        ${albumGoalsList.length ? albumGoalsList.map(g => `
-                            <div class="goal-mini ${g.done ? 'done' : ''}">
-                                <span class="goal-name">${sanitize(g.name)}</span>
-                                <span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span>
-                            </div>
-                        `).join('') : '<p class="no-goals">No album goals</p>'}
-                    </div>
-                </div>
-                
-                <div class="mission-card" onclick="loadPage('album2x')">
-                    <div class="mission-icon">✨</div>
-                    <h3>Album 2X</h3>
-                    <div class="mission-subtitle">${sanitize(CONFIG.TEAMS[team]?.album || team)}</div>
-                    <div class="mission-status ${album2xStatus.passed ? 'complete' : ''}">
-                        ${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}
-                    </div>
-                    <div class="mission-progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" 
-                                 style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div>
-                        </div>
-                        <span>${tracksCompleted2x}/${teamTracks.length} tracks</span>
-                    </div>
-                </div>
-                
-                <div class="mission-card" onclick="loadPage('song-of-day')" style="background:linear-gradient(135deg, #ff000011, #ff000008);">
-                    <div class="mission-icon">🎬</div>
-                    <h3>Song of the Day</h3>
-                    <div class="mission-status" style="color:#ff0000;">▶️ YouTube</div>
-                    <div class="mission-hint">Find the song, earn XP!</div>
-                </div>
-                
-                <div class="mission-card secret" onclick="loadPage('secret-missions')">
-                    <div class="mission-icon">🔒</div>
-                    <h3>Secret Missions</h3>
-                    <div class="mission-status">🕵️ Classified</div>
-                    <div class="mission-hint">Tap to view team missions</div>
-                </div>
-                
-                <div class="mission-card" onclick="loadPage('playlists')">
-                    <div class="mission-icon">🎵</div>
-                    <h3>Playlists</h3>
-                    <div class="mission-status" style="color:#ff4444;">⚠️ REQUIRED</div>
-                    <div class="mission-hint">Official streaming playlists</div>
-                </div>
-                
-                <div class="mission-card" onclick="loadPage('chat')">
-                    <div class="mission-icon">💬</div>
-                    <h3>Secret Comms</h3>
-                    <div class="mission-subtitle">HQ Encrypted Channel</div>
-                    <div class="mission-hint">Tap to join chat</div>
-                </div>
-                
-                <div class="mission-card" onclick="loadPage('gc-links')">
-                    <div class="mission-icon">👥</div>
-                    <h3>GC Links</h3>
-                    <div class="mission-hint">Instagram group chats</div>
-                </div>
-                
-                <div class="mission-card" onclick="loadPage('helper-roles')">
-                    <div class="mission-icon">🎖️</div>
-                    <h3>Helper Roles</h3>
-                    <div class="mission-hint">Join the Helper Army</div>
-                </div>
-            `;
-        }
+                <span>${tracksCompleted2x}/${teamTracks.length} tracks</span>
+            </div>
+        </div>
+        
+        <div class="mission-card" onclick="loadPage('song-of-day')" style="background:linear-gradient(135deg, #ff000011, #ff000008);">
+            <div class="mission-icon">🎬</div>
+            <h3>Song of the Day</h3>
+            <div class="mission-status" style="color:#ff0000;">▶️ YouTube</div>
+            <div class="mission-hint">Find the song, earn XP!</div>
+        </div>
+        
+        <div class="mission-card secret" onclick="loadPage('secret-missions')">
+            <div class="mission-icon">🔒</div>
+            <h3>Secret Missions</h3>
+            <div class="mission-status">🕵️ Classified</div>
+            <div class="mission-hint">Tap to view team missions</div>
+        </div>
+        
+        <div class="mission-card" onclick="loadPage('playlists')">
+            <div class="mission-icon">🎵</div>
+            <h3>Playlists</h3>
+            <div class="mission-status" style="color:#ff4444;">⚠️ REQUIRED</div>
+            <div class="mission-hint">Official streaming playlists</div>
+        </div>
+        
+        <div class="mission-card" onclick="loadPage('chat')">
+            <div class="mission-icon">💬</div>
+            <h3>Secret Comms</h3>
+            <div class="mission-subtitle">HQ Encrypted Channel</div>
+            <div class="mission-hint">Tap to join chat</div>
+        </div>
+        
+        <div class="mission-card" onclick="loadPage('gc-links')">
+            <div class="mission-icon">👥</div>
+            <h3>GC Links</h3>
+            <div class="mission-hint">Instagram group chats</div>
+        </div>
+    `;
+}
         
         // Top Agents Rankings
         const rankList = rankings.rankings || [];
@@ -4649,336 +4469,6 @@ async function renderHome() {
         showToast('Failed to load home', 'error'); 
     }
 }
-// ==================== CONFETTI CELEBRATION ====================
-const ConfettiCelebration = {
-    config: {
-        particleCount: 80,
-        duration: 20000,
-        colors: ['#7b2cbf', '#9d4edd', '#c77dff', '#e0aaff', '#ffd700', '#ffed4a', '#fff', '#00ff88', '#ff6b9d', '#00d4ff'],
-        emojis: ['💜', '✨', '⭐', '🎆', '🎇', '🎊', '🎉', '⟭⟬'],
-        shapes: ['circle', 'square', 'star', 'ribbon'],
-        storageKey: 'ny2026_confetti'
-    },
-
-    shouldShow() {
-        return NewYearCelebration.shouldShowConfetti();
-    },
-
-    randomFrom(arr) {
-        return arr[Math.floor(Math.random() * arr.length)];
-    },
-
-    randomRange(min, max) {
-        return Math.random() * (max - min) + min;
-    },
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    },
-
-    createStyles() {
-        return `
-            <style id="confetti-styles">
-                .confetti-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100vw;
-                    height: 100vh;
-                    pointer-events: none;
-                    z-index: 99999;
-                    overflow: hidden;
-                    perspective: 1000px;
-                }
-
-                .confetti-particle {
-                    position: absolute;
-                    top: -20px;
-                    opacity: 0;
-                    will-change: transform, opacity;
-                }
-
-                .confetti-particle.shape-circle { border-radius: 50%; }
-                .confetti-particle.shape-square { border-radius: 2px; }
-                .confetti-particle.shape-star {
-                    background: transparent !important;
-                    font-size: 14px;
-                    width: auto !important;
-                    height: auto !important;
-                }
-                .confetti-particle.shape-ribbon {
-                    width: 3px !important;
-                    height: 15px !important;
-                    border-radius: 2px;
-                }
-                .confetti-particle.is-emoji {
-                    background: transparent !important;
-                    width: auto !important;
-                    height: auto !important;
-                    font-size: 20px;
-                    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-                }
-
-                @keyframes confettiFall {
-                    0% {
-                        opacity: 0;
-                        transform: translateY(0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(0);
-                    }
-                    5% {
-                        opacity: 1;
-                        transform: translateY(5vh) translateX(var(--drift-x, 0px)) rotateX(45deg) rotateY(45deg) rotateZ(45deg) scale(1);
-                    }
-                    25% { opacity: 1; }
-                    100% {
-                        opacity: 0;
-                        transform: translateY(105vh) translateX(var(--drift-end, 0px)) rotateX(720deg) rotateY(540deg) rotateZ(var(--rotation, 360deg)) scale(0.5);
-                    }
-                }
-
-                .confetti-message {
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%) scale(0);
-                    z-index: 100000;
-                    text-align: center;
-                    pointer-events: none;
-                    animation: messagePopIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s forwards,
-                               messagePopOut 0.5s ease-in 3.5s forwards;
-                }
-
-                @keyframes messagePopIn {
-                    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-                    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-                }
-
-                @keyframes messagePopOut {
-                    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-                    100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-                }
-
-                .confetti-message-content {
-                    background: linear-gradient(135deg, rgba(13, 0, 21, 0.98), rgba(26, 10, 46, 0.98));
-                    border: 2px solid rgba(123, 44, 191, 0.5);
-                    border-radius: 24px;
-                    padding: 35px 50px;
-                    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 60px rgba(123, 44, 191, 0.4);
-                    max-width: 90vw;
-                }
-
-                .confetti-message-year {
-                    font-size: 56px;
-                    font-weight: 800;
-                    background: linear-gradient(135deg, #ffd700, #ffed4a, #ffd700);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                    margin-bottom: 12px;
-                    letter-spacing: 6px;
-                }
-
-                .confetti-message-greeting {
-                    font-size: 14px;
-                    color: #e0aaff;
-                    margin-bottom: 6px;
-                    text-transform: uppercase;
-                    letter-spacing: 3px;
-                }
-
-                .confetti-message-name {
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: #fff;
-                    margin-bottom: 8px;
-                }
-
-                .confetti-message-name span {
-                    background: linear-gradient(135deg, #7b2cbf, #c77dff);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                }
-
-                .confetti-message-text {
-                    font-size: 16px;
-                    color: #ccc;
-                    margin-bottom: 16px;
-                }
-
-                .confetti-message-subtitle {
-                    font-size: 13px;
-                    color: #888;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 10px;
-                    padding-top: 16px;
-                    border-top: 1px solid rgba(255, 255, 255, 0.1);
-                }
-
-                .confetti-message-heart {
-                    font-size: 18px;
-                    animation: heartPulse 0.6s ease-in-out infinite;
-                }
-
-                @keyframes heartPulse {
-                    0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.3); }
-                }
-
-                .confetti-message-bts {
-                    color: #e0aaff;
-                    font-weight: 600;
-                }
-
-                @media (prefers-reduced-motion: reduce) {
-                    .confetti-particle, .confetti-message { animation: none !important; }
-                    .confetti-overlay { display: none; }
-                }
-
-                @media (max-width: 480px) {
-                    .confetti-message-content { padding: 28px 24px; }
-                    .confetti-message-year { font-size: 42px; letter-spacing: 4px; }
-                    .confetti-message-greeting { font-size: 11px; }
-                    .confetti-message-name { font-size: 20px; }
-                    .confetti-message-text { font-size: 14px; }
-                }
-            </style>
-        `;
-    },
-
-    createParticle(index) {
-        const particle = document.createElement('div');
-        particle.className = 'confetti-particle';
-
-        const isEmoji = Math.random() < 0.2;
-
-        if (isEmoji) {
-            particle.classList.add('is-emoji');
-            particle.textContent = this.randomFrom(this.config.emojis);
-        } else {
-            const shape = this.randomFrom(this.config.shapes);
-            particle.classList.add(`shape-${shape}`);
-            
-            if (shape === 'star') {
-                particle.textContent = '★';
-                particle.style.color = this.randomFrom(this.config.colors);
-            } else {
-                const size = shape === 'ribbon' ? null : this.randomRange(6, 12);
-                if (size) {
-                    particle.style.width = `${size}px`;
-                    particle.style.height = `${size}px`;
-                }
-                particle.style.backgroundColor = this.randomFrom(this.config.colors);
-            }
-        }
-
-        const startX = this.randomRange(5, 95);
-        const driftX = this.randomRange(-30, 30);
-        const driftEnd = this.randomRange(-50, 50);
-        const rotation = this.randomRange(360, 1080);
-        const duration = this.randomRange(3, 5.5);
-        const delay = index * 40 + this.randomRange(0, 200);
-
-        particle.style.cssText += `
-            left: ${startX}%;
-            --drift-x: ${driftX}px;
-            --drift-end: ${driftEnd}px;
-            --rotation: ${rotation}deg;
-            animation: confettiFall ${duration}s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${delay}ms forwards;
-        `;
-
-        return particle;
-    },
-
-    createMessage() {
-        const agentName = NewYearCelebration.getAgentName();
-        const message = document.createElement('div');
-        message.className = 'confetti-message';
-        message.innerHTML = `
-            <div class="confetti-message-content">
-                <div class="confetti-message-year">2026</div>
-                <div class="confetti-message-greeting">Happy New Year</div>
-                <div class="confetti-message-name">
-                    <span>${this.escapeHtml(agentName)}</span>! 🎉
-                </div>
-                <div class="confetti-message-text">
-                    Thank you for being part of this journey
-                </div>
-                <div class="confetti-message-subtitle">
-                    <span class="confetti-message-heart">💜</span>
-                    <span class="confetti-message-bts">The year of BTS comeback</span>
-                    <span class="confetti-message-heart">💜</span>
-                </div>
-            </div>
-        `;
-        return message;
-    },
-
-    launch() {
-        if (!this.shouldShow()) return;
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            localStorage.setItem(this.config.storageKey, new Date().toDateString());
-            return;
-        }
-
-        const overlay = document.createElement('div');
-        overlay.className = 'confetti-overlay';
-        overlay.id = 'confetti-overlay';
-        overlay.innerHTML = this.createStyles();
-        document.body.appendChild(overlay);
-
-        overlay.appendChild(this.createMessage());
-
-        let created = 0;
-        const createBatch = () => {
-            const fragment = document.createDocumentFragment();
-            for (let i = 0; i < 10 && created < this.config.particleCount; i++) {
-                fragment.appendChild(this.createParticle(created));
-                created++;
-            }
-            overlay.appendChild(fragment);
-            if (created < this.config.particleCount) {
-                requestAnimationFrame(createBatch);
-            }
-        };
-        createBatch();
-
-        setTimeout(() => {
-            const existing = document.getElementById('confetti-overlay');
-            if (existing) {
-                existing.style.transition = 'opacity 0.5s ease';
-                existing.style.opacity = '0';
-                setTimeout(() => existing.remove(), 500);
-            }
-        }, this.config.duration);
-
-        localStorage.setItem(this.config.storageKey, new Date().toDateString());
-        console.log(`🎆 Happy New Year ${NewYearCelebration.getAgentName()}!`);
-    },
-
-    forceLaunch() {
-        localStorage.removeItem(this.config.storageKey);
-        this.launch();
-    },
-
-    reset() {
-        localStorage.removeItem(this.config.storageKey);
-        const overlay = document.getElementById('confetti-overlay');
-        if (overlay) overlay.remove();
-    }
-};
-
-// ==================== AUTO-LAUNCH CONFETTI ====================
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        if (STATE?.agentNo || STATE?.data?.profile) {
-            ConfettiCelebration.launch();
-        }
-    }, 1000);
-});
 // ==================== ONLINE TRACKING ====================
 
 let heartbeatInterval = null;
@@ -10010,11 +9500,6 @@ window.adminConfirmPolice = adminConfirmPolice;
 window.isTeamEligibleForWin = isTeamEligibleForWin;
 window.getTeamEligibilityStatus = getTeamEligibilityStatus;
 window.getWeekWinner = getWeekWinner;
-
-// ==================== EXPORTS ====================
-window.NewYearCelebration = NewYearCelebration;
-window.ConfettiCelebration = ConfettiCelebration;
-window.renderNewYearBanner = renderNewYearBanner;
 
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded with Voting System 🗳️💜');
