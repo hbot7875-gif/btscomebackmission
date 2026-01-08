@@ -3920,6 +3920,7 @@ async function loadDashboard() {
     startHeartbeat();
     updateOnlineCount();
     setInterval(updateOnlineCount, 30000);
+    
     // Clear previous interval
     if (notificationInterval) {
         clearInterval(notificationInterval);
@@ -3927,66 +3928,99 @@ async function loadDashboard() {
     }
     
     try {
-    // ⚡ PARALLEL LOAD - All API calls at once!
-    const [weeksRes, agentDataRes] = await Promise.all([
-        api('getAvailableWeeks'),
-        api('getAgentData', { agentNo: STATE.agentNo, week: null })
-    ]);
-    
-    STATE.weeks = weeksRes.weeks || [];
-    STATE.week = weeksRes.current || STATE.weeks[0];
-    
-    if (agentDataRes.week && agentDataRes.week !== STATE.week) {
-        STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: STATE.week });
-    } else {
-        STATE.data = agentDataRes;
+        // ⚡ SINGLE API CALL - Gets EVERYTHING!
+        const startTime = Date.now();
+        
+        const dashboardData = await api('getDashboardData', { 
+            agentNo: STATE.agentNo, 
+            week: '' // Empty = current week
+        });
+        
+        console.log(`✅ Dashboard loaded in ${Date.now() - startTime}ms (server: ${dashboardData.processingTime}ms)`);
+        
+        // ===== MAP RESPONSE TO STATE =====
+        STATE.weeks = dashboardData.availableWeeks || [];
+        STATE.week = dashboardData.week || dashboardData.currentWeek || STATE.weeks[0];
+        STATE.lastUpdated = dashboardData.lastUpdated;
+        
+        // Map agent data to STATE.data (same structure as getAgentData)
+        STATE.data = {
+            agentNo: dashboardData.agent.agentNo,
+            week: dashboardData.week,
+            profile: dashboardData.agent.profile,
+            stats: dashboardData.agent.stats,
+            rank: dashboardData.agent.rank,
+            teamRank: dashboardData.agent.teamRank,
+            trackContributions: dashboardData.agent.trackContributions,
+            albumContributions: dashboardData.agent.albumContributions,
+            album2xStatus: dashboardData.agent.album2xStatus,
+            teamInfo: {
+                level: dashboardData.team.level,
+                teamXP: dashboardData.team.teamXP,
+                winner: dashboardData.team.isWinner,
+                trackGoalPassed: dashboardData.team.missions?.tracksPassed,
+                albumGoalPassed: dashboardData.team.missions?.albumsPassed,
+                album2xPassed: dashboardData.team.missions?.album2xPassed
+            },
+            lastUpdated: dashboardData.lastUpdated
+        };
+        
+        // ===== CACHE EXTRA DATA FOR OTHER PAGES =====
+        STATE.dashboardCache = {
+            topAgents: dashboardData.topAgents || [],
+            trackGoals: dashboardData.trackGoals || {},
+            albumGoals: dashboardData.albumGoals || {},
+            announcements: dashboardData.announcements || [],
+            teamComparison: dashboardData.teamComparison || [],
+            teamName: dashboardData.team.name,
+            teamLevel: dashboardData.team.level,
+            teamPfp: dashboardData.team.pfp,
+            currentWeek: dashboardData.currentWeek
+        };
+        
+        // Switch screens FIRST (feels faster!)
+        $('login-screen').classList.remove('active');
+        $('login-screen').style.display = 'none';
+        $('dashboard-screen').classList.add('active');
+        $('dashboard-screen').style.display = 'flex';
+        
+        // Setup dashboard
+        setupDashboard();
+        loadNotificationState();
+        
+        // Initialize router and load page
+        const startPage = initRouter();
+        await loadPage(startPage === 'login' ? 'home' : startPage);
+        
+        // ⚡ Load these in BACKGROUND (don't await!)
+        loadAllWeeksData();
+        // preloadDashboardData(); // ← No longer needed! We have everything
+        
+        // ✅ Delayed notification + voting check
+        setTimeout(() => {
+            checkNotifications();
+            checkVotingAnnouncement();
+        }, 2000);
+        
+        // ✅ Recurring checks every 5 minutes
+        notificationInterval = setInterval(() => {
+            checkNotifications();
+            checkVotingAnnouncement();
+        }, 5 * 60 * 1000);
+        
+        if (STATE.isAdmin) addAdminIndicator();
+        
+    } catch (e) {
+        console.error('❌ Dashboard error:', e);
+        showToast('Error: ' + e.message, 'error');
+        
+        $('login-screen').classList.add('active');
+        $('login-screen').style.display = 'flex';
+        $('dashboard-screen').classList.remove('active');
+        $('dashboard-screen').style.display = 'none';
+    } finally { 
+        loading(false); 
     }
-    
-    if (STATE.data?.lastUpdated) STATE.lastUpdated = STATE.data.lastUpdated;
-    
-    // Switch screens FIRST (feels faster!)
-    $('login-screen').classList.remove('active');
-    $('login-screen').style.display = 'none';
-    $('dashboard-screen').classList.add('active');
-    $('dashboard-screen').style.display = 'flex';
-    
-    // Setup dashboard
-    setupDashboard();
-    loadNotificationState();
-    
-    // Initialize router and load page
-    const startPage = initRouter();
-    await loadPage(startPage === 'login' ? 'home' : startPage);
-    
-    // ⚡ Load these in BACKGROUND (don't await!)
-    loadAllWeeksData();
-    preloadDashboardData();
-    
-    // ✅ FIXED: Delayed notification + voting check (INITIAL)
-    setTimeout(() => {
-        checkNotifications();
-        checkVotingAnnouncement(); // Check voting on login
-    }, 2000);
-    
-    // ✅ FIXED: Recurring checks every 5 minutes
-    notificationInterval = setInterval(() => {
-        checkNotifications();        // Check for new notifications
-        checkVotingAnnouncement();   // Check for new/reminder voting
-    }, 5 * 60 * 1000);
-    
-    if (STATE.isAdmin) addAdminIndicator();
-    
-} catch (e) {
-    console.error('❌ Dashboard error:', e);
-    showToast('Error: ' + e.message, 'error');
-    
-    $('login-screen').classList.add('active');
-    $('login-screen').style.display = 'flex';
-    $('dashboard-screen').classList.remove('active');
-    $('dashboard-screen').style.display = 'none';
-} finally { 
-    loading(false); 
-}
 }
 // ⚡ Make this non-blocking
 function loadAllWeeksData() {
@@ -4164,7 +4198,18 @@ async function renderHome() {
             console.log('Could not load all weeks data:', e);
         }
     }
-    
+    // Add this helper function
+function getCachedTopAgents() {
+    return STATE.dashboardCache?.topAgents || [];
+}
+
+function getCachedTeamComparison() {
+    return STATE.dashboardCache?.teamComparison || [];
+}
+
+function getCachedAnnouncements() {
+    return STATE.dashboardCache?.announcements || [];
+}
     // BTS Countdown HTML
     const btsCountdownHtml = renderBTSCountdown();
     
@@ -4172,7 +4217,7 @@ async function renderHome() {
     const guideHtml = renderGuide('home');
     
     
-    // In renderHome() - Replace the refreshNotice with this compact version:
+   
 
 const refreshNotice = `
     <div style="
