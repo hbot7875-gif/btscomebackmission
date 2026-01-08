@@ -4247,11 +4247,32 @@ const refreshNotice = `
         
         // In renderHome() - Find this section and replace it:
 
+// In renderHome() - Simplified quick stats:
+
 const quickStatsEl = document.querySelector('.quick-stats-section');
 if (quickStatsEl) {
+    // Compact refresh notice
+    const refreshNotice = `
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: rgba(123,44,191,0.08);
+            border: 1px solid rgba(123,44,191,0.15);
+            border-radius: 10px;
+            margin-bottom: 16px;
+        ">
+            <span style="font-size: 14px;">⏰</span>
+            <span style="color: #aaa; font-size: 12px;">
+                Streams update hourly
+                ${STATE.lastUpdated ? ` • Last: ${formatLastUpdated(STATE.lastUpdated)}` : ''}
+            </span>
+        </div>
+    `;
+    
     quickStatsEl.innerHTML = `
         ${btsCountdownHtml}
-        ${guideHtml}
         ${refreshNotice}
         
         <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
@@ -4270,23 +4291,21 @@ if (quickStatsEl) {
                     </div>
                     <div class="quick-stat">
                         <div class="quick-stat-value">${fmt(myStats.trackScrobbles || 0)}</div>
-                        <div class="quick-stat-label">Track Streams</div>
+                        <div class="quick-stat-label">Tracks</div>
                     </div>
                     <div class="quick-stat">
                         <div class="quick-stat-value">${fmt(myStats.albumScrobbles || 0)}</div>
-                        <div class="quick-stat-label">Album Streams</div>
+                        <div class="quick-stat-label">Albums</div>
                     </div>
                 </div>
                 <div class="battle-timer ${isCompleted ? 'ended' : ''}">
                     ${isCompleted ? '🏆 Week Completed' : (daysLeft <= 1 ? '🚀 Final Day!' : `⏰ ${daysLeft} days left`)}
                 </div>
                 ${isCompleted ? `<div class="results-alert" onclick="loadPage('summary')">🏆 View Final Results →</div>` : ''}
-                ${STATE.lastUpdated ? `<div class="last-updated-mini">Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
             </div>
         </div>
     `;
     
-    // Start the countdown timer
     startBTSCountdown();
 }
         
@@ -4319,6 +4338,8 @@ if (quickStatsEl) {
         
         // Mission Cards
         // In renderHome() - Find missionCardsContainer and replace with this:
+
+// In renderHome() - Replace the missionCardsContainer section with this:
 
 const missionCardsContainer = document.querySelector('.missions-grid');
 if (missionCardsContainer) {
@@ -4369,40 +4390,6 @@ if (missionCardsContainer) {
                 </div>
                 <span>${tracksCompleted2x}/${teamTracks.length} tracks</span>
             </div>
-        </div>
-        
-        <div class="mission-card" onclick="loadPage('song-of-day')" style="background:linear-gradient(135deg, #ff000011, #ff000008);">
-            <div class="mission-icon">🎬</div>
-            <h3>Song of the Day</h3>
-            <div class="mission-status" style="color:#ff0000;">▶️ YouTube</div>
-            <div class="mission-hint">Find the song, earn XP!</div>
-        </div>
-        
-        <div class="mission-card secret" onclick="loadPage('secret-missions')">
-            <div class="mission-icon">🔒</div>
-            <h3>Secret Missions</h3>
-            <div class="mission-status">🕵️ Classified</div>
-            <div class="mission-hint">Tap to view team missions</div>
-        </div>
-        
-        <div class="mission-card" onclick="loadPage('playlists')">
-            <div class="mission-icon">🎵</div>
-            <h3>Playlists</h3>
-            <div class="mission-status" style="color:#ff4444;">⚠️ REQUIRED</div>
-            <div class="mission-hint">Official streaming playlists</div>
-        </div>
-        
-        <div class="mission-card" onclick="loadPage('chat')">
-            <div class="mission-icon">💬</div>
-            <h3>Secret Comms</h3>
-            <div class="mission-subtitle">HQ Encrypted Channel</div>
-            <div class="mission-hint">Tap to join chat</div>
-        </div>
-        
-        <div class="mission-card" onclick="loadPage('gc-links')">
-            <div class="mission-icon">👥</div>
-            <h3>GC Links</h3>
-            <div class="mission-hint">Instagram group chats</div>
         </div>
     `;
 }
