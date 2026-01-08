@@ -86,16 +86,6 @@ const CONFIG = {
         "Team JITB": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamjitb.jpg"
     },
 
-    HELPER_ROLES: [
-        { id: 'pl_maker', name: 'Playlist Maker', icon: '🎵', description: 'Creates and maintains streaming playlists' },
-        { id: 'goals_maker', name: 'Goals Maker', icon: '🎯', description: 'Sets weekly track and album goals' },
-        { id: 'badge_maker', name: 'Badge Maker', icon: '🎖️', description: 'Designs and creates agent badges' },
-        { id: 'promoter', name: 'Promoter Agent', icon: '📢', description: 'Recruits new agents and spreads the word' },
-        { id: 'police', name: 'Police Agent', icon: '👮', description: 'Monitors rule compliance and reports issues' },
-        { id: 'secret_missions', name: 'Secret Missions Maker', icon: '🕵️', description: 'Creates special team missions' },
-        { id: 'attendance', name: 'Attendance Taker', icon: '📋', description: 'Tracks agent participation weekly' }
-    ],
-
     SECRET_MISSIONS: { 
         xpPerMission: 5, 
         maxMissionsPerTeam: 5, 
@@ -112,14 +102,12 @@ const CONFIG = {
 
     // ==================== BTS COMEBACK (INSIDE CONFIG) ====================
     COMEBACK: {
-        ALBUM_NAME: "BTS 5th Album",
-        RELEASE_DATE: "2026-03-20T13:00:00+09:00",
-        SHOW_COUNTDOWN: true,
-        BTS_LOGO: "https://2026bts.com/images/logo.png",
-        ALBUM_COVER: "https://github.com/hbot7875-gif/btscomebackmission/blob/4f6fef44395ff9ca1609131af105a19db01e4e19/team%20pfps/cover.png"
-    }
-}; // ✅ CONFIG object properly closed here
-
+    ALBUM_NAME: "BTS 5th Album",
+    RELEASE_DATE: "2026-03-20T13:00:00+09:00",
+    SHOW_COUNTDOWN: true,
+    BTS_LOGO: "https://2026bts.com/images/logo.png",
+    ALBUM_COVER: "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/4f6fef44395ff9ca1609131af105a19db01e4e19/team%20pfps/cover.png"
+}
 function renderBTSCountdown() {
     if (!CONFIG.COMEBACK?.SHOW_COUNTDOWN) return '';
     
