@@ -107,7 +107,7 @@ const CONFIG = {
     SHOW_COUNTDOWN: true,
     BTS_LOGO: "https://2026bts.com/images/logo.png",
     ALBUM_COVER: "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/4f6fef44395ff9ca1609131af105a19db01e4e19/team%20pfps/cover.png"
-}
+},
 function renderBTSCountdown() {
     if (!CONFIG.COMEBACK?.SHOW_COUNTDOWN) return '';
     
