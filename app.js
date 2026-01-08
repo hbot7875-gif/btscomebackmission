@@ -4169,27 +4169,26 @@ async function renderHome() {
     const guideHtml = renderGuide('home');
     
     
-    // Hourly Update Notice
-    const refreshNotice = `
-        <div class="refresh-notice">
-            <div class="refresh-notice-icon">⏰</div>
-            <div class="refresh-notice-content">
-                <div class="refresh-notice-title">📊 Your Streams Update Every 1 Hour!</div>
-                <div class="refresh-notice-text">
-                    <strong>Don't worry!</strong> If you just finished streaming and your numbers haven't changed yet, that's normal!
-                    <br><br>
-                    🔄 <strong>How it works:</strong> Our system automatically checks your Last.fm account <strong>every hour</strong> and updates your stream counts.
-                    <br><br>
-                    💡 <strong>Tip:</strong> Keep streaming! Your progress will appear in the next update.
-                </div>
-                ${STATE.lastUpdated ? `
-                    <div class="refresh-notice-updated">
-                        🕐 Last updated: <strong>${formatLastUpdated(STATE.lastUpdated)}</strong>
-                    </div>
-                ` : ''}
-            </div>
+    // In renderHome() - Replace the refreshNotice with this compact version:
+
+const refreshNotice = `
+    <div style="
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        background: rgba(123,44,191,0.1);
+        border: 1px solid rgba(123,44,191,0.2);
+        border-radius: 10px;
+        margin-bottom: 16px;
+    ">
+        <span style="font-size: 16px;">⏰</span>
+        <div style="flex: 1;">
+            <span style="color: #fff; font-size: 12px;">Streams update hourly</span>
+            ${STATE.lastUpdated ? `<span style="color: #888; font-size: 11px;"> • Last: ${formatLastUpdated(STATE.lastUpdated)}</span>` : ''}
         </div>
-    `;
+    </div>
+`;
     
     try {
         const [summary, rankings, goals] = await Promise.all([
