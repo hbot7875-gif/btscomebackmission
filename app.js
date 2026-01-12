@@ -11,7 +11,18 @@ const CONFIG = {
         'Week 2': '2025-12-20',
         'Week 3': '2025-12-27',
         'Week 4': '2026-01-03',
-        'Week 5': '2026-01-10'
+        'Week 5': '2026-01-10',
+        'Week 6': '2026-01-17',
+        'Week 7': '2026-01-24',
+        'Week 8': '2026-01-31',
+        'Week 9': '2026-02-07',
+        'Week 10': '2026-02-14',
+        'Week 11': '2026-02-21',
+        'Week 12': '2026-02-28',
+        'Week 13': '2026-03-07',
+        'Week 14': '2026-03-14',
+        'Week 15': '2026-03-21',  // 🎉 BTS Comeback Week!
+        'Week 16': '2026-03-28'
     },
 
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
