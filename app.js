@@ -6957,392 +6957,360 @@ function renderSecretMissionCard(mission, myTeam, isAssigned) {
     `;
 }
 
-// ==================== SONG OF THE DAY (SOTD) ====================
-async function renderSOTD() {
-    console.log('🎬 renderSOTD called');
+// ==================== SOTD DAILY RESET (FRONTEND) ====================
+
+function getSOTDStorageKey() {
+    const today = new Date().toDateString();
+    return `sotd_${today}`;
+}
+
+function getSOTDState() {
+    const key = getSOTDStorageKey();
+    const stored = localStorage.getItem(key);
     
-    const container = document.getElementById('sotd-content');
-    
-    if (!container) {
-        console.error('❌ sotd-content not found!');
-        showToast('Page container not found', 'error');
-        return;
+    if (stored) {
+        return JSON.parse(stored);
     }
     
-    // Show loading
+    // New day - clear old data and return fresh state
+    clearOldSOTDData();
+    return {
+        attempts: 0,
+        completed: false,
+        correct: false,
+        hintsUsed: 0
+    };
+}
+
+function saveSOTDState(state) {
+    const key = getSOTDStorageKey();
+    localStorage.setItem(key, JSON.stringify(state));
+}
+
+function clearOldSOTDData() {
+    const today = new Date().toDateString();
+    const todayKey = `sotd_${today}`;
+    
+    // Remove all old SOTD keys
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sotd_') && key !== todayKey) {
+            keysToRemove.push(key);
+        }
+    }
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+}
+
+// Call this when rendering SOTD page
+function initSOTD() {
+    const state = getSOTDState();
+    console.log('SOTD State:', state);
+    return state;
+}
+// ==================== SONG OF THE DAY PAGE ====================
+
+async function renderSongOfDay() {
+    const container = $('song-of-day-content');
+    if (!container) return;
+    
+    // ✅ Get daily state (auto-resets each day)
+    const sotdState = getSOTDState();
+    
     container.innerHTML = `
-        <div style="text-align:center;padding:60px 20px;">
-            <div style="font-size:40px;margin-bottom:15px;">🎬</div>
-            <p style="color:#888;">Loading Song of the Day...</p>
+        <div style="text-align:center;padding:40px;">
+            <div class="loading-spinner"></div>
+            <p style="color:#888;margin-top:10px;">Loading Song of the Day...</p>
         </div>
     `;
     
     try {
-        const data = await api('getSongOfDay', { agentNo: STATE.agentNo });
-        console.log('🎬 SOTD API Response:', data);
+        const response = await api('getSongOfDay', {});
         
-        // Get dates
-        const today = new Date();
-        const dateDisplay = today.toLocaleDateString('en-US', { 
-            weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' 
-        });
-        const todayStr = today.toDateString();
-        
-        // No song set
-        if (!data?.success || !data?.song) {
+        // ✅ Check if song is set for today
+        if (!response.success || !response.isToday) {
             container.innerHTML = `
-                <div class="card" style="text-align:center;padding:50px 20px;">
-                    <div style="font-size:60px;margin-bottom:20px;">🎬</div>
-                    <h3 style="color:#fff;margin:0 0 10px;">No Song Today</h3>
-                    <p style="color:#888;margin:0 0 5px;">📅 ${dateDisplay}</p>
-                    <p style="color:#666;font-size:13px;margin:0 0 25px;">Admin hasn't set today's challenge yet.</p>
-                    <button onclick="loadPage('home')" class="btn-secondary">← Back to Home</button>
+                <div style="text-align:center;padding:60px 20px;">
+                    <div style="font-size:60px;margin-bottom:20px;">🎵</div>
+                    <h2 style="color:#fff;margin-bottom:10px;">No Song Set Today</h2>
+                    <p style="color:#888;font-size:14px;">
+                        Check back later! Admin will set today's Song of the Day soon.
+                    </p>
+                    <button onclick="renderSongOfDay()" class="btn-secondary" style="margin-top:20px;">
+                        🔄 Refresh
+                    </button>
                 </div>
             `;
             return;
         }
         
-        const song = data.song;
-        
-        // Get user's attempt state
-        const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + todayStr;
-        const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + todayStr;
-        
-        let attempts = parseInt(localStorage.getItem(attemptsKey) || '0');
-        let wasCorrect = localStorage.getItem(correctKey) === 'true';
-        
-        // Sync with server if available
-        if (data.userAttempts !== undefined) {
-            attempts = data.userAttempts;
-            localStorage.setItem(attemptsKey, String(attempts));
-        }
-        if (data.userCorrect !== undefined) {
-            wasCorrect = data.userCorrect;
-            localStorage.setItem(correctKey, wasCorrect ? 'true' : 'false');
-        }
-        
+        const song = response.song;
         const maxAttempts = 2;
-        const remaining = Math.max(0, maxAttempts - attempts);
-        const canAnswer = !wasCorrect && attempts < maxAttempts;
+        const attemptsLeft = maxAttempts - sotdState.attempts;
         
-        // Build the page
+        // ✅ Already completed today
+        if (sotdState.completed) {
+            container.innerHTML = `
+                <div style="text-align:center;padding:40px 20px;">
+                    <div style="font-size:60px;margin-bottom:20px;">
+                        ${sotdState.correct ? '🎉' : '😔'}
+                    </div>
+                    <h2 style="color:${sotdState.correct ? '#00ff88' : '#ff6b6b'};margin-bottom:10px;">
+                        ${sotdState.correct ? 'You Got It Right!' : 'Better Luck Tomorrow!'}
+                    </h2>
+                    <p style="color:#888;margin-bottom:20px;">
+                        ${sotdState.correct 
+                            ? `You earned +${song.xpReward || 1} XP for your team!` 
+                            : 'Come back tomorrow for a new song!'}
+                    </p>
+                    
+                    <div style="
+                        background: rgba(255,255,255,0.05);
+                        border-radius: 12px;
+                        padding: 20px;
+                        max-width: 400px;
+                        margin: 0 auto;
+                    ">
+                        <p style="color:#888;font-size:12px;margin-bottom:8px;">Today's Song Was:</p>
+                        <h3 style="color:#fff;margin:0;">${sanitize(song.title)}</h3>
+                        <p style="color:#7b2cbf;margin:5px 0 0 0;">${sanitize(song.artist)}</p>
+                    </div>
+                    
+                    <button onclick="loadPage('home')" class="btn-primary" style="margin-top:30px;">
+                        🏠 Back to Home
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        // ✅ No attempts left
+        if (attemptsLeft <= 0) {
+            saveSOTDState({ ...sotdState, completed: true, correct: false });
+            renderSongOfDay(); // Re-render with completed state
+            return;
+        }
+        
+        // ✅ Show game
         container.innerHTML = `
-            <!-- Header -->
-            <div class="card" style="background:linear-gradient(135deg, #ff000015, #ff000008);border-color:#ff000033;margin-bottom:16px;">
-                <div class="card-body" style="text-align:center;padding:25px;">
-                    <div style="font-size:50px;margin-bottom:12px;">🎬</div>
-                    <h2 style="color:#fff;margin:0 0 8px;font-size:20px;">Song of the Day</h2>
-                    <div style="
-                        display:inline-block;
-                        padding:8px 18px;
-                        background:rgba(255,255,255,0.1);
-                        border:1px solid rgba(255,255,255,0.2);
-                        border-radius:20px;
-                        margin-bottom:8px;
-                    ">
-                        <span style="color:#fff;font-size:13px;">📅 ${dateDisplay}</span>
+            <div class="sotd-container" style="padding:20px;max-width:500px;margin:0 auto;">
+                <!-- Header -->
+                <div style="text-align:center;margin-bottom:25px;">
+                    <div style="font-size:40px;margin-bottom:10px;">🎵</div>
+                    <h2 style="color:#fff;margin:0 0 5px 0;">Song of the Day</h2>
+                    <p style="color:#888;font-size:12px;margin:0;">Find the song & earn XP for your team!</p>
+                </div>
+                
+                <!-- Hint -->
+                <div style="
+                    background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,140,0,0.05));
+                    border: 1px solid rgba(255,215,0,0.3);
+                    border-radius: 12px;
+                    padding: 16px;
+                    margin-bottom: 20px;
+                    text-align: center;
+                ">
+                    <div style="color:#ffd700;font-size:12px;font-weight:600;margin-bottom:8px;">
+                        💡 TODAY'S HINT
                     </div>
-                    <p style="color:#888;font-size:12px;margin:0;">Guess the BTS song from the hint!</p>
+                    <div style="color:#fff;font-size:14px;">
+                        ${sanitize(song.hint) || 'No hint available'}
+                    </div>
+                </div>
+                
+                <!-- Attempts Left -->
+                <div style="
+                    display: flex;
+                    justify-content: center;
+                    gap: 10px;
+                    margin-bottom: 20px;
+                ">
+                    ${[1, 2].map(i => `
+                        <div style="
+                            width: 12px;
+                            height: 12px;
+                            border-radius: 50%;
+                            background: ${i <= attemptsLeft ? '#00ff88' : '#333'};
+                            border: 2px solid ${i <= attemptsLeft ? '#00ff88' : '#555'};
+                        "></div>
+                    `).join('')}
+                </div>
+                <p style="text-align:center;color:#888;font-size:11px;margin-bottom:20px;">
+                    ${attemptsLeft} ${attemptsLeft === 1 ? 'chance' : 'chances'} remaining
+                </p>
+                
+                <!-- Answer Input -->
+                <div style="margin-bottom:20px;">
+                    <label style="color:#888;font-size:11px;display:block;margin-bottom:8px;">
+                        📎 Paste YouTube Link:
+                    </label>
+                    <input 
+                        type="text" 
+                        id="sotd-answer" 
+                        placeholder="https://youtube.com/watch?v=..."
+                        style="
+                            width: 100%;
+                            padding: 14px;
+                            background: rgba(255,255,255,0.05);
+                            border: 1px solid rgba(255,255,255,0.1);
+                            border-radius: 10px;
+                            color: #fff;
+                            font-size: 14px;
+                            box-sizing: border-box;
+                        "
+                    >
+                </div>
+                
+                <!-- Submit Button -->
+                <button 
+                    onclick="submitSOTDAnswer()" 
+                    id="sotd-submit-btn"
+                    class="btn-primary" 
+                    style="width:100%;padding:14px;font-size:14px;"
+                >
+                    🎯 Submit Answer
+                </button>
+                
+                <!-- Result Area -->
+                <div id="sotd-result" style="margin-top:20px;"></div>
+                
+                <!-- XP Reward Info -->
+                <div style="
+                    text-align: center;
+                    margin-top: 25px;
+                    padding: 12px;
+                    background: rgba(123,44,191,0.1);
+                    border-radius: 10px;
+                ">
+                    <span style="color:#888;font-size:11px;">
+                        🎁 Reward: <strong style="color:#00ff88;">+${song.xpReward || 1} XP</strong> for correct answer
+                    </span>
                 </div>
             </div>
-            
-            <!-- Hint -->
-            <div class="card" style="margin-bottom:16px;">
-                <div class="card-header">
-                    <h3 style="margin:0;">💡 Today's Hint</h3>
-                </div>
-                <div class="card-body" style="text-align:center;padding:25px;">
-                    <div style="
-                        font-size:18px;
-                        color:#ffd700;
-                        font-style:italic;
-                        padding:18px;
-                        background:rgba(255,215,0,0.08);
-                        border:1px dashed rgba(255,215,0,0.3);
-                        border-radius:12px;
-                        line-height:1.6;
-                    ">"${sanitize(song.hint || 'Listen carefully...')}"</div>
-                    <div style="
-                        margin-top:15px;
-                        padding:10px 20px;
-                        background:rgba(0,255,136,0.1);
-                        border-radius:20px;
-                        display:inline-block;
-                    ">
-                        <span style="color:#00ff88;font-size:14px;font-weight:600;">🎁 +${song.xpReward || 1} XP Reward</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Answer Section -->
-            <div class="card" style="border-color:${!canAnswer ? (wasCorrect ? '#00ff88' : '#ff4444') : '#7b2cbf'};">
-                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                    <h3 style="margin:0;">${canAnswer ? '🔗 Submit Answer' : '📋 Result'}</h3>
-                    ${canAnswer ? `
-                        <span style="
-                            padding:5px 12px;
-                            background:${remaining === 1 ? 'rgba(255,165,0,0.15)' : 'rgba(0,255,136,0.1)'};
-                            border:1px solid ${remaining === 1 ? 'rgba(255,165,0,0.4)' : 'rgba(0,255,136,0.3)'};
-                            border-radius:15px;
-                            color:${remaining === 1 ? '#ffa500' : '#00ff88'};
-                            font-size:11px;
-                            font-weight:600;
-                        ">🎯 ${remaining} ${remaining === 1 ? 'Chance' : 'Chances'} Left</span>
-                    ` : ''}
-                </div>
-                <div class="card-body" style="padding:25px;">
-                    ${canAnswer ? `
-                        <!-- Input Form -->
-                        ${attempts === 1 ? `
-                            <div style="
-                                padding:12px;
-                                background:rgba(255,165,0,0.1);
-                                border:1px solid rgba(255,165,0,0.3);
-                                border-radius:10px;
-                                margin-bottom:15px;
-                                display:flex;
-                                align-items:center;
-                                gap:10px;
-                            ">
-                                <span style="font-size:20px;">⚠️</span>
-                                <div>
-                                    <div style="color:#ffa500;font-size:13px;font-weight:600;">Last Chance!</div>
-                                    <div style="color:#888;font-size:11px;">Your first guess was wrong.</div>
-                                </div>
-                            </div>
-                        ` : ''}
-                        
-                        <label style="color:#888;font-size:12px;display:block;margin-bottom:8px;">
-                            Paste the YouTube link of the song:
-                        </label>
-                        <input 
-                            type="text" 
-                            id="sotd-answer-input" 
-                            placeholder="https://youtube.com/watch?v=..."
-                            autocomplete="off"
-                            style="
-                                width:100%;
-                                box-sizing:border-box;
-                                background:#1a1a2e;
-                                border:1px solid #444;
-                                border-radius:10px;
-                                padding:14px;
-                                color:#fff;
-                                font-size:14px;
-                                margin-bottom:15px;
-                            "
-                        >
-                        
-                        <button 
-                            id="sotd-submit-btn"
-                            onclick="submitSOTDAnswer()"
-                            style="
-                                width:100%;
-                                padding:14px;
-                                background:linear-gradient(135deg, #ff0000, #cc0000);
-                                border:none;
-                                border-radius:10px;
-                                color:#fff;
-                                font-size:15px;
-                                font-weight:bold;
-                                cursor:pointer;
-                            "
-                        >▶️ Submit Answer</button>
-                        
-                        <div style="margin-top:12px;text-align:center;color:#666;font-size:11px;">
-                            Accepted: youtube.com/watch?v=... or youtu.be/...
-                        </div>
-                    ` : `
-                        <!-- Result Display -->
-                        <div style="text-align:center;">
-                            <div style="font-size:60px;margin-bottom:15px;">${wasCorrect ? '🎉' : '😔'}</div>
-                            <div style="
-                                color:${wasCorrect ? '#00ff88' : '#ff6b6b'};
-                                font-size:22px;
-                                font-weight:bold;
-                                margin-bottom:10px;
-                            ">${wasCorrect ? 'Correct! +' + (song.xpReward || 1) + ' XP' : 'Out of Attempts'}</div>
-                            <p style="color:#888;font-size:13px;margin:0 0 20px;">
-                                ${wasCorrect ? 'Great job! 💜' : 'Better luck tomorrow!'}
-                            </p>
-                            
-                            ${song.title ? `
-                                <div style="
-                                    padding:15px;
-                                    background:rgba(123,44,191,0.1);
-                                    border:1px solid rgba(123,44,191,0.3);
-                                    border-radius:12px;
-                                    margin-bottom:15px;
-                                ">
-                                    <div style="color:#fff;font-size:16px;font-weight:600;">🎵 ${sanitize(song.title)}</div>
-                                    ${song.artist ? `<div style="color:#888;font-size:12px;margin-top:5px;">${sanitize(song.artist)}</div>` : ''}
-                                </div>
-                            ` : ''}
-                            
-                            ${song.youtubeId ? `
-                                <a href="https://youtube.com/watch?v=${song.youtubeId}" 
-                                   target="_blank" 
-                                   style="
-                                       display:inline-flex;
-                                       align-items:center;
-                                       gap:8px;
-                                       padding:12px 24px;
-                                       background:linear-gradient(135deg, #ff0000, #cc0000);
-                                       color:#fff;
-                                       border-radius:25px;
-                                       text-decoration:none;
-                                       font-size:14px;
-                                       font-weight:600;
-                                   ">▶️ Watch on YouTube</a>
-                            ` : ''}
-                            
-                            <p style="color:#666;font-size:11px;margin-top:20px;">⏰ New challenge at midnight!</p>
-                        </div>
-                    `}
-                </div>
-            </div>
-            
-            <!-- Back Button -->
-            <button onclick="loadPage('home')" class="btn-secondary" style="width:100%;margin-top:16px;padding:14px;">
-                ← Back to Home
-            </button>
-            
-            ${STATE.isAdmin ? `
-                <div class="card" style="margin-top:16px;border-color:#ffd700;">
-                    <div class="card-header" style="background:rgba(255,215,0,0.05);">
-                        <h3 style="margin:0;color:#ffd700;">👑 Admin</h3>
-                    </div>
-                    <div class="card-body">
-                        <button onclick="setTodaysSong()" style="
-                            width:100%;
-                            padding:12px;
-                            background:linear-gradient(135deg, #ffd700, #ff8c00);
-                            border:none;
-                            border-radius:8px;
-                            color:#000;
-                            font-weight:bold;
-                            cursor:pointer;
-                            margin-bottom:8px;
-                        ">🎵 Set Today's Song</button>
-                        <button onclick="resetSOTDProgress()" class="btn-secondary" style="width:100%;padding:10px;font-size:12px;">
-                            🔄 Reset My Progress (Debug)
-                        </button>
-                    </div>
-                </div>
-            ` : ''}
         `;
         
-        // Setup enter key
-        if (canAnswer) {
-            setTimeout(() => {
-                const input = document.getElementById('sotd-answer-input');
-                if (input) {
-                    input.focus();
-                    input.onkeypress = (e) => {
-                        if (e.key === 'Enter') submitSOTDAnswer();
-                    };
-                }
-            }, 100);
-        }
-        
-        // Clear notification dot
-        const dot = document.getElementById('dot-sotd');
-        if (dot) dot.classList.remove('active');
-        
-    } catch (e) {
-        console.error('❌ SOTD Error:', e);
+    } catch (error) {
+        console.error('SOTD Error:', error);
         container.innerHTML = `
-            <div class="card" style="text-align:center;padding:50px 20px;">
-                <div style="font-size:50px;margin-bottom:15px;">❌</div>
-                <h3 style="color:#ff6b6b;margin:0 0 10px;">Failed to Load</h3>
-                <p style="color:#888;margin:0 0 20px;">${sanitize(e.message)}</p>
-                <button onclick="renderSOTD()" class="btn-primary" style="margin-right:10px;">🔄 Retry</button>
-                <button onclick="loadPage('home')" class="btn-secondary">← Home</button>
+            <div style="text-align:center;padding:60px 20px;">
+                <div style="font-size:40px;margin-bottom:15px;">⚠️</div>
+                <h3 style="color:#ff6b6b;">Failed to Load</h3>
+                <p style="color:#888;font-size:13px;">Please try again.</p>
+                <button onclick="renderSongOfDay()" class="btn-secondary" style="margin-top:15px;">
+                    🔄 Retry
+                </button>
             </div>
         `;
     }
 }
 
 // ==================== SUBMIT SOTD ANSWER ====================
+
 async function submitSOTDAnswer() {
-    const input = document.getElementById('sotd-answer-input');
-    const btn = document.getElementById('sotd-submit-btn');
+    const answerInput = $('sotd-answer');
+    const resultDiv = $('sotd-result');
+    const submitBtn = $('sotd-submit-btn');
     
-    if (!input) return;
+    if (!answerInput || !resultDiv) return;
     
-    const answer = input.value.trim();
+    const answer = answerInput.value.trim();
+    
     if (!answer) {
-        showToast('Please paste a YouTube link!', 'error');
-        input.focus();
-        return;
-    }
-    
-    const today = new Date().toDateString();
-    const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + today;
-    const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + today;
-    
-    // Check if already done
-    if (localStorage.getItem(correctKey) === 'true') {
-        showToast('Already answered correctly!', 'info');
-        renderSOTD();
-        return;
-    }
-    
-    const currentAttempts = parseInt(localStorage.getItem(attemptsKey) || '0');
-    if (currentAttempts >= 2) {
-        showToast('No more attempts today!', 'error');
-        renderSOTD();
+        resultDiv.innerHTML = `
+            <div style="color:#ff6b6b;text-align:center;padding:10px;">
+                ⚠️ Please paste a YouTube link
+            </div>
+        `;
         return;
     }
     
     // Disable button
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '⏳ Checking...';
-        btn.style.opacity = '0.6';
-    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⏳ Checking...';
     
     try {
-        const result = await api('submitSongAnswer', {
+        const response = await api('submitSongAnswer', {
             agentNo: STATE.agentNo,
             answer: answer
         });
         
-        console.log('🎬 Submit result:', result);
+        // Update local state
+        const sotdState = getSOTDState();
+        sotdState.attempts = response.attempts || (sotdState.attempts + 1);
         
-        // Increment attempts
-        const newAttempts = currentAttempts + 1;
-        localStorage.setItem(attemptsKey, String(newAttempts));
-        
-        if (result.correct) {
-            localStorage.setItem(correctKey, 'true');
-            showToast('🎉 Correct! +' + (result.xpAwarded || 1) + ' XP!', 'success');
-            if (typeof confetti === 'function') {
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-            }
+        if (response.correct) {
+            sotdState.completed = true;
+            sotdState.correct = true;
+            saveSOTDState(sotdState);
+            
+            resultDiv.innerHTML = `
+                <div style="
+                    background: rgba(0,255,136,0.1);
+                    border: 1px solid rgba(0,255,136,0.3);
+                    border-radius: 12px;
+                    padding: 20px;
+                    text-align: center;
+                ">
+                    <div style="font-size:40px;margin-bottom:10px;">🎉</div>
+                    <h3 style="color:#00ff88;margin:0 0 8px 0;">Correct!</h3>
+                    <p style="color:#fff;margin:0;">
+                        +${response.xpAwarded || 1} XP for your team!
+                    </p>
+                </div>
+            `;
+            
+            // Refresh page after delay
+            setTimeout(() => renderSongOfDay(), 2000);
+            
         } else {
-            const left = 2 - newAttempts;
-            if (left > 0) {
-                showToast(`❌ Wrong! ${left} chance left.`, 'error');
+            saveSOTDState(sotdState);
+            
+            const attemptsLeft = response.attemptsRemaining || 0;
+            
+            resultDiv.innerHTML = `
+                <div style="
+                    background: rgba(255,107,107,0.1);
+                    border: 1px solid rgba(255,107,107,0.3);
+                    border-radius: 12px;
+                    padding: 15px;
+                    text-align: center;
+                ">
+                    <div style="font-size:30px;margin-bottom:8px;">❌</div>
+                    <p style="color:#ff6b6b;margin:0 0 5px 0;font-weight:600;">
+                        Wrong Answer!
+                    </p>
+                    <p style="color:#888;margin:0;font-size:12px;">
+                        ${attemptsLeft > 0 
+                            ? `${attemptsLeft} ${attemptsLeft === 1 ? 'chance' : 'chances'} left. Try again!`
+                            : 'No more chances today. Try tomorrow!'}
+                    </p>
+                </div>
+            `;
+            
+            if (attemptsLeft <= 0) {
+                sotdState.completed = true;
+                saveSOTDState(sotdState);
+                setTimeout(() => renderSongOfDay(), 2000);
             } else {
-                showToast('❌ Wrong! No more chances today.', 'error');
+                // Re-enable for retry
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🎯 Try Again';
+                answerInput.value = '';
             }
         }
         
-        setTimeout(() => renderSOTD(), 1000);
-        
-    } catch (e) {
-        console.error('Submit error:', e);
-        showToast('Error: ' + e.message, 'error');
-        
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '▶️ Submit Answer';
-            btn.style.opacity = '1';
-        }
+    } catch (error) {
+        console.error('Submit error:', error);
+        resultDiv.innerHTML = `
+            <div style="color:#ff6b6b;text-align:center;padding:10px;">
+                ⚠️ Error: ${error.message || 'Failed to submit'}
+            </div>
+        `;
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🎯 Submit Answer';
     }
 }
-
 // ==================== RESET SOTD (DEBUG) ====================
 function resetSOTDProgress() {
     const today = new Date().toDateString();
@@ -9406,6 +9374,8 @@ window.renderHelperRoles = renderHelperRoles;
 window.shareStats = shareStats;
 window.copyShareText = copyShareText;
 window.clearSOTDLocalStorage = clearSOTDLocalStorage;
+window.getSOTDState = getSOTDState;
+window.saveSOTDState = saveSOTDState;
 
 // Voting functions
 window.respondToVoting = respondToVoting;
