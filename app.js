@@ -26,7 +26,7 @@ const CONFIG = {
     },
 
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
-    TOTAL_BADGE_IMAGES: 55,
+    TOTAL_BADGE_IMAGES: 60,
     EXCLUDE_BADGES: [],
 
     get BADGE_POOL() {
