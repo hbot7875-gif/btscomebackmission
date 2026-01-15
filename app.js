@@ -9384,14 +9384,13 @@ const NEWS_SYSTEM = {
     maxNews: 20,
     checkInterval: null,
     
-    // Initialize the news system
     init() {
         this.loadCachedNews();
+        this.loadLastData();
         this.startTracking();
         console.log('📰 News System initialized');
     },
     
-    // Load cached news from localStorage
     loadCachedNews() {
         try {
             const cached = localStorage.getItem('newsItems_' + STATE.agentNo);
@@ -9403,10 +9402,19 @@ const NEWS_SYSTEM = {
         }
     },
     
-    // Save news to localStorage
+    loadLastData() {
+        try {
+            const cached = localStorage.getItem('lastNewsData_' + STATE.agentNo);
+            if (cached) {
+                this.lastData = JSON.parse(cached);
+            }
+        } catch (e) {
+            this.lastData = null;
+        }
+    },
+    
     saveNews() {
         try {
-            // Keep only last 20 items
             this.newsItems = this.newsItems.slice(0, this.maxNews);
             localStorage.setItem('newsItems_' + STATE.agentNo, JSON.stringify(this.newsItems));
         } catch (e) {
@@ -9414,8 +9422,15 @@ const NEWS_SYSTEM = {
         }
     },
     
-    // Add a news item
     addNews(type, icon, title, message, priority = 'normal') {
+        // Check for duplicate (same title in last 5 minutes)
+        const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+        const isDuplicate = this.newsItems.some(n => 
+            n.title === title && n.timestamp > fiveMinAgo
+        );
+        
+        if (isDuplicate) return null;
+        
         const newsItem = {
             id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
             type,
@@ -9427,29 +9442,24 @@ const NEWS_SYSTEM = {
             read: false
         };
         
-        // Add to beginning of array
         this.newsItems.unshift(newsItem);
         this.saveNews();
         
-        // Show toast for high priority
         if (priority === 'high') {
             showToast(`${icon} ${title}`, 'info');
         }
         
-        // Update news badge
         this.updateNewsBadge();
-        
         return newsItem;
     },
     
-    // Start tracking changes
     startTracking() {
-        // Check every 5 minutes for changes
         if (this.checkInterval) clearInterval(this.checkInterval);
+        // Check immediately, then every 5 minutes
+        setTimeout(() => this.checkForUpdates(), 2000);
         this.checkInterval = setInterval(() => this.checkForUpdates(), 5 * 60 * 1000);
     },
     
-    // Check for updates and generate news
     async checkForUpdates() {
         if (!STATE.agentNo || !STATE.week) return;
         
@@ -9465,13 +9475,11 @@ const NEWS_SYSTEM = {
                 timestamp: Date.now()
             };
             
-            if (this.lastData) {
+            if (this.lastData && this.lastData.timestamp) {
                 this.compareAndGenerateNews(this.lastData, newData);
             }
             
             this.lastData = newData;
-            
-            // Store for next comparison
             localStorage.setItem('lastNewsData_' + STATE.agentNo, JSON.stringify(newData));
             
         } catch (e) {
@@ -9479,10 +9487,7 @@ const NEWS_SYSTEM = {
         }
     },
     
-    // Compare data and generate news
     compareAndGenerateNews(oldData, newData) {
-        const news = [];
-        
         // === TEAM POSITION CHANGES ===
         const oldTeamRanks = this.getTeamRanks(oldData.teams);
         const newTeamRanks = this.getTeamRanks(newData.teams);
@@ -9492,7 +9497,6 @@ const NEWS_SYSTEM = {
             const newRank = newTeamRanks[team];
             
             if (oldRank && newRank < oldRank) {
-                // Team moved up!
                 if (newRank === 1) {
                     this.addNews('team_lead', '👑', `${team} Takes The Lead!`, 
                         `${team} has overtaken all other teams and is now #1!`, 'high');
@@ -9500,10 +9504,6 @@ const NEWS_SYSTEM = {
                     this.addNews('team_rise', '📈', `${team} Moving Up!`, 
                         `${team} climbed from #${oldRank} to #${newRank}!`);
                 }
-            } else if (oldRank && newRank > oldRank) {
-                // Team dropped
-                this.addNews('team_drop', '📉', `${team} Dropped`, 
-                    `${team} fell from #${oldRank} to #${newRank}`);
             }
         }
         
@@ -9520,69 +9520,25 @@ const NEWS_SYSTEM = {
                 this.addNews('close_battle', '🔥', 'Close Battle!', 
                     `${second[0]} is only ${xpGap} XP behind ${leader[0]}!`, 'high');
             }
-            
-            // Check all teams for close battles
-            for (let i = 0; i < sortedTeams.length - 1; i++) {
-                const current = sortedTeams[i];
-                const next = sortedTeams[i + 1];
-                const gap = (current[1].teamXP || 0) - (next[1].teamXP || 0);
-                
-                if (gap > 0 && gap <= 100 && i > 0) {
-                    this.addNews('close_race', '⚡', 'Tight Race!', 
-                        `${next[0]} is just ${gap} XP behind ${current[0]}!`);
-                }
-            }
         }
         
-        // === AGENT RANK CHANGES ===
+        // === MY RANK CHANGE ===
         const oldAgentRanks = {};
         oldData.rankings.forEach((r, i) => { oldAgentRanks[r.agentNo] = i + 1; });
         
         const newAgentRanks = {};
         newData.rankings.forEach((r, i) => { newAgentRanks[r.agentNo] = i + 1; });
         
-        // Check MY rank change
         const myOldRank = oldAgentRanks[STATE.agentNo];
         const myNewRank = newAgentRanks[STATE.agentNo];
         
         if (myOldRank && myNewRank && myNewRank < myOldRank) {
             const jumped = myOldRank - myNewRank;
-            if (myNewRank <= 10) {
-                this.addNews('personal_rise', '🚀', 'You\'re Rising!', 
-                    `You jumped ${jumped} spot${jumped > 1 ? 's' : ''} to #${myNewRank}!`, 'high');
-            } else {
-                this.addNews('personal_rise', '📈', 'Rank Up!', 
-                    `You moved from #${myOldRank} to #${myNewRank}!`);
-            }
+            this.addNews('personal_rise', '🚀', 'You\'re Rising!', 
+                `You jumped ${jumped} spot${jumped > 1 ? 's' : ''} to #${myNewRank}!`, 'high');
         }
         
-        // Check top 10 changes
-        for (const agent of newData.rankings.slice(0, 10)) {
-            const oldRank = oldAgentRanks[agent.agentNo];
-            const newRank = newAgentRanks[agent.agentNo];
-            
-            if (oldRank && newRank === 1 && oldRank > 1) {
-                this.addNews('new_leader', '👑', 'New #1 Agent!', 
-                    `${agent.name} from ${agent.team} is now the top agent!`, 'high');
-            }
-        }
-        
-        // === XP MILESTONES ===
-        for (const [team, info] of Object.entries(newData.teams)) {
-            const oldXP = oldData.teams[team]?.teamXP || 0;
-            const newXP = info.teamXP || 0;
-            
-            // Check for 1000 XP milestones
-            const oldMilestone = Math.floor(oldXP / 1000);
-            const newMilestone = Math.floor(newXP / 1000);
-            
-            if (newMilestone > oldMilestone && newMilestone >= 1) {
-                this.addNews('milestone', '🎉', `${team} Milestone!`, 
-                    `${team} reached ${newMilestone * 1000}+ XP!`);
-            }
-        }
-        
-        // === GOAL COMPLETION ===
+        // === GOAL COMPLETIONS ===
         for (const [team, info] of Object.entries(newData.teams)) {
             const oldInfo = oldData.teams[team] || {};
             
@@ -9603,48 +9559,32 @@ const NEWS_SYSTEM = {
         }
     },
     
-    // Get team ranks from data
     getTeamRanks(teams) {
         const sorted = Object.entries(teams)
             .sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
         
         const ranks = {};
-        sorted.forEach(([team, info], i) => {
+        sorted.forEach(([team], i) => {
             ranks[team] = i + 1;
         });
         return ranks;
     },
     
-    // Update news badge count
     updateNewsBadge() {
         const unreadCount = this.newsItems.filter(n => !n.read).length;
-        let badge = document.getElementById('news-badge');
-        
-        if (unreadCount > 0) {
-            if (!badge) {
-                badge = document.createElement('span');
-                badge.id = 'news-badge';
-                badge.className = 'news-badge-indicator';
-            }
-            badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-        } else if (badge) {
-            badge.remove();
-        }
+        // Could add a badge to the nav here
     },
     
-    // Mark all as read
     markAllRead() {
         this.newsItems.forEach(n => n.read = true);
         this.saveNews();
         this.updateNewsBadge();
     },
     
-    // Get unread count
     getUnreadCount() {
         return this.newsItems.filter(n => !n.read).length;
     },
     
-    // Format timestamp
     formatTime(timestamp) {
         const diff = Date.now() - timestamp;
         if (diff < 60000) return 'Just now';
@@ -9659,14 +9599,10 @@ const NEWS_SYSTEM = {
 const BIO_SYSTEM = {
     maxLength: 100,
     
-    // Get bio for an agent (checks localStorage first, then cache)
     getBio(agentNo) {
-        // For current user, check their own storage
         if (String(agentNo) === String(STATE.agentNo)) {
             return localStorage.getItem('agentBio_' + agentNo) || '';
         }
-        
-        // For others, check the shared cache
         try {
             const cache = JSON.parse(localStorage.getItem('biosCache') || '{}');
             return cache[agentNo] || '';
@@ -9675,72 +9611,26 @@ const BIO_SYSTEM = {
         }
     },
     
-    // Set bio for current user
     setBio(bio) {
         const cleanBio = String(bio || '').trim().slice(0, this.maxLength);
         localStorage.setItem('agentBio_' + STATE.agentNo, cleanBio);
-        
-        // Also update the cache for others to see
         this.updateBioCache(STATE.agentNo, cleanBio);
-        
-        // Sync to server (non-blocking)
-        this.syncBioToServer(cleanBio);
-        
         return cleanBio;
     },
     
-    // Update shared bio cache
     updateBioCache(agentNo, bio) {
         try {
             const cache = JSON.parse(localStorage.getItem('biosCache') || '{}');
             cache[agentNo] = bio;
             localStorage.setItem('biosCache', JSON.stringify(cache));
-        } catch (e) {
-            console.log('Could not update bio cache');
-        }
+        } catch (e) {}
     },
     
-    // Sync bio to server (uses existing chat message system creatively)
-    async syncBioToServer(bio) {
-        try {
-            // Store bio in a simple way without heavy backend changes
-            // We'll use the agent's profile metadata
-            await api('updateAgentMeta', {
-                agentNo: STATE.agentNo,
-                key: 'bio',
-                value: bio
-            }).catch(() => {
-                // Fallback: store locally only
-                console.log('Bio saved locally only');
-            });
-        } catch (e) {
-            // Silent fail - bio still works locally
-        }
-    },
-    
-    // Load bios for a list of agents
-    async loadBiosForAgents(agentNos) {
-        try {
-            const result = await api('getAgentBios', { 
-                agentNos: JSON.stringify(agentNos) 
-            }).catch(() => ({ bios: {} }));
-            
-            const bios = result.bios || {};
-            
-            // Update cache
-            for (const [agentNo, bio] of Object.entries(bios)) {
-                this.updateBioCache(agentNo, bio);
-            }
-            
-            return bios;
-        } catch (e) {
-            return {};
-        }
-    },
-    
-    // Show bio edit modal
     showEditModal() {
         const currentBio = this.getBio(STATE.agentNo);
+        
+        // Remove existing modal
+        document.querySelectorAll('.bio-edit-modal').forEach(m => m.remove());
         
         const modal = document.createElement('div');
         modal.className = 'bio-edit-modal';
@@ -9753,7 +9643,7 @@ const BIO_SYSTEM = {
                     right: 0;
                     bottom: 0;
                     background: rgba(0,0,0,0.9);
-                    z-index: 99999;
+                    z-index: 999999;
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -9789,6 +9679,11 @@ const BIO_SYSTEM = {
                     color: #888;
                     font-size: 24px;
                     cursor: pointer;
+                    padding: 0;
+                    line-height: 1;
+                }
+                .bio-edit-close:hover {
+                    color: #ff6b6b;
                 }
                 .bio-input {
                     width: 100%;
@@ -9800,6 +9695,7 @@ const BIO_SYSTEM = {
                     font-size: 14px;
                     resize: none;
                     margin-bottom: 10px;
+                    box-sizing: border-box;
                 }
                 .bio-input:focus {
                     outline: none;
@@ -9840,6 +9736,10 @@ const BIO_SYSTEM = {
                     font-weight: 600;
                     cursor: pointer;
                 }
+                .bio-save-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 20px rgba(123,44,191,0.4);
+                }
             </style>
             
             <div class="bio-edit-content">
@@ -9858,10 +9758,9 @@ const BIO_SYSTEM = {
                 <div class="bio-suggestions">
                     <span style="color:#888;font-size:11px;display:block;margin-bottom:8px;">Quick ideas:</span>
                     <span class="bio-suggestion" onclick="setBioText('💜 Streaming for BTS!')">💜 Streaming for BTS!</span>
-                    <span class="bio-suggestion" onclick="setBioText('🎵 Army since 2020')">🎵 Army since 2020</span>
-                    <span class="bio-suggestion" onclick="setBioText('⭐ ${STATE.data?.profile?.team || 'Team'} fighting!')">⭐ Team fighting!</span>
+                    <span class="bio-suggestion" onclick="setBioText('🎵 Army since day one!')">🎵 Army since day one!</span>
+                    <span class="bio-suggestion" onclick="setBioText('⭐ Fighting!')">⭐ Fighting!</span>
                     <span class="bio-suggestion" onclick="setBioText('🔥 Let\\'s get this bread!')">🔥 Let's get it!</span>
-                    <span class="bio-suggestion" onclick="setBioText('💪 Never give up!')">💪 Never give up!</span>
                 </div>
                 
                 <button class="bio-save-btn" onclick="saveBioFromModal()">
@@ -9872,7 +9771,6 @@ const BIO_SYSTEM = {
         
         document.body.appendChild(modal);
         
-        // Setup character counter
         const input = document.getElementById('bio-input');
         const counter = document.getElementById('bio-char-current');
         if (input && counter) {
@@ -9885,7 +9783,6 @@ const BIO_SYSTEM = {
     }
 };
 
-// Bio helper functions
 function setBioText(text) {
     const input = document.getElementById('bio-input');
     if (input) {
@@ -9897,11 +9794,10 @@ function setBioText(text) {
 function saveBioFromModal() {
     const input = document.getElementById('bio-input');
     if (input) {
-        const bio = BIO_SYSTEM.setBio(input.value);
+        BIO_SYSTEM.setBio(input.value);
         document.querySelector('.bio-edit-modal')?.remove();
         showToast('✅ Bio saved!', 'success');
         
-        // Refresh profile if on that page
         if (STATE.page === 'profile' || STATE.page === 'drawer') {
             loadPage(STATE.page);
         }
@@ -9911,12 +9807,10 @@ function saveBioFromModal() {
 // ==================== DAILY MVP SYSTEM ====================
 
 const MVP_SYSTEM = {
-    // Get today's date key
     getTodayKey() {
-        return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        return new Date().toISOString().split('T')[0];
     },
     
-    // Calculate daily MVPs from rankings data
     async calculateDailyMVPs() {
         try {
             const rankings = await api('getRankings', { week: STATE.week, limit: 200 });
@@ -9924,7 +9818,6 @@ const MVP_SYSTEM = {
             
             if (agents.length === 0) return {};
             
-            // Group by team and find top performer
             const teamMVPs = {};
             const teamAgents = {};
             
@@ -9936,7 +9829,6 @@ const MVP_SYSTEM = {
                 teamAgents[team].push(agent);
             }
             
-            // Sort each team by XP and get top
             for (const [team, members] of Object.entries(teamAgents)) {
                 members.sort((a, b) => (b.totalXP || 0) - (a.totalXP || 0));
                 if (members.length > 0) {
@@ -9948,7 +9840,6 @@ const MVP_SYSTEM = {
                 }
             }
             
-            // Cache the MVPs
             const today = this.getTodayKey();
             localStorage.setItem('dailyMVPs_' + today, JSON.stringify(teamMVPs));
             
@@ -9960,7 +9851,6 @@ const MVP_SYSTEM = {
         }
     },
     
-    // Get cached MVPs for today
     getCachedMVPs() {
         try {
             const today = this.getTodayKey();
@@ -9971,7 +9861,6 @@ const MVP_SYSTEM = {
         }
     },
     
-    // Get or calculate MVPs
     async getMVPs() {
         let mvps = this.getCachedMVPs();
         if (!mvps) {
@@ -9980,7 +9869,6 @@ const MVP_SYSTEM = {
         return mvps;
     },
     
-    // Render MVP card HTML
     renderMVPCard(mvps) {
         if (!mvps || Object.keys(mvps).length === 0) {
             return '';
@@ -9991,34 +9879,55 @@ const MVP_SYSTEM = {
         });
         
         return `
-            <div class="mvp-card">
-                <div class="mvp-header">
-                    <span class="mvp-icon">🏆</span>
-                    <div class="mvp-title-section">
-                        <h3 class="mvp-title">Today's Team MVPs</h3>
-                        <span class="mvp-date">${today}</span>
+            <div class="mvp-card" style="
+                background: linear-gradient(145deg, rgba(255,215,0,0.08), rgba(123,44,191,0.05));
+                border: 1px solid rgba(255,215,0,0.3);
+                border-radius: 12px;
+                padding: 15px;
+                margin-bottom: 15px;
+            ">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;">
+                    <span style="font-size:28px;">🏆</span>
+                    <div style="flex:1;">
+                        <h3 style="color:#ffd700;font-size:16px;font-weight:700;margin:0;">Today's Team MVPs</h3>
+                        <span style="color:#888;font-size:11px;">${today}</span>
                     </div>
                 </div>
-                <div class="mvp-grid">
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
                     ${Object.entries(mvps).map(([team, data]) => {
                         const agent = data.agent;
                         const isMe = String(agent.agentNo) === String(STATE.agentNo);
                         const tColor = teamColor(team);
                         
                         return `
-                            <div class="mvp-team-card ${isMe ? 'is-me' : ''}" style="--team-color: ${tColor};">
-                                <div class="mvp-crown">👑</div>
-                                <div class="mvp-team-name" style="color: ${tColor};">${team.replace('Team ', '')}</div>
-                                <div class="mvp-agent-name">
-                                    ${sanitize(agent.name)}
-                                    ${isMe ? '<span class="mvp-you-badge">YOU!</span>' : ''}
+                            <div style="
+                                background: ${isMe ? 'rgba(255,215,0,0.1)' : 'rgba(0,0,0,0.2)'};
+                                border: 1px solid ${isMe ? '#ffd700' : tColor};
+                                border-radius: 10px;
+                                padding: 12px;
+                                text-align: center;
+                                ${isMe ? 'animation: mvpGlow 2s ease-in-out infinite;' : ''}
+                            ">
+                                <div style="font-size:20px;margin-bottom:5px;">👑</div>
+                                <div style="color:${tColor};font-size:11px;font-weight:600;margin-bottom:5px;">
+                                    ${team.replace('Team ', '')}
                                 </div>
-                                <div class="mvp-agent-xp">${fmt(agent.totalXP)} XP</div>
+                                <div style="color:#fff;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                    ${sanitize(agent.name)}
+                                    ${isMe ? '<span style="display:inline-block;padding:2px 6px;background:#ffd700;color:#000;border-radius:8px;font-size:9px;font-weight:bold;margin-left:5px;">YOU!</span>' : ''}
+                                </div>
+                                <div style="color:#888;font-size:11px;margin-top:3px;">${fmt(agent.totalXP)} XP</div>
                             </div>
                         `;
                     }).join('')}
                 </div>
             </div>
+            <style>
+                @keyframes mvpGlow {
+                    0%, 100% { box-shadow: 0 0 5px rgba(255,215,0,0.2); }
+                    50% { box-shadow: 0 0 20px rgba(255,215,0,0.4); }
+                }
+            </style>
         `;
     }
 };
@@ -10026,7 +9935,6 @@ const MVP_SYSTEM = {
 // ==================== NEWS FEED UI ====================
 
 async function renderNewsFeed() {
-    // Ensure news system is initialized
     if (!NEWS_SYSTEM.lastData) {
         await NEWS_SYSTEM.checkForUpdates();
     }
@@ -10035,237 +9943,67 @@ async function renderNewsFeed() {
     const mvps = await MVP_SYSTEM.getMVPs();
     
     return `
-        <style>
-            .news-feed-section {
-                margin-bottom: 20px;
-            }
-            .news-card {
-                background: linear-gradient(145deg, #1a1a2e, #12121a);
-                border: 1px solid rgba(123,44,191,0.3);
-                border-radius: 12px;
-                overflow: hidden;
-                margin-bottom: 15px;
-            }
-            .news-header {
+        <!-- Daily MVPs -->
+        ${MVP_SYSTEM.renderMVPCard(mvps)}
+        
+        <!-- Live News Feed -->
+        <div style="
+            background: linear-gradient(145deg, #1a1a2e, #12121a);
+            border: 1px solid rgba(123,44,191,0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        ">
+            <div style="
                 display: flex;
                 align-items: center;
                 gap: 12px;
                 padding: 15px;
                 background: rgba(123,44,191,0.1);
                 border-bottom: 1px solid rgba(123,44,191,0.2);
-            }
-            .news-header-icon {
-                font-size: 24px;
-            }
-            .news-header-title {
-                flex: 1;
-                color: #fff;
-                font-size: 16px;
-                font-weight: 600;
-            }
-            .news-header-badge {
-                padding: 4px 10px;
-                background: rgba(255,68,68,0.2);
-                border-radius: 12px;
-                color: #ff6b6b;
-                font-size: 11px;
-                font-weight: 600;
-            }
-            .news-list {
-                max-height: 400px;
-                overflow-y: auto;
-            }
-            .news-item {
-                display: flex;
-                align-items: flex-start;
-                gap: 12px;
-                padding: 12px 15px;
-                border-bottom: 1px solid rgba(255,255,255,0.03);
-                transition: background 0.2s;
-            }
-            .news-item:last-child {
-                border-bottom: none;
-            }
-            .news-item.unread {
-                background: rgba(123,44,191,0.05);
-            }
-            .news-item-icon {
-                font-size: 20px;
-                flex-shrink: 0;
-            }
-            .news-item-content {
-                flex: 1;
-                min-width: 0;
-            }
-            .news-item-title {
-                color: #fff;
-                font-size: 13px;
-                font-weight: 600;
-                margin-bottom: 3px;
-            }
-            .news-item-message {
-                color: #888;
-                font-size: 12px;
-                line-height: 1.4;
-            }
-            .news-item-time {
-                color: #555;
-                font-size: 10px;
-                margin-top: 4px;
-            }
-            .news-item.high-priority {
-                border-left: 3px solid #ffd700;
-            }
-            .news-empty {
-                text-align: center;
-                padding: 40px 20px;
-                color: #666;
-            }
-            .news-empty-icon {
-                font-size: 40px;
-                margin-bottom: 10px;
-            }
-            
-            /* MVP Card Styles */
-            .mvp-card {
-                background: linear-gradient(145deg, rgba(255,215,0,0.08), rgba(123,44,191,0.05));
-                border: 1px solid rgba(255,215,0,0.3);
-                border-radius: 12px;
-                padding: 15px;
-                margin-bottom: 15px;
-            }
-            .mvp-header {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                margin-bottom: 15px;
-            }
-            .mvp-icon {
-                font-size: 28px;
-            }
-            .mvp-title-section {
-                flex: 1;
-            }
-            .mvp-title {
-                color: #ffd700;
-                font-size: 16px;
-                font-weight: 700;
-                margin: 0;
-            }
-            .mvp-date {
-                color: #888;
-                font-size: 11px;
-            }
-            .mvp-grid {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-            }
-            .mvp-team-card {
-                background: rgba(0,0,0,0.2);
-                border: 1px solid var(--team-color, #7b2cbf);
-                border-radius: 10px;
-                padding: 12px;
-                text-align: center;
-                position: relative;
-            }
-            .mvp-team-card.is-me {
-                background: rgba(255,215,0,0.1);
-                border-color: #ffd700;
-                animation: mvpGlow 2s ease-in-out infinite;
-            }
-            @keyframes mvpGlow {
-                0%, 100% { box-shadow: 0 0 5px rgba(255,215,0,0.2); }
-                50% { box-shadow: 0 0 20px rgba(255,215,0,0.4); }
-            }
-            .mvp-crown {
-                font-size: 20px;
-                margin-bottom: 5px;
-            }
-            .mvp-team-name {
-                font-size: 11px;
-                font-weight: 600;
-                margin-bottom: 5px;
-            }
-            .mvp-agent-name {
-                color: #fff;
-                font-size: 13px;
-                font-weight: 600;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-            .mvp-agent-xp {
-                color: #888;
-                font-size: 11px;
-                margin-top: 3px;
-            }
-            .mvp-you-badge {
-                display: inline-block;
-                padding: 2px 6px;
-                background: #ffd700;
-                color: #000;
-                border-radius: 8px;
-                font-size: 9px;
-                font-weight: bold;
-                margin-left: 5px;
-            }
-            
-            /* Bio Styles */
-            .agent-bio {
-                color: #888;
-                font-size: 12px;
-                font-style: italic;
-                margin-top: 5px;
-                padding: 8px 12px;
-                background: rgba(123,44,191,0.08);
-                border-radius: 8px;
-                border-left: 2px solid #7b2cbf;
-            }
-            .bio-edit-trigger {
-                cursor: pointer;
-                padding: 8px 12px;
-                background: rgba(123,44,191,0.1);
-                border: 1px dashed rgba(123,44,191,0.3);
-                border-radius: 8px;
-                color: #7b2cbf;
-                font-size: 12px;
-                text-align: center;
-                margin-top: 10px;
-                transition: all 0.2s;
-            }
-            .bio-edit-trigger:hover {
-                background: rgba(123,44,191,0.2);
-            }
-        </style>
-        
-        <!-- Daily MVPs -->
-        ${MVP_SYSTEM.renderMVPCard(mvps)}
-        
-        <!-- Live News Feed -->
-        <div class="news-card">
-            <div class="news-header">
-                <span class="news-header-icon">📰</span>
-                <span class="news-header-title">Live Updates</span>
+            ">
+                <span style="font-size:24px;">📰</span>
+                <span style="flex:1;color:#fff;font-size:16px;font-weight:600;">Live Updates</span>
                 ${NEWS_SYSTEM.getUnreadCount() > 0 ? `
-                    <span class="news-header-badge">${NEWS_SYSTEM.getUnreadCount()} new</span>
+                    <span style="
+                        padding: 4px 10px;
+                        background: rgba(255,68,68,0.2);
+                        border-radius: 12px;
+                        color: #ff6b6b;
+                        font-size: 11px;
+                        font-weight: 600;
+                    ">${NEWS_SYSTEM.getUnreadCount()} new</span>
                 ` : ''}
             </div>
-            <div class="news-list">
-                ${newsItems.length > 0 ? newsItems.map(item => `
-                    <div class="news-item ${item.read ? '' : 'unread'} ${item.priority === 'high' ? 'high-priority' : ''}">
-                        <span class="news-item-icon">${item.icon}</span>
-                        <div class="news-item-content">
-                            <div class="news-item-title">${sanitize(item.title)}</div>
-                            <div class="news-item-message">${sanitize(item.message)}</div>
-                            <div class="news-item-time">${NEWS_SYSTEM.formatTime(item.timestamp)}</div>
+            <div style="max-height:350px;overflow-y:auto;">
+                ${newsItems.length > 0 ? newsItems.slice(0, 10).map(item => `
+                    <div style="
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 12px;
+                        padding: 12px 15px;
+                        border-bottom: 1px solid rgba(255,255,255,0.03);
+                        ${!item.read ? 'background: rgba(123,44,191,0.05);' : ''}
+                        ${item.priority === 'high' ? 'border-left: 3px solid #ffd700;' : ''}
+                    ">
+                        <span style="font-size:20px;flex-shrink:0;">${item.icon}</span>
+                        <div style="flex:1;min-width:0;">
+                            <div style="color:#fff;font-size:13px;font-weight:600;margin-bottom:3px;">
+                                ${sanitize(item.title)}
+                            </div>
+                            <div style="color:#888;font-size:12px;line-height:1.4;">
+                                ${sanitize(item.message)}
+                            </div>
+                            <div style="color:#555;font-size:10px;margin-top:4px;">
+                                ${NEWS_SYSTEM.formatTime(item.timestamp)}
+                            </div>
                         </div>
                     </div>
                 `).join('') : `
-                    <div class="news-empty">
-                        <div class="news-empty-icon">📡</div>
-                        <p>No updates yet</p>
-                        <p style="font-size:11px;">News will appear as the battle progresses!</p>
+                    <div style="text-align:center;padding:40px 20px;color:#666;">
+                        <div style="font-size:40px;margin-bottom:10px;">📡</div>
+                        <p style="margin:0;">No updates yet</p>
+                        <p style="font-size:11px;margin-top:5px;">News will appear as the battle progresses!</p>
                     </div>
                 `}
             </div>
@@ -10275,91 +10013,158 @@ async function renderNewsFeed() {
 
 // ==================== INTEGRATE INTO HOME PAGE ====================
 
-// Store original renderHome
 const originalRenderHome = renderHome;
 
-// Override renderHome to include news feed
 renderHome = async function() {
-    // Call original
-    await originalRenderHome();
+    await originalRenderHome.call(this);
     
-    // Initialize news system if not done
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     if (!NEWS_SYSTEM.lastData) {
         NEWS_SYSTEM.init();
     }
     
-    // Add news feed section after quick stats
     const quickStats = document.querySelector('.quick-stats-section');
+    
     if (quickStats) {
-        const newsFeedHtml = await renderNewsFeed();
+        let newsSection = document.querySelector('.news-feed-section');
         
-        // Insert after quick stats
-        const newsSection = document.createElement('div');
-        newsSection.className = 'news-feed-section';
-        newsSection.innerHTML = newsFeedHtml;
+        if (!newsSection) {
+            newsSection = document.createElement('div');
+            newsSection.className = 'news-feed-section';
+            quickStats.insertAdjacentElement('afterend', newsSection);
+        }
         
-        quickStats.insertAdjacentElement('afterend', newsSection);
-        
-        // Mark news as read after viewing
-        setTimeout(() => NEWS_SYSTEM.markAllRead(), 3000);
+        try {
+            const newsFeedHtml = await renderNewsFeed();
+            newsSection.innerHTML = newsFeedHtml;
+            setTimeout(() => NEWS_SYSTEM.markAllRead(), 3000);
+        } catch (e) {
+            console.log('News feed render error:', e);
+            newsSection.innerHTML = '';
+        }
     }
 };
 
 // ==================== INTEGRATE BIO INTO DRAWER ====================
 
-// Store original renderDrawer
 const originalRenderDrawer = renderDrawer;
 
-// Override renderDrawer to include bio
 renderDrawer = async function() {
-    await originalRenderDrawer();
+    await originalRenderDrawer.call(this);
     
-    const container = $('drawer-content');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const container = document.getElementById('drawer-content');
     if (!container) return;
     
-    // Find the agent profile card and add bio section
     const profileCard = container.querySelector('.card');
-    if (profileCard) {
-        const profileBody = profileCard.querySelector('div[style*="text-align: center"]');
-        if (profileBody) {
-            const currentBio = BIO_SYSTEM.getBio(STATE.agentNo);
-            
-            const bioHtml = `
-                <div class="bio-section" style="margin-top: 15px;">
-                    ${currentBio ? `
-                        <div class="agent-bio">"${sanitize(currentBio)}"</div>
-                        <div class="bio-edit-trigger" onclick="BIO_SYSTEM.showEditModal()">
-                            ✏️ Edit Bio
-                        </div>
-                    ` : `
-                        <div class="bio-edit-trigger" onclick="BIO_SYSTEM.showEditModal()">
-                            ✏️ Add a bio about yourself
-                        </div>
-                    `}
-                </div>
-            `;
-            
-            profileBody.insertAdjacentHTML('beforeend', bioHtml);
-        }
-    }
+    if (!profileCard) return;
+    
+    if (profileCard.querySelector('.bio-section')) return;
+    
+    const profileArea = profileCard.querySelector('div[style*="linear-gradient"]') || 
+                        profileCard.querySelector('.card-body') ||
+                        profileCard.children[0];
+    
+    if (!profileArea) return;
+    
+    const currentBio = BIO_SYSTEM.getBio(STATE.agentNo);
+    
+    const bioHtml = document.createElement('div');
+    bioHtml.className = 'bio-section';
+    bioHtml.style.cssText = 'margin-top: 15px; padding: 0 10px;';
+    
+    bioHtml.innerHTML = currentBio ? `
+        <div style="
+            color: #888;
+            font-size: 12px;
+            font-style: italic;
+            padding: 10px 14px;
+            background: rgba(123,44,191,0.08);
+            border-radius: 8px;
+            border-left: 2px solid #7b2cbf;
+            margin-bottom: 10px;
+        ">"${sanitize(currentBio)}"</div>
+        <div onclick="BIO_SYSTEM.showEditModal()" style="
+            cursor: pointer;
+            padding: 8px 12px;
+            background: rgba(123,44,191,0.1);
+            border: 1px dashed rgba(123,44,191,0.3);
+            border-radius: 8px;
+            color: #7b2cbf;
+            font-size: 12px;
+            text-align: center;
+        ">✏️ Edit Bio</div>
+    ` : `
+        <div onclick="BIO_SYSTEM.showEditModal()" style="
+            cursor: pointer;
+            padding: 10px 14px;
+            background: rgba(123,44,191,0.1);
+            border: 1px dashed rgba(123,44,191,0.3);
+            border-radius: 8px;
+            color: #7b2cbf;
+            font-size: 12px;
+            text-align: center;
+        ">✏️ Add a bio about yourself</div>
+    `;
+    
+    profileArea.appendChild(bioHtml);
 };
 
-// ==================== INTEGRATE BIO INTO RANKINGS ====================
+// ==================== INTEGRATE BIO INTO PROFILE ====================
 
-// Store original functions
-const originalRenderOverallRankings = renderOverallRankings;
-const originalRenderMyTeamRankings = renderMyTeamRankings;
+const originalRenderProfile = renderProfile;
 
-// Override to show bios
-renderOverallRankings = async function() {
-    await originalRenderOverallRankings();
+renderProfile = async function() {
+    await originalRenderProfile.call(this);
     
-    // Add bio tooltips to ranking items
-    const rankItems = document.querySelectorAll('.rank-item');
-    rankItems.forEach(item => {
-        // We'd need agent data here - for now, show on hover
-        item.style.cursor = 'pointer';
-    });
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const profileCard = document.querySelector('#page-profile .profile-card');
+    if (profileCard && !profileCard.querySelector('.bio-section')) {
+        const currentBio = BIO_SYSTEM.getBio(STATE.agentNo);
+        
+        const bioDiv = document.createElement('div');
+        bioDiv.className = 'bio-section';
+        bioDiv.style.cssText = 'padding: 15px; border-top: 1px solid rgba(255,255,255,0.05);';
+        
+        bioDiv.innerHTML = currentBio ? `
+            <div style="
+                color: #888;
+                font-size: 13px;
+                font-style: italic;
+                padding: 12px 16px;
+                background: rgba(123,44,191,0.08);
+                border-radius: 10px;
+                border-left: 3px solid #7b2cbf;
+                margin-bottom: 10px;
+            ">"${sanitize(currentBio)}"</div>
+            <button onclick="BIO_SYSTEM.showEditModal()" style="
+                width: 100%;
+                padding: 10px;
+                background: rgba(123,44,191,0.15);
+                border: 1px solid rgba(123,44,191,0.3);
+                border-radius: 8px;
+                color: #7b2cbf;
+                font-size: 12px;
+                cursor: pointer;
+            ">✏️ Edit Bio</button>
+        ` : `
+            <button onclick="BIO_SYSTEM.showEditModal()" style="
+                width: 100%;
+                padding: 12px;
+                background: rgba(123,44,191,0.1);
+                border: 1px dashed rgba(123,44,191,0.3);
+                border-radius: 8px;
+                color: #7b2cbf;
+                font-size: 13px;
+                cursor: pointer;
+            ">✏️ Add a bio about yourself</button>
+        `;
+        
+        profileCard.appendChild(bioDiv);
+    }
 };
 
 // ==================== WINDOW EXPORTS ====================
