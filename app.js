@@ -22,7 +22,7 @@ const CONFIG = {
         'Week 12': '2026-02-28',
         'Week 13': '2026-03-07',
         'Week 14': '2026-03-14',
-        'Week 15': '2026-03-21',  // 🎉 BTS Comeback Week!
+        'Week 15': '2026-03-21',
         'Week 16': '2026-03-28'
     },
 
@@ -86,7 +86,6 @@ const CONFIG = {
         }
     },
 
-    // Helper to get tracks for specific week
     getTeamAlbumTracksForWeek(weekLabel) {
         if (this.ALBUM_VERSIONS.v1.weeks.includes(weekLabel)) {
             return this.ALBUM_VERSIONS.v1.albums;
@@ -94,7 +93,6 @@ const CONFIG = {
         return this.ALBUM_VERSIONS.v2.albums;
     },
 
-    // Dynamic getter - uses current selected week
     get TEAM_ALBUM_TRACKS() {
         const week = (typeof STATE !== 'undefined' && STATE.week) ? STATE.week : 'Week 5';
         return this.getTeamAlbumTracksForWeek(week);
@@ -127,10 +125,8 @@ const CONFIG = {
 
 // ==================== STREAK CONFIG ====================
 const STREAK_CONFIG = {
-    // Streak milestones for badges
     MILESTONES: [3, 7, 14, 21, 30, 50, 100],
     
-    // 💜 BTS Song-themed Badges
     BADGES: {
         3: { name: 'Begin', icon: '🌱', color: '#00ff88' },
         7: { name: 'Fire', icon: '🔥', color: '#ff6b35' },
@@ -141,25 +137,16 @@ const STREAK_CONFIG = {
         100: { name: 'Bulletproof', icon: '💜', color: '#7b2cbf' }
     },
     
-    // Streak freeze settings
     FREEZE: {
         maxFreezes: 2,
         freezeCostXP: 20,
         autoFreezeDays: 0
     },
     
-    // Activity tracking
     ACTIVITY_THRESHOLD: 10,
-    
-    // Notification settings
     NOTIFY_AT_RISK: true,
     RISK_HOURS: 4
 };
-
-// ==================== HELPER FUNCTION ====================
-function teamColor(teamName) {
-    return CONFIG.TEAMS[teamName]?.color || '#ffffff';
-}
 
 // ==================== ACTIVITY CONFIG ====================
 const ACTIVITY_CONFIG = {
@@ -1759,7 +1746,7 @@ async function checkVotingAnnouncement() {
         
         // Mark as checked this session BEFORE showing popup
         STATE._votingCheckedThisSession = true;
-        STATE.currentVoting = voting;
+        STATE.currentAnnouncement = announcement;
         
         showVotingPopup(voting);
         
@@ -1877,7 +1864,7 @@ function saveVotingResponse(votingId, response, extraData = {}) {
     }
 }
 
-function showVotingPopup(voting) {
+function showPreSavePopup(announcement) {
     document.querySelectorAll('.voting-announcement-popup').forEach(p => p.remove());
     
     const popup = document.createElement('div');
@@ -1979,7 +1966,7 @@ function showVotingPopup(voting) {
                 
                 <div style="background:linear-gradient(135deg,rgba(255,215,0,0.15),rgba(255,215,0,0.05));border:2px solid rgba(255,215,0,0.4);border-radius:12px;padding:18px;margin-bottom:25px;text-align:center;">
                     <div style="font-size:24px;margin-bottom:10px;">💜</div>
-                    <div style="color:#ffd700;font-size:15px;font-weight:bold;">Will you help vote?</div>
+                    <div style="color:#ffd700;font-size:15px;font-weight:bold;">Will you help pre-save?</div>
                 </div>
                 
                 <div style="display:flex;flex-direction:column;gap:12px;">
@@ -1987,7 +1974,7 @@ function showVotingPopup(voting) {
                         <span>✓</span><span>Yes! I'll Vote Now!</span><span>→</span>
                     </button>
                     <button id="voting-btn-voted" class="voting-btn-secondary" onclick="respondToVoting('already_voted')">
-                        <span>✔️</span><span>I Already Voted!</span>
+                        <span>✔️</span><span>I Already Pre-Saved!</span>
                     </button>
                     <button id="voting-btn-later" class="voting-btn-tertiary" onclick="respondToVoting('not_now')">
                         Remind Me Later
