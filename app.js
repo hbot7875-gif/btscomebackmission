@@ -1,9 +1,10 @@
+// ==================== MAIN CONFIG ====================
 const CONFIG = {
     API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
     
     ADMIN_AGENT_NO: 'AGENT000',
 
-    // ✅ UPDATED: Added Week 5
+    // ==================== WEEK DATES ====================
     WEEK_DATES: {
         'Test Week 1': '2025-11-29',
         'Test Week 2': '2025-12-06',
@@ -25,6 +26,7 @@ const CONFIG = {
         'Week 16': '2026-03-28'
     },
 
+    // ==================== BADGE SYSTEM ====================
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
     TOTAL_BADGE_IMAGES: 60,
     EXCLUDE_BADGES: [],
@@ -39,6 +41,7 @@ const CONFIG = {
         return pool;
     },
 
+    // ==================== ALBUM CHALLENGE ====================
     ALBUM_CHALLENGE: {
         REQUIRED_STREAMS: 2,
         CHALLENGE_NAME: "2X",
@@ -46,12 +49,19 @@ const CONFIG = {
         BADGE_DESCRIPTION: "Completed Album 2X Challenge"
     },
 
-    // ✅ UPDATED: Album names for Week 5+
+    // ==================== TEAMS ====================
     TEAMS: {
         'Team Indigo': { color: '#FFE082', album: 'MOTS: Persona' },
         'Team Echo': { color: '#FAFAFA', album: 'BE' },
         'Team Agust D': { color: '#B0BEC5', album: 'Agust D' }, 
         'Team JITB': { color: '#FF4081', album: 'Jack In The Box' }
+    },
+
+    TEAM_PFPS: {
+        "Team Indigo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamindigo.jpg",
+        "Team Echo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamecho.jpg",
+        "Team Agust D": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamagustd.jpg",
+        "Team JITB": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamjitb.jpg"
     },
 
     // ==================== VERSIONED ALBUM SYSTEM ====================
@@ -90,13 +100,7 @@ const CONFIG = {
         return this.getTeamAlbumTracksForWeek(week);
     },
 
-    TEAM_PFPS: {
-        "Team Indigo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamindigo.jpg",
-        "Team Echo": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamecho.jpg",
-        "Team Agust D": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamagustd.jpg",
-        "Team JITB": "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/be0a3cc8ca6b395b4ceb74a1eb01207b9b756b4c/team%20pfps/teamjitb.jpg"
-    },
-
+    // ==================== SECRET MISSIONS ====================
     SECRET_MISSIONS: { 
         xpPerMission: 5, 
         maxMissionsPerTeam: 5, 
@@ -109,7 +113,124 @@ const CONFIG = {
         'old_songs': { name: 'Old Songs', icon: '🕰️', description: 'Stream tracks older than 2 years.' },
         'stream_party': { name: 'Stream Party', icon: '🎉', description: 'Everyone streams the exact same playlist NOW.' },
         'custom': { name: 'Custom Task', icon: '⭐', description: 'Special instruction from Admin.' }
+    }
+};
+
+// ==================== STREAK CONFIG ====================
+const STREAK_CONFIG = {
+    // Streak milestones for badges
+    MILESTONES: [3, 7, 14, 21, 30, 50, 100],
+    
+    // 💜 BTS Song-themed Badges
+    BADGES: {
+        3: { name: 'Begin', icon: '🌱', color: '#00ff88' },
+        7: { name: 'Fire', icon: '🔥', color: '#ff6b35' },
+        14: { name: 'Not Today', icon: '⚡', color: '#ffd700' },
+        21: { name: 'Run', icon: '💪', color: '#ff4081' },
+        30: { name: 'Mic Drop', icon: '👑', color: '#9c27b0' },
+        50: { name: 'Mikrokosmos', icon: '🌟', color: '#00bcd4' },
+        100: { name: 'Bulletproof', icon: '💜', color: '#7b2cbf' }
     },
+    
+    // Streak freeze settings
+    FREEZE: {
+        maxFreezes: 2,
+        freezeCostXP: 20,
+        autoFreezeDays: 0
+    },
+    
+    // Activity tracking
+    ACTIVITY_THRESHOLD: 10,
+    
+    // Notification settings
+    NOTIFY_AT_RISK: true,
+    RISK_HOURS: 4
+};
+
+// ==================== ACTIVITY CONFIG ====================
+const ACTIVITY_CONFIG = {
+    MAX_ACTIVITIES: 50,
+    REFRESH_INTERVAL: 15000,
+    SHOW_TYPES: [
+        'stream_milestone', 
+        'xp_milestone', 
+        'streak_update', 
+        'badge_earned', 
+        'goal_completed', 
+        'album2x_completed', 
+        'team_surge', 
+        'rank_change', 
+        'secret_mission'
+    ],
+    
+    TYPES: {
+        'stream_milestone': {
+            icon: '🎵',
+            template: (data) => `<strong>${data.name}</strong> hit <strong class="highlight">${data.streams}</strong> streams!`,
+            color: '#00ff88'
+        },
+        'xp_milestone': {
+            icon: '⭐',
+            template: (data) => `<strong>${data.name}</strong> reached <strong class="highlight">${data.xp} XP</strong>!`,
+            color: '#ffd700'
+        },
+        'streak_update': {
+            icon: '🔥',
+            template: (data) => `<strong>${data.name}</strong> is on a <strong class="highlight">${data.streak}-day</strong> streak!`,
+            color: '#ff6b35'
+        },
+        'badge_earned': {
+            icon: '🎖️',
+            template: (data) => `<strong>${data.name}</strong> earned the <strong class="highlight">${data.badge}</strong> badge!`,
+            color: '#7b2cbf'
+        },
+        'goal_completed': {
+            icon: '🎯',
+            template: (data) => `<strong style="color:${teamColor(data.team)}">${data.team}</strong> completed <strong class="highlight">${data.goal}</strong>!`,
+            color: '#00ff88'
+        },
+        'album2x_completed': {
+            icon: '✨',
+            template: (data) => `<strong>${data.name}</strong> completed Album 2X!`,
+            color: '#c56cf0'
+        },
+        'team_surge': {
+            icon: '⚡',
+            template: (data) => `<strong style="color:${teamColor(data.team)}">${data.team}</strong> is on fire! <strong class="highlight">${data.streams}</strong> streams in the last hour!`,
+            color: '#ff4081'
+        },
+        'rank_change': {
+            icon: '📈',
+            template: (data) => `<strong>${data.name}</strong> moved up to <strong class="highlight">#${data.rank}</strong>!`,
+            color: '#4caf50'
+        },
+        'secret_mission': {
+            icon: '🕵️',
+            template: (data) => `<strong style="color:${teamColor(data.team)}">${data.team}</strong> completed a secret mission!`,
+            color: '#9c27b0'
+        }
+    }
+};
+
+// ==================== STREAK STATE ====================
+const STREAK_STATE = {
+    current: 0,
+    longest: 0,
+    lastActiveDate: null,
+    freezesRemaining: 2,
+    freezesUsedThisMonth: 0,
+    streakHistory: [],
+    isAtRisk: false,
+    todayCompleted: false
+};
+
+// ==================== ACTIVITY STATE ====================
+const ACTIVITY_STATE = {
+    activities: [],
+    lastFetch: null,
+    isLoading: false,
+    autoRefreshInterval: null
+};
 
     // ==================== BTS COMEBACK (INSIDE CONFIG) ====================
     COMEBACK: {
@@ -3878,22 +3999,20 @@ async function loadDashboard() {
     }
     
     try {
-        // ⚡ SINGLE API CALL - Gets EVERYTHING!
         const startTime = Date.now();
         
         const dashboardData = await api('getDashboardData', { 
             agentNo: STATE.agentNo, 
-            week: '' // Empty = current week
+            week: ''
         });
         
-        console.log(`✅ Dashboard loaded in ${Date.now() - startTime}ms (server: ${dashboardData.processingTime}ms)`);
+        console.log(`✅ Dashboard loaded in ${Date.now() - startTime}ms`);
         
-        // ===== MAP RESPONSE TO STATE =====
+        // ... existing STATE mapping code ...
         STATE.weeks = dashboardData.availableWeeks || [];
         STATE.week = dashboardData.week || dashboardData.currentWeek || STATE.weeks[0];
         STATE.lastUpdated = dashboardData.lastUpdated;
         
-        // Map agent data to STATE.data (same structure as getAgentData)
         STATE.data = {
             agentNo: dashboardData.agent.agentNo,
             week: dashboardData.week,
@@ -3915,7 +4034,6 @@ async function loadDashboard() {
             lastUpdated: dashboardData.lastUpdated
         };
         
-        // ===== CACHE EXTRA DATA FOR OTHER PAGES =====
         STATE.dashboardCache = {
             topAgents: dashboardData.topAgents || [],
             trackGoals: dashboardData.trackGoals || {},
@@ -3928,7 +4046,7 @@ async function loadDashboard() {
             currentWeek: dashboardData.currentWeek
         };
         
-        // Switch screens FIRST (feels faster!)
+        // Switch screens
         $('login-screen').classList.remove('active');
         $('login-screen').style.display = 'none';
         $('dashboard-screen').classList.add('active');
@@ -3942,17 +4060,24 @@ async function loadDashboard() {
         const startPage = initRouter();
         await loadPage(startPage === 'login' ? 'home' : startPage);
         
-        // ⚡ Load these in BACKGROUND (don't await!)
+        // Background loads
         loadAllWeeksData();
-        // preloadDashboardData(); // ← No longer needed! We have everything
         
-        // ✅ Delayed notification + voting check
+        // ==================== ADD THIS: INITIALIZE STREAK & ACTIVITY ====================
+        await initStreakAndActivity();
+        
+        // Check streak based on today's streams
+        const todayStreams = (STATE.data?.stats?.trackScrobbles || 0) + (STATE.data?.stats?.albumScrobbles || 0);
+        checkStreakOnStreamUpdate(todayStreams);
+        // ==================== END ADDITION ====================
+        
+        // Delayed notification + voting check
         setTimeout(() => {
             checkNotifications();
             checkVotingAnnouncement();
         }, 2000);
         
-        // ✅ Recurring checks every 5 minutes
+        // Recurring checks
         notificationInterval = setInterval(() => {
             checkNotifications();
             checkVotingAnnouncement();
@@ -4114,6 +4239,7 @@ async function logout() {
             clearInterval(notificationInterval);
             notificationInterval = null;
         }
+        cleanupStreakAndActivity();
         
         STATE.agentNo = null;
         STATE.data = null;
@@ -4248,61 +4374,68 @@ const refreshNotice = `
 // In renderHome() - Simplified quick stats:
 
 const quickStatsEl = document.querySelector('.quick-stats-section');
-if (quickStatsEl) {
-    // Compact refresh notice
-    const refreshNotice = `
-        <div style="
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            background: rgba(123,44,191,0.08);
-            border: 1px solid rgba(123,44,191,0.15);
-            border-radius: 10px;
-            margin-bottom: 16px;
-        ">
-            <span style="font-size: 14px;">⏰</span>
-            <span style="color: #aaa; font-size: 12px;">
-                Streams update hourly
-                ${STATE.lastUpdated ? ` • Last: ${formatLastUpdated(STATE.lastUpdated)}` : ''}
-            </span>
-        </div>
-    `;
-    
-    quickStatsEl.innerHTML = `
-        ${btsCountdownHtml}
-        ${refreshNotice}
-        
-        <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
-            <div class="card-body">
-                <div class="quick-header">
-                    ${teamPfp(team) ? `<img src="${teamPfp(team)}" class="quick-pfp" style="border-color:${teamColor(team)}">` : ''}
-                    <div class="quick-info">
-                        <div class="quick-name">Welcome, ${sanitize(agentName)}!</div>
-                        <div class="quick-team" style="color:${teamColor(team)}">${team} • Rank #${STATE.data?.rank || 'N/A'}</div>
+        if (quickStatsEl) {
+            const refreshNotice = `
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 10px 14px;
+                    background: rgba(123,44,191,0.08);
+                    border: 1px solid rgba(123,44,191,0.15);
+                    border-radius: 10px;
+                    margin-bottom: 16px;
+                ">
+                    <span style="font-size: 14px;">⏰</span>
+                    <span style="color: #aaa; font-size: 12px;">
+                        Streams update hourly
+                        ${STATE.lastUpdated ? ` • Last: ${formatLastUpdated(STATE.lastUpdated)}` : ''}
+                    </span>
+                </div>
+            `;
+            
+            // ==================== MODIFIED: ADD STREAK & ACTIVITY WIDGETS ====================
+            quickStatsEl.innerHTML = `
+                ${btsCountdownHtml}
+                ${refreshNotice}
+                
+                <!-- ✅ ADD STREAK WIDGET -->
+                ${renderStreakWidget()}
+                
+                <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
+                    <div class="card-body">
+                        <div class="quick-header">
+                            ${teamPfp(team) ? `<img src="${teamPfp(team)}" class="quick-pfp" style="border-color:${teamColor(team)}">` : ''}
+                            <div class="quick-info">
+                                <div class="quick-name">Welcome, ${sanitize(agentName)}!</div>
+                                <div class="quick-team" style="color:${teamColor(team)}">${team} • Rank #${STATE.data?.rank || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="quick-stats-grid">
+                            <div class="quick-stat">
+                                <div class="quick-stat-value">${fmt(myStats.totalXP)}</div>
+                                <div class="quick-stat-label">XP</div>
+                            </div>
+                            <div class="quick-stat">
+                                <div class="quick-stat-value">${fmt(myStats.trackScrobbles || 0)}</div>
+                                <div class="quick-stat-label">Tracks</div>
+                            </div>
+                            <div class="quick-stat">
+                                <div class="quick-stat-value">${fmt(myStats.albumScrobbles || 0)}</div>
+                                <div class="quick-stat-label">Albums</div>
+                            </div>
+                        </div>
+                        <div class="battle-timer ${isCompleted ? 'ended' : ''}">
+                            ${isCompleted ? '🏆 Week Completed' : (daysLeft <= 1 ? '🚀 Final Day!' : `⏰ ${daysLeft} days left`)}
+                        </div>
+                        ${isCompleted ? `<div class="results-alert" onclick="loadPage('summary')">🏆 View Final Results →</div>` : ''}
                     </div>
                 </div>
-                <div class="quick-stats-grid">
-                    <div class="quick-stat">
-                        <div class="quick-stat-value">${fmt(myStats.totalXP)}</div>
-                        <div class="quick-stat-label">XP</div>
-                    </div>
-                    <div class="quick-stat">
-                        <div class="quick-stat-value">${fmt(myStats.trackScrobbles || 0)}</div>
-                        <div class="quick-stat-label">Tracks</div>
-                    </div>
-                    <div class="quick-stat">
-                        <div class="quick-stat-value">${fmt(myStats.albumScrobbles || 0)}</div>
-                        <div class="quick-stat-label">Albums</div>
-                    </div>
-                </div>
-                <div class="battle-timer ${isCompleted ? 'ended' : ''}">
-                    ${isCompleted ? '🏆 Week Completed' : (daysLeft <= 1 ? '🚀 Final Day!' : `⏰ ${daysLeft} days left`)}
-                </div>
-                ${isCompleted ? `<div class="results-alert" onclick="loadPage('summary')">🏆 View Final Results →</div>` : ''}
-            </div>
-        </div>
-    `;
+                
+                <!-- ✅ ADD ACTIVITY WIDGET -->
+                ${renderActivityWidget()}
+            `;
+   
     
     startBTSCountdown();
 }
@@ -9193,6 +9326,883 @@ function scrollToGuideSection(sectionId) {
         window.scrollTo({ top: pos, behavior: 'smooth' });
     }, 150);
 }
+// ==================== STREAK TRACKER SYSTEM ====================
+
+/**
+ * Initialize streak data from server/localStorage
+ */
+async function initStreakTracker() {
+    try {
+        const data = await api('getStreakData', { agentNo: STATE.agentNo });
+        
+        if (data.success) {
+            STREAK_STATE.current = data.streak?.current || 0;
+            STREAK_STATE.longest = data.streak?.longest || 0;
+            STREAK_STATE.lastActiveDate = data.streak?.lastActiveDate || null;
+            STREAK_STATE.freezesRemaining = data.streak?.freezesRemaining ?? 2;
+            STREAK_STATE.freezesUsedThisMonth = data.streak?.freezesUsedThisMonth || 0;
+            STREAK_STATE.streakHistory = data.streak?.history || [];
+            STREAK_STATE.todayCompleted = data.streak?.todayCompleted || false;
+        }
+        
+        checkStreakAtRisk();
+        saveStreakLocal();
+        
+        console.log('🔥 Streak initialized:', STREAK_STATE.current, 'days');
+        
+    } catch (e) {
+        console.log('Loading streak from localStorage');
+        loadStreakLocal();
+    }
+}
+
+function saveStreakLocal() {
+    try {
+        localStorage.setItem('streak_' + STATE.agentNo, JSON.stringify(STREAK_STATE));
+    } catch (e) {
+        console.log('Could not save streak locally');
+    }
+}
+
+function loadStreakLocal() {
+    try {
+        const saved = localStorage.getItem('streak_' + STATE.agentNo);
+        if (saved) {
+            const data = JSON.parse(saved);
+            Object.assign(STREAK_STATE, data);
+        }
+    } catch (e) {
+        console.log('Could not load streak locally');
+    }
+}
+
+function checkStreakAtRisk() {
+    if (STREAK_STATE.todayCompleted) {
+        STREAK_STATE.isAtRisk = false;
+        return;
+    }
+    
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    
+    const hoursUntilMidnight = (midnight - now) / (1000 * 60 * 60);
+    
+    STREAK_STATE.isAtRisk = hoursUntilMidnight <= STREAK_CONFIG.RISK_HOURS && STREAK_STATE.current > 0;
+    
+    if (STREAK_STATE.isAtRisk && STREAK_CONFIG.NOTIFY_AT_RISK) {
+        showStreakAtRiskNotification();
+    }
+}
+
+function showStreakAtRiskNotification() {
+    const shownKey = 'streak_risk_shown_' + new Date().toDateString();
+    if (localStorage.getItem(shownKey)) return;
+    
+    const notification = {
+        type: 'streak_risk',
+        icon: '🔥',
+        title: 'Streak at Risk!',
+        message: `Your ${STREAK_STATE.current}-day streak ends at midnight! Stream now to keep it alive!`,
+        action: () => loadPage('playlists'),
+        actionText: 'Stream Now',
+        priority: 'high'
+    };
+    
+    STATE.notifications.push(notification);
+    updateNotificationBadge();
+    showNotificationPopup([notification]);
+    
+    localStorage.setItem(shownKey, 'true');
+}
+
+async function recordStreakActivity(streamsToday = 0) {
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    
+    if (STREAK_STATE.lastActiveDate === today) {
+        STREAK_STATE.todayCompleted = true;
+        return;
+    }
+    
+    if (streamsToday < STREAK_CONFIG.ACTIVITY_THRESHOLD) {
+        return;
+    }
+    
+    if (STREAK_STATE.lastActiveDate === yesterday) {
+        STREAK_STATE.current++;
+    } else if (STREAK_STATE.lastActiveDate !== today) {
+        if (STREAK_STATE.freezesRemaining > 0 && STREAK_STATE.current > 0) {
+            STREAK_STATE.freezesRemaining--;
+            STREAK_STATE.freezesUsedThisMonth++;
+            showToast(`🧊 Streak Freeze used! ${STREAK_STATE.freezesRemaining} left`, 'info');
+        } else {
+            STREAK_STATE.current = 1;
+        }
+    }
+    
+    if (STREAK_STATE.current > STREAK_STATE.longest) {
+        STREAK_STATE.longest = STREAK_STATE.current;
+        checkStreakMilestone(STREAK_STATE.current);
+    }
+    
+    STREAK_STATE.lastActiveDate = today;
+    STREAK_STATE.todayCompleted = true;
+    STREAK_STATE.isAtRisk = false;
+    
+    STREAK_STATE.streakHistory.unshift({
+        date: today,
+        streams: streamsToday,
+        streak: STREAK_STATE.current
+    });
+    
+    if (STREAK_STATE.streakHistory.length > 30) {
+        STREAK_STATE.streakHistory = STREAK_STATE.streakHistory.slice(0, 30);
+    }
+    
+    saveStreakLocal();
+    
+    try {
+        await api('updateStreak', {
+            agentNo: STATE.agentNo,
+            streak: JSON.stringify(STREAK_STATE)
+        });
+    } catch (e) {
+        console.log('Could not sync streak to server');
+    }
+}
+
+function checkStreakMilestone(streak) {
+    const milestone = STREAK_CONFIG.MILESTONES.find(m => m === streak);
+    
+    if (milestone) {
+        const badge = STREAK_CONFIG.BADGES[milestone];
+        showStreakMilestone(milestone, badge);
+        
+        STATE.notifications.push({
+            type: 'streak_milestone',
+            icon: badge.icon,
+            title: `${milestone}-Day Streak! ${badge.icon}`,
+            message: `You earned the "${badge.name}" badge!`,
+            action: () => loadPage('drawer'),
+            actionText: 'View Badge'
+        });
+        
+        updateNotificationBadge();
+    }
+}
+
+function showStreakMilestone(days, badge) {
+    if (typeof confetti === 'function') {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: [badge.color, '#ffd700', '#7b2cbf']
+        });
+    }
+    
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100]);
+    
+    const popup = document.createElement('div');
+    popup.className = 'streak-milestone-popup';
+    popup.innerHTML = `
+        <style>
+            .streak-milestone-popup {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.9);
+                z-index: 999999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: fadeIn 0.3s ease;
+            }
+            .streak-milestone-content {
+                text-align: center;
+                padding: 40px 30px;
+                max-width: 350px;
+            }
+            .streak-milestone-icon {
+                font-size: 80px;
+                animation: bounceIn 0.6s ease;
+            }
+            .streak-milestone-days {
+                font-size: 48px;
+                font-weight: bold;
+                color: ${badge.color};
+                margin: 20px 0 10px;
+                text-shadow: 0 0 30px ${badge.color}66;
+            }
+            .streak-milestone-label {
+                color: #888;
+                font-size: 16px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+            }
+            .streak-milestone-badge {
+                margin-top: 25px;
+                padding: 15px 25px;
+                background: linear-gradient(135deg, ${badge.color}33, ${badge.color}11);
+                border: 2px solid ${badge.color};
+                border-radius: 20px;
+                display: inline-block;
+            }
+            .streak-milestone-badge-name {
+                color: ${badge.color};
+                font-size: 18px;
+                font-weight: bold;
+            }
+            .streak-milestone-close {
+                margin-top: 30px;
+                padding: 14px 40px;
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                border: none;
+                border-radius: 25px;
+                color: #fff;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+            }
+            @keyframes bounceIn {
+                0% { transform: scale(0); }
+                50% { transform: scale(1.2); }
+                100% { transform: scale(1); }
+            }
+        </style>
+        
+        <div class="streak-milestone-content">
+            <div class="streak-milestone-icon">${badge.icon}</div>
+            <div class="streak-milestone-days">${days}</div>
+            <div class="streak-milestone-label">Day Streak!</div>
+            
+            <div class="streak-milestone-badge">
+                <div class="streak-milestone-badge-name">${badge.name}</div>
+            </div>
+            
+            <button class="streak-milestone-close" onclick="this.closest('.streak-milestone-popup').remove()">
+                Amazing! 💜
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(popup);
+    setTimeout(() => { if (popup.parentElement) popup.remove(); }, 10000);
+}
+
+async function useStreakFreeze() {
+    if (STREAK_STATE.freezesRemaining <= 0) {
+        showToast('No streak freezes remaining!', 'error');
+        return false;
+    }
+    
+    STREAK_STATE.freezesRemaining--;
+    STREAK_STATE.freezesUsedThisMonth++;
+    saveStreakLocal();
+    
+    try {
+        await api('useStreakFreeze', { agentNo: STATE.agentNo });
+    } catch (e) {
+        console.log('Could not sync freeze to server');
+    }
+    
+    showToast(`🧊 Streak protected! ${STREAK_STATE.freezesRemaining} freezes left`, 'success');
+    return true;
+}
+
+async function buyStreakFreeze() {
+    const cost = STREAK_CONFIG.FREEZE.freezeCostXP;
+    const currentXP = parseInt(STATE.data?.stats?.totalXP) || 0;
+    
+    if (currentXP < cost) {
+        showToast(`Not enough XP! Need ${cost} XP`, 'error');
+        return false;
+    }
+    
+    if (!confirm(`Spend ${cost} XP to buy a Streak Freeze?`)) {
+        return false;
+    }
+    
+    try {
+        const result = await api('buyStreakFreeze', {
+            agentNo: STATE.agentNo,
+            cost: cost
+        });
+        
+        if (result.success) {
+            STREAK_STATE.freezesRemaining++;
+            saveStreakLocal();
+            showToast('🧊 Streak Freeze purchased!', 'success');
+            return true;
+        } else {
+            showToast(result.error || 'Failed to buy freeze', 'error');
+            return false;
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+        return false;
+    }
+}
+
+function getCurrentStreakBadge() {
+    const milestones = STREAK_CONFIG.MILESTONES.filter(m => m <= STREAK_STATE.current);
+    if (milestones.length === 0) return null;
+    
+    const highestMilestone = Math.max(...milestones);
+    return {
+        milestone: highestMilestone,
+        ...STREAK_CONFIG.BADGES[highestMilestone]
+    };
+}
+
+function getNextStreakMilestone() {
+    const next = STREAK_CONFIG.MILESTONES.find(m => m > STREAK_STATE.current);
+    if (!next) return null;
+    
+    return {
+        milestone: next,
+        daysLeft: next - STREAK_STATE.current,
+        ...STREAK_CONFIG.BADGES[next]
+    };
+}
+
+// ==================== STREAK UI COMPONENT ====================
+
+function renderStreakWidget() {
+    const currentBadge = getCurrentStreakBadge();
+    const nextMilestone = getNextStreakMilestone();
+    const progress = nextMilestone 
+        ? ((STREAK_STATE.current - (currentBadge?.milestone || 0)) / (nextMilestone.milestone - (currentBadge?.milestone || 0))) * 100
+        : 100;
+    
+    return `
+        <div class="streak-widget ${STREAK_STATE.isAtRisk ? 'at-risk' : ''} ${STREAK_STATE.todayCompleted ? 'completed' : ''}" style="
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+            border: 1px solid ${STREAK_STATE.todayCompleted ? '#00ff88' : STREAK_STATE.isAtRisk ? '#ff4444' : 'rgba(255, 107, 53, 0.3)'};
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+            ${STREAK_STATE.isAtRisk ? 'animation: riskPulse 2s ease-in-out infinite;' : ''}
+        ">
+            <style>
+                @keyframes riskPulse {
+                    0%, 100% { box-shadow: 0 0 0 rgba(255,68,68,0); }
+                    50% { box-shadow: 0 0 20px rgba(255,68,68,0.3); }
+                }
+                @keyframes fireFlicker {
+                    0% { transform: scale(1) rotate(-5deg); }
+                    100% { transform: scale(1.1) rotate(5deg); }
+                }
+            </style>
+            
+            <!-- Freeze Badge -->
+            <div onclick="showStreakFreezeInfo()" style="
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                padding: 4px 8px;
+                background: rgba(0,191,255,0.15);
+                border: 1px solid rgba(0,191,255,0.3);
+                border-radius: 10px;
+                font-size: 10px;
+                color: #00bfff;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                cursor: pointer;
+            ">
+                🧊 ${STREAK_STATE.freezesRemaining}
+            </div>
+            
+            <!-- Header -->
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                <div style="font-size: 40px; animation: fireFlicker 1s ease-in-out infinite alternate;">
+                    ${STREAK_STATE.current > 0 ? '🔥' : '❄️'}
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-size: 32px; font-weight: bold; color: #ff6b35; line-height: 1;">
+                        ${STREAK_STATE.current}
+                    </div>
+                    <div style="color: #888; font-size: 12px; margin-top: 4px;">Day Streak</div>
+                </div>
+                <div style="
+                    padding: 6px 12px;
+                    border-radius: 20px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    background: ${STREAK_STATE.todayCompleted ? 'rgba(0,255,136,0.15)' : STREAK_STATE.isAtRisk ? 'rgba(255,68,68,0.15)' : 'rgba(255,165,0,0.15)'};
+                    color: ${STREAK_STATE.todayCompleted ? '#00ff88' : STREAK_STATE.isAtRisk ? '#ff6b6b' : '#ffa500'};
+                ">
+                    ${STREAK_STATE.todayCompleted ? '✅ Done Today' : STREAK_STATE.isAtRisk ? '⚠️ At Risk!' : '⏳ Stream Today'}
+                </div>
+            </div>
+            
+            <!-- Progress to Next Milestone -->
+            ${nextMilestone ? `
+                <div style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaa;">
+                            <span style="font-size: 16px;">${nextMilestone.icon}</span>
+                            <span>${nextMilestone.name}</span>
+                        </div>
+                        <div style="color: #ffd700; font-weight: 600; font-size: 12px;">${nextMilestone.daysLeft} days to go</div>
+                    </div>
+                    <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                        <div style="height: 100%; width: ${progress}%; background: linear-gradient(90deg, #ff6b35, #ffd700); border-radius: 4px; transition: width 0.5s ease;"></div>
+                    </div>
+                </div>
+            ` : `
+                <div style="text-align:center;padding:10px;background:rgba(123,44,191,0.1);border-radius:10px;margin-top:10px;">
+                    <span style="color:#7b2cbf;">👑 Maximum streak badge achieved!</span>
+                </div>
+            `}
+            
+            <!-- Stats Row -->
+            <div style="display: flex; gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 18px; font-weight: bold; color: #fff;">${STREAK_STATE.longest}</div>
+                    <div style="font-size: 10px; color: #666; margin-top: 2px;">Longest</div>
+                </div>
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 18px; font-weight: bold; color: #fff;">${currentBadge ? currentBadge.icon : '🔒'}</div>
+                    <div style="font-size: 10px; color: #666; margin-top: 2px;">Badge</div>
+                </div>
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 18px; font-weight: bold; color: #fff;">${STREAK_STATE.streakHistory.filter(h => h.streak > 0).length}</div>
+                    <div style="font-size: 10px; color: #666; margin-top: 2px;">Active Days</div>
+                </div>
+            </div>
+            
+            <!-- Last 14 Days Visualization -->
+            <div style="display: flex; gap: 4px; margin-top: 15px; justify-content: center;" title="Last 14 days">
+                ${renderStreakHistory(14)}
+            </div>
+        </div>
+    `;
+}
+
+function renderStreakHistory(days = 14) {
+    const today = new Date().toDateString();
+    const dots = [];
+    
+    for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(Date.now() - (i * 86400000)).toDateString();
+        const hasActivity = STREAK_STATE.streakHistory.some(h => h.date === date);
+        const isToday = date === today;
+        
+        dots.push(`<div style="
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            background: ${hasActivity ? '#ff6b35' : 'rgba(255,255,255,0.1)'};
+            ${isToday ? 'border: 2px solid #ffd700;' : ''}
+        " title="${date}"></div>`);
+    }
+    
+    return dots.join('');
+}
+
+function showStreakFreezeInfo() {
+    const popup = document.createElement('div');
+    popup.className = 'streak-freeze-popup';
+    popup.innerHTML = `
+        <style>
+            .streak-freeze-popup {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.9);
+                z-index: 99999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+        </style>
+        
+        <div style="
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+            border: 1px solid rgba(0,191,255,0.3);
+            border-radius: 20px;
+            padding: 25px;
+            max-width: 350px;
+            width: 100%;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="color: #00bfff; font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 10px;">
+                    <span>🧊</span>
+                    <span>Streak Freezes</span>
+                </div>
+                <button onclick="this.closest('.streak-freeze-popup').remove()" style="
+                    background: none;
+                    border: none;
+                    color: #888;
+                    font-size: 24px;
+                    cursor: pointer;
+                ">×</button>
+            </div>
+            
+            <div style="text-align: center; padding: 20px; background: rgba(0,191,255,0.1); border-radius: 15px; margin-bottom: 20px;">
+                <div style="font-size: 48px; font-weight: bold; color: #00bfff;">${STREAK_STATE.freezesRemaining}</div>
+                <div style="color: #888; font-size: 12px; margin-top: 5px;">Freezes Available</div>
+            </div>
+            
+            <div style="color: #aaa; font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
+                <strong style="color:#fff;">How Streak Freezes Work:</strong><br><br>
+                • If you miss a day, a freeze is automatically used<br>
+                • Your streak continues without breaking!<br>
+                • You get 2 free freezes per month<br>
+                • Buy more with ${STREAK_CONFIG.FREEZE.freezeCostXP} XP each
+            </div>
+            
+            <button onclick="buyStreakFreeze(); this.closest('.streak-freeze-popup').remove();" style="
+                width: 100%;
+                padding: 14px;
+                background: linear-gradient(135deg, #00bfff, #0088cc);
+                border: none;
+                border-radius: 12px;
+                color: #fff;
+                font-size: 14px;
+                font-weight: bold;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+            ">
+                <span>🛒</span>
+                <span>Buy Freeze (${STREAK_CONFIG.FREEZE.freezeCostXP} XP)</span>
+            </button>
+        </div>
+    `;
+    
+    popup.onclick = (e) => {
+        if (e.target === popup) popup.remove();
+    };
+    
+    document.body.appendChild(popup);
+}
+
+
+// ==================== LIVE ACTIVITY FEED ====================
+
+async function initActivityFeed() {
+    await fetchActivities();
+    startActivityAutoRefresh();
+}
+
+async function fetchActivities() {
+    if (ACTIVITY_STATE.isLoading) return;
+    
+    ACTIVITY_STATE.isLoading = true;
+    
+    try {
+        const data = await api('getActivityFeed', {
+            limit: ACTIVITY_CONFIG.MAX_ACTIVITIES,
+            since: ACTIVITY_STATE.lastFetch
+        });
+        
+        if (data.success && data.activities) {
+            const newActivities = data.activities.filter(a => 
+                !ACTIVITY_STATE.activities.some(existing => existing.id === a.id)
+            );
+            
+            if (newActivities.length > 0) {
+                ACTIVITY_STATE.activities = [...newActivities, ...ACTIVITY_STATE.activities]
+                    .slice(0, ACTIVITY_CONFIG.MAX_ACTIVITIES);
+                
+                updateActivityFeedUI();
+                showNewActivityPopups(newActivities);
+            }
+        }
+        
+        ACTIVITY_STATE.lastFetch = Date.now();
+        
+    } catch (e) {
+        console.log('Could not fetch activities:', e);
+    } finally {
+        ACTIVITY_STATE.isLoading = false;
+    }
+}
+
+function startActivityAutoRefresh() {
+    if (ACTIVITY_STATE.autoRefreshInterval) {
+        clearInterval(ACTIVITY_STATE.autoRefreshInterval);
+    }
+    
+    ACTIVITY_STATE.autoRefreshInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            fetchActivities();
+        }
+    }, ACTIVITY_CONFIG.REFRESH_INTERVAL);
+}
+
+function stopActivityAutoRefresh() {
+    if (ACTIVITY_STATE.autoRefreshInterval) {
+        clearInterval(ACTIVITY_STATE.autoRefreshInterval);
+        ACTIVITY_STATE.autoRefreshInterval = null;
+    }
+}
+
+async function broadcastActivity(type, data) {
+    try {
+        await api('broadcastActivity', {
+            type: type,
+            data: JSON.stringify(data),
+            agentNo: STATE.agentNo,
+            timestamp: Date.now()
+        });
+    } catch (e) {
+        console.log('Could not broadcast activity');
+    }
+}
+
+function showNewActivityPopups(activities) {
+    const significantTypes = ['goal_completed', 'team_surge', 'badge_earned', 'album2x_completed'];
+    const significant = activities.filter(a => significantTypes.includes(a.type));
+    
+    if (significant.length > 0) {
+        showActivityToast(significant[0]);
+    }
+}
+
+function showActivityToast(activity) {
+    const config = ACTIVITY_CONFIG.TYPES[activity.type];
+    if (!config) return;
+    
+    const toast = document.createElement('div');
+    toast.className = 'activity-toast';
+    toast.innerHTML = `
+        <style>
+            .activity-toast {
+                position: fixed;
+                top: 70px;
+                left: 50%;
+                transform: translateX(-50%) translateY(-100px);
+                padding: 12px 20px;
+                background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+                border: 1px solid ${config.color}66;
+                border-radius: 25px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                z-index: 99998;
+                opacity: 0;
+                transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                max-width: 90%;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            }
+            .activity-toast.show {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        </style>
+        
+        <span style="font-size: 24px;">${config.icon}</span>
+        <span style="color: #fff; font-size: 13px;">${config.template(activity.data || activity)}</span>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+    }, 5000);
+}
+
+function updateActivityFeedUI() {
+    const container = document.getElementById('activity-feed-list');
+    if (container) {
+        container.innerHTML = renderActivityList();
+    }
+    
+    const miniContainer = document.getElementById('activity-feed-mini');
+    if (miniContainer) {
+        miniContainer.innerHTML = renderActivityMini();
+    }
+}
+
+function renderActivityList() {
+    if (ACTIVITY_STATE.activities.length === 0) {
+        return `
+            <div style="text-align:center;padding:40px;color:#888;">
+                <div style="font-size:40px;margin-bottom:15px;">📡</div>
+                <p>No recent activity</p>
+                <p style="font-size:12px;color:#666;">Start streaming to see live updates!</p>
+            </div>
+        `;
+    }
+    
+    return ACTIVITY_STATE.activities
+        .filter(a => ACTIVITY_CONFIG.SHOW_TYPES.includes(a.type))
+        .slice(0, 20)
+        .map(activity => renderActivityItem(activity))
+        .join('');
+}
+
+function renderActivityItem(activity) {
+    const config = ACTIVITY_CONFIG.TYPES[activity.type];
+    if (!config) return '';
+    
+    const timeAgo = formatTimeAgo(activity.timestamp);
+    const teamColorVal = activity.data?.team ? teamColor(activity.data.team) : '#7b2cbf';
+    
+    return `
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            transition: background 0.2s;
+        ">
+            <div style="
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                background: ${config.color}22;
+                color: ${config.color};
+                flex-shrink: 0;
+            ">${config.icon}</div>
+            <div style="flex: 1; min-width: 0;">
+                <div style="color: #ccc; font-size: 13px; line-height: 1.4;">${config.template(activity.data || activity)}</div>
+                <div style="color: #666; font-size: 11px; margin-top: 3px;">${timeAgo}</div>
+            </div>
+            ${activity.data?.team ? `
+                <div style="
+                    padding: 4px 10px;
+                    border-radius: 10px;
+                    font-size: 10px;
+                    font-weight: 600;
+                    background: ${teamColorVal}22;
+                    color: ${teamColorVal};
+                    flex-shrink: 0;
+                ">${activity.data.team.replace('Team ', '')}</div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function renderActivityMini() {
+    const recent = ACTIVITY_STATE.activities
+        .filter(a => ACTIVITY_CONFIG.SHOW_TYPES.includes(a.type))
+        .slice(0, 5);
+    
+    if (recent.length === 0) {
+        return '<div style="color:#888;text-align:center;padding:15px;font-size:12px;">No recent activity</div>';
+    }
+    
+    return recent.map(activity => {
+        const config = ACTIVITY_CONFIG.TYPES[activity.type];
+        if (!config) return '';
+        
+        return `
+            <div style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 0;
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+            ">
+                <span style="font-size:16px;">${config.icon}</span>
+                <span style="flex:1;font-size:12px;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    ${config.template(activity.data || activity)}
+                </span>
+                <span style="font-size:10px;color:#666;">${formatTimeAgo(activity.timestamp)}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function formatTimeAgo(timestamp) {
+    if (!timestamp) return '';
+    
+    const now = Date.now();
+    const diff = now - (typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp);
+    
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    if (seconds < 60) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    
+    return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function renderActivityWidget() {
+    return `
+        <div class="card" style="margin-bottom:16px;">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="margin:0;display:flex;align-items:center;gap:8px;">
+                    <span>📡</span>
+                    <span>Live Feed</span>
+                </h3>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <div style="width:8px;height:8px;background:#ff4444;border-radius:50%;animation:livePulse 1.5s ease-in-out infinite;"></div>
+                    <span style="font-size:10px;color:#ff6b6b;">LIVE</span>
+                </div>
+            </div>
+            <div class="card-body" style="padding:0;">
+                <div id="activity-feed-mini" style="padding:0 15px;">
+                    ${renderActivityMini()}
+                </div>
+                <div style="padding:12px 15px;border-top:1px solid rgba(255,255,255,0.05);">
+                    <button onclick="loadPage('activity')" class="btn-secondary" style="width:100%;padding:10px;font-size:12px;">
+                        View All Activity →
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+            @keyframes livePulse {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.5; transform: scale(0.8); }
+            }
+        </style>
+    `;
+}
+
+
+// ==================== INTEGRATION FUNCTIONS ====================
+
+async function initStreakAndActivity() {
+    console.log('🚀 Initializing Streak & Activity systems...');
+    
+    await Promise.all([
+        initStreakTracker(),
+        initActivityFeed()
+    ]);
+    
+    console.log('✅ Streak & Activity systems ready!');
+}
+
+function checkStreakOnStreamUpdate(totalStreamsToday) {
+    recordStreakActivity(totalStreamsToday);
+}
+
+function cleanupStreakAndActivity() {
+    stopActivityAutoRefresh();
+}
 // ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
@@ -9298,6 +10308,7 @@ window.addEventListener('beforeunload', () => {
     stopHeartbeat();
     stopUnreadCheck();
     cleanupChat();
+    cleanupStreakAndActivity();
     if (STATE.agentNo) {
         navigator.sendBeacon(CONFIG.API_URL + '?action=removeOnlineUser&agentNo=' + STATE.agentNo);
     }
@@ -9375,5 +10386,26 @@ window.adminConfirmPolice = adminConfirmPolice;
 window.isTeamEligibleForWin = isTeamEligibleForWin;
 window.getTeamEligibilityStatus = getTeamEligibilityStatus;
 window.getWeekWinner = getWeekWinner;
+
+// ==================== ADD TO YOUR EXISTING WINDOW EXPORTS ====================
+
+// Streak functions
+window.initStreakTracker = initStreakTracker;
+window.recordStreakActivity = recordStreakActivity;
+window.useStreakFreeze = useStreakFreeze;
+window.buyStreakFreeze = buyStreakFreeze;
+window.showStreakFreezeInfo = showStreakFreezeInfo;
+window.renderStreakWidget = renderStreakWidget;
+
+// Activity functions
+window.initActivityFeed = initActivityFeed;
+window.fetchActivities = fetchActivities;
+window.broadcastActivity = broadcastActivity;
+window.renderActivityWidget = renderActivityWidget;
+
+// Combined init
+window.initStreakAndActivity = initStreakAndActivity;
+window.checkStreakOnStreamUpdate = checkStreakOnStreamUpdate;
+window.cleanupStreakAndActivity = cleanupStreakAndActivity;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded with Voting System 🗳️💜');
