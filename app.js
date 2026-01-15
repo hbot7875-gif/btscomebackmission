@@ -113,6 +113,15 @@ const CONFIG = {
         'old_songs': { name: 'Old Songs', icon: '🕰️', description: 'Stream tracks older than 2 years.' },
         'stream_party': { name: 'Stream Party', icon: '🎉', description: 'Everyone streams the exact same playlist NOW.' },
         'custom': { name: 'Custom Task', icon: '⭐', description: 'Special instruction from Admin.' }
+    },
+
+    // ==================== BTS COMEBACK ====================
+    COMEBACK: {
+        ALBUM_NAME: "BTS 5th Album",
+        RELEASE_DATE: "2026-03-20T13:00:00+09:00",
+        SHOW_COUNTDOWN: true,
+        BTS_LOGO: "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/4f6fef44395ff9ca1609131af105a19db01e4e19/team%20pfps/cover.png",
+        ALBUM_COVER: "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/4f6fef44395ff9ca1609131af105a19db01e4e19/team%20pfps/cover.png"
     }
 };
 
@@ -146,6 +155,11 @@ const STREAK_CONFIG = {
     NOTIFY_AT_RISK: true,
     RISK_HOURS: 4
 };
+
+// ==================== HELPER FUNCTION ====================
+function teamColor(teamName) {
+    return CONFIG.TEAMS[teamName]?.color || '#ffffff';
+}
 
 // ==================== ACTIVITY CONFIG ====================
 const ACTIVITY_CONFIG = {
@@ -232,15 +246,7 @@ const ACTIVITY_STATE = {
     autoRefreshInterval: null
 };
 
-    // ==================== BTS COMEBACK (INSIDE CONFIG) ====================
-    COMEBACK: {
-    ALBUM_NAME: "BTS 5th Album",
-    RELEASE_DATE: "2026-03-20T13:00:00+09:00",
-    SHOW_COUNTDOWN: true,
-    BTS_LOGO: "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/4f6fef44395ff9ca1609131af105a19db01e4e19/team%20pfps/cover.png",
-    ALBUM_COVER: "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/4f6fef44395ff9ca1609131af105a19db01e4e19/team%20pfps/cover.png"
-}
-};
+// ==================== BTS COUNTDOWN FUNCTIONS ====================
 function renderBTSCountdown() {
     if (!CONFIG.COMEBACK?.SHOW_COUNTDOWN) return '';
     
