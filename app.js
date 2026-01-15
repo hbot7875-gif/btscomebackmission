@@ -1021,7 +1021,7 @@ async function checkNotifications() {
         }
         
         // Check voting (with session protection)
-        await checkVotingAnnouncement();
+        await checkPresaveAnnouncement()
         
     } catch (e) {
         console.error('❌ Error in checkNotifications:', e);
@@ -4099,13 +4099,13 @@ async function loadDashboard() {
         // Delayed notification + voting check
         setTimeout(() => {
             checkNotifications();
-            checkVotingAnnouncement();
+            checkPresaveAnnouncement();
         }, 2000);
         
         // Recurring checks
         notificationInterval = setInterval(() => {
             checkNotifications();
-            checkVotingAnnouncement();
+            checkPresaveAnnouncement();
         }, 5 * 60 * 1000);
         
         if (STATE.isAdmin) addAdminIndicator();
@@ -10393,11 +10393,11 @@ window.shareStats = shareStats;
 window.copyShareText = copyShareText;
 window.clearSOTDLocalStorage = clearSOTDLocalStorage;
 
-// Voting functions
-window.respondToVoting = respondToVoting;
-window.dismissVotingPopup = dismissVotingPopup;
-window.checkVotingAnnouncement = checkVotingAnnouncement;
-window.showVotingPopup = showVotingPopup;
+// Pre-Save functions
+window.respondToPresave = respondToPresave;
+window.dismissPresavePopup = dismissPresavePopup;
+window.checkPresaveAnnouncement = checkPresaveAnnouncement;
+window.showPresavePopup = showPresavePopup;
 
 // Guide page functions
 window.renderGuidePage = renderGuidePage;
