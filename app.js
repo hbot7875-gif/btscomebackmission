@@ -123,29 +123,47 @@ const CONFIG = {
     }
 };
 
-// ==================== STREAK CONFIG ====================
 const STREAK_CONFIG = {
+    // Activity requirement
+    ACTIVITY_THRESHOLD: 10, // Scrobbles needed per day
+    
+    // Milestones
     MILESTONES: [3, 7, 14, 21, 30, 50, 100],
     
+    // Badges for each milestone
     BADGES: {
-        3: { name: 'Begin', icon: '🌱', color: '#00ff88' },
-        7: { name: 'Fire', icon: '🔥', color: '#ff6b35' },
-        14: { name: 'Not Today', icon: '⚡', color: '#ffd700' },
-        21: { name: 'Run', icon: '💪', color: '#ff4081' },
-        30: { name: 'Mic Drop', icon: '👑', color: '#9c27b0' },
-        50: { name: 'Mikrokosmos', icon: '🌟', color: '#00bcd4' },
-        100: { name: 'Bulletproof', icon: '💜', color: '#7b2cbf' }
+        3:   { name: 'Beginner',     icon: '🌱', color: '#00ff88' },
+        7:   { name: 'Fire Starter', icon: '🔥', color: '#ff6b35' },
+        14:  { name: 'Not Today',    icon: '⚡', color: '#ffd700' },
+        21:  { name: 'Runner',       icon: '💪', color: '#ff4081' },
+        30:  { name: 'Mic Drop',     icon: '👑', color: '#9c27b0' },
+        50:  { name: 'Mikrokosmos',  icon: '🌟', color: '#00bcd4' },
+        100: { name: 'Bulletproof',  icon: '💜', color: '#7b2cbf' }
     },
     
+    // Freeze settings
     FREEZE: {
         maxFreezes: 2,
         freezeCostXP: 20,
-        autoFreezeDays: 0
+        monthlyFreeFreeze: 1
     },
     
-    ACTIVITY_THRESHOLD: 10,
-    NOTIFY_AT_RISK: true,
-    RISK_HOURS: 4
+    // Risk notification
+    RISK_HOURS: 4,
+    NOTIFY_AT_RISK: true
+};
+
+// ==================== STATE ====================
+
+const STREAK_STATE = {
+    current: 0,
+    longest: 0,
+    lastActiveDate: null,
+    freezesRemaining: 2,
+    freezesUsedThisMonth: 0,
+    streakHistory: [],
+    isAtRisk: false,
+    todayCompleted: false
 };
 
 // ==================== ACTIVITY CONFIG ====================
@@ -211,18 +229,6 @@ const ACTIVITY_CONFIG = {
             color: '#9c27b0'
         }
     }
-};
-
-// ==================== STREAK STATE ====================
-const STREAK_STATE = {
-    current: 0,
-    longest: 0,
-    lastActiveDate: null,
-    freezesRemaining: 2,
-    freezesUsedThisMonth: 0,
-    streakHistory: [],
-    isAtRisk: false,
-    todayCompleted: false
 };
 
 // ==================== ACTIVITY STATE ====================
@@ -1020,8 +1026,6 @@ async function checkNotifications() {
             }
         }
         
-        // Check voting (with session protection)
-        await checkPresaveAnnouncement()
         
     } catch (e) {
         console.error('❌ Error in checkNotifications:', e);
@@ -1199,10 +1203,35 @@ async function checkNewMissions() {
         const seenIds = STATE.lastChecked.seenMissionIds || [];
         const lastCount = STATE.lastChecked.missionCount ?? -1;
         
-        if (lastCount === -1 || (seenIds.length === 0 && activeMissions.length > 0)) {
-            STATE.lastChecked.missionCount = activeMissions.length;
-            STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
+        // First-time initialization - don't mark as seen yet
+        if (lastCount === -1) {
+            console.log('🔄 First mission check - initializing tracking');
+            STATE.lastChecked.missionCount = 0; // Start at 0 to detect existing missions
+            STATE.lastChecked.seenMissionIds = []; // Don't mark any as seen yet
             saveNotificationState();
+            
+            // If there are active missions, create notification for the first one
+            if (activeMissions.length > 0) {
+                console.log('🔔 Found existing missions on first check:', activeMissions.length);
+                
+                // Mark all as seen for next time
+                STATE.lastChecked.missionCount = activeMissions.length;
+                STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
+                saveNotificationState();
+                
+                // Return notification for the first mission
+                return {
+                    type: 'mission',
+                    icon: '🕵️',
+                    title: 'Team Mission Available!',
+                    message: activeMissions[0].title || 'Your team has a secret mission!',
+                    action: () => loadPage('secret-missions'),
+                    actionText: 'View Missions',
+                    week: STATE.week,
+                    id: activeMissions[0].id
+                };
+            }
+            
             return null;
         }
         
@@ -1237,6 +1266,8 @@ async function checkNewMissions() {
         );
         
         if (unseenMissions.length > 0) {
+            console.log('🔔 Found new unseen missions:', unseenMissions.length);
+            
             STATE.lastChecked.missionCount = activeMissions.length;
             STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
             saveNotificationState();
@@ -1257,6 +1288,7 @@ async function checkNewMissions() {
         
         return null;
     } catch (e) {
+        console.error('Mission check error:', e);
         return null;
     }
 }
@@ -2295,6 +2327,17 @@ async function createTeamMission() {
         
         if (res.success) { 
             showCreateResult('✅ Mission Deployed Successfully!', false);
+            
+            // ✅ NEW: Force notification check after mission creation
+            console.log('🔔 Mission created, forcing notification check...');
+            
+            // Reset mission notification state to force recheck
+            if (STATE.lastChecked) {
+                STATE.lastChecked.missionCount = -1; // Force recheck
+                STATE.lastChecked.seenMissionIds = []; // Clear seen missions
+                saveNotificationState();
+            }
+            
             // Clear form
             document.getElementById('mission-title').value = '';
             document.getElementById('mission-briefing').value = '';
@@ -2307,6 +2350,32 @@ async function createTeamMission() {
             // Refresh active missions tab
             setTimeout(() => {
                 switchAdminTab('active');
+                
+                // ✅ NEW: Force notification check after a delay
+                setTimeout(() => {
+                    checkNotifications();
+                    
+                    // ✅ NEW: Add a manual trigger button
+                    const activeTab = document.querySelector('.admin-tab-content.active');
+                    if (activeTab) {
+                        const triggerBtn = document.createElement('button');
+                        triggerBtn.className = 'btn-primary';
+                        triggerBtn.style.cssText = 'margin-top: 15px; background: #ff4444; width: 100%; padding: 12px;';
+                        triggerBtn.innerHTML = '🔔 Force Mission Notification';
+                        triggerBtn.onclick = () => {
+                            // Force notification check
+                            if (STATE.lastChecked) {
+                                STATE.lastChecked.missionCount = -1;
+                                STATE.lastChecked.seenMissionIds = [];
+                                saveNotificationState();
+                            }
+                            checkNotifications();
+                            showToast('🔔 Notification check triggered!', 'success');
+                        };
+                        
+                        activeTab.appendChild(triggerBtn);
+                    }
+                }, 2000);
             }, 1500);
         } else { 
             showCreateResult('❌ ' + (res.error || 'Failed to create mission'), true); 
@@ -3112,9 +3181,6 @@ function ensureAppCSS() {
 
 // ==================== CLIENT-SIDE ROUTING ====================
 
-/**
- * Route definitions - maps URL hash to internal page names
- */
 const ROUTES = {
     '': 'home',
     'home': 'home',
@@ -3133,10 +3199,10 @@ const ROUTES = {
     'helper-roles': 'helper-roles',
     'drawer': 'drawer',
     'summary': 'summary',
-    'sotd': 'sotd',                    // ✅ ADD THIS
-    'song-of-day': 'sotd',             // ✅ ADD THIS (alias)
+    'sotd': 'sotd',
+    'song-of-day': 'sotd',
     'guide': 'guide',
-    'streaming-tips': 'streaming-tips', // ✅ ADD THIS
+    'streaming-tips': 'streaming-tips',
     'login': 'login'
 };
 
@@ -3156,54 +3222,36 @@ const PAGE_TO_ROUTE = {
     'helper-roles': 'helper-roles',
     'drawer': 'drawer',
     'summary': 'summary',
-    'sotd': 'sotd',                    // ✅ ADD THIS
+    'sotd': 'sotd',
     'guide': 'guide',
-    'streaming-tips': 'streaming-tips', // ✅ ADD THIS
+    'streaming-tips': 'streaming-tips',
     'login': 'login'
 };
 
-/**
- * Router state
- */
 const ROUTER = {
     isNavigating: false,
     lastRoute: null,
     initialized: false
 };
 
-/**
- * Get current route from URL hash
- */
 function getCurrentRoute() {
-    const hash = window.location.hash.slice(1); // Remove #
+    const hash = window.location.hash.slice(1);
     const path = hash.startsWith('/') ? hash.slice(1) : hash;
     return path.split('?')[0] || 'home';
 }
 
-/**
- * Get page name from route
- */
 function getPageFromRoute(route) {
     return ROUTES[route] || route || 'home';
 }
 
-/**
- * Get route from page name
- */
 function getRouteFromPage(pageName) {
     return PAGE_TO_ROUTE[pageName] || pageName || 'home';
 }
 
-/**
- * Build full URL with hash
- */
 function buildHashUrl(route) {
     return '#/' + (route || 'home');
 }
 
-/**
- * Navigate to a route (updates URL and renders page)
- */
 function navigateTo(route, options = {}) {
     const { replace = false, skipRender = false } = options;
     
@@ -3212,7 +3260,6 @@ function navigateTo(route, options = {}) {
     const pageName = getPageFromRoute(route);
     const newUrl = buildHashUrl(route);
     
-    // Don't navigate to same route unless forced
     if (!options.force && ROUTER.lastRoute === route && ROUTER.initialized) {
         return;
     }
@@ -3220,7 +3267,6 @@ function navigateTo(route, options = {}) {
     ROUTER.isNavigating = true;
     ROUTER.lastRoute = route;
     
-    // Update browser history
     const stateObj = { 
         page: pageName, 
         route: route,
@@ -3233,7 +3279,6 @@ function navigateTo(route, options = {}) {
         history.pushState(stateObj, '', newUrl);
     }
     
-    // Render the page
     if (!skipRender) {
         renderPageByRoute(pageName);
     }
@@ -3241,13 +3286,10 @@ function navigateTo(route, options = {}) {
     ROUTER.isNavigating = false;
 }
 
-/**
- * Handle browser back/forward buttons
- */
 window.addEventListener('popstate', (event) => {
     if (ROUTER.isNavigating) return;
     if (!ROUTER.initialized) return;
-    if (!STATE.agentNo) return; // Not logged in
+    if (!STATE.agentNo) return;
     
     let pageName;
     
@@ -3260,35 +3302,22 @@ window.addEventListener('popstate', (event) => {
         ROUTER.lastRoute = route;
     }
     
-    // Show back indicator
     showBackIndicator();
-    
-    // Render the page
     renderPageByRoute(pageName);
 });
 
-/**
- * Render page by route (internal use)
- */
 async function renderPageByRoute(pageName) {
-    // If not logged in, only allow login page
     if (!STATE.agentNo && pageName !== 'login') {
         return;
     }
     
     STATE.page = pageName;
-    
-    // Update active nav link
     updateActiveNavLink(pageName);
-    
-    // Close sidebar
     closeSidebar();
     
-    // Show the page element
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     
-    // Create dynamic pages if needed
-    const dynamicPages = ['chat', 'playlists', 'gc-links', 'helper-roles', 'song-of-day'];
+    const dynamicPages = ['chat', 'playlists', 'gc-links', 'helper-roles', 'song-of-day', 'sotd'];
     dynamicPages.forEach(pName => {
         if (pageName === pName && !$(`page-${pName}`)) {
             const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
@@ -3305,7 +3334,6 @@ async function renderPageByRoute(pageName) {
     const el = $('page-' + pageName);
     if (el) el.classList.add('active');
     
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: 'instant' });
     
     loading(true);
@@ -3327,8 +3355,8 @@ async function renderPageByRoute(pageName) {
             case 'helper-roles': await renderHelperRoles(); break;
             case 'chat': await renderChat(); break;
             case 'sotd': await renderSOTD(); break;
+            case 'song-of-day': await renderSOTD(); break;  // ✅ FIXED: Both call renderSOTD
             case 'streaming-tips': await renderStreamingTips(); break;
-            case 'song-of-day': await renderSongOfDay(); break;
             case 'guide': await renderGuidePage(); break; 
         }
     } catch (e) {
@@ -3339,9 +3367,6 @@ async function renderPageByRoute(pageName) {
     }
 }
 
-/**
- * Show back navigation indicator
- */
 function showBackIndicator() {
     let indicator = document.querySelector('.back-indicator');
     if (!indicator) {
@@ -3355,9 +3380,6 @@ function showBackIndicator() {
     setTimeout(() => indicator.classList.remove('show'), 300);
 }
 
-/**
- * Update active navigation link
- */
 function updateActiveNavLink(pageName) {
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
@@ -3367,9 +3389,6 @@ function updateActiveNavLink(pageName) {
     });
 }
 
-/**
- * Initialize router after login
- */
 function initRouter() {
     const route = getCurrentRoute();
     const pageName = getPageFromRoute(route);
@@ -3377,7 +3396,6 @@ function initRouter() {
     ROUTER.lastRoute = route;
     ROUTER.initialized = true;
     
-    // Set initial history state
     history.replaceState(
         { page: pageName, route: route, timestamp: Date.now() },
         '',
@@ -3389,16 +3407,9 @@ function initRouter() {
     return pageName;
 }
 
-// ==================== PAGE ROUTER (PUBLIC API) ====================
-
-/**
- * Main function to navigate to a page
- * This replaces your existing loadPage function
- */
 async function loadPage(page) {
     const route = getRouteFromPage(page);
     
-    // If router not initialized yet, just render directly
     if (!ROUTER.initialized) {
         STATE.page = page;
         await renderPageByRoute(page);
@@ -3408,9 +3419,6 @@ async function loadPage(page) {
     navigateTo(route);
 }
 
-/**
- * Go back in history
- */
 function goBack() {
     if (window.history.length > 1) {
         history.back();
@@ -3418,91 +3426,9 @@ function goBack() {
         loadPage('home');
     }
 }
+
 function openChat() {
     loadPage('chat');
-}
-async function showOnlineUsers() {
-    const data = await api('getOnlineCount');
-    const users = data.users || [];
-    
-    if (users.length === 0) {
-        showToast('No one else online', 'info');
-        return;
-    }
-    
-    // Create popup
-    const popup = document.createElement('div');
-    popup.className = 'online-popup';
-    popup.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: #1a1a2e;
-        border: 1px solid #7b2cbf;
-        border-radius: 16px;
-        padding: 20px;
-        z-index: 99999;
-        max-width: 300px;
-        width: 90%;
-        max-height: 400px;
-        overflow-y: auto;
-    `;
-    
-    popup.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-            <h3 style="margin:0;color:#fff;font-size:16px;">🟢 Online Now (${users.length})</h3>
-            <button onclick="this.closest('.online-popup').remove()" style="
-                background:none;
-                border:none;
-                color:#888;
-                font-size:20px;
-                cursor:pointer;
-            ">×</button>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-            ${users.map(u => `
-                <div style="
-                    display:flex;
-                    align-items:center;
-                    gap:10px;
-                    padding:8px 10px;
-                    background:rgba(255,255,255,0.05);
-                    border-radius:8px;
-                ">
-                    <span style="width:8px;height:8px;background:#00ff88;border-radius:50%;"></span>
-                    <span style="color:${teamColor(u.team)};font-size:13px;">@${sanitize(u.username)}</span>
-                    <span style="
-                        font-size:9px;
-                        color:#888;
-                        background:${teamColor(u.team)}22;
-                        padding:2px 6px;
-                        border-radius:4px;
-                        margin-left:auto;
-                    ">${sanitize(u.team?.replace('Team ', '') || '')}</span>
-                </div>
-            `).join('')}
-        </div>
-    `;
-    
-    // Add overlay
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.7);
-        z-index: 99998;
-    `;
-    overlay.onclick = () => {
-        overlay.remove();
-        popup.remove();
-    };
-    
-    document.body.appendChild(overlay);
-    document.body.appendChild(popup);
 }
 
 // ==================== INITIALIZATION ====================
@@ -3522,8 +3448,6 @@ function initApp() {
         loadDashboard();
         startUnreadCheck();
     } else {
-        // No saved login - ensure we're on login screen
-        // Set URL to login if not already
         if (getCurrentRoute() !== 'login' && getCurrentRoute() !== '') {
             history.replaceState({ page: 'login', route: 'login' }, '', '#/login');
         }
@@ -3593,6 +3517,8 @@ async function handleFind() {
     finally { loading(false); }
 }
 
+// ==================== LOAD DASHBOARD ====================
+
 let notificationInterval = null;
 
 async function loadDashboard() {
@@ -3603,7 +3529,6 @@ async function loadDashboard() {
     updateOnlineCount();
     setInterval(updateOnlineCount, 30000);
     
-    // Clear previous interval
     if (notificationInterval) {
         clearInterval(notificationInterval);
         notificationInterval = null;
@@ -3619,7 +3544,6 @@ async function loadDashboard() {
         
         console.log(`✅ Dashboard loaded in ${Date.now() - startTime}ms`);
         
-        // ... existing STATE mapping code ...
         STATE.weeks = dashboardData.availableWeeks || [];
         STATE.week = dashboardData.week || dashboardData.currentWeek || STATE.weeks[0];
         STATE.lastUpdated = dashboardData.lastUpdated;
@@ -3657,41 +3581,27 @@ async function loadDashboard() {
             currentWeek: dashboardData.currentWeek
         };
         
-        // Switch screens
         $('login-screen').classList.remove('active');
         $('login-screen').style.display = 'none';
         $('dashboard-screen').classList.add('active');
         $('dashboard-screen').style.display = 'flex';
         
-        // Setup dashboard
         setupDashboard();
         loadNotificationState();
         
-        // Initialize router and load page
         const startPage = initRouter();
         await loadPage(startPage === 'login' ? 'home' : startPage);
         
-        // Background loads
+        await initStreakTracker();
+        
         loadAllWeeksData();
         
-        // ==================== ADD THIS: INITIALIZE STREAK & ACTIVITY ====================
-        await initStreakAndActivity();
-        
-        // Check streak based on today's streams
-        const todayStreams = (STATE.data?.stats?.trackScrobbles || 0) + (STATE.data?.stats?.albumScrobbles || 0);
-        checkStreakOnStreamUpdate(todayStreams);
-        // ==================== END ADDITION ====================
-        
-        // Delayed notification + voting check
         setTimeout(() => {
             checkNotifications();
-            checkPresaveAnnouncement();
         }, 2000);
         
-        // Recurring checks
         notificationInterval = setInterval(() => {
             checkNotifications();
-            checkPresaveAnnouncement();
         }, 5 * 60 * 1000);
         
         if (STATE.isAdmin) addAdminIndicator();
@@ -3708,12 +3618,73 @@ async function loadDashboard() {
         loading(false); 
     }
 }
-// ⚡ Make this non-blocking
+
+// ==================== DATE HELPERS ====================
+
+function getTodayString() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toDateString();
+}
+
+function getYesterdayString() {
+    const now = new Date();
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    return yesterday.toDateString();
+}
+
+function calculateDaysMissed(lastActiveDateStr) {
+    if (!lastActiveDateStr) return 999;
+    
+    const lastActive = new Date(lastActiveDateStr);
+    const today = new Date();
+    
+    lastActive.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    
+    const diffTime = today - lastActive;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    return Math.max(0, diffDays - 1);
+}
+
+function getHoursUntilMidnight() {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    return Math.floor((midnight - now) / (1000 * 60 * 60));
+}
+
+// ==================== VALIDATION ====================
+
+function validateStreakStatus() {
+    const today = getTodayString();
+    const yesterday = getYesterdayString();
+    
+    if (STREAK_STATE.lastActiveDate === today) {
+        STREAK_STATE.todayCompleted = true;
+        STREAK_STATE.isAtRisk = false;
+        return;
+    }
+    
+    STREAK_STATE.todayCompleted = false;
+    
+    if (STREAK_STATE.lastActiveDate && 
+        STREAK_STATE.lastActiveDate !== today && 
+        STREAK_STATE.lastActiveDate !== yesterday) {
+        
+        const daysMissed = calculateDaysMissed(STREAK_STATE.lastActiveDate);
+        console.log(`⚠️ Days missed: ${daysMissed}`);
+    }
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
 function loadAllWeeksData() {
     api('getAllWeeksStats', { agentNo: STATE.agentNo })
         .then(result => { STATE.allWeeksData = result; })
         .catch(() => { STATE.allWeeksData = null; });
 }
+
 function setupDashboard() {
     const p = STATE.data?.profile;
     if (p) {
@@ -3747,7 +3718,6 @@ function setupDashboard() {
         };
     }
     
-    // Setup nav links with routing
     document.querySelectorAll('.nav-link').forEach(link => {
         link.onclick = null;
         link.onclick = e => {
@@ -3755,7 +3725,7 @@ function setupDashboard() {
             e.stopPropagation();
             const page = link.dataset.page;
             if (page) {
-                loadPage(page); // This now uses the router!
+                loadPage(page);
                 closeSidebar();
             }
         };
@@ -3814,28 +3784,6 @@ async function setupRoleBasedNavigation() {
     console.error('Error setting up role navigation:', e);
   }
 }
-
-async function checkMyRole(roleId) {
-  try {
-    const rolesData = await api('getHelperRoles');
-    const roles = rolesData.roles || [];
-    
-    const role = roles.find(r => r.id === roleId);
-    if (!role) {
-      console.log(`Role '${roleId}' not found`);
-      return false;
-    }
-    
-    const hasRole = role.agents.some(a => String(a.agentNo) === String(STATE.agentNo));
-    console.log(`Agent ${STATE.agentNo} has ${roleId} role: ${hasRole}`);
-    
-    return hasRole;
-  } catch (e) {
-    console.error('Check role error:', e);
-    return false;
-  }
-}
-
 async function logout() {
     if (confirm('Logout?')) {
         // Instant offline
@@ -6497,7 +6445,6 @@ Every stream counts. Join us in supporting BTS! 🎵
 window.shareStats = shareStats;
 window.copyShareText = copyShareText;
 
-// ==================== SECRET MISSIONS ====================
 async function renderSecretMissions() {
     const container = $('secret-missions-content');
     if (!container) return;
@@ -6594,61 +6541,22 @@ async function renderSecretMissions() {
             ` : ''}
         `;
         
-        // Update notification state
+        // ✅ IMPROVED: Update notification state with mission IDs
         STATE.lastChecked.missions = activeMissions.length;
+        STATE.lastChecked.seenMissionIds = [
+            ...activeMissions.map(m => m.id),
+            ...myAssigned.map(m => m.id)
+        ].filter(Boolean);
         saveNotificationState();
+        
+        // ✅ NEW: Remove notification dot
+        const missionDot = document.getElementById('dot-mission');
+        if (missionDot) missionDot.classList.remove('active');
         
     } catch (e) {
         console.error('Failed to load secret missions:', e);
         container.innerHTML = renderGuide('secret-missions') + '<div class="card"><div class="card-body error-state"><p>Failed to load secret missions.</p><button onclick="renderSecretMissions()" class="btn-secondary">Retry</button></div></div>';
     }
-}
-
-function renderSecretMissionCard(mission, myTeam, isAssigned) {
-    const missionInfo = CONFIG.MISSION_TYPES[mission.type] || { icon: '🔒', name: 'Mission' };
-    const myProgress = mission.progress?.[myTeam] || 0;
-    const goalTarget = mission.goalTarget || 100;
-    const pct = Math.min((myProgress / goalTarget) * 100, 100);
-    const isComplete = mission.completedTeams?.includes(myTeam);
-    
-    return `
-        <div class="secret-mission-card ${isAssigned ? 'assigned' : ''} ${isComplete ? 'complete' : ''}">
-            <div class="smc-stamp">${isAssigned ? '🎯 YOUR MISSION' : '🔒 CLASSIFIED'}</div>
-            <div class="smc-header">
-                <span class="smc-icon">${missionInfo.icon}</span>
-                <div class="smc-title-section">
-                    <div class="smc-type">${missionInfo.name}</div>
-                    <div class="smc-title">${sanitize(mission.title)}</div>
-                </div>
-            </div>
-            ${mission.assignedAgents?.length ? `
-                <div class="smc-agents">
-                    <div class="agents-label">Assigned Agents:</div>
-                    <div class="agents-list">
-                        ${mission.assignedAgents.map(a => `
-                            <span class="agent-tag ${String(a.agentNo) === String(STATE.agentNo) ? 'is-me' : ''}" style="color:${teamColor(a.team)}">
-                                ${String(a.agentNo) === String(STATE.agentNo) ? '👤 YOU' : `#${a.agentNo}`}
-                            </span>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
-            <div class="smc-briefing">${sanitize(mission.briefing || '')}</div>
-            ${mission.targetTrack ? `
-                <div class="smc-target">
-                    <span class="target-label">TARGET:</span>
-                    <span class="target-track">${sanitize(mission.targetTrack)}</span>
-                    <span class="target-goal">${goalTarget} streams</span>
-                </div>
-            ` : ''}
-            <div class="smc-progress">
-                <div class="progress-header"><span>Team Progress</span><span>${myProgress}/${goalTarget}</span></div>
-                <div class="progress-bar"><div class="progress-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%;background:${teamColor(myTeam)}"></div></div>
-                ${isComplete ? `<div class="progress-complete">✅ Mission Complete! +${mission.xpReward || 5} XP</div>` : `<div class="progress-remaining">${goalTarget - myProgress} more streams needed</div>`}
-            </div>
-            <div class="smc-footer"><span class="smc-reward">⭐ +${mission.xpReward || 5} XP</span></div>
-        </div>
-    `;
 }
 
 // ==================== SONG OF THE DAY (SOTD) ====================
@@ -8956,6 +8864,11 @@ async function initStreakTracker() {
             STREAK_STATE.todayCompleted = data.streak?.todayCompleted || false;
         }
         
+        // Check for streak activity immediately
+        setTimeout(() => {
+            checkAndRecordStreakActivity();
+        }, 3000);
+        
         checkStreakAtRisk();
         saveStreakLocal();
         
@@ -8964,6 +8877,11 @@ async function initStreakTracker() {
     } catch (e) {
         console.log('Loading streak from localStorage');
         loadStreakLocal();
+        
+        // Still check for streak activity
+        setTimeout(() => {
+            checkAndRecordStreakActivity();
+        }, 3000);
     }
 }
 
@@ -9020,38 +8938,116 @@ function showStreakAtRiskNotification() {
         priority: 'high'
     };
     
-    STATE.notifications.push(notification);
-    updateNotificationBadge();
-    showNotificationPopup([notification]);
+    if (STATE.notifications) {
+        STATE.notifications.push(notification);
+        updateNotificationBadge();
+        showNotificationPopup([notification]);
+    } else {
+        showToast('🔥 Streak at risk! Stream now!', 'error');
+    }
     
     localStorage.setItem(shownKey, 'true');
+}
+
+/**
+ * Check and record streak activity automatically
+ */
+function checkAndRecordStreakActivity() {
+    const todayStreams = STATE.data?.stats?.todayStreams || 0;
+    const yesterdayStreams = STATE.data?.stats?.yesterdayStreams || 0;
+    
+    console.log('🔥 Checking streak activity...');
+    console.log('Today streams:', todayStreams);
+    console.log('Yesterday streams:', yesterdayStreams);
+    console.log('Activity threshold:', STREAK_CONFIG.ACTIVITY_THRESHOLD);
+    
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    
+    // Already completed today
+    if (STREAK_STATE.lastActiveDate === today) {
+        console.log('✅ Already completed today');
+        STREAK_STATE.todayCompleted = true;
+        return;
+    }
+    
+    // Check if we have enough streams today
+    if (todayStreams >= STREAK_CONFIG.ACTIVITY_THRESHOLD) {
+        console.log('✅ Recording today\'s activity');
+        recordStreakActivity(todayStreams);
+        return;
+    }
+    
+    // Check if we need to record yesterday's activity
+    if (STREAK_STATE.lastActiveDate !== yesterday && yesterdayStreams >= STREAK_CONFIG.ACTIVITY_THRESHOLD) {
+        console.log('✅ Recording yesterday\'s activity');
+        
+        // Temporarily set lastActiveDate to day before yesterday
+        const dayBeforeYesterday = new Date(Date.now() - 2 * 86400000).toDateString();
+        const originalDate = STREAK_STATE.lastActiveDate;
+        
+        // Only if we're not continuing from day before yesterday
+        if (originalDate !== dayBeforeYesterday) {
+            STREAK_STATE.lastActiveDate = dayBeforeYesterday;
+        }
+        
+        recordStreakActivity(yesterdayStreams);
+    }
 }
 
 async function recordStreakActivity(streamsToday = 0) {
     const today = new Date().toDateString();
     const yesterday = new Date(Date.now() - 86400000).toDateString();
     
+    // Already completed today
     if (STREAK_STATE.lastActiveDate === today) {
         STREAK_STATE.todayCompleted = true;
         return;
     }
     
+    // Check if enough activity
     if (streamsToday < STREAK_CONFIG.ACTIVITY_THRESHOLD) {
         return;
     }
     
+    // Continuing streak from yesterday
     if (STREAK_STATE.lastActiveDate === yesterday) {
         STREAK_STATE.current++;
-    } else if (STREAK_STATE.lastActiveDate !== today) {
-        if (STREAK_STATE.freezesRemaining > 0 && STREAK_STATE.current > 0) {
-            STREAK_STATE.freezesRemaining--;
-            STREAK_STATE.freezesUsedThisMonth++;
-            showToast(`🧊 Streak Freeze used! ${STREAK_STATE.freezesRemaining} left`, 'info');
-        } else {
+        showToast(`🔥 Streak continued! Now at ${STREAK_STATE.current} days`, 'success');
+    } 
+    // Starting new or missed days
+    else if (STREAK_STATE.lastActiveDate !== today) {
+        // Calculate days missed
+        let daysMissed = 1;
+        if (STREAK_STATE.lastActiveDate) {
+            const lastActive = new Date(STREAK_STATE.lastActiveDate);
+            const currentDate = new Date();
+            daysMissed = Math.floor((currentDate - lastActive) / (1000 * 60 * 60 * 24));
+        }
+        
+        // Only one day missed - can use freeze
+        if (daysMissed === 1 && STREAK_STATE.freezesRemaining > 0 && STREAK_STATE.current > 0) {
+            // Ask user if they want to use a freeze
+            if (confirm(`You missed a day! Use a streak freeze to protect your ${STREAK_STATE.current}-day streak?`)) {
+                STREAK_STATE.freezesRemaining--;
+                STREAK_STATE.freezesUsedThisMonth++;
+                STREAK_STATE.current++; // Continue streak
+                showToast(`🧊 Streak Freeze used! ${STREAK_STATE.freezesRemaining} left`, 'info');
+            } else {
+                STREAK_STATE.current = 1;
+                showToast(`Streak reset. Starting fresh!`, 'info');
+            }
+        } 
+        // Multiple days missed or no freezes - reset streak
+        else {
+            if (STREAK_STATE.current > 0) {
+                showToast(`Streak reset. Starting fresh!`, 'info');
+            }
             STREAK_STATE.current = 1;
         }
     }
     
+    // Update streak data
     if (STREAK_STATE.current > STREAK_STATE.longest) {
         STREAK_STATE.longest = STREAK_STATE.current;
         checkStreakMilestone(STREAK_STATE.current);
@@ -9061,6 +9057,7 @@ async function recordStreakActivity(streamsToday = 0) {
     STREAK_STATE.todayCompleted = true;
     STREAK_STATE.isAtRisk = false;
     
+    // Add to history
     STREAK_STATE.streakHistory.unshift({
         date: today,
         streams: streamsToday,
@@ -9090,16 +9087,18 @@ function checkStreakMilestone(streak) {
         const badge = STREAK_CONFIG.BADGES[milestone];
         showStreakMilestone(milestone, badge);
         
-        STATE.notifications.push({
-            type: 'streak_milestone',
-            icon: badge.icon,
-            title: `${milestone}-Day Streak! ${badge.icon}`,
-            message: `You earned the "${badge.name}" badge!`,
-            action: () => loadPage('drawer'),
-            actionText: 'View Badge'
-        });
-        
-        updateNotificationBadge();
+        if (STATE.notifications) {
+            STATE.notifications.push({
+                type: 'streak_milestone',
+                icon: badge.icon,
+                title: `${milestone}-Day Streak! ${badge.icon}`,
+                message: `You earned the "${badge.name}" badge!`,
+                action: () => loadPage('drawer'),
+                actionText: 'View Badge'
+            });
+            
+            updateNotificationBadge();
+        }
     }
 }
 
@@ -9182,6 +9181,10 @@ function showStreakMilestone(days, badge) {
                 0% { transform: scale(0); }
                 50% { transform: scale(1.2); }
                 100% { transform: scale(1); }
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
             }
         </style>
         
@@ -9279,6 +9282,97 @@ function getNextStreakMilestone() {
         ...STREAK_CONFIG.BADGES[next]
     };
 }
+
+/**
+ * Reset streak data (for admin or debugging)
+ */
+function resetStreakData() {
+    if (!confirm("Reset streak data? This will erase your current streak.")) return;
+    
+    STREAK_STATE.current = 0;
+    STREAK_STATE.longest = 0;
+    STREAK_STATE.lastActiveDate = null;
+    STREAK_STATE.freezesRemaining = 2;
+    STREAK_STATE.freezesUsedThisMonth = 0;
+    STREAK_STATE.streakHistory = [];
+    STREAK_STATE.todayCompleted = false;
+    STREAK_STATE.isAtRisk = false;
+    
+    saveStreakLocal();
+    showToast('Streak data reset', 'info');
+    
+    try {
+        api('updateStreak', {
+            agentNo: STATE.agentNo,
+            streak: JSON.stringify(STREAK_STATE)
+        });
+    } catch (e) {
+        console.log("Could not sync reset to server");
+    }
+}
+
+/**
+ * Manually set streak (for admin or debugging)
+ */
+function setManualStreak(days) {
+    STREAK_STATE.current = days;
+    STREAK_STATE.lastActiveDate = new Date().toDateString();
+    STREAK_STATE.todayCompleted = true;
+    
+    if (STREAK_STATE.current > STREAK_STATE.longest) {
+        STREAK_STATE.longest = STREAK_STATE.current;
+    }
+    
+    saveStreakLocal();
+    showToast(`Streak manually set to ${days} days`, 'success');
+    
+    try {
+        api('updateStreak', {
+            agentNo: STATE.agentNo,
+            streak: JSON.stringify(STREAK_STATE)
+        });
+    } catch (e) {
+        console.log("Could not sync to server");
+    }
+}
+
+/**
+ * Check monthly freeze reset
+ */
+function checkMonthlyFreezeReset() {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    const lastResetKey = 'freeze_reset_' + STATE.agentNo;
+    const lastReset = localStorage.getItem(lastResetKey);
+    
+    if (lastReset) {
+        const [year, month] = lastReset.split('-').map(Number);
+        
+        if (year === currentYear && month === currentMonth) {
+            // Already reset this month
+            return;
+        }
+    }
+    
+    // Reset freezes for new month
+    STREAK_STATE.freezesUsedThisMonth = 0;
+    
+    // Add monthly free freeze
+    const maxFreezes = STREAK_CONFIG.FREEZE.maxFreezes || 2;
+    if (STREAK_STATE.freezesRemaining < maxFreezes) {
+        STREAK_STATE.freezesRemaining = Math.min(STREAK_STATE.freezesRemaining + 1, maxFreezes);
+        showToast(`🧊 Monthly Streak Freeze added! You now have ${STREAK_STATE.freezesRemaining} freezes.`, 'info');
+    }
+    
+    saveStreakLocal();
+    localStorage.setItem(lastResetKey, `${currentYear}-${currentMonth}`);
+}
+
+/**
+ * Render streak widget for home page
+ */
 
 // ==================== STREAK UI COMPONENT ====================
 
@@ -9888,6 +9982,43 @@ function showChatRules() {
     
     document.body.appendChild(popup);
 }
+// ==================== MISSION NOTIFICATION HELPER ====================
+
+// Function to reset mission notifications (can be called from console)
+function resetMissionNotifications() {
+    console.log('🔄 Resetting mission notifications...');
+    
+    if (STATE.lastChecked) {
+        STATE.lastChecked.missionCount = -1;
+        STATE.lastChecked.seenMissionIds = [];
+        saveNotificationState();
+        
+        // Force check
+        setTimeout(() => {
+            checkNotifications();
+            showToast('🔄 Mission notifications reset!', 'success');
+            
+            // Show notification dot
+            const missionDot = document.getElementById('dot-mission');
+            if (missionDot) missionDot.classList.add('active');
+        }, 500);
+    }
+}
+
+// Add to window for console access
+window.resetMissionNotifications = resetMissionNotifications;
+
+// Add to createTeamMission function
+const originalCreateTeamMission = createTeamMission;
+createTeamMission = async function() {
+    const result = await originalCreateTeamMission.apply(this, arguments);
+    
+    // After mission creation, force notification reset
+    console.log('🔔 Mission created, forcing notification reset...');
+    resetMissionNotifications();
+    
+    return result;
+};
 
 // ==================== RESULTS POPUP ====================
 function viewResults(week) {
@@ -9978,12 +10109,7 @@ window.renderHelperRoles = renderHelperRoles;
 window.shareStats = shareStats;
 window.copyShareText = copyShareText;
 window.clearSOTDLocalStorage = clearSOTDLocalStorage;
-
-// Pre-Save functions
-window.respondToPresave = respondToPresave;
-window.dismissPresavePopup = dismissPresavePopup;
-window.checkPresaveAnnouncement = checkPresaveAnnouncement;
-window.showPresavePopup = showPresavePopup;
+window.resetMissionNotifications = resetMissionNotifications;
 
 // Guide page functions
 window.renderGuidePage = renderGuidePage;
@@ -9999,24 +10125,26 @@ window.getTeamEligibilityStatus = getTeamEligibilityStatus;
 window.getWeekWinner = getWeekWinner;
 
 // ==================== ADD TO YOUR EXISTING WINDOW EXPORTS ====================
-
-// Streak functions
-window.initStreakTracker = initStreakTracker;
-window.recordStreakActivity = recordStreakActivity;
-window.useStreakFreeze = useStreakFreeze;
-window.buyStreakFreeze = buyStreakFreeze;
-window.showStreakFreezeInfo = showStreakFreezeInfo;
-window.renderStreakWidget = renderStreakWidget;
-
 // Activity functions
 window.initActivityFeed = initActivityFeed;
 window.fetchActivities = fetchActivities;
 window.broadcastActivity = broadcastActivity;
 window.renderActivityWidget = renderActivityWidget;
 
-// Combined init
-window.initStreakAndActivity = initStreakAndActivity;
-window.checkStreakOnStreamUpdate = checkStreakOnStreamUpdate;
-window.cleanupStreakAndActivity = cleanupStreakAndActivity;
+// ==================== WINDOW EXPORTS ====================
+window.initStreakTracker = initStreakTracker;
+window.checkAndRecordStreakActivity = checkAndRecordStreakActivity;
+window.recordStreakActivity = recordStreakActivity;
+window.useStreakFreeze = useStreakFreeze;
+window.buyStreakFreeze = buyStreakFreeze;
+window.getCurrentStreakBadge = getCurrentStreakBadge;
+window.getNextStreakMilestone = getNextStreakMilestone;
+window.resetStreakData = resetStreakData;
+window.setManualStreak = setManualStreak;
+window.checkMonthlyFreezeReset = checkMonthlyFreezeReset;
+window.renderStreakWidget = renderStreakWidget;
+window.STREAK_STATE = STREAK_STATE;
+
+console.log('🔥 Streak Tracker System loaded!');
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded with Voting System 🗳️💜');
