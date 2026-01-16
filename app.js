@@ -4454,6 +4454,9 @@ async function loadDashboard() {
         await loadPage(startPage === 'login' ? 'home' : startPage);
         
         await initStreakTracker();
+        setTimeout(() => {
+            checkForNewMissionsBackground();
+        }, 2000); 
         
         loadAllWeeksData();
         
@@ -7627,6 +7630,90 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
             ` : ''}
         </div>
     `;
+}
+async function checkForNewMissionsBackground() {
+    const team = STATE.data?.profile?.team;
+    if (!team) {
+        console.log('⚠️ Cannot check missions: No team assigned');
+        return;
+    }
+    
+    try {
+        const data = await api('getTeamSecretMissions', { 
+            team, 
+            agentNo: STATE.agentNo, 
+            week: STATE.week 
+        });
+        
+        const allMissions = [
+            ...(data.active || []),
+            ...(data.myAssigned || [])
+        ];
+        
+        // Get previously seen mission IDs
+        const seenIds = STATE.lastChecked?.seenMissionIds || [];
+        
+        // Find NEW missions (IDs we haven't seen before)
+        const newMissions = allMissions.filter(m => m.id && !seenIds.includes(m.id));
+        
+        console.log('🔒 Mission check:', {
+            total: allMissions.length,
+            seen: seenIds.length,
+            new: newMissions.length
+        });
+        
+        if (newMissions.length > 0) {
+            // ✅ Show notification dot
+            const dot = document.getElementById('dot-mission');
+            if (dot) {
+                dot.classList.add('active');
+                console.log('🔴 Mission notification dot activated');
+            }
+            
+            // ✅ Show toast notification
+            if (newMissions.length === 1) {
+                const mission = newMissions[0];
+                const missionType = CONFIG.MISSION_TYPES?.[mission.type] || { icon: '🔒', name: 'Secret Mission' };
+                showToast(`${missionType.icon} New Mission: ${mission.title || missionType.name}`, 'info');
+            } else {
+                showToast(`🔒 ${newMissions.length} new secret missions available!`, 'info');
+            }
+            
+            // ✅ Vibrate on mobile
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100]);
+            }
+            
+            // ✅ Add to notification center (if you have one)
+            if (STATE.notifications && Array.isArray(STATE.notifications)) {
+                newMissions.forEach(mission => {
+                    const missionType = CONFIG.MISSION_TYPES?.[mission.type] || { icon: '🔒' };
+                    STATE.notifications.unshift({
+                        id: 'mission_' + mission.id,
+                        type: 'secret_mission',
+                        icon: missionType.icon,
+                        title: 'New Secret Mission!',
+                        message: mission.title || 'A new mission is available',
+                        action: () => loadPage('secret-missions'),
+                        actionText: 'View Mission',
+                        timestamp: Date.now(),
+                        read: false
+                    });
+                });
+                
+                // Update badge count
+                if (typeof updateNotificationBadge === 'function') {
+                    updateNotificationBadge();
+                }
+            }
+        }
+        
+        // Update mission count in state
+        STATE.lastChecked.missionCount = allMissions.length;
+        
+    } catch (e) {
+        console.error('❌ Failed to check for new missions:', e);
+    }
 }
 
 function formatMissionDeadline(dateStr) {
