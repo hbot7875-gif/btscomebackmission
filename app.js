@@ -7420,7 +7420,13 @@ async function renderSecretMissions() {
     }
 }
 function renderSecretMissionCard(mission, team, isAssigned = false) {
-    if (!mission) return '';
+    if (!mission) {
+        console.warn('⚠️ renderSecretMissionCard called with null mission');
+        return '';
+    }
+    
+    // ✅ Better debugging
+    console.log('🎯 Rendering mission:', mission);
     
     const missionType = CONFIG.MISSION_TYPES?.[mission.type] || {
         name: 'Secret Mission',
@@ -7429,7 +7435,14 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
     };
     
     const teamColorVal = teamColor(team);
-    const xpReward = mission.xpReward || CONFIG.SECRET_MISSIONS.xpPerMission || 5;
+    const xpReward = mission.xpReward || CONFIG.SECRET_MISSIONS?.xpPerMission || 5;
+    
+    // ✅ Better data extraction with fallbacks
+    const title = mission.title || mission.name || missionType.name || 'Secret Mission';
+    const description = mission.description || mission.instructions || mission.details || missionType.description || 'No details available';
+    
+    // ✅ Check if we have meaningful content
+    const hasFullDetails = mission.title && (mission.description || mission.instructions);
     
     return `
         <div class="secret-mission-card ${isAssigned ? 'assigned' : ''}" style="
@@ -7455,7 +7468,7 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                 ">${missionType.icon}</div>
                 
                 <div style="flex: 1; min-width: 0;">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
                         <span style="
                             color: ${teamColorVal};
                             font-size: 10px;
@@ -7474,6 +7487,16 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                                 font-weight: 700;
                             ">ASSIGNED TO YOU</span>
                         ` : ''}
+                        
+                        ${!hasFullDetails ? `
+                            <span style="
+                                background: rgba(255, 68, 68, 0.2);
+                                color: #ff6b6b;
+                                font-size: 9px;
+                                padding: 2px 8px;
+                                border-radius: 10px;
+                            ">⚠️ Limited Info</span>
+                        ` : ''}
                     </div>
                     
                     <div style="
@@ -7482,13 +7505,27 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                         font-weight: 600;
                         margin-bottom: 6px;
                         line-height: 1.3;
-                    ">${sanitize(mission.title || 'Secret Mission')}</div>
+                    ">${sanitize(title)}</div>
                     
                     <div style="
-                        color: #888;
-                        font-size: 12px;
-                        line-height: 1.5;
-                    ">${sanitize(mission.description || mission.instructions || missionType.description)}</div>
+                        color: #aaa;
+                        font-size: 13px;
+                        line-height: 1.6;
+                        white-space: pre-wrap;
+                    ">${sanitize(description)}</div>
+                    
+                    ${mission.instructions && mission.instructions !== description ? `
+                        <div style="
+                            margin-top: 10px;
+                            padding: 10px;
+                            background: rgba(123, 44, 191, 0.1);
+                            border-radius: 8px;
+                            border-left: 3px solid ${teamColorVal};
+                        ">
+                            <div style="color: #888; font-size: 10px; margin-bottom: 4px; text-transform: uppercase;">Instructions</div>
+                            <div style="color: #ccc; font-size: 12px; line-height: 1.5;">${sanitize(mission.instructions)}</div>
+                        </div>
+                    ` : ''}
                 </div>
                 
                 <div style="
@@ -7512,7 +7549,7 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                     display: flex;
                     align-items: center;
                     gap: 6px;
-                    color: #666;
+                    color: #888;
                     font-size: 11px;
                 ">
                     <span>⏰</span>
@@ -7524,15 +7561,22 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                 <div style="margin-top: 12px;">
                     <button onclick="markMissionComplete('${mission.id}')" style="
                         width: 100%;
-                        padding: 10px;
+                        padding: 12px;
                         background: linear-gradient(135deg, #00ff88, #00cc6a);
                         border: none;
-                        border-radius: 8px;
+                        border-radius: 10px;
                         color: #000;
-                        font-size: 13px;
+                        font-size: 14px;
                         font-weight: 700;
                         cursor: pointer;
-                    ">✅ Mark as Complete</button>
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                    ">
+                        <span>✅</span>
+                        <span>Mark as Complete</span>
+                    </button>
                 </div>
             ` : ''}
         </div>
