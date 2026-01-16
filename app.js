@@ -132,8 +132,8 @@ const STREAK_CONFIG = {
     
     // Badges for each milestone
     BADGES: {
-        3:   { name: 'Beginner',     icon: '🌱', color: '#00ff88' },
-        7:   { name: 'Fire Starter', icon: '🔥', color: '#ff6b35' },
+        3:   { name: 'Begin',        icon: '🌱', color: '#00ff88' },
+        7:   { name: 'Fire ',        icon: '🔥', color: '#ff6b35' },
         14:  { name: 'Not Today',    icon: '⚡', color: '#ffd700' },
         21:  { name: 'Runner',       icon: '💪', color: '#ff4081' },
         30:  { name: 'Mic Drop',     icon: '👑', color: '#9c27b0' },
