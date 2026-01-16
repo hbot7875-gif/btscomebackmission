@@ -7425,9 +7425,6 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
         return '';
     }
     
-    // ✅ Better debugging
-    console.log('🎯 Rendering mission:', mission);
-    
     const missionType = CONFIG.MISSION_TYPES?.[mission.type] || {
         name: 'Secret Mission',
         icon: '🕵️',
@@ -7437,12 +7434,18 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
     const teamColorVal = teamColor(team);
     const xpReward = mission.xpReward || CONFIG.SECRET_MISSIONS?.xpPerMission || 5;
     
-    // ✅ Better data extraction with fallbacks
-    const title = mission.title || mission.name || missionType.name || 'Secret Mission';
-    const description = mission.description || mission.instructions || mission.details || missionType.description || 'No details available';
+    // ✅ FIX: Use "briefing" field from backend
+    const title = mission.title || missionType.name || 'Secret Mission';
+    const description = mission.briefing ||          // ✅ Backend field name
+                        mission.description ||        // Fallback
+                        mission.instructions || 
+                        missionType.description || 
+                        'No details available';
     
-    // ✅ Check if we have meaningful content
-    const hasFullDetails = mission.title && (mission.description || mission.instructions);
+    // ✅ Additional mission info for display
+    const hasGoal = mission.goalType && mission.goalTarget;
+    const hasTrack = mission.targetTrack;
+    const hasClue = mission.encodedClue;
     
     return `
         <div class="secret-mission-card ${isAssigned ? 'assigned' : ''}" style="
@@ -7487,26 +7490,18 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                                 font-weight: 700;
                             ">ASSIGNED TO YOU</span>
                         ` : ''}
-                        
-                        ${!hasFullDetails ? `
-                            <span style="
-                                background: rgba(255, 68, 68, 0.2);
-                                color: #ff6b6b;
-                                font-size: 9px;
-                                padding: 2px 8px;
-                                border-radius: 10px;
-                            ">⚠️ Limited Info</span>
-                        ` : ''}
                     </div>
                     
+                    <!-- ✅ Title -->
                     <div style="
                         color: #fff;
                         font-size: 15px;
                         font-weight: 600;
-                        margin-bottom: 6px;
+                        margin-bottom: 8px;
                         line-height: 1.3;
                     ">${sanitize(title)}</div>
                     
+                    <!-- ✅ Briefing/Description -->
                     <div style="
                         color: #aaa;
                         font-size: 13px;
@@ -7514,20 +7509,69 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                         white-space: pre-wrap;
                     ">${sanitize(description)}</div>
                     
-                    ${mission.instructions && mission.instructions !== description ? `
+                    <!-- ✅ NEW: Goal Progress (if applicable) -->
+                    ${hasGoal ? `
                         <div style="
-                            margin-top: 10px;
+                            margin-top: 12px;
                             padding: 10px;
                             background: rgba(123, 44, 191, 0.1);
                             border-radius: 8px;
-                            border-left: 3px solid ${teamColorVal};
                         ">
-                            <div style="color: #888; font-size: 10px; margin-bottom: 4px; text-transform: uppercase;">Instructions</div>
-                            <div style="color: #ccc; font-size: 12px; line-height: 1.5;">${sanitize(mission.instructions)}</div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="color: #888; font-size: 11px;">
+                                    ${mission.goalType === 'streams' ? '🎵 Stream Goal' : '🎯 Goal'}
+                                </span>
+                                <span style="color: #7b2cbf; font-size: 11px; font-weight: 600;">
+                                    ${mission.progress?.[team] || 0} / ${mission.goalTarget}
+                                </span>
+                            </div>
+                            <div style="
+                                height: 6px;
+                                background: rgba(255,255,255,0.1);
+                                border-radius: 3px;
+                                overflow: hidden;
+                            ">
+                                <div style="
+                                    height: 100%;
+                                    width: ${Math.min(100, ((mission.progress?.[team] || 0) / mission.goalTarget) * 100)}%;
+                                    background: linear-gradient(90deg, #7b2cbf, #00ff88);
+                                    border-radius: 3px;
+                                "></div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- ✅ NEW: Target Track (if applicable) -->
+                    ${hasTrack ? `
+                        <div style="
+                            margin-top: 10px;
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                            color: #888;
+                            font-size: 11px;
+                        ">
+                            <span>🎵</span>
+                            <span>Target: <strong style="color: #fff;">${sanitize(mission.targetTrack)}</strong></span>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- ✅ NEW: Encoded Clue (if applicable) -->
+                    ${hasClue ? `
+                        <div style="
+                            margin-top: 10px;
+                            padding: 10px;
+                            background: rgba(255, 215, 0, 0.1);
+                            border: 1px dashed rgba(255, 215, 0, 0.3);
+                            border-radius: 8px;
+                        ">
+                            <div style="color: #ffd700; font-size: 10px; margin-bottom: 4px;">🔐 ENCODED CLUE</div>
+                            <div style="color: #fff; font-size: 12px; font-family: monospace;">${sanitize(mission.encodedClue)}</div>
                         </div>
                     ` : ''}
                 </div>
                 
+                <!-- XP Reward Badge -->
                 <div style="
                     background: rgba(255, 215, 0, 0.15);
                     border: 1px solid rgba(255, 215, 0, 0.3);
@@ -7541,7 +7585,8 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                 </div>
             </div>
             
-            ${mission.deadline || mission.expiresAt ? `
+            <!-- Deadline -->
+            ${mission.deadline ? `
                 <div style="
                     margin-top: 12px;
                     padding-top: 10px;
@@ -7553,10 +7598,11 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                     font-size: 11px;
                 ">
                     <span>⏰</span>
-                    <span>Deadline: ${formatMissionDeadline(mission.deadline || mission.expiresAt)}</span>
+                    <span>Deadline: ${formatMissionDeadline(mission.deadline)}</span>
                 </div>
             ` : ''}
             
+            <!-- Complete Button (if assigned) -->
             ${isAssigned && mission.id ? `
                 <div style="margin-top: 12px;">
                     <button onclick="markMissionComplete('${mission.id}')" style="
