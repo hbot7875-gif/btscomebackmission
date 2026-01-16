@@ -652,10 +652,6 @@ function preloadDashboardData() {
         api('getWeeklySummary', { week: STATE.week }).catch(() => {});
     }
 }
-// ==================== NOTIFICATION & VOTING SYSTEM (COMBINED V4) ====================
-
-// 🔴 INCREMENT THESE when making breaking changes
-const NOTIFICATION_SYSTEM_VERSION = 4;
 
 // ==================== NOTIFICATION STATE MANAGEMENT ====================
 
@@ -1203,44 +1199,29 @@ async function checkNewMissions() {
         const seenIds = STATE.lastChecked.seenMissionIds || [];
         const lastCount = STATE.lastChecked.missionCount ?? -1;
         
-        // First-time initialization - don't mark as seen yet
+        // First-time initialization
         if (lastCount === -1) {
             console.log('🔄 First mission check - initializing tracking');
-            STATE.lastChecked.missionCount = 0; // Start at 0 to detect existing missions
-            STATE.lastChecked.seenMissionIds = []; // Don't mark any as seen yet
+            STATE.lastChecked.missionCount = activeMissions.length;
+            STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
             saveNotificationState();
-            
-            // If there are active missions, create notification for the first one
-            if (activeMissions.length > 0) {
-                console.log('🔔 Found existing missions on first check:', activeMissions.length);
-                
-                // Mark all as seen for next time
-                STATE.lastChecked.missionCount = activeMissions.length;
-                STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
-                saveNotificationState();
-                
-                // Return notification for the first mission
-                return {
-                    type: 'mission',
-                    icon: '🕵️',
-                    title: 'Team Mission Available!',
-                    message: activeMissions[0].title || 'Your team has a secret mission!',
-                    action: () => loadPage('secret-missions'),
-                    actionText: 'View Missions',
-                    week: STATE.week,
-                    id: activeMissions[0].id
-                };
-            }
-            
             return null;
         }
         
+        // Check for assigned missions first (higher priority)
         const unseenAssigned = myAssigned.filter(m => 
             m.id && !seenIds.includes(m.id)
         );
         
         if (unseenAssigned.length > 0) {
             const mission = unseenAssigned[0];
+            
+            // ✅ ADD THIS: Activate notification dot
+            const dot = document.getElementById('dot-mission');
+            if (dot) {
+                dot.classList.add('active');
+                console.log('🔴 Mission dot activated (assigned mission)');
+            }
             
             STATE.lastChecked.seenMissionIds = [
                 ...seenIds,
@@ -1252,7 +1233,7 @@ async function checkNewMissions() {
                 type: 'mission',
                 icon: '🎯',
                 title: 'Mission Assigned to YOU!',
-                message: mission.title || 'New classified mission',
+                message: mission.title || mission.briefing || 'New classified mission',
                 action: () => loadPage('secret-missions'),
                 actionText: 'View Mission',
                 priority: 'high',
@@ -1261,12 +1242,20 @@ async function checkNewMissions() {
             };
         }
         
+        // Check for team missions
         const unseenMissions = activeMissions.filter(m => 
             m.id && !seenIds.includes(m.id)
         );
         
         if (unseenMissions.length > 0) {
             console.log('🔔 Found new unseen missions:', unseenMissions.length);
+            
+            // ✅ ADD THIS: Activate notification dot
+            const dot = document.getElementById('dot-mission');
+            if (dot) {
+                dot.classList.add('active');
+                console.log('🔴 Mission dot activated (team mission)');
+            }
             
             STATE.lastChecked.missionCount = activeMissions.length;
             STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
@@ -1276,7 +1265,7 @@ async function checkNewMissions() {
                 type: 'mission',
                 icon: '🕵️',
                 title: 'New Team Mission!',
-                message: 'Your team has a new secret mission!',
+                message: unseenMissions[0].title || unseenMissions[0].briefing || 'Your team has a new secret mission!',
                 action: () => loadPage('secret-missions'),
                 actionText: 'View Missions',
                 week: STATE.week,
@@ -1722,6 +1711,84 @@ function clearAllNotifications() {
     updateNotificationBadge();
     closeNotificationCenter();
     showToast('All notifications cleared', 'success');
+}
+// ==================== BACKGROUND NOTIFICATION CHECKS ====================
+
+/**
+ * Set up automatic notification checks
+ * Call this once during app initialization
+ */
+function setupNotificationChecks() {
+    console.log('🔔 Setting up notification checks...');
+    
+    // ✅ Check every 3 minutes
+    setInterval(() => {
+        console.log('⏰ Periodic notification check...');
+        checkNotifications();
+    }, 3 * 60 * 1000); // 3 minutes
+    
+    // ✅ Check when user returns to tab
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            console.log('👁️ Tab visible - checking notifications');
+            // Small delay to avoid rapid checks
+            setTimeout(() => {
+                checkNotifications();
+            }, 1000);
+        }
+    });
+    
+    // ✅ Check when back online
+    window.addEventListener('online', () => {
+        console.log('🌐 Back online - checking notifications');
+        setTimeout(() => {
+            checkNotifications();
+        }, 2000);
+    });
+    
+    // ✅ Check on page focus (for PWA)
+    window.addEventListener('focus', () => {
+        // Debounce - don't check if we just checked
+        if (!STATE._lastNotifCheck || Date.now() - STATE._lastNotifCheck > 60000) {
+            console.log('🎯 Window focused - checking notifications');
+            checkNotifications();
+            STATE._lastNotifCheck = Date.now();
+        }
+    });
+    
+    console.log('✅ Notification checks initialized');
+}
+
+/**
+ * Quick mission check (lighter than full checkNotifications)
+ * Use this for more frequent checks
+ */
+async function quickMissionCheck() {
+    const team = STATE.data?.profile?.team;
+    if (!team) return;
+    
+    try {
+        const data = await api('getTeamSecretMissions', { 
+            team, 
+            agentNo: STATE.agentNo, 
+            week: STATE.week 
+        });
+        
+        const allMissions = [...(data.active || []), ...(data.myAssigned || [])];
+        const seenIds = STATE.lastChecked?.seenMissionIds || [];
+        const newMissions = allMissions.filter(m => m.id && !seenIds.includes(m.id));
+        
+        if (newMissions.length > 0) {
+            // Activate dot
+            const dot = document.getElementById('dot-mission');
+            if (dot) dot.classList.add('active');
+            
+            // Show toast
+            showToast(`🔒 ${newMissions.length} new mission${newMissions.length > 1 ? 's' : ''}!`, 'info');
+        }
+    } catch (e) {
+        // Silent fail for quick check
+    }
 }
 // ==================== FIXED BADGE FUNCTIONS ====================
 
@@ -4449,6 +4516,7 @@ async function loadDashboard() {
         
         setupDashboard();
         loadNotificationState();
+        setupNotificationChecks();
         
         const startPage = initRouter();
         await loadPage(startPage === 'login' ? 'home' : startPage);
