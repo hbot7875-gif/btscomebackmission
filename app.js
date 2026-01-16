@@ -7419,7 +7419,170 @@ async function renderSecretMissions() {
         container.innerHTML = renderGuide('secret-missions') + '<div class="card"><div class="card-body error-state"><p>Failed to load secret missions.</p><button onclick="renderSecretMissions()" class="btn-secondary">Retry</button></div></div>';
     }
 }
+function renderSecretMissionCard(mission, team, isAssigned = false) {
+    if (!mission) return '';
+    
+    const missionType = CONFIG.MISSION_TYPES?.[mission.type] || {
+        name: 'Secret Mission',
+        icon: '🕵️',
+        description: 'Complete this mission!'
+    };
+    
+    const teamColorVal = teamColor(team);
+    const xpReward = mission.xpReward || CONFIG.SECRET_MISSIONS.xpPerMission || 5;
+    
+    return `
+        <div class="secret-mission-card ${isAssigned ? 'assigned' : ''}" style="
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+            border: 1px solid ${isAssigned ? '#ffa500' : 'rgba(156, 39, 176, 0.3)'};
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            ${isAssigned ? 'box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);' : ''}
+        ">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <div style="
+                    width: 42px;
+                    height: 42px;
+                    border-radius: 10px;
+                    background: linear-gradient(135deg, ${teamColorVal}33, ${teamColorVal}11);
+                    border: 1px solid ${teamColorVal}55;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 20px;
+                    flex-shrink: 0;
+                ">${missionType.icon}</div>
+                
+                <div style="flex: 1; min-width: 0;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <span style="
+                            color: ${teamColorVal};
+                            font-size: 10px;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                            font-weight: 600;
+                        ">${missionType.name}</span>
+                        
+                        ${isAssigned ? `
+                            <span style="
+                                background: rgba(255, 165, 0, 0.2);
+                                color: #ffa500;
+                                font-size: 9px;
+                                padding: 2px 8px;
+                                border-radius: 10px;
+                                font-weight: 700;
+                            ">ASSIGNED TO YOU</span>
+                        ` : ''}
+                    </div>
+                    
+                    <div style="
+                        color: #fff;
+                        font-size: 15px;
+                        font-weight: 600;
+                        margin-bottom: 6px;
+                        line-height: 1.3;
+                    ">${sanitize(mission.title || 'Secret Mission')}</div>
+                    
+                    <div style="
+                        color: #888;
+                        font-size: 12px;
+                        line-height: 1.5;
+                    ">${sanitize(mission.description || mission.instructions || missionType.description)}</div>
+                </div>
+                
+                <div style="
+                    background: rgba(255, 215, 0, 0.15);
+                    border: 1px solid rgba(255, 215, 0, 0.3);
+                    border-radius: 10px;
+                    padding: 8px 12px;
+                    text-align: center;
+                    flex-shrink: 0;
+                ">
+                    <div style="color: #ffd700; font-size: 16px; font-weight: 800;">+${xpReward}</div>
+                    <div style="color: #888; font-size: 9px; text-transform: uppercase;">XP</div>
+                </div>
+            </div>
+            
+            ${mission.deadline || mission.expiresAt ? `
+                <div style="
+                    margin-top: 12px;
+                    padding-top: 10px;
+                    border-top: 1px solid rgba(255,255,255,0.05);
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: #666;
+                    font-size: 11px;
+                ">
+                    <span>⏰</span>
+                    <span>Deadline: ${formatMissionDeadline(mission.deadline || mission.expiresAt)}</span>
+                </div>
+            ` : ''}
+            
+            ${isAssigned && mission.id ? `
+                <div style="margin-top: 12px;">
+                    <button onclick="markMissionComplete('${mission.id}')" style="
+                        width: 100%;
+                        padding: 10px;
+                        background: linear-gradient(135deg, #00ff88, #00cc6a);
+                        border: none;
+                        border-radius: 8px;
+                        color: #000;
+                        font-size: 13px;
+                        font-weight: 700;
+                        cursor: pointer;
+                    ">✅ Mark as Complete</button>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
 
+function formatMissionDeadline(dateStr) {
+    if (!dateStr) return 'No deadline';
+    try {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffHours = Math.floor((date - now) / (1000 * 60 * 60));
+        
+        if (diffHours < 0) return 'Expired';
+        if (diffHours < 1) return 'Less than 1 hour!';
+        if (diffHours < 24) return `${diffHours} hours left`;
+        
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (e) {
+        return dateStr;
+    }
+}
+
+// Optional: Mark mission complete function
+async function markMissionComplete(missionId) {
+    if (!missionId) return;
+    if (!confirm('Mark this mission as complete?')) return;
+    
+    try {
+        const result = await api('completeMission', {
+            agentNo: STATE.agentNo,
+            missionId: missionId,
+            week: STATE.week
+        });
+        
+        if (result.success) {
+            showToast('✅ Mission completed! XP awarded.', 'success');
+            renderSecretMissions(); // Refresh
+        } else {
+            showToast(result.error || 'Failed to complete mission', 'error');
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
 // ==================== SONG OF THE DAY (SOTD) ====================
 async function renderSOTD() {
     console.log('🎬 renderSOTD called');
