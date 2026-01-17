@@ -11665,31 +11665,34 @@ async function initActivityFeed() {
 
 async function fetchActivities() {
     if (ACTIVITY_STATE.isLoading) return;
-    
     ACTIVITY_STATE.isLoading = true;
     
     try {
+        // Change: Only send 'since' if we already have some activities.
+        // If it's the first load, we want the last 20-50 items regardless of time.
+        const sinceVal = ACTIVITY_STATE.activities.length > 0 ? ACTIVITY_STATE.lastFetch : null;
+
         const data = await api('getActivityFeed', {
             limit: ACTIVITY_CONFIG.MAX_ACTIVITIES,
-            since: ACTIVITY_STATE.lastFetch
+            since: sinceVal 
         });
         
         if (data.success && data.activities) {
+            // Filter out any duplicates
             const newActivities = data.activities.filter(a => 
                 !ACTIVITY_STATE.activities.some(existing => existing.id === a.id)
             );
             
             if (newActivities.length > 0) {
+                // Add new ones to the top
                 ACTIVITY_STATE.activities = [...newActivities, ...ACTIVITY_STATE.activities]
                     .slice(0, ACTIVITY_CONFIG.MAX_ACTIVITIES);
                 
                 updateActivityFeedUI();
-                showNewActivityPopups(newActivities);
             }
         }
         
         ACTIVITY_STATE.lastFetch = Date.now();
-        
     } catch (e) {
         console.log('Could not fetch activities:', e);
     } finally {
