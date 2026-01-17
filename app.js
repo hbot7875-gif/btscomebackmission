@@ -163,7 +163,10 @@ const STREAK_STATE = {
     freezesUsedThisMonth: 0,
     streakHistory: [],
     isAtRisk: false,
-    todayCompleted: false
+    todayCompleted: false,
+    // ✅ NEW FIELDS FOR REAL-TIME TRACKING
+    todayStreams: 0, 
+    dailyTarget: 10
 };
 
 // ==================== ACTIVITY CONFIG ====================
@@ -10907,13 +10910,12 @@ function scrollToGuideSection(sectionId) {
         window.scrollTo({ top: pos, behavior: 'smooth' });
     }, 150);
 }
-// ==================== STREAK TRACKER SYSTEM ====================
-
 /**
- * Initialize streak data from server/localStorage
+ * Initialize streak data using the new Real-Time Backend
  */
 async function initStreakTracker() {
     try {
+        // 1. Get basic streak history/info
         const data = await api('getStreakData', { agentNo: STATE.agentNo });
         
         if (data.success) {
@@ -10921,29 +10923,38 @@ async function initStreakTracker() {
             STREAK_STATE.longest = data.streak?.longest || 0;
             STREAK_STATE.lastActiveDate = data.streak?.lastActiveDate || null;
             STREAK_STATE.freezesRemaining = data.streak?.freezesRemaining ?? 2;
-            STREAK_STATE.freezesUsedThisMonth = data.streak?.freezesUsedThisMonth || 0;
             STREAK_STATE.streakHistory = data.streak?.history || [];
             STREAK_STATE.todayCompleted = data.streak?.todayCompleted || false;
         }
+
+        // 2. CALL THE NEW REAL-TIME CHECK
+        console.log('🔥 Checking real-time streak...');
+        const realTime = await api('checkStreak', { agentNo: STATE.agentNo });
         
-        // Check for streak activity immediately
-        setTimeout(() => {
-            checkAndRecordStreakActivity();
-        }, 3000);
+        if (realTime.success) {
+            STREAK_STATE.todayStreams = realTime.streams || 0;
+            STREAK_STATE.dailyTarget = realTime.target || 10;
+            STREAK_STATE.current = realTime.streak; // Sync with backend calculation
+            
+            if (realTime.status === 'completed') {
+                STREAK_STATE.todayCompleted = true;
+            }
+            
+            console.log(`🔥 Status: ${realTime.streams}/${realTime.target}`);
+        }
         
+        // 3. Update UI
         checkStreakAtRisk();
         saveStreakLocal();
         
-        console.log('🔥 Streak initialized:', STREAK_STATE.current, 'days');
+        // Re-render the widget if it exists on screen
+        const widget = document.querySelector('.streak-widget');
+        if (widget) {
+            widget.outerHTML = renderStreakWidget();
+        }
         
     } catch (e) {
-        console.log('Loading streak from localStorage');
-        loadStreakLocal();
-        
-        // Still check for streak activity
-        setTimeout(() => {
-            checkAndRecordStreakActivity();
-        }, 3000);
+        console.log('Streak init error:', e);
     }
 }
 
@@ -11009,137 +11020,6 @@ function showStreakAtRiskNotification() {
     }
     
     localStorage.setItem(shownKey, 'true');
-}
-
-/**
- * Check and record streak activity automatically
- */
-function checkAndRecordStreakActivity() {
-    const todayStreams = STATE.data?.stats?.todayStreams || 0;
-    const yesterdayStreams = STATE.data?.stats?.yesterdayStreams || 0;
-    
-    console.log('🔥 Checking streak activity...');
-    console.log('Today streams:', todayStreams);
-    console.log('Yesterday streams:', yesterdayStreams);
-    console.log('Activity threshold:', STREAK_CONFIG.ACTIVITY_THRESHOLD);
-    
-    const today = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
-    
-    // Already completed today
-    if (STREAK_STATE.lastActiveDate === today) {
-        console.log('✅ Already completed today');
-        STREAK_STATE.todayCompleted = true;
-        return;
-    }
-    
-    // Check if we have enough streams today
-    if (todayStreams >= STREAK_CONFIG.ACTIVITY_THRESHOLD) {
-        console.log('✅ Recording today\'s activity');
-        recordStreakActivity(todayStreams);
-        return;
-    }
-    
-    // Check if we need to record yesterday's activity
-    if (STREAK_STATE.lastActiveDate !== yesterday && yesterdayStreams >= STREAK_CONFIG.ACTIVITY_THRESHOLD) {
-        console.log('✅ Recording yesterday\'s activity');
-        
-        // Temporarily set lastActiveDate to day before yesterday
-        const dayBeforeYesterday = new Date(Date.now() - 2 * 86400000).toDateString();
-        const originalDate = STREAK_STATE.lastActiveDate;
-        
-        // Only if we're not continuing from day before yesterday
-        if (originalDate !== dayBeforeYesterday) {
-            STREAK_STATE.lastActiveDate = dayBeforeYesterday;
-        }
-        
-        recordStreakActivity(yesterdayStreams);
-    }
-}
-
-async function recordStreakActivity(streamsToday = 0) {
-    const today = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
-    
-    // Already completed today
-    if (STREAK_STATE.lastActiveDate === today) {
-        STREAK_STATE.todayCompleted = true;
-        return;
-    }
-    
-    // Check if enough activity
-    if (streamsToday < STREAK_CONFIG.ACTIVITY_THRESHOLD) {
-        return;
-    }
-    
-    // Continuing streak from yesterday
-    if (STREAK_STATE.lastActiveDate === yesterday) {
-        STREAK_STATE.current++;
-        showToast(`🔥 Streak continued! Now at ${STREAK_STATE.current} days`, 'success');
-    } 
-    // Starting new or missed days
-    else if (STREAK_STATE.lastActiveDate !== today) {
-        // Calculate days missed
-        let daysMissed = 1;
-        if (STREAK_STATE.lastActiveDate) {
-            const lastActive = new Date(STREAK_STATE.lastActiveDate);
-            const currentDate = new Date();
-            daysMissed = Math.floor((currentDate - lastActive) / (1000 * 60 * 60 * 24));
-        }
-        
-        // Only one day missed - can use freeze
-        if (daysMissed === 1 && STREAK_STATE.freezesRemaining > 0 && STREAK_STATE.current > 0) {
-            // Ask user if they want to use a freeze
-            if (confirm(`You missed a day! Use a streak freeze to protect your ${STREAK_STATE.current}-day streak?`)) {
-                STREAK_STATE.freezesRemaining--;
-                STREAK_STATE.freezesUsedThisMonth++;
-                STREAK_STATE.current++; // Continue streak
-                showToast(`🧊 Streak Freeze used! ${STREAK_STATE.freezesRemaining} left`, 'info');
-            } else {
-                STREAK_STATE.current = 1;
-                showToast(`Streak reset. Starting fresh!`, 'info');
-            }
-        } 
-        // Multiple days missed or no freezes - reset streak
-        else {
-            if (STREAK_STATE.current > 0) {
-                showToast(`Streak reset. Starting fresh!`, 'info');
-            }
-            STREAK_STATE.current = 1;
-        }
-    }
-    
-    // Update streak data
-    if (STREAK_STATE.current > STREAK_STATE.longest) {
-        STREAK_STATE.longest = STREAK_STATE.current;
-        checkStreakMilestone(STREAK_STATE.current);
-    }
-    
-    STREAK_STATE.lastActiveDate = today;
-    STREAK_STATE.todayCompleted = true;
-    STREAK_STATE.isAtRisk = false;
-    
-    // Add to history
-    STREAK_STATE.streakHistory.unshift({
-        date: today,
-        streams: streamsToday,
-        streak: STREAK_STATE.current
-    });
-    
-    if (STREAK_STATE.streakHistory.length > 30) {
-        STREAK_STATE.streakHistory = STREAK_STATE.streakHistory.slice(0, 30);
-    }
-    
-    saveStreakLocal();
-    
-    try {
-        await api('updateStreak', {
-            agentNo: STATE.agentNo,
-            streak: JSON.stringify(STREAK_STATE)
-        });
-    } catch (e) {
-        console.log('Could not sync streak to server');
-    }
 }
 
 function checkStreakMilestone(streak) {
@@ -11441,7 +11321,12 @@ function checkMonthlyFreezeReset() {
 function renderStreakWidget() {
     const currentBadge = getCurrentStreakBadge();
     const nextMilestone = getNextStreakMilestone();
-    const progress = nextMilestone 
+    
+    // Calculate progress for the daily bar (10 streams)
+    const dailyPct = Math.min(100, (STREAK_STATE.todayStreams / STREAK_STATE.dailyTarget) * 100);
+    
+    // Milestone progress
+    const milestonePct = nextMilestone 
         ? ((STREAK_STATE.current - (currentBadge?.milestone || 0)) / (nextMilestone.milestone - (currentBadge?.milestone || 0))) * 100
         : 100;
     
@@ -11456,33 +11341,8 @@ function renderStreakWidget() {
             overflow: hidden;
             ${STREAK_STATE.isAtRisk ? 'animation: riskPulse 2s ease-in-out infinite;' : ''}
         ">
-            <style>
-                @keyframes riskPulse {
-                    0%, 100% { box-shadow: 0 0 0 rgba(255,68,68,0); }
-                    50% { box-shadow: 0 0 20px rgba(255,68,68,0.3); }
-                }
-                @keyframes fireFlicker {
-                    0% { transform: scale(1) rotate(-5deg); }
-                    100% { transform: scale(1.1) rotate(5deg); }
-                }
-            </style>
-            
             <!-- Freeze Badge -->
-            <div onclick="showStreakFreezeInfo()" style="
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                padding: 4px 8px;
-                background: rgba(0,191,255,0.15);
-                border: 1px solid rgba(0,191,255,0.3);
-                border-radius: 10px;
-                font-size: 10px;
-                color: #00bfff;
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                cursor: pointer;
-            ">
+            <div onclick="showStreakFreezeInfo()" style="position: absolute; top: 10px; right: 10px; padding: 4px 8px; background: rgba(0,191,255,0.15); border: 1px solid rgba(0,191,255,0.3); border-radius: 10px; font-size: 10px; color: #00bfff; display: flex; align-items: center; gap: 4px; cursor: pointer;">
                 🧊 ${STREAK_STATE.freezesRemaining}
             </div>
             
@@ -11497,58 +11357,38 @@ function renderStreakWidget() {
                     </div>
                     <div style="color: #888; font-size: 12px; margin-top: 4px;">Day Streak</div>
                 </div>
-                <div style="
-                    padding: 6px 12px;
-                    border-radius: 20px;
-                    font-size: 11px;
-                    font-weight: 600;
-                    background: ${STREAK_STATE.todayCompleted ? 'rgba(0,255,136,0.15)' : STREAK_STATE.isAtRisk ? 'rgba(255,68,68,0.15)' : 'rgba(255,165,0,0.15)'};
-                    color: ${STREAK_STATE.todayCompleted ? '#00ff88' : STREAK_STATE.isAtRisk ? '#ff6b6b' : '#ffa500'};
-                ">
-                    ${STREAK_STATE.todayCompleted ? '✅ Done Today' : STREAK_STATE.isAtRisk ? '⚠️ At Risk!' : '⏳ Stream Today'}
+            </div>
+
+            <!-- ✅ NEW: TODAY'S PROGRESS BAR -->
+            <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; margin-bottom: 15px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px;">
+                    <span style="color:#aaa;">Today's Activity</span>
+                    <span style="color:${STREAK_STATE.todayCompleted ? '#00ff88' : '#fff'}; font-weight:bold;">
+                        ${STREAK_STATE.todayStreams} / ${STREAK_STATE.dailyTarget} Streams
+                    </span>
+                </div>
+                <div style="height: 6px; background: rgba(0,0,0,0.3); border-radius: 3px; overflow: hidden;">
+                    <div style="height: 100%; width: ${dailyPct}%; background: ${STREAK_STATE.todayCompleted ? '#00ff88' : '#ff6b35'}; transition: width 0.5s;"></div>
+                </div>
+                <div style="font-size: 10px; color: #666; margin-top: 5px; text-align: right;">
+                    ${STREAK_STATE.todayCompleted ? 'Daily Goal Complete! 🎉' : `${STREAK_STATE.dailyTarget - STREAK_STATE.todayStreams} more to save streak`}
                 </div>
             </div>
-            
-            <!-- Progress to Next Milestone -->
+
+            <!-- Milestone Progress -->
             ${nextMilestone ? `
-                <div style="margin-top: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaa;">
-                            <span style="font-size: 16px;">${nextMilestone.icon}</span>
-                            <span>${nextMilestone.name}</span>
+                <div style="margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa;">
+                            <span>${nextMilestone.icon} Next: ${nextMilestone.name}</span>
                         </div>
-                        <div style="color: #ffd700; font-weight: 600; font-size: 12px;">${nextMilestone.daysLeft} days to go</div>
+                        <div style="color: #ffd700; font-weight: 600; font-size: 11px;">${nextMilestone.daysLeft} days left</div>
                     </div>
-                    <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
-                        <div style="height: 100%; width: ${progress}%; background: linear-gradient(90deg, #ff6b35, #ffd700); border-radius: 4px; transition: width 0.5s ease;"></div>
+                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                        <div style="height: 100%; width: ${milestonePct}%; background: linear-gradient(90deg, #ff6b35, #ffd700); border-radius: 2px;"></div>
                     </div>
                 </div>
-            ` : `
-                <div style="text-align:center;padding:10px;background:rgba(123,44,191,0.1);border-radius:10px;margin-top:10px;">
-                    <span style="color:#7b2cbf;">👑 Maximum streak badge achieved!</span>
-                </div>
-            `}
-            
-            <!-- Stats Row -->
-            <div style="display: flex; gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-size: 18px; font-weight: bold; color: #fff;">${STREAK_STATE.longest}</div>
-                    <div style="font-size: 10px; color: #666; margin-top: 2px;">Longest</div>
-                </div>
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-size: 18px; font-weight: bold; color: #fff;">${currentBadge ? currentBadge.icon : '🔒'}</div>
-                    <div style="font-size: 10px; color: #666; margin-top: 2px;">Badge</div>
-                </div>
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-size: 18px; font-weight: bold; color: #fff;">${STREAK_STATE.streakHistory.filter(h => h.streak > 0).length}</div>
-                    <div style="font-size: 10px; color: #666; margin-top: 2px;">Active Days</div>
-                </div>
-            </div>
-            
-            <!-- Last 14 Days Visualization -->
-            <div style="display: flex; gap: 4px; margin-top: 15px; justify-content: center;" title="Last 14 days">
-                ${renderStreakHistory(14)}
-            </div>
+            ` : ''}
         </div>
     `;
 }
