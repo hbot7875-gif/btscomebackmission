@@ -671,13 +671,15 @@ function initNotificationState() {
         seenPlaylistIds: [],
         playlistCount: 0,
         
+        // ✅ FIXED: Mission tracking with baseline flag
         seenMissionIds: [],
         missionCount: 0,
+        _missionBaselineSet: false,  // ✅ THIS IS THE KEY FIX
         
         // Date-based tracking
         songOfDay: null,
         
-        // Week results - SMART: only track recent weeks
+        // Week results
         weekResults: [],
         
         // System flags
@@ -686,7 +688,6 @@ function initNotificationState() {
         _lastMigration: null
     };
 }
-
 function loadNotificationState() {
     try {
         const storageKey = 'notificationState_v4_' + STATE.agentNo;
@@ -884,6 +885,7 @@ async function initializeNotificationBaseline() {
 async function setInitialBaselines() {
     const promises = [];
     
+    // Playlists baseline
     promises.push(
         api('getPlaylists').then(data => {
             const playlists = data.playlists || [];
@@ -892,6 +894,7 @@ async function setInitialBaselines() {
         }).catch(() => {})
     );
     
+    // Announcements baseline
     promises.push(
         api('getAnnouncements', { week: STATE.week }).then(data => {
             const announcements = data.announcements || [];
@@ -903,6 +906,7 @@ async function setInitialBaselines() {
         }).catch(() => {})
     );
     
+    // ✅ FIXED: Missions baseline with flag
     const team = STATE.data?.profile?.team;
     if (team) {
         promises.push(
@@ -910,7 +914,12 @@ async function setInitialBaselines() {
                 const missions = data.active || [];
                 STATE.lastChecked.missionCount = missions.length;
                 STATE.lastChecked.seenMissionIds = missions.map(m => m.id).filter(Boolean);
-            }).catch(() => {})
+                STATE.lastChecked._missionBaselineSet = true;  // ✅ SET BASELINE FLAG
+                console.log('📌 Mission baseline set:', missions.length, 'missions');
+            }).catch(() => {
+                // Even on error, mark baseline as set to prevent constant notifications
+                STATE.lastChecked._missionBaselineSet = true;
+            })
         );
     }
     
@@ -1185,7 +1194,15 @@ async function checkNewPlaylists() {
 async function checkNewMissions() {
     try {
         const team = STATE.data?.profile?.team;
-        if (!team) return null;
+        if (!team) {
+            console.log('⚠️ No team assigned, skipping mission check');
+            return null;
+        }
+        
+        if (!STATE.lastChecked?._initialized) {
+            console.log('⚠️ Notification state not initialized');
+            return null;
+        }
         
         const data = await api('getTeamSecretMissions', { 
             team: team, 
@@ -1194,41 +1211,91 @@ async function checkNewMissions() {
         });
         
         const activeMissions = data.active || [];
+        const completedMissions = data.completed || [];
         const myAssigned = data.myAssigned || [];
         
         const seenIds = STATE.lastChecked.seenMissionIds || [];
-        const lastCount = STATE.lastChecked.missionCount ?? -1;
+        const isFirstCheck = !STATE.lastChecked._missionBaselineSet;
         
-        // First-time initialization
-        if (lastCount === -1) {
-            console.log('🔄 First mission check - initializing tracking');
+        console.log('🔍 Mission check:', {
+            active: activeMissions.length,
+            completed: completedMissions.length,
+            seenIds: seenIds.length,
+            isFirstCheck: isFirstCheck
+        });
+        
+        // ============================================================
+        // FIRST TIME: Set baseline and DON'T notify
+        // ============================================================
+        if (isFirstCheck) {
+            console.log('🔄 First mission check - setting baseline');
             STATE.lastChecked.missionCount = activeMissions.length;
             STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
+            STATE.lastChecked.seenCompletedMissionIds = completedMissions.map(m => m.id).filter(Boolean);
+            STATE.lastChecked._missionBaselineSet = true;
             saveNotificationState();
             return null;
         }
         
-        // Check for assigned missions first (higher priority)
-        const unseenAssigned = myAssigned.filter(m => 
-            m.id && !seenIds.includes(m.id)
+        // ============================================================
+        // CHECK FOR NEWLY COMPLETED MISSIONS (XP Award!)
+        // ============================================================
+        const seenCompletedIds = STATE.lastChecked.seenCompletedMissionIds || [];
+        const newlyCompleted = completedMissions.filter(m => 
+            m.id && !seenCompletedIds.includes(m.id)
         );
         
-        if (unseenAssigned.length > 0) {
-            const mission = unseenAssigned[0];
+        if (newlyCompleted.length > 0) {
+            console.log('🎉 Mission completed! Team earned XP');
             
-            // ✅ ADD THIS: Activate notification dot
-            const dot = document.getElementById('dot-mission');
-            if (dot) {
-                dot.classList.add('active');
-                console.log('🔴 Mission dot activated (assigned mission)');
-            }
+            const mission = newlyCompleted[0];
+            const xpAwarded = mission.xpReward || 5;
             
-            STATE.lastChecked.seenMissionIds = [
-                ...seenIds,
-                ...unseenAssigned.map(m => m.id)
-            ];
+            // Update seen completed
+            STATE.lastChecked.seenCompletedMissionIds = completedMissions.map(m => m.id).filter(Boolean);
             saveNotificationState();
             
+            // Show celebration notification
+            return {
+                type: 'mission_complete',
+                icon: '🎉',
+                title: `+${xpAwarded} XP Earned!`,
+                message: `${team} completed: ${mission.title || 'Secret Mission'}`,
+                action: () => loadPage('secret-missions'),
+                actionText: 'View Missions',
+                priority: 'high',
+                week: STATE.week,
+                id: `complete_${mission.id}`
+            };
+        }
+        
+        // ============================================================
+        // CHECK FOR NEW MISSIONS (Existing Logic)
+        // ============================================================
+        const allCurrentIds = activeMissions.map(m => m.id).filter(Boolean);
+        const newMissionIds = allCurrentIds.filter(id => !seenIds.includes(id));
+        
+        if (newMissionIds.length === 0) {
+            STATE.lastChecked.missionCount = activeMissions.length;
+            return null;
+        }
+        
+        console.log('🔔 Found new mission IDs:', newMissionIds);
+        
+        // Check for assigned missions (higher priority)
+        const newAssignedToMe = myAssigned.filter(m => 
+            m.id && newMissionIds.includes(m.id)
+        );
+        
+        // Activate notification dot
+        const dot = document.getElementById('dot-mission');
+        if (dot) {
+            dot.classList.add('active');
+            console.log('🔴 Mission notification dot activated');
+        }
+        
+        if (newAssignedToMe.length > 0) {
+            const mission = newAssignedToMe[0];
             return {
                 type: 'mission',
                 icon: '🎯',
@@ -1242,46 +1309,23 @@ async function checkNewMissions() {
             };
         }
         
-        // Check for team missions
-        const unseenMissions = activeMissions.filter(m => 
-            m.id && !seenIds.includes(m.id)
-        );
+        const newMission = activeMissions.find(m => newMissionIds.includes(m.id));
+        return {
+            type: 'mission',
+            icon: '🕵️',
+            title: 'New Team Mission!',
+            message: newMission?.title || newMission?.briefing || 'Your team has a secret mission!',
+            action: () => loadPage('secret-missions'),
+            actionText: 'View Missions',
+            week: STATE.week,
+            id: newMission?.id
+        };
         
-        if (unseenMissions.length > 0) {
-            console.log('🔔 Found new unseen missions:', unseenMissions.length);
-            
-            // ✅ ADD THIS: Activate notification dot
-            const dot = document.getElementById('dot-mission');
-            if (dot) {
-                dot.classList.add('active');
-                console.log('🔴 Mission dot activated (team mission)');
-            }
-            
-            STATE.lastChecked.missionCount = activeMissions.length;
-            STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
-            saveNotificationState();
-            
-            return {
-                type: 'mission',
-                icon: '🕵️',
-                title: 'New Team Mission!',
-                message: unseenMissions[0].title || unseenMissions[0].briefing || 'Your team has a new secret mission!',
-                action: () => loadPage('secret-missions'),
-                actionText: 'View Missions',
-                week: STATE.week,
-                id: unseenMissions[0].id
-            };
-        }
-        
-        STATE.lastChecked.missionCount = activeMissions.length;
-        
-        return null;
     } catch (e) {
-        console.error('Mission check error:', e);
+        console.error('❌ Mission check error:', e);
         return null;
     }
 }
-
 async function checkNewSongOfDay() {
     try {
         const data = await api('getSongOfDay', {});
@@ -1945,6 +1989,8 @@ function getTeamEligibilityStatus(teamInfo) {
     return { checks, passedCount, totalChecks: checks.length, allPassed };
 }
 // ==================== ADMIN FUNCTIONS ====================
+const NOTIFICATION_SYSTEM_VERSION = 4;
+
 function isAdminAgent() {
     return String(STATE.agentNo).toUpperCase() === String(CONFIG.ADMIN_AGENT_NO).toUpperCase();
 }
@@ -2395,16 +2441,6 @@ async function createTeamMission() {
         if (res.success) { 
             showCreateResult('✅ Mission Deployed Successfully!', false);
             
-            // ✅ NEW: Force notification check after mission creation
-            console.log('🔔 Mission created, forcing notification check...');
-            
-            // Reset mission notification state to force recheck
-            if (STATE.lastChecked) {
-                STATE.lastChecked.missionCount = -1; // Force recheck
-                STATE.lastChecked.seenMissionIds = []; // Clear seen missions
-                saveNotificationState();
-            }
-            
             // Clear form
             document.getElementById('mission-title').value = '';
             document.getElementById('mission-briefing').value = '';
@@ -2414,36 +2450,15 @@ async function createTeamMission() {
             document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = false);
             document.getElementById('select-all-teams').checked = false;
             
-            // Refresh active missions tab
+            // Switch to active tab
             setTimeout(() => {
                 switchAdminTab('active');
-                
-                // ✅ NEW: Force notification check after a delay
-                setTimeout(() => {
-                    checkNotifications();
-                    
-                    // ✅ NEW: Add a manual trigger button
-                    const activeTab = document.querySelector('.admin-tab-content.active');
-                    if (activeTab) {
-                        const triggerBtn = document.createElement('button');
-                        triggerBtn.className = 'btn-primary';
-                        triggerBtn.style.cssText = 'margin-top: 15px; background: #ff4444; width: 100%; padding: 12px;';
-                        triggerBtn.innerHTML = '🔔 Force Mission Notification';
-                        triggerBtn.onclick = () => {
-                            // Force notification check
-                            if (STATE.lastChecked) {
-                                STATE.lastChecked.missionCount = -1;
-                                STATE.lastChecked.seenMissionIds = [];
-                                saveNotificationState();
-                            }
-                            checkNotifications();
-                            showToast('🔔 Notification check triggered!', 'success');
-                        };
-                        
-                        activeTab.appendChild(triggerBtn);
-                    }
-                }, 2000);
             }, 1500);
+            
+            // ✅ FIXED: Don't reset baseline, just trigger a check
+            // The new mission ID won't be in seenMissionIds, so it will notify
+            console.log('🔔 New mission created - users will be notified on next check');
+            
         } else { 
             showCreateResult('❌ ' + (res.error || 'Failed to create mission'), true); 
         }
@@ -2454,7 +2469,6 @@ async function createTeamMission() {
         loading(false); 
     }
 }
-
 function showCreateResult(msg, isError) {
     const el = document.getElementById('create-result');
     if (el) { 
@@ -2495,30 +2509,9 @@ async function loadActiveTeamMissions() {
             container.innerHTML = `
                 <div style="margin-bottom:15px;">
                     <h4 style="color:#fff;margin:0;">Active Missions (${missions.length})</h4>
+                    <p style="color:#888;font-size:11px;margin-top:5px;">Click on a team to approve their completion</p>
                 </div>
-                ${missions.map(m => `
-                    <div class="admin-mission-card" style="margin-bottom:10px;">
-                        <div style="flex:1;">
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">
-                                <span style="font-size:20px;">${CONFIG.MISSION_TYPES?.[m.type]?.icon || '🎯'}</span>
-                                <span style="font-weight:600;color:#fff;">${sanitize(m.title)}</span>
-                            </div>
-                            <div style="font-size:12px;color:#888;">
-                                Teams: ${(m.targetTeams || []).join(', ')} | Goal: ${m.goalTarget || 100}
-                            </div>
-                        </div>
-                        <div style="display:flex;gap:8px;">
-                            <button type="button" onclick="adminCompleteMission('${m.id}')" 
-                                    style="background:#00aa55;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:12px;">
-                                ✓ Complete
-                            </button>
-                            <button type="button" onclick="adminCancelMission('${m.id}')" 
-                                    style="background:#aa3333;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:12px;">
-                                ✕ Cancel
-                            </button>
-                        </div>
-                    </div>
-                `).join('')}
+                ${missions.map(m => renderAdminMissionCard(m)).join('')}
             `;
         } else {
             container.innerHTML = `
@@ -2545,7 +2538,494 @@ async function loadActiveTeamMissions() {
         `; 
     }
 }
+function renderAdminMissionCard(mission) {
+    const targetTeams = mission.targetTeams || [];
+    const completedTeams = mission.completedTeams || [];
+    const progress = mission.progress || {};
+    const missionType = CONFIG.MISSION_TYPES?.[mission.type] || { icon: '🎯', name: 'Mission' };
+    
+    const allCompleted = targetTeams.length > 0 && targetTeams.every(t => completedTeams.includes(t));
+    
+    return `
+        <div class="admin-mission-card" style="
+            background: linear-gradient(145deg, #1a1a2e, #12121a);
+            border: 1px solid ${allCompleted ? 'rgba(0,255,136,0.3)' : 'rgba(123,44,191,0.3)'};
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 15px;
+        ">
+            <!-- Mission Header -->
+            <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:15px;">
+                <div style="
+                    width: 45px;
+                    height: 45px;
+                    border-radius: 10px;
+                    background: linear-gradient(135deg, rgba(123,44,191,0.3), rgba(123,44,191,0.1));
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 22px;
+                ">${missionType.icon}</div>
+                
+                <div style="flex:1;">
+                    <div style="font-weight:600;color:#fff;font-size:14px;">${sanitize(mission.title)}</div>
+                    <div style="color:#888;font-size:11px;margin-top:3px;">
+                        ${missionType.name} • Goal: ${mission.goalTarget || 100} • +${mission.xpReward || 5} XP
+                    </div>
+                    ${mission.briefing ? `
+                        <div style="color:#aaa;font-size:11px;margin-top:6px;line-height:1.4;">
+                            ${sanitize(mission.briefing).substring(0, 100)}${mission.briefing.length > 100 ? '...' : ''}
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div style="
+                    padding: 4px 10px;
+                    border-radius: 12px;
+                    font-size: 10px;
+                    background: ${allCompleted ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};
+                    color: ${allCompleted ? '#00ff88' : '#ffa500'};
+                ">${completedTeams.length}/${targetTeams.length} Done</div>
+            </div>
+            
+            <!-- Per-Team Status -->
+            <div style="
+                background: rgba(0,0,0,0.2);
+                border-radius: 10px;
+                padding: 12px;
+                margin-bottom: 12px;
+            ">
+                <div style="color:#888;font-size:10px;text-transform:uppercase;margin-bottom:10px;letter-spacing:1px;">
+                    Team Status (Click to Approve)
+                </div>
+                
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                    ${targetTeams.map(team => {
+                        const isCompleted = completedTeams.includes(team);
+                        const teamProgress = progress[team] || 0;
+                        const progressPct = mission.goalTarget ? Math.min(100, (teamProgress / mission.goalTarget) * 100) : 0;
+                        const tColor = teamColor(team);
+                        
+                        return `
+                            <div onclick="${isCompleted ? '' : `adminApproveMissionForTeam('${mission.id}', '${team}')`}" 
+                                 style="
+                                    flex: 1;
+                                    min-width: 140px;
+                                    padding: 10px;
+                                    background: ${isCompleted ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.03)'};
+                                    border: 1px solid ${isCompleted ? 'rgba(0,255,136,0.3)' : tColor + '44'};
+                                    border-radius: 8px;
+                                    cursor: ${isCompleted ? 'default' : 'pointer'};
+                                    transition: all 0.2s;
+                                    ${!isCompleted ? 'hover: { background: rgba(123,44,191,0.1); }' : ''}
+                                 "
+                                 ${!isCompleted ? `onmouseenter="this.style.background='rgba(123,44,191,0.15)';this.style.borderColor='${tColor}';" onmouseleave="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='${tColor}44';"` : ''}>
+                                
+                                <!-- Team Name & Status -->
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                                    <div style="display:flex;align-items:center;gap:6px;">
+                                        ${teamPfp(team) ? `<img src="${teamPfp(team)}" style="width:18px;height:18px;border-radius:50%;">` : ''}
+                                        <span style="color:${tColor};font-weight:600;font-size:11px;">${team}</span>
+                                    </div>
+                                    <span style="font-size:14px;">${isCompleted ? '✅' : '⏳'}</span>
+                                </div>
+                                
+                                <!-- Progress Bar -->
+                                <div style="
+                                    height: 4px;
+                                    background: rgba(255,255,255,0.1);
+                                    border-radius: 2px;
+                                    overflow: hidden;
+                                    margin-bottom: 4px;
+                                ">
+                                    <div style="
+                                        height: 100%;
+                                        width: ${progressPct}%;
+                                        background: ${isCompleted ? '#00ff88' : tColor};
+                                        border-radius: 2px;
+                                    "></div>
+                                </div>
+                                
+                                <!-- Progress Text -->
+                                <div style="font-size:10px;color:#888;">
+                                    ${teamProgress} / ${mission.goalTarget || 100}
+                                    ${isCompleted ? '<span style="color:#00ff88;margin-left:5px;">Approved</span>' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" onclick="adminRefreshMissionProgress('${mission.id}')" 
+                        style="
+                            flex: 1;
+                            min-width: 100px;
+                            background: rgba(0,150,255,0.15);
+                            border: 1px solid rgba(0,150,255,0.3);
+                            color: #00aaff;
+                            padding: 8px 12px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 11px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 5px;
+                        ">
+                    🔄 Refresh Progress
+                </button>
+                
+                <button type="button" onclick="adminApproveAllTeams('${mission.id}')" 
+                        style="
+                            flex: 1;
+                            min-width: 100px;
+                            background: rgba(0,170,85,0.15);
+                            border: 1px solid rgba(0,170,85,0.3);
+                            color: #00ff88;
+                            padding: 8px 12px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 11px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 5px;
+                        ">
+                    ✓ Approve All
+                </button>
+                
+                <button type="button" onclick="adminCancelMission('${mission.id}')" 
+                        style="
+                            flex: 1;
+                            min-width: 100px;
+                            background: rgba(170,51,51,0.15);
+                            border: 1px solid rgba(170,51,51,0.3);
+                            color: #ff6b6b;
+                            padding: 8px 12px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 11px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 5px;
+                        ">
+                    ✕ Cancel Mission
+                </button>
+            </div>
+        </div>
+    `;
+}
+// Approve mission for a SINGLE team
+async function adminApproveMissionForTeam(missionId, teamName) {
+    // Show confirmation modal
+    const modal = document.createElement('div');
+    modal.className = 'admin-confirm-modal';
+    modal.innerHTML = `
+        <style>
+            .admin-confirm-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.9);
+                z-index: 9999999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+            .confirm-box {
+                background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+                border: 1px solid rgba(0,255,136,0.3);
+                border-radius: 16px;
+                padding: 25px;
+                max-width: 400px;
+                width: 100%;
+                text-align: center;
+            }
+        </style>
+        
+        <div class="confirm-box" onclick="event.stopPropagation()">
+            <div style="font-size:48px;margin-bottom:15px;">✅</div>
+            <h3 style="color:#fff;margin:0 0 10px;">Approve Mission?</h3>
+            <p style="color:#888;font-size:13px;margin-bottom:20px;">
+                Approve mission completion for <strong style="color:${teamColor(teamName)}">${teamName}</strong>?<br>
+                <span style="color:#00ff88;">This will award XP to the team.</span>
+            </p>
+            
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button onclick="this.closest('.admin-confirm-modal').remove()" style="
+                    padding: 12px 25px;
+                    background: rgba(255,255,255,0.1);
+                    border: 1px solid rgba(255,255,255,0.2);
+                    border-radius: 8px;
+                    color: #888;
+                    cursor: pointer;
+                    font-size: 13px;
+                ">Cancel</button>
+                
+                <button onclick="executeTeamApproval('${missionId}', '${teamName}'); this.closest('.admin-confirm-modal').remove();" style="
+                    padding: 12px 25px;
+                    background: linear-gradient(135deg, #00ff88, #00cc6a);
+                    border: none;
+                    border-radius: 8px;
+                    color: #000;
+                    cursor: pointer;
+                    font-size: 13px;
+                    font-weight: 600;
+                ">✓ Approve</button>
+            </div>
+        </div>
+    `;
+    
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+    };
+    
+    document.body.appendChild(modal);
+}
 
+// Execute the approval
+async function executeTeamApproval(missionId, teamName) {
+    loading(true);
+    try {
+        const res = await api('completeTeamMission', { 
+            missionId: missionId, 
+            team: teamName, 
+            agentNo: STATE.agentNo, 
+            sessionToken: STATE.adminSession 
+        });
+        
+        if (res.success) { 
+            showToast(`✅ ${teamName} approved! +${res.xpAwarded || 5} XP`, 'success'); 
+            loadActiveTeamMissions(); 
+        } else { 
+            showToast('❌ ' + (res.error || 'Failed to approve'), 'error'); 
+        }
+    } catch (e) { 
+        showToast('❌ Error: ' + e.message, 'error'); 
+    } finally { 
+        loading(false); 
+    }
+}
+
+// Approve ALL remaining teams
+async function adminApproveAllTeams(missionId) {
+    if (!confirm('Approve mission for ALL remaining teams? This will award XP to all.')) return;
+    
+    loading(true);
+    try {
+        // Get mission details to find remaining teams
+        const res = await api('getTeamMissions', { status: 'active', week: STATE.week });
+        const mission = (res.missions || []).find(m => m.id === missionId);
+        
+        if (!mission) {
+            showToast('❌ Mission not found', 'error');
+            loading(false);
+            return;
+        }
+        
+        const targetTeams = mission.targetTeams || [];
+        const completedTeams = mission.completedTeams || [];
+        const remainingTeams = targetTeams.filter(t => !completedTeams.includes(t));
+        
+        if (remainingTeams.length === 0) {
+            showToast('All teams already approved!', 'info');
+            loading(false);
+            return;
+        }
+        
+        // Approve each remaining team
+        let successCount = 0;
+        for (const team of remainingTeams) {
+            try {
+                const result = await api('completeTeamMission', { 
+                    missionId: missionId, 
+                    team: team, 
+                    agentNo: STATE.agentNo, 
+                    sessionToken: STATE.adminSession 
+                });
+                if (result.success) successCount++;
+            } catch (e) {
+                console.error(`Failed to approve ${team}:`, e);
+            }
+        }
+        
+        showToast(`✅ Approved ${successCount}/${remainingTeams.length} teams`, 'success');
+        loadActiveTeamMissions();
+        
+    } catch (e) { 
+        showToast('❌ Error: ' + e.message, 'error'); 
+    } finally { 
+        loading(false); 
+    }
+}
+
+// Refresh mission progress from data
+async function adminRefreshMissionProgress(missionId) {
+    loading(true);
+    try {
+        const res = await api('refreshMissionProgress', { 
+            missionId: missionId, 
+            agentNo: STATE.agentNo, 
+            sessionToken: STATE.adminSession 
+        });
+        
+        if (res.success) { 
+            showToast('✅ Progress refreshed!', 'success'); 
+            loadActiveTeamMissions(); 
+        } else { 
+            showToast('❌ ' + (res.error || 'Failed to refresh'), 'error'); 
+        }
+    } catch (e) { 
+        showToast('❌ Error: ' + e.message, 'error'); 
+    } finally { 
+        loading(false); 
+    }
+}
+
+// Keep old function for backward compatibility but improved
+async function adminCompleteMission(id) {
+    // Show team selection modal instead of prompt
+    try {
+        const res = await api('getTeamMissions', { status: 'active', week: STATE.week });
+        const mission = (res.missions || []).find(m => m.id === id);
+        
+        if (!mission) {
+            showToast('Mission not found', 'error');
+            return;
+        }
+        
+        const targetTeams = mission.targetTeams || [];
+        const completedTeams = mission.completedTeams || [];
+        const remainingTeams = targetTeams.filter(t => !completedTeams.includes(t));
+        
+        if (remainingTeams.length === 0) {
+            showToast('All teams already completed!', 'info');
+            return;
+        }
+        
+        // Show selection modal
+        const modal = document.createElement('div');
+        modal.className = 'admin-team-select-modal';
+        modal.innerHTML = `
+            <style>
+                .admin-team-select-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.9);
+                    z-index: 9999999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                }
+                .team-select-box {
+                    background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+                    border: 1px solid rgba(123,44,191,0.3);
+                    border-radius: 16px;
+                    padding: 25px;
+                    max-width: 400px;
+                    width: 100%;
+                }
+                .team-option {
+                    padding: 12px 15px;
+                    margin: 8px 0;
+                    background: rgba(255,255,255,0.03);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    border-radius: 8px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    transition: all 0.2s;
+                }
+                .team-option:hover {
+                    background: rgba(123,44,191,0.15);
+                    border-color: rgba(123,44,191,0.4);
+                }
+            </style>
+            
+            <div class="team-select-box" onclick="event.stopPropagation()">
+                <h3 style="color:#fff;margin:0 0 5px;">Select Team to Approve</h3>
+                <p style="color:#888;font-size:12px;margin-bottom:15px;">${sanitize(mission.title)}</p>
+                
+                ${remainingTeams.map(team => `
+                    <div class="team-option" onclick="executeTeamApproval('${id}', '${team}'); this.closest('.admin-team-select-modal').remove();">
+                        ${teamPfp(team) ? `<img src="${teamPfp(team)}" style="width:24px;height:24px;border-radius:50%;">` : ''}
+                        <span style="color:${teamColor(team)};font-weight:600;">${team}</span>
+                        <span style="margin-left:auto;color:#888;font-size:11px;">
+                            ${mission.progress?.[team] || 0}/${mission.goalTarget || 100}
+                        </span>
+                    </div>
+                `).join('')}
+                
+                ${completedTeams.length > 0 ? `
+                    <div style="margin-top:15px;padding-top:15px;border-top:1px solid rgba(255,255,255,0.1);">
+                        <div style="color:#888;font-size:11px;margin-bottom:8px;">Already Completed:</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                            ${completedTeams.map(team => `
+                                <span style="
+                                    padding: 4px 10px;
+                                    background: rgba(0,255,136,0.1);
+                                    border: 1px solid rgba(0,255,136,0.3);
+                                    border-radius: 12px;
+                                    color: #00ff88;
+                                    font-size: 10px;
+                                ">${team} ✓</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <div style="margin-top:20px;display:flex;gap:10px;">
+                    <button onclick="this.closest('.admin-team-select-modal').remove()" style="
+                        flex: 1;
+                        padding: 12px;
+                        background: rgba(255,255,255,0.1);
+                        border: 1px solid rgba(255,255,255,0.2);
+                        border-radius: 8px;
+                        color: #888;
+                        cursor: pointer;
+                    ">Cancel</button>
+                    
+                    <button onclick="adminApproveAllTeams('${id}'); this.closest('.admin-team-select-modal').remove();" style="
+                        flex: 1;
+                        padding: 12px;
+                        background: linear-gradient(135deg, #00ff88, #00cc6a);
+                        border: none;
+                        border-radius: 8px;
+                        color: #000;
+                        cursor: pointer;
+                        font-weight: 600;
+                    ">Approve All (${remainingTeams.length})</button>
+                </div>
+            </div>
+        `;
+        
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.remove();
+        };
+        
+        document.body.appendChild(modal);
+        
+    } catch (e) {
+        console.error('Error:', e);
+        // Fallback to prompt
+        const team = prompt('Enter Team Name to approve:');
+        if (team && team.trim()) {
+            executeTeamApproval(id, team.trim());
+        }
+    }
+}
 async function loadMissionHistory() {
     const container = document.getElementById('admin-tab-history');
     if (!container) {
@@ -7391,8 +7871,10 @@ async function renderSecretMissions() {
     
     try {
         const [missionsData, statsData] = await Promise.all([
-            api('getTeamSecretMissions', { team: myTeam, agentNo: STATE.agentNo, week: STATE.week }).catch(() => ({ active: [], completed: [], myAssigned: [] })), 
-            api('getTeamSecretStats', { week: STATE.week }).catch(() => ({ teams: {} }))
+            api('getTeamSecretMissions', { team: myTeam, agentNo: STATE.agentNo, week: STATE.week })
+                .catch(() => ({ active: [], completed: [], myAssigned: [] })), 
+            api('getTeamSecretStats', { week: STATE.week })
+                .catch(() => ({ teams: {} }))
         ]);
         
         const activeMissions = missionsData.active || [];
@@ -7400,6 +7882,13 @@ async function renderSecretMissions() {
         const myAssigned = missionsData.myAssigned || [];
         const stats = statsData.teams || {};
         const myStats = stats[myTeam] || {};
+        
+        // Debug logging
+        console.log('📋 Missions loaded:', {
+            active: activeMissions.length,
+            completed: completedMissions.length,
+            myAssigned: myAssigned.length
+        });
         
         container.innerHTML = renderGuide('secret-missions') + `
             <div class="card secret-header-card" style="border-color:${teamColor(myTeam)}">
@@ -7473,21 +7962,68 @@ async function renderSecretMissions() {
             ` : ''}
         `;
         
-        // ✅ IMPROVED: Update notification state with mission IDs
-        STATE.lastChecked.missions = activeMissions.length;
-        STATE.lastChecked.seenMissionIds = [
+        // ============================================================
+        // ✅ FIXED: Update notification state with CORRECT field names
+        // ============================================================
+        
+        const allMissionIds = [
             ...activeMissions.map(m => m.id),
             ...myAssigned.map(m => m.id)
         ].filter(Boolean);
+        
+        console.log('✅ Marking', allMissionIds.length, 'missions as seen:', allMissionIds);
+        
+        // ✅ FIX 1: Use "missionCount" NOT "missions"
+        STATE.lastChecked.missionCount = activeMissions.length;
+        
+        // ✅ FIX 2: Update seenMissionIds
+        STATE.lastChecked.seenMissionIds = allMissionIds;
+        
+        // ✅ FIX 3: Set baseline flag so future checks know we've loaded before
+        STATE.lastChecked._missionBaselineSet = true;
+        
+        // ✅ Save to localStorage
         saveNotificationState();
         
-        // ✅ NEW: Remove notification dot
+        // ✅ Verify save
+        console.log('💾 Saved notification state:', {
+            missionCount: STATE.lastChecked.missionCount,
+            seenMissionIds: STATE.lastChecked.seenMissionIds,
+            _missionBaselineSet: STATE.lastChecked._missionBaselineSet
+        });
+        
+        // ✅ Remove notification dot
         const missionDot = document.getElementById('dot-mission');
-        if (missionDot) missionDot.classList.remove('active');
+        if (missionDot) {
+            missionDot.classList.remove('active');
+            console.log('✅ Mission notification dot cleared');
+        }
+        
+        // ✅ Remove mission notifications from queue
+        if (STATE.notifications && Array.isArray(STATE.notifications)) {
+            const beforeCount = STATE.notifications.length;
+            STATE.notifications = STATE.notifications.filter(n => 
+                n.type !== 'mission' && n.type !== 'secret_mission'
+            );
+            const removed = beforeCount - STATE.notifications.length;
+            if (removed > 0) {
+                console.log(`🗑️ Removed ${removed} mission notifications from queue`);
+            }
+        }
+        
+        // ✅ Update notification badge
+        updateNotificationBadge();
         
     } catch (e) {
         console.error('Failed to load secret missions:', e);
-        container.innerHTML = renderGuide('secret-missions') + '<div class="card"><div class="card-body error-state"><p>Failed to load secret missions.</p><button onclick="renderSecretMissions()" class="btn-secondary">Retry</button></div></div>';
+        container.innerHTML = renderGuide('secret-missions') + `
+            <div class="card">
+                <div class="card-body error-state">
+                    <p>Failed to load secret missions.</p>
+                    <button onclick="renderSecretMissions()" class="btn-secondary">Retry</button>
+                </div>
+            </div>
+        `;
     }
 }
 function renderSecretMissionCard(mission, team, isAssigned = false) {
@@ -7505,7 +8041,7 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
     const teamColorVal = teamColor(team);
     const xpReward = mission.xpReward || CONFIG.SECRET_MISSIONS?.xpPerMission || 5;
     
-    // ✅ FIX: Use "briefing" field from backend
+    // ✅ FIX: Use "briefing" field from backend (your backend sends "briefing", not "description")
     const title = mission.title || missionType.name || 'Secret Mission';
     const description = mission.briefing ||          // ✅ Backend field name
                         mission.description ||        // Fallback
@@ -7513,7 +8049,7 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                         missionType.description || 
                         'No details available';
     
-    // ✅ Additional mission info for display
+    // Additional mission info
     const hasGoal = mission.goalType && mission.goalTarget;
     const hasTrack = mission.targetTrack;
     const hasClue = mission.encodedClue;
@@ -7563,7 +8099,7 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                         ` : ''}
                     </div>
                     
-                    <!-- ✅ Title -->
+                    <!-- Title -->
                     <div style="
                         color: #fff;
                         font-size: 15px;
@@ -7572,7 +8108,7 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                         line-height: 1.3;
                     ">${sanitize(title)}</div>
                     
-                    <!-- ✅ Briefing/Description -->
+                    <!-- Briefing/Description -->
                     <div style="
                         color: #aaa;
                         font-size: 13px;
@@ -7580,7 +8116,7 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                         white-space: pre-wrap;
                     ">${sanitize(description)}</div>
                     
-                    <!-- ✅ NEW: Goal Progress (if applicable) -->
+                    <!-- Goal Progress (if applicable) -->
                     ${hasGoal ? `
                         <div style="
                             margin-top: 12px;
@@ -7612,7 +8148,7 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                         </div>
                     ` : ''}
                     
-                    <!-- ✅ NEW: Target Track (if applicable) -->
+                    <!-- Target Track (if applicable) -->
                     ${hasTrack ? `
                         <div style="
                             margin-top: 10px;
@@ -7627,7 +8163,7 @@ function renderSecretMissionCard(mission, team, isAssigned = false) {
                         </div>
                     ` : ''}
                     
-                    <!-- ✅ NEW: Encoded Clue (if applicable) -->
+                    <!-- Encoded Clue (if applicable) -->
                     ${hasClue ? `
                         <div style="
                             margin-top: 10px;
@@ -7706,6 +8242,9 @@ async function checkForNewMissionsBackground() {
         return;
     }
     
+    // ✅ Check if baseline is set
+    const isFirstCheck = !STATE.lastChecked?._missionBaselineSet;
+    
     try {
         const data = await api('getTeamSecretMissions', { 
             team, 
@@ -7718,65 +8257,82 @@ async function checkForNewMissionsBackground() {
             ...(data.myAssigned || [])
         ];
         
+        const allMissionIds = allMissions.map(m => m.id).filter(Boolean);
+        
+        // ✅ FIRST TIME: Set baseline and DON'T notify
+        if (isFirstCheck) {
+            console.log('🔄 Background: First mission check - setting baseline (no notification)');
+            STATE.lastChecked.missionCount = allMissions.length;
+            STATE.lastChecked.seenMissionIds = allMissionIds;
+            STATE.lastChecked._missionBaselineSet = true;
+            saveNotificationState();
+            return; // No notification on first check
+        }
+        
         // Get previously seen mission IDs
         const seenIds = STATE.lastChecked?.seenMissionIds || [];
         
         // Find NEW missions (IDs we haven't seen before)
         const newMissions = allMissions.filter(m => m.id && !seenIds.includes(m.id));
         
-        console.log('🔒 Mission check:', {
+        console.log('🔒 Background mission check:', {
             total: allMissions.length,
             seen: seenIds.length,
-            new: newMissions.length
+            new: newMissions.length,
+            baselineSet: STATE.lastChecked._missionBaselineSet
         });
         
+        // Only notify if there are NEW missions
         if (newMissions.length > 0) {
-            // ✅ Show notification dot
+            // Show notification dot
             const dot = document.getElementById('dot-mission');
             if (dot) {
                 dot.classList.add('active');
                 console.log('🔴 Mission notification dot activated');
             }
             
-            // ✅ Show toast notification
+            // Show toast notification
             if (newMissions.length === 1) {
                 const mission = newMissions[0];
                 const missionType = CONFIG.MISSION_TYPES?.[mission.type] || { icon: '🔒', name: 'Secret Mission' };
-                showToast(`${missionType.icon} New Mission: ${mission.title || missionType.name}`, 'info');
+                showToast(`${missionType.icon} New Mission: ${mission.title || mission.briefing || missionType.name}`, 'info');
             } else {
                 showToast(`🔒 ${newMissions.length} new secret missions available!`, 'info');
             }
             
-            // ✅ Vibrate on mobile
+            // Vibrate on mobile
             if (navigator.vibrate) {
                 navigator.vibrate([100, 50, 100]);
             }
             
-            // ✅ Add to notification center (if you have one)
+            // Add to notification center
             if (STATE.notifications && Array.isArray(STATE.notifications)) {
                 newMissions.forEach(mission => {
-                    const missionType = CONFIG.MISSION_TYPES?.[mission.type] || { icon: '🔒' };
-                    STATE.notifications.unshift({
-                        id: 'mission_' + mission.id,
-                        type: 'secret_mission',
-                        icon: missionType.icon,
-                        title: 'New Secret Mission!',
-                        message: mission.title || 'A new mission is available',
-                        action: () => loadPage('secret-missions'),
-                        actionText: 'View Mission',
-                        timestamp: Date.now(),
-                        read: false
-                    });
+                    // Check if already in notifications to avoid duplicates
+                    const exists = STATE.notifications.some(n => n.id === 'mission_' + mission.id);
+                    if (!exists) {
+                        const missionType = CONFIG.MISSION_TYPES?.[mission.type] || { icon: '🔒' };
+                        STATE.notifications.unshift({
+                            id: 'mission_' + mission.id,
+                            type: 'secret_mission',
+                            icon: missionType.icon,
+                            title: 'New Secret Mission!',
+                            message: mission.title || mission.briefing || 'A new mission is available',
+                            action: () => loadPage('secret-missions'),
+                            actionText: 'View Mission',
+                            timestamp: Date.now(),
+                            read: false
+                        });
+                    }
                 });
                 
-                // Update badge count
                 if (typeof updateNotificationBadge === 'function') {
                     updateNotificationBadge();
                 }
             }
         }
         
-        // Update mission count in state
+        // Update count (but DON'T update seenMissionIds - only when user views page)
         STATE.lastChecked.missionCount = allMissions.length;
         
     } catch (e) {
