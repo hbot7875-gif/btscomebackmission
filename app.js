@@ -7027,30 +7027,68 @@ async function renderOverallRankings() {
 async function renderMyTeamRankings() {
     const container = $('rankings-content-container');
     if (!container) return;
+    
     const myTeam = STATE.data?.profile?.team;
-    if (!myTeam) { container.innerHTML = '<p class="error-text">Could not identify your team.</p>'; return; }
+    if (!myTeam) { 
+        container.innerHTML = '<p class="error-text">Could not identify your team.</p>'; 
+        return; 
+    }
     
     try {
-        const data = await api('getTeamRankings', { week: STATE.week, team: myTeam });
+        // ✅ CHANGE: Fetch ALL global rankings (limit 1000) to ensure data consistency
+        // Instead of calling 'getTeamRankings', we get the master list and filter it.
+        const data = await api('getRankings', { week: STATE.week, limit: 1000 });
+        
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
         
-        const rankingsHtml = (data.rankings || []).map((r, i) => `
-            <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" style="border-left-color: ${teamColor(myTeam)}">
-                <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
-                <div class="rank-info">
-                    <div class="rank-name">${sanitize(r.name)}${String(r.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</div>
-                    <div class="rank-team" style="color:${teamColor(r.team)}">${r.team} Agent</div>
+        // 1. Filter for only members of my team
+        const teamMembers = (data.rankings || []).filter(r => r.team === myTeam);
+        
+        // 2. Sort by Total XP (Highest to Lowest)
+        teamMembers.sort((a, b) => b.totalXP - a.totalXP);
+        
+        const rankingsHtml = teamMembers.length ? teamMembers.map((r, i) => `
+            <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" 
+                 style="border-left: 3px solid ${teamColor(myTeam)};">
+                
+                <!-- Rank Number (1, 2, 3...) -->
+                <div class="rank-num">
+                    ${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                 </div>
+                
+                <!-- Info Section -->
+                <div class="rank-info">
+                    <div class="rank-name">
+                        ${sanitize(r.name)}
+                        ${String(r.agentNo) === String(STATE.agentNo) ? ' <span style="font-size:10px;background:#fff;color:#000;padding:1px 4px;border-radius:4px;font-weight:bold;">YOU</span>' : ''}
+                    </div>
+                    <!-- Display Global Rank for context -->
+                    <div class="rank-team" style="color:#888; font-size:10px;">
+                        Global Rank: #${r.rank}
+                    </div>
+                </div>
+                
+                <!-- XP -->
                 <div class="rank-xp">${fmt(r.totalXP)} XP</div>
             </div>
-        `).join('') || '<p class="empty-text">No team ranking data yet</p>';
+        `).join('') : '<div style="text-align:center;padding:20px;color:#888;">No data for your team yet</div>';
         
         container.innerHTML = `
-            <div class="rankings-header"><span class="week-badge" style="background-color: ${teamColor(myTeam)}">${myTeam} ranking</span></div>
-            ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
-            ${rankingsHtml}
+            <div class="rankings-header">
+                <span class="week-badge" style="background-color: ${teamColor(myTeam)}; color: #fff;">
+                    ${myTeam} Leaderboard
+                </span>
+            </div>
+            ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Synced with Overall Rankings</div>` : ''}
+            <div class="rankings-list">
+                ${rankingsHtml}
+            </div>
         `;
-    } catch (e) { container.innerHTML = '<p class="error-text">Failed to load team rankings.</p>'; }
+        
+    } catch (e) { 
+        console.error(e);
+        container.innerHTML = '<p class="error-text">Failed to load team rankings.</p>'; 
+    }
 }
 
 // ==================== TEAM LEVEL (FIXED - WINNER ONLY AFTER ADMIN APPROVAL) ====================
