@@ -2079,25 +2079,26 @@ img {
     margin-bottom: var(--spacing-md);
 }
 
-/* ==================== RANKINGS (Mobile Optimized) ==================== */
+/* ==================== RANKINGS (Width Fixed) ==================== */
 .rank-item {
     display: flex;
     align-items: center;
-    padding: 12px 14px;  /* Slightly reduced padding for mobile */
+    width: 100%;                  /* ✅ Fixes width issues */
+    max-width: 100%;              /* ✅ Prevents overflow */
+    box-sizing: border-box;       /* ✅ Includes padding in width calculation */
+    padding: 12px 10px;           /* Reduced horizontal padding */
     border-radius: var(--radius-md);
     margin-bottom: 8px;
     background: var(--bg-dark);
     border: 1px solid var(--border);
     transition: all var(--transition-fast);
     cursor: pointer;
-    animation: slideInLeft 0.3s ease;
-    gap: 12px; /* Uses gap instead of margins for better control */
+    gap: 10px;                    /* Consistent gap */
 }
 
 .rank-item:hover {
     border-color: var(--purple-main);
     background: var(--bg-hover);
-    transform: translateX(4px);
 }
 
 .rank-item.highlight {
@@ -2106,11 +2107,11 @@ img {
 }
 
 .rank-num {
-    width: 36px;      /* Fixed width */
-    height: 36px;     /* Fixed height */
-    min-width: 36px;  /* Prevents squishing */
+    width: 32px;                 /* Tighter width for mobile */
+    min-width: 32px;             /* Prevent shrinking */
+    height: 32px;
     background: linear-gradient(135deg, var(--purple-main), var(--purple-dark));
-    border-radius: var(--radius-full);
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2118,29 +2119,30 @@ img {
     font-size: 13px;
     color: white;
     box-shadow: 0 4px 15px rgba(157, 78, 221, 0.3);
-    flex-shrink: 0;   /* IMPORTANT: Prevents circle from shrinking */
+    flex-shrink: 0;              /* Never shrink */
 }
 
-/* Gold/Silver/Bronze for Top 3 */
-.rank-item:nth-child(1) .rank-num { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; text-shadow: none; }
-.rank-item:nth-child(2) .rank-num { background: linear-gradient(135deg, #C0C0C0, #E0E0E0); color: #000; text-shadow: none; }
-.rank-item:nth-child(3) .rank-num { background: linear-gradient(135deg, #CD7F32, #DA8A67); color: #000; text-shadow: none; }
+/* Top 3 Colors */
+.rank-item:nth-child(1) .rank-num { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
+.rank-item:nth-child(2) .rank-num { background: linear-gradient(135deg, #C0C0C0, #E0E0E0); color: #000; }
+.rank-item:nth-child(3) .rank-num { background: linear-gradient(135deg, #CD7F32, #DA8A67); color: #000; }
 
 .rank-info {
-    flex: 1;
-    min-width: 0; /* CRITICAL: Allows text truncation to work on mobile */
+    flex: 1;                     /* Takes up remaining space */
+    min-width: 0;                /* ✅ CRITICAL: Allows text truncation to work */
     display: flex;
     flex-direction: column;
     justify-content: center;
+    overflow: hidden;            /* Contains the content */
 }
 
 .rank-name {
     font-weight: 600;
     font-size: 14px;
     color: var(--text-bright);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis; /* Adds "..." if name is too long */
+    white-space: nowrap;         /* Force single line */
+    overflow: hidden;            /* Hide overflow */
+    text-overflow: ellipsis;     /* Add ... if too long */
     line-height: 1.3;
 }
 
@@ -2161,36 +2163,27 @@ img {
     font-size: 13px;
     white-space: nowrap;
     text-align: right;
-    flex-shrink: 0; /* Ensures XP is always visible */
+    flex-shrink: 0;              /* Ensure XP is never hidden */
     background: rgba(255, 255, 255, 0.05);
     padding: 4px 8px;
     border-radius: 6px;
+    min-width: 60px;             /* Ensure minimum readable width */
+    display: flex;
+    justify-content: center;
 }
 
-@keyframes slideInLeft {
-    from { opacity: 0; transform: translateX(-10px); }
-    to { opacity: 1; transform: translateX(0); }
+/* ==================== GLOBAL OVERFLOW FIX ==================== */
+/* Add this to prevent any page horizontal scrolling */
+html, body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
 }
 
-/* ==================== MOBILE TWEAKS ==================== */
-@media (max-width: 380px) {
-    .rank-item {
-        padding: 10px;
-        gap: 10px;
-    }
-    .rank-num {
-        width: 30px;
-        height: 30px;
-        min-width: 30px;
-        font-size: 12px;
-    }
-    .rank-name {
-        font-size: 13px;
-    }
-    .rank-xp {
-        font-size: 12px;
-        padding: 3px 6px;
-    }
+.rankings-list {
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 /* ==================== STANDINGS (Retained your style) ==================== */
