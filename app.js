@@ -2803,7 +2803,16 @@ async function executeTeamApproval(missionId, teamName) {
         
         if (res.success) { 
             showToast(`✅ ${teamName} approved! +${res.xpAwarded || 5} XP`, 'success'); 
+            
+            // RELOAD MISSIONS
             loadActiveTeamMissions(); 
+            
+            // FORCE DASHBOARD REFRESH
+            // This ensures the next time you click 'Team Level', it gets the +5XP
+            if (typeof loadDashboard === 'function') {
+                STATE.data = null; // Clear local data cache
+            }
+            
         } else { 
             showToast('❌ ' + (res.error || 'Failed to approve'), 'error'); 
         }
