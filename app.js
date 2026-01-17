@@ -7039,32 +7039,48 @@ async function renderMyTeamRankings() {
     } catch (e) { container.innerHTML = '<p class="error-text">Failed to load team rankings.</p>'; }
 }
 
-// ==================== TEAM LEVEL (UPDATED WITH ADMIN CONFIRMATION) ====================
+// ==================== TEAM LEVEL (FIXED - WINNER ONLY AFTER ADMIN APPROVAL) ====================
 async function renderTeamLevel() {
     const container = $('team-level-content');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
+    
     try {
         const summary = await api('getWeeklySummary', { week: STATE.week });
         const teams = summary.teams || {};
         const myTeam = STATE.data?.profile?.team;
         if (summary.lastUpdated) STATE.lastUpdated = summary.lastUpdated;
+        
         const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
         const isCompleted = isWeekCompleted(STATE.week);
         
-        // Find teams that meet ALL requirements including admin confirmations
+        // ✅ FIXED: Only teams with ADMIN CONFIRMATION are eligible
         const eligibleTeams = sortedTeams.filter(([t, info]) => isTeamEligibleForWin(info));
         
-        // Winner is the team with highest XP that meets ALL requirements
+        // ✅ FIXED: Winner ONLY if they have admin confirmations
         const winnerTeam = eligibleTeams.length > 0 ? eligibleTeams[0][0] : null;
-        const leadingTeam = sortedTeams[0]?.[0];
         
-        // Check if leading team is missing any requirements
+        // Leading team by XP (may not be eligible)
+        const leadingTeam = sortedTeams[0]?.[0];
         const leadingTeamInfo = teams[leadingTeam] || {};
         const leadingStatus = getTeamEligibilityStatus(leadingTeamInfo);
+        
+        // ✅ Check if ANY team has admin confirmations
+        const anyTeamConfirmed = sortedTeams.some(([t, info]) => 
+            info.attendanceConfirmed && info.policeConfirmed
+        );
+        
+        // ✅ Check how many teams are waiting for confirmation
+        const teamsWaitingConfirmation = sortedTeams.filter(([t, info]) => 
+            info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed &&
+            (!info.attendanceConfirmed || !info.policeConfirmed)
+        );
         
         container.innerHTML = `
             ${renderGuide('team-level')}
             
-            <!-- Winner Rules Explanation with Admin Confirmation -->
+            <!-- Winner Rules Explanation -->
             <div class="card" style="background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(123,44,191,0.05)); border-color: rgba(255,215,0,0.3); margin-bottom: 20px;">
                 <div class="card-body" style="padding: 20px;">
                     <div style="text-align: center; margin-bottom: 15px;">
@@ -7078,7 +7094,7 @@ async function renderTeamLevel() {
                         padding: 15px;
                         margin-bottom: 15px;
                     ">
-                        <!-- Requirement 1: Complete Missions -->
+                        <!-- Requirement 1 -->
                         <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
                             <span style="font-size: 20px;">1️⃣</span>
                             <div>
@@ -7089,7 +7105,7 @@ async function renderTeamLevel() {
                             </div>
                         </div>
                         
-                        <!-- Requirement 2: Admin Confirmations -->
+                        <!-- Requirement 2 -->
                         <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
                             <span style="font-size: 20px;">2️⃣</span>
                             <div>
@@ -7104,12 +7120,12 @@ async function renderTeamLevel() {
                                     border-radius: 6px;
                                     display: inline-block;
                                 ">
-                                    <span style="color:#ffa500;font-size:10px;">⏰ Deadline: Sunday 4:00 PM IST</span>
+                                    <span style="color:#ffa500;font-size:10px;">⏰ Confirmed by Admin after deadline</span>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Requirement 3: Highest XP -->
+                        <!-- Requirement 3 -->
                         <div style="display: flex; align-items: flex-start; gap: 12px;">
                             <span style="font-size: 20px;">3️⃣</span>
                             <div>
@@ -7121,6 +7137,7 @@ async function renderTeamLevel() {
                         </div>
                     </div>
                     
+                    <!-- Important Warning -->
                     <div style="
                         background: rgba(255,68,68,0.1);
                         border: 1px solid rgba(255,68,68,0.2);
@@ -7132,46 +7149,14 @@ async function renderTeamLevel() {
                     ">
                         <span style="font-size: 18px;">⚠️</span>
                         <span style="color: #ff6b6b; font-size: 12px;">
-                            <strong>Important:</strong> Teams missing ANY requirement are <strong>NOT eligible</strong> to win!
+                            <strong>Winner is announced ONLY after Admin confirms attendance & police for eligible teams!</strong>
                         </span>
                     </div>
                     
-                    ${!isCompleted ? `
-                        <div style="margin-top: 15px; text-align: center;">
-                            ${winnerTeam ? `
-                                <div style="
-                                    display: inline-flex;
-                                    align-items: center;
-                                    gap: 8px;
-                                    padding: 8px 16px;
-                                    background: rgba(0,255,136,0.1);
-                                    border: 1px solid rgba(0,255,136,0.3);
-                                    border-radius: 20px;
-                                ">
-                                    <span style="color: #00ff88; font-size: 12px;">👑 Currently Winning:</span>
-                                    <span style="color: ${teamColor(winnerTeam)}; font-weight: 600;">${winnerTeam}</span>
-                                </div>
-                            ` : eligibleTeams.length === 0 ? `
-                                <div style="
-                                    display: inline-flex;
-                                    align-items: center;
-                                    gap: 8px;
-                                    padding: 8px 16px;
-                                    background: rgba(255,165,0,0.1);
-                                    border: 1px solid rgba(255,165,0,0.3);
-                                    border-radius: 20px;
-                                ">
-                                    <span style="color: #ffa500; font-size: 12px;">⏳ No team is fully eligible yet</span>
-                                </div>
-                                ${leadingTeam ? `
-                                    <div style="margin-top:8px;color:#888;font-size:11px;">
-                                        Leading in XP: <span style="color:${teamColor(leadingTeam)}">${leadingTeam}</span>
-                                        (${leadingStatus.passedCount}/${leadingStatus.totalChecks} requirements met)
-                                    </div>
-                                ` : ''}
-                            ` : ''}
-                        </div>
-                    ` : ''}
+                    <!-- Current Status -->
+                    <div style="margin-top: 15px; text-align: center;">
+                        ${renderWinnerStatus(winnerTeam, eligibleTeams, teamsWaitingConfirmation, leadingTeam, leadingStatus, isCompleted, anyTeamConfirmed)}
+                    </div>
                 </div>
             </div>
             
@@ -7191,91 +7176,332 @@ async function renderTeamLevel() {
             </div>
             
             <div class="team-level-header">
-                <h2>Team Levels</h2>
+                <h2>Team Standings</h2>
                 <span class="week-badge">${STATE.week}</span>
             </div>
             
             ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
             
             <div class="team-level-grid">
-                ${sortedTeams.map(([t, info], index) => { 
-                    const isMyTeam = t === myTeam;
-                    const eligibility = getTeamEligibilityStatus(info);
-                    const isCurrentWinner = t === winnerTeam;
-                    const tColor = teamColor(t);
-                    
-                    return `
-                        <div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="
-                            border-color:${tColor};
-                            ${isCurrentWinner ? 'box-shadow: 0 0 25px rgba(255,215,0,0.3); border-color: #ffd700;' : ''}
-                        ">
-                            ${isMyTeam ? '<div class="my-team-badge">Your Team</div>' : ''}
-                            ${isCurrentWinner && !isCompleted ? '<div style="position:absolute;top:10px;right:10px;font-size:20px;" title="Currently Winning">👑</div>' : ''}
-                            ${!eligibility.allPassed && index === 0 ? '<div style="position:absolute;top:10px;right:10px;font-size:14px;color:#ffa500;" title="Highest XP but missing requirements">⚡</div>' : ''}
-                            
-                            ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="team-level-pfp" style="border-color:${isCurrentWinner ? '#ffd700' : tColor}">` : ''}
-                            <div class="team-level-name" style="color:${tColor}">${t}</div>
-                            <div class="team-level-num">${info.level || 1}</div>
-                            <div class="team-level-label">LEVEL</div>
-                            <div class="team-level-xp">${fmt(info.teamXP)} XP</div>
-                            
-                            <!-- Show ALL 5 requirements -->
-                            <div class="team-level-missions" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:8px;">
-                                <div class="mission-check" title="Track Goals" style="font-size:11px;">${info.trackGoalPassed ? '🎵✅' : '🎵❌'}</div>
-                                <div class="mission-check" title="Album Goals" style="font-size:11px;">${info.albumGoalPassed ? '💿✅' : '💿❌'}</div>
-                                <div class="mission-check" title="Album 2X" style="font-size:11px;">${info.album2xPassed ? '✨✅' : '✨❌'}</div>
-                                <div class="mission-check" title="Attendance Confirmed" style="font-size:11px;">${info.attendanceConfirmed ? '📋✅' : '📋⏳'}</div>
-                                <div class="mission-check" title="Police Check Passed" style="font-size:11px;">${info.policeConfirmed ? '👮✅' : '👮⏳'}</div>
-                            </div>
-                            
-                            <div class="team-level-status ${eligibility.allPassed ? 'complete' : ''}" style="${isCurrentWinner ? 'color:#ffd700;' : ''}">
-                                ${isCurrentWinner ? '👑 Winning!' : `${eligibility.passedCount}/${eligibility.totalChecks} complete`}
-                            </div>
-                        </div>
-                    `; 
-                }).join('')}
+                ${sortedTeams.map(([t, info], index) => renderTeamCard(t, info, index, myTeam, winnerTeam, isCompleted)).join('')}
             </div>
             
             <!-- Mission Status Legend -->
-            <div class="card" style="margin-top: 20px; background: rgba(255,255,255,0.02);">
-                <div class="card-body" style="padding: 15px;">
-                    <div style="font-size:12px;color:#888;margin-bottom:12px;text-align:center;">Legend</div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; text-align: center; font-size:11px;">
-                        <div>
-                            <span style="font-size: 16px;">🎵</span>
-                            <div style="color: #888; margin-top: 3px;">Track Goals</div>
-                        </div>
-                        <div>
-                            <span style="font-size: 16px;">💿</span>
-                            <div style="color: #888; margin-top: 3px;">Album Goals</div>
-                        </div>
-                        <div>
-                            <span style="font-size: 16px;">✨</span>
-                            <div style="color: #888; margin-top: 3px;">Album 2X</div>
-                        </div>
-                        <div>
-                            <span style="font-size: 16px;">📋</span>
-                            <div style="color: #888; margin-top: 3px;">Attendance</div>
-                        </div>
-                        <div>
-                            <span style="font-size: 16px;">👮</span>
-                            <div style="color: #888; margin-top: 3px;">Police Check</div>
-                        </div>
+            ${renderTeamLevelLegend()}
+        `;
+        
+    } catch (e) { 
+        console.error('Team level error:', e);
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-body">
+                    <p class="error-text">Failed to load team levels</p>
+                    <button onclick="renderTeamLevel()" class="btn-secondary" style="margin-top:10px;">🔄 Retry</button>
+                </div>
+            </div>
+        `; 
+    }
+}
+
+// ✅ NEW: Render winner status based on admin confirmation
+function renderWinnerStatus(winnerTeam, eligibleTeams, teamsWaitingConfirmation, leadingTeam, leadingStatus, isCompleted, anyTeamConfirmed) {
+    
+    // Case 1: We have a winner (fully confirmed by admin)
+    if (winnerTeam) {
+        return `
+            <div style="
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 20px;
+                background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,215,0,0.1));
+                border: 2px solid rgba(255,215,0,0.5);
+                border-radius: 25px;
+                animation: winnerGlow 2s ease-in-out infinite;
+            ">
+                <span style="font-size: 24px;">👑</span>
+                <div>
+                    <div style="color: #ffd700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
+                        ${isCompleted ? 'Week Winner' : 'Currently Winning'}
                     </div>
-                    <div style="text-align:center;margin-top:12px;">
-                        <span style="color:#00ff88;font-size:11px;">✅ = Confirmed</span>
-                        <span style="margin:0 10px;color:#666;">|</span>
-                        <span style="color:#ffa500;font-size:11px;">⏳ = Pending</span>
-                        <span style="margin:0 10px;color:#666;">|</span>
-                        <span style="color:#ff6b6b;font-size:11px;">❌ = Failed</span>
+                    <div style="color: ${teamColor(winnerTeam)}; font-weight: 700; font-size: 16px;">
+                        ${winnerTeam}
                     </div>
                 </div>
             </div>
+            <style>
+                @keyframes winnerGlow {
+                    0%, 100% { box-shadow: 0 0 10px rgba(255,215,0,0.3); }
+                    50% { box-shadow: 0 0 25px rgba(255,215,0,0.5); }
+                }
+            </style>
         `;
-    } catch (e) { 
-        console.error('Team level error:', e);
-        container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load team levels</p></div></div>'; 
     }
+    
+    // Case 2: Teams completed missions but waiting for admin confirmation
+    if (teamsWaitingConfirmation.length > 0 && !anyTeamConfirmed) {
+        return `
+            <div style="
+                padding: 15px 20px;
+                background: rgba(255,165,0,0.1);
+                border: 1px solid rgba(255,165,0,0.3);
+                border-radius: 12px;
+            ">
+                <div style="font-size: 28px; margin-bottom: 8px;">⏳</div>
+                <div style="color: #ffa500; font-size: 13px; font-weight: 600;">
+                    Awaiting Admin Confirmation
+                </div>
+                <div style="color: #888; font-size: 11px; margin-top: 5px;">
+                    ${teamsWaitingConfirmation.length} team${teamsWaitingConfirmation.length > 1 ? 's' : ''} completed missions.<br>
+                    Winner will be announced after attendance & police check.
+                </div>
+                <div style="
+                    margin-top: 10px;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                    justify-content: center;
+                ">
+                    ${teamsWaitingConfirmation.map(([t, info]) => `
+                        <span style="
+                            padding: 4px 10px;
+                            background: ${teamColor(t)}22;
+                            border: 1px solid ${teamColor(t)}44;
+                            border-radius: 12px;
+                            color: ${teamColor(t)};
+                            font-size: 10px;
+                            font-weight: 600;
+                        ">${t}</span>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Case 3: No team has completed all missions yet
+    if (eligibleTeams.length === 0) {
+        return `
+            <div style="
+                padding: 12px 16px;
+                background: rgba(136,136,136,0.1);
+                border: 1px solid rgba(136,136,136,0.2);
+                border-radius: 12px;
+            ">
+                <div style="color: #888; font-size: 12px;">
+                    🎯 No team is fully eligible yet
+                </div>
+                ${leadingTeam ? `
+                    <div style="margin-top: 8px; color: #666; font-size: 11px;">
+                        Leading in XP: <span style="color: ${teamColor(leadingTeam)}; font-weight: 600;">${leadingTeam}</span>
+                        <span style="color: #888;">(${leadingStatus.passedCount}/${leadingStatus.totalChecks} requirements)</span>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    return '';
+}
+
+// ✅ NEW: Render individual team card
+function renderTeamCard(teamName, info, index, myTeam, winnerTeam, isCompleted) {
+    const isMyTeam = teamName === myTeam;
+    const eligibility = getTeamEligibilityStatus(info);
+    const isCurrentWinner = teamName === winnerTeam;
+    const tColor = teamColor(teamName);
+    
+    // Check if team completed missions but waiting for confirmation
+    const completedMissions = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
+    const awaitingConfirmation = completedMissions && (!info.attendanceConfirmed || !info.policeConfirmed);
+    
+    return `
+        <div class="team-level-card ${isMyTeam ? 'my-team' : ''}" style="
+            border-color: ${tColor};
+            ${isCurrentWinner ? 'box-shadow: 0 0 25px rgba(255,215,0,0.4); border-color: #ffd700; border-width: 2px;' : ''}
+            ${awaitingConfirmation ? 'border-style: dashed;' : ''}
+            position: relative;
+        ">
+            ${isMyTeam ? '<div class="my-team-badge">Your Team</div>' : ''}
+            
+            <!-- Status Badge -->
+            ${isCurrentWinner ? `
+                <div style="
+                    position: absolute;
+                    top: -10px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: linear-gradient(135deg, #ffd700, #ffaa00);
+                    color: #000;
+                    padding: 4px 12px;
+                    border-radius: 10px;
+                    font-size: 10px;
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    box-shadow: 0 2px 10px rgba(255,215,0,0.4);
+                ">
+                    <span>👑</span>
+                    <span>${isCompleted ? 'WINNER' : 'WINNING'}</span>
+                </div>
+            ` : awaitingConfirmation ? `
+                <div style="
+                    position: absolute;
+                    top: -10px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(255,165,0,0.9);
+                    color: #000;
+                    padding: 4px 10px;
+                    border-radius: 10px;
+                    font-size: 9px;
+                    font-weight: 600;
+                    white-space: nowrap;
+                ">
+                    ⏳ Awaiting Approval
+                </div>
+            ` : index === 0 && !eligibility.allPassed ? `
+                <div style="
+                    position: absolute;
+                    top: 8px;
+                    right: 8px;
+                    font-size: 14px;
+                " title="Highest XP but missing requirements">⚡</div>
+            ` : ''}
+            
+            <!-- Team PFP -->
+            ${teamPfp(teamName) ? `
+                <img src="${teamPfp(teamName)}" class="team-level-pfp" style="
+                    border-color: ${isCurrentWinner ? '#ffd700' : tColor};
+                    ${isCurrentWinner ? 'box-shadow: 0 0 15px rgba(255,215,0,0.4);' : ''}
+                ">
+            ` : ''}
+            
+            <!-- Team Name -->
+            <div class="team-level-name" style="color: ${tColor}">${teamName}</div>
+            
+            <!-- Level -->
+            <div class="team-level-num">${info.level || 1}</div>
+            <div class="team-level-label">LEVEL</div>
+            
+            <!-- XP -->
+            <div class="team-level-xp">${fmt(info.teamXP)} XP</div>
+            
+            <!-- All 5 Requirements -->
+            <div class="team-level-missions" style="
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 4px;
+                margin-top: 10px;
+                padding: 8px;
+                background: rgba(0,0,0,0.2);
+                border-radius: 8px;
+            ">
+                <div class="mission-check" title="Track Goals" style="text-align:center;">
+                    <div style="font-size: 14px;">${info.trackGoalPassed ? '✅' : '❌'}</div>
+                    <div style="font-size: 8px; color: #666; margin-top: 2px;">🎵</div>
+                </div>
+                <div class="mission-check" title="Album Goals" style="text-align:center;">
+                    <div style="font-size: 14px;">${info.albumGoalPassed ? '✅' : '❌'}</div>
+                    <div style="font-size: 8px; color: #666; margin-top: 2px;">💿</div>
+                </div>
+                <div class="mission-check" title="Album 2X" style="text-align:center;">
+                    <div style="font-size: 14px;">${info.album2xPassed ? '✅' : '❌'}</div>
+                    <div style="font-size: 8px; color: #666; margin-top: 2px;">✨</div>
+                </div>
+                <div class="mission-check" title="Attendance (Admin)" style="text-align:center;">
+                    <div style="font-size: 14px;">${info.attendanceConfirmed ? '✅' : '⏳'}</div>
+                    <div style="font-size: 8px; color: ${info.attendanceConfirmed ? '#00ff88' : '#ffa500'}; margin-top: 2px;">📋</div>
+                </div>
+                <div class="mission-check" title="Police (Admin)" style="text-align:center;">
+                    <div style="font-size: 14px;">${info.policeConfirmed ? '✅' : '⏳'}</div>
+                    <div style="font-size: 8px; color: ${info.policeConfirmed ? '#00ff88' : '#ffa500'}; margin-top: 2px;">👮</div>
+                </div>
+            </div>
+            
+            <!-- Status Text -->
+            <div class="team-level-status" style="
+                margin-top: 10px;
+                padding: 6px 12px;
+                border-radius: 15px;
+                font-size: 11px;
+                font-weight: 600;
+                ${isCurrentWinner ? `
+                    background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,215,0,0.1));
+                    color: #ffd700;
+                    border: 1px solid rgba(255,215,0,0.3);
+                ` : eligibility.allPassed ? `
+                    background: rgba(0,255,136,0.1);
+                    color: #00ff88;
+                ` : awaitingConfirmation ? `
+                    background: rgba(255,165,0,0.1);
+                    color: #ffa500;
+                ` : `
+                    background: rgba(255,255,255,0.05);
+                    color: #888;
+                `}
+            ">
+                ${isCurrentWinner ? '👑 ' + (isCompleted ? 'Winner!' : 'Winning!') : 
+                  eligibility.allPassed ? '✅ Fully Eligible' :
+                  awaitingConfirmation ? '⏳ Pending Approval' :
+                  `${eligibility.passedCount}/${eligibility.totalChecks} Complete`}
+            </div>
+        </div>
+    `;
+}
+
+// ✅ NEW: Render legend
+function renderTeamLevelLegend() {
+    return `
+        <div class="card" style="margin-top: 20px; background: rgba(255,255,255,0.02);">
+            <div class="card-body" style="padding: 15px;">
+                <div style="font-size: 12px; color: #888; margin-bottom: 12px; text-align: center;">
+                    Requirement Legend
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 10px; text-align: center;">
+                    <div style="padding: 8px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <span style="font-size: 18px;">🎵</span>
+                        <div style="color: #888; font-size: 10px; margin-top: 4px;">Track Goals</div>
+                    </div>
+                    <div style="padding: 8px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <span style="font-size: 18px;">💿</span>
+                        <div style="color: #888; font-size: 10px; margin-top: 4px;">Album Goals</div>
+                    </div>
+                    <div style="padding: 8px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <span style="font-size: 18px;">✨</span>
+                        <div style="color: #888; font-size: 10px; margin-top: 4px;">Album 2X</div>
+                    </div>
+                    <div style="padding: 8px; background: rgba(255,165,0,0.1); border-radius: 8px; border: 1px dashed rgba(255,165,0,0.3);">
+                        <span style="font-size: 18px;">📋</span>
+                        <div style="color: #ffa500; font-size: 10px; margin-top: 4px;">Attendance*</div>
+                    </div>
+                    <div style="padding: 8px; background: rgba(255,165,0,0.1); border-radius: 8px; border: 1px dashed rgba(255,165,0,0.3);">
+                        <span style="font-size: 18px;">👮</span>
+                        <div style="color: #ffa500; font-size: 10px; margin-top: 4px;">Police*</div>
+                    </div>
+                </div>
+                
+                <div style="
+                    margin-top: 15px;
+                    padding: 10px;
+                    background: rgba(255,165,0,0.05);
+                    border: 1px solid rgba(255,165,0,0.2);
+                    border-radius: 8px;
+                    text-align: center;
+                ">
+                    <span style="color: #ffa500; font-size: 11px;">
+                        * Admin confirms after Sunday 4 PM IST deadline
+                    </span>
+                </div>
+                
+                <div style="text-align: center; margin-top: 12px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                    <span style="color: #00ff88; font-size: 11px;">✅ Passed</span>
+                    <span style="color: #ffa500; font-size: 11px;">⏳ Pending</span>
+                    <span style="color: #ff6b6b; font-size: 11px;">❌ Failed</span>
+                </div>
+            </div>
+        </div>
+    `;
 }
 // ==================== COMPARISON (MOBILE FIXED) ====================
 async function renderComparison() {
