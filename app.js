@@ -5011,6 +5011,7 @@ async function loadDashboard() {
         await loadPage(startPage === 'login' ? 'home' : startPage);
         
         await initStreakTracker();
+        initActivityFeed();
         setTimeout(() => {
             checkForNewMissionsBackground();
         }, 2000); 
@@ -11669,38 +11670,38 @@ async function fetchActivities() {
     ACTIVITY_STATE.isLoading = true;
     
     try {
-        // Change: Only send 'since' if we already have some activities.
-        // If it's the first load, we want the last 20-50 items regardless of time.
-        const sinceVal = ACTIVITY_STATE.activities.length > 0 ? ACTIVITY_STATE.lastFetch : null;
+        // If it's the first time loading, don't send a 'since' timestamp
+        // This forces the script to return the last 20-50 items regardless of time
+        const isFirstLoad = ACTIVITY_STATE.activities.length === 0;
+        const sinceVal = isFirstLoad ? null : ACTIVITY_STATE.lastFetch;
 
         const data = await api('getActivityFeed', {
             limit: ACTIVITY_CONFIG.MAX_ACTIVITIES,
-            since: sinceVal 
+            since: sinceVal
         });
         
-        if (data.success && data.activities) {
-            // Filter out any duplicates
+        if (data.success && data.activities && data.activities.length > 0) {
             const newActivities = data.activities.filter(a => 
                 !ACTIVITY_STATE.activities.some(existing => existing.id === a.id)
             );
             
             if (newActivities.length > 0) {
-                // Add new ones to the top
+                // Add new activities to our state
                 ACTIVITY_STATE.activities = [...newActivities, ...ACTIVITY_STATE.activities]
                     .slice(0, ACTIVITY_CONFIG.MAX_ACTIVITIES);
                 
+                // Refresh the UI
                 updateActivityFeedUI();
             }
         }
         
         ACTIVITY_STATE.lastFetch = Date.now();
     } catch (e) {
-        console.log('Could not fetch activities:', e);
+        console.error('Live Feed Error:', e);
     } finally {
         ACTIVITY_STATE.isLoading = false;
     }
 }
-
 function startActivityAutoRefresh() {
     if (ACTIVITY_STATE.autoRefreshInterval) {
         clearInterval(ACTIVITY_STATE.autoRefreshInterval);
