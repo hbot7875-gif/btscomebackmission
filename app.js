@@ -5418,6 +5418,7 @@ const quickStatsEl = document.querySelector('.quick-stats-section');
    
     
     startBTSCountdown();
+    updateActivityFeedUI();
 }
         
         // Album goals and 2x status
