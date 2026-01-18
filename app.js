@@ -11829,33 +11829,46 @@ function renderBadgeHTML(badge) {
 }
 // ==================== NAMJOON'S BRAIN (STRATEGY CENTER) ====================
 
+// 1. Main Render Function
 async function renderNamjoonBrain() {
-    // 1. Define the Container ID (Must match the HTML structure)
+    const pageId = 'page-namjoon'; // Must match ROUTES ID
     const contentId = 'namjoon-content';
-    const pageId = 'page-namjoon'; // ⚠️ CRITICAL: MUST MATCH ROUTE ID
     
-    let container = document.getElementById(contentId);
+    // --- A. Dynamic HTML Injection ---
+    // Check if the page section exists in the DOM. If not, create it.
+    let pageSection = document.getElementById(pageId);
     
-    // 2. Create Page if it doesn't exist
-    if (!container) {
+    if (!pageSection) {
         const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
         if (mainContent) {
-            const page = document.createElement('section');
-            page.id = pageId; 
-            page.className = 'page'; // Router will add 'active' class
-            page.innerHTML = `<div id="${contentId}"></div>`;
-            mainContent.appendChild(page);
-            container = document.getElementById(contentId);
-        } else {
-            console.error("Main content wrapper not found!");
-            return;
+            pageSection = document.createElement('section');
+            pageSection.id = pageId;
+            pageSection.className = 'page'; // Router will handle adding 'active' class
+            pageSection.innerHTML = `<div id="${contentId}"></div>`;
+            mainContent.appendChild(pageSection);
+            
+            // Add specific CSS for this page dynamically
+            const style = document.createElement('style');
+            style.innerHTML = `
+                .todo-item { display: flex; align-items: center; gap: 15px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+                .todo-item:hover { background: rgba(255,255,255,0.08); }
+                .todo-item.checked { background: rgba(0, 255, 136, 0.1); opacity: 0.7; }
+                .todo-item .checkbox { width: 20px; height: 20px; border: 2px solid #7b2cbf; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: transparent; }
+                .todo-item.checked .checkbox { background: #00ff88; border-color: #00ff88; color: #000; }
+                .todo-item.checked .text { text-decoration: line-through; color: #888; }
+                input[type=range] { accent-color: #7b2cbf; width: 100%; height: 6px; background: #333; border-radius: 3px; }
+            `;
+            document.head.appendChild(style);
         }
     }
-    
-    // 3. Show Loading State
+
+    const container = document.getElementById(contentId);
+    if (!container) return;
+
+    // --- B. Loading State ---
     container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
 
-    // 4. Get Data
+    // --- C. Data Fetching ---
     const myTeam = STATE.data?.profile?.team;
     
     if (!myTeam) {
@@ -11869,9 +11882,8 @@ async function renderNamjoonBrain() {
             api('getAllAgents')
         ]);
 
+        // Logic: Calculate Gap
         const teamMembers = agentsData.agents ? agentsData.agents.filter(a => a.team === myTeam).length : 1;
-        
-        // Calculate Gaps
         const trackGoals = goalsData.trackGoals || {};
         let totalGoal = 0;
         let currentStreams = 0;
@@ -11883,187 +11895,200 @@ async function renderNamjoonBrain() {
 
         const remainingGap = Math.max(0, totalGoal - currentStreams);
         const daysRemaining = getDaysRemaining(STATE.week) || 1;
-        
-        // 5. Render Content
+
+        // --- D. The HTML Template ---
         container.innerHTML = `
-            <div class="card" style="background: linear-gradient(135deg, #2c3e50, #000000); border: 1px solid #7b2cbf; margin-bottom: 20px;">
+            <!-- Strategy Card -->
+            <div class="card" style="background: linear-gradient(135deg, #1e2a3a, #0a0a0f); border: 1px solid #7b2cbf; margin-bottom: 20px;">
                 <div class="card-body" style="padding: 20px;">
                     <div style="display:flex; gap: 15px; align-items:center; margin-bottom: 20px;">
-                        <div style="width:60px; height:60px; border-radius:50%; background: #fff; overflow:hidden; border: 2px solid #7b2cbf; display:flex; align-items:center; justify-content:center; font-size:30px;">
-                            🧠
-                        </div>
+                        <div style="width:50px; height:50px; border-radius:50%; background: #fff; border: 2px solid #7b2cbf; display:flex; align-items:center; justify-content:center; font-size:24px;">🧠</div>
                         <div>
-                            <h2 style="margin:0; color:#fff; font-family: monospace; font-size: 18px;">NAMJOON'S BRAIN</h2>
-                            <p style="margin:0; color:#aaa; font-size:12px;">Strategic Analysis • IQ 148 Mode</p>
+                            <h2 style="margin:0; color:#fff; font-size: 18px;">NAMJOON'S BRAIN</h2>
+                            <p style="margin:0; color:#aaa; font-size:12px;">Strategic Analysis Tool</p>
                         </div>
                     </div>
 
-                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px; font-family: monospace;">
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                            <span style="color:#aaa; font-size:12px;">Team Gap</span>
-                            <span style="color:#ff6b6b; font-weight:bold;">${fmt(remainingGap)} streams</span>
+                            <span style="color:#aaa;">GAP</span>
+                            <span style="color:#ff6b6b;">${fmt(remainingGap)}</span>
                         </div>
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                            <span style="color:#aaa; font-size:12px;">Days Remaining</span>
-                            <span style="color:#ffd700; font-weight:bold;">${daysRemaining} days</span>
+                            <span style="color:#aaa;">TIME</span>
+                            <span style="color:#ffd700;">${daysRemaining} Days</span>
                         </div>
                         <div style="display:flex; justify-content:space-between;">
-                            <span style="color:#aaa; font-size:12px;">Total Agents</span>
-                            <span style="color:${teamColor(myTeam)}; font-weight:bold;">${teamMembers} agents</span>
+                            <span style="color:#aaa;">TEAM</span>
+                            <span style="color:#7b2cbf;">${teamMembers} Agents</span>
                         </div>
                     </div>
 
+                    <!-- Slider Section -->
                     <div style="margin-bottom: 25px;">
                         <label style="color:#fff; font-size:13px; display:block; margin-bottom:10px;">
-                            📉 Participation Rate: <span id="slider-val" style="color:#7b2cbf;">50%</span>
+                            📉 Team Participation: <span id="slider-val" style="color:#7b2cbf; font-weight:bold;">50%</span>
                         </label>
-                        <input type="range" id="active-agents-slider" min="10" max="100" value="50" style="width:100%; accent-color: #7b2cbf;">
-                        <p style="font-size:10px; color:#666; margin-top:5px;">Adjust if fewer people are helping.</p>
+                        <input type="range" id="active-agents-slider" min="1" max="100" value="50">
+                        <p style="font-size:10px; color:#666; margin-top:5px;">Adjust this based on how many people you think are actually streaming.</p>
                     </div>
 
-                    <div style="text-align:center; margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 12px;">
-                        <p style="color:#aaa; font-size:12px; margin-bottom:5px;">YOUR DAILY TARGET</p>
-                        <div id="calculated-target" style="font-size: 42px; font-weight: 800; color: #00ff88; text-shadow: 0 0 20px rgba(0,255,136,0.3);">0</div>
-                        <p style="color:#fff; font-size:14px;">Streams / Day</p>
+                    <!-- Calculation Result -->
+                    <div style="text-align:center; margin-bottom: 20px;">
+                        <p style="color:#aaa; font-size:11px; margin-bottom:5px;">YOUR DAILY TARGET</p>
+                        <div id="calculated-target" style="font-size: 48px; font-weight: 800; color: #00ff88; text-shadow: 0 0 20px rgba(0,255,136,0.2);">0</div>
+                        <p style="color:#fff; font-size:13px;">Streams / Day</p>
                     </div>
 
-                    <button onclick="generateToDoList()" class="btn-primary" style="width:100%;">
-                        📝 Create Checklist
+                    <button id="generate-btn" class="btn-primary" style="width:100%;">
+                        📝 Generate Checklist
                     </button>
                 </div>
             </div>
 
-            <div id="namjoon-todo-container" style="display:none;">
+            <!-- Checklist Container -->
+            <div id="namjoon-todo-container" style="display:none; animation: slideUp 0.3s ease;">
                 <div class="card">
                     <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
                         <h3>✅ Daily Plan</h3>
-                        <button onclick="clearNamjoonList()" style="background:none; border:none; color:#ff6b6b; font-size:12px;">Reset</button>
+                        <button id="reset-list-btn" style="background:none; border:none; color:#ff6b6b; font-size:12px; cursor:pointer;">Reset</button>
                     </div>
-                    <div class="card-body" id="namjoon-checklist" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    <div class="card-body" id="namjoon-checklist"></div>
+                    <div class="card-footer" style="padding:15px; text-align:center; border-top:1px solid rgba(255,255,255,0.05);">
+                        <small style="color:#666;">"Future's gonna be okay" - D-Day</small>
+                    </div>
                 </div>
             </div>
         `;
 
-        // 6. Attach Logic
+        // --- E. Attach Event Listeners & Logic ---
+        
         const slider = document.getElementById('active-agents-slider');
         const display = document.getElementById('slider-val');
         const resultDisplay = document.getElementById('calculated-target');
+        const generateBtn = document.getElementById('generate-btn');
+        const resetBtn = document.getElementById('reset-list-btn');
 
-        function calculate() {
+        // Calculation Function
+        function updateCalculation() {
             const percentage = parseInt(slider.value) / 100;
             display.textContent = slider.value + '%';
+            
+            // Logic: Remaining / (Team * Participation) / Days
             const activeAgents = Math.max(1, Math.floor(teamMembers * percentage));
             const streamsPerAgentTotal = remainingGap / activeAgents;
             const streamsPerDay = Math.ceil(streamsPerAgentTotal / Math.max(1, daysRemaining));
             
             resultDisplay.textContent = fmt(streamsPerDay);
-            window.currentDailyTarget = streamsPerDay;
+            // Store for checklist generation
+            slider.dataset.target = streamsPerDay;
         }
 
-        slider.addEventListener('input', calculate);
-        calculate(); 
-        loadNamjoonList();
+        // Checklist Generation Function
+        function createChecklist() {
+            const target = parseInt(slider.dataset.target) || 20;
+            const listContainer = document.getElementById('namjoon-todo-container');
+            const listBody = document.getElementById('namjoon-checklist');
+            
+            listContainer.style.display = 'block';
+            
+            // Break target into chunks of 10
+            const chunkSize = 10;
+            const chunks = Math.ceil(target / chunkSize);
+            let html = '';
+            
+            for(let i=0; i<chunks; i++) {
+                const amount = (i === chunks-1 && target % chunkSize !== 0) ? target % chunkSize : chunkSize;
+                // Add unique ID for saving state
+                const id = `todo-${STATE.agentNo}-${new Date().getDate()}-${i}`;
+                
+                html += `
+                    <div class="todo-item" id="${id}" onclick="toggleNamjoonItem('${id}')">
+                        <div class="checkbox">✓</div>
+                        <div class="text" style="flex:1; color:#fff;">Stream ${amount} Tracks</div>
+                        <div style="font-size:10px; color:#666;">Set ${i+1}</div>
+                    </div>
+                `;
+            }
+            
+            listBody.innerHTML = html;
+            
+            // Restore saved state
+            loadChecklistState();
+            
+            listContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Event Bindings
+        slider.addEventListener('input', updateCalculation);
+        generateBtn.addEventListener('click', createChecklist);
+        resetBtn.addEventListener('click', () => {
+            if(confirm('Reset today\'s checklist?')) {
+                document.getElementById('namjoon-todo-container').style.display = 'none';
+                localStorage.removeItem(`namjoon_state_${STATE.agentNo}`);
+            }
+        });
+
+        // Initialize Calculation
+        updateCalculation();
+        
+        // Check if we have a saved list to show immediately
+        if (localStorage.getItem(`namjoon_state_${STATE.agentNo}`)) {
+             // Create checklist with saved target or default
+             createChecklist(); 
+        }
 
     } catch (e) {
         console.error(e);
-        container.innerHTML = `<div class="card"><div class="card-body error-text">Could not load strategy.<br>${e.message}</div></div>`;
+        container.innerHTML = `<div class="card"><div class="card-body error-text">Error loading Strategy Center.<br>${e.message}</div></div>`;
     }
 }
 
-// Helper: Generate Checklist
-window.generateToDoList = function() {
-    const target = window.currentDailyTarget || 20;
-    const container = document.getElementById('namjoon-todo-container');
-    const list = document.getElementById('namjoon-checklist');
-    
-    container.style.display = 'block';
-    container.scrollIntoView({ behavior: 'smooth' });
-    
-    // Break down into chunks of 5 or 10 streams
-    const chunkSize = target > 50 ? 10 : 5;
-    const chunks = Math.ceil(target / chunkSize);
-    
-    let html = '';
-    const dateStr = new Date().toDateString(); // Reset key daily
-    
-    for(let i=0; i<chunks; i++) {
-        const amount = (i === chunks-1) ? target - (i*chunkSize) : chunkSize;
-        html += `
-            <div class="todo-item" onclick="toggleTodo(this, ${i})" data-id="${dateStr}_${i}" style="
-                display:flex; align-items:center; gap:15px; padding:12px; 
-                background:rgba(255,255,255,0.05); border-bottom:1px solid rgba(255,255,255,0.05); 
-                cursor:pointer; transition:all 0.2s;">
-                <div class="checkbox" style="
-                    width:24px; height:24px; border:2px solid #7b2cbf; border-radius:6px; 
-                    display:flex; align-items:center; justify-content:center; color:transparent;">
-                    ✓
-                </div>
-                <div style="flex:1;">
-                    <div style="color:#fff; font-weight:bold;">Stream ${amount} Tracks</div>
-                    <div style="color:#888; font-size:11px;">Part ${i+1}/${chunks}</div>
-                </div>
-            </div>
-        `;
-    }
-    
-    list.innerHTML = html;
-    
-    // Add simple CSS for checked state
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .todo-item.checked { background: rgba(0,255,136,0.1) !important; }
-        .todo-item.checked .checkbox { background: #00ff88; border-color: #00ff88; color: #000 !important; }
-        .todo-item.checked div { text-decoration: line-through; opacity: 0.6; }
-    `;
-    document.body.appendChild(style);
-};
+// 2. Helper Functions (Global)
 
-window.toggleTodo = function(el, id) {
-    el.classList.toggle('checked');
-    saveNamjoonList();
+window.toggleNamjoonItem = function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
     
-    // Sound effect or vibration
-    if(el.classList.contains('checked') && navigator.vibrate) {
+    el.classList.toggle('checked');
+    
+    // Vibration effect
+    if (el.classList.contains('checked') && navigator.vibrate) {
         navigator.vibrate(50);
     }
-};
-
-window.saveNamjoonList = function() {
-    const list = document.getElementById('namjoon-checklist');
-    if(!list) return;
-    localStorage.setItem('namjoon_brain_html_' + STATE.agentNo, list.innerHTML);
-    localStorage.setItem('namjoon_brain_date', new Date().toDateString());
-    document.getElementById('namjoon-todo-container').style.display = 'block';
-};
-
-window.loadNamjoonList = function() {
-    const savedDate = localStorage.getItem('namjoon_brain_date');
-    const today = new Date().toDateString();
     
-    if (savedDate === today) {
-        const savedHtml = localStorage.getItem('namjoon_brain_html_' + STATE.agentNo);
-        if (savedHtml) {
-            document.getElementById('namjoon-checklist').innerHTML = savedHtml;
-            document.getElementById('namjoon-todo-container').style.display = 'block';
-            
-            // Re-attach click listeners (since innerHTML kills them)
-            document.querySelectorAll('.todo-item').forEach((el, index) => {
-                el.onclick = function() { window.toggleTodo(this, index); };
-            });
-        }
-    } else {
-        // New day, clear old list
-        localStorage.removeItem('namjoon_brain_html_' + STATE.agentNo);
-    }
+    saveChecklistState();
 };
 
-window.clearNamjoonList = function() {
-    if(confirm('Clear today\'s plan?')) {
-        document.getElementById('namjoon-checklist').innerHTML = '';
-        document.getElementById('namjoon-todo-container').style.display = 'none';
-        localStorage.removeItem('namjoon_brain_html_' + STATE.agentNo);
-    }
-};
+function saveChecklistState() {
+    const container = document.getElementById('namjoon-checklist');
+    if (!container) return;
+    
+    const items = [];
+    container.querySelectorAll('.todo-item').forEach(el => {
+        items.push({
+            id: el.id,
+            checked: el.classList.contains('checked')
+        });
+    });
+    
+    localStorage.setItem(`namjoon_state_${STATE.agentNo}`, JSON.stringify(items));
+}
+
+function loadChecklistState() {
+    const saved = localStorage.getItem(`namjoon_state_${STATE.agentNo}`);
+    if (!saved) return;
+    
+    try {
+        const items = JSON.parse(saved);
+        items.forEach(item => {
+            const el = document.getElementById(item.id);
+            if (el && item.checked) {
+                el.classList.add('checked');
+            }
+        });
+    } catch (e) { console.log('Error loading saved state'); }
+}
 
 
 // ==================== EXPORTS & INIT ====================
