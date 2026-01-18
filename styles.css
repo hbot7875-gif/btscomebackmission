@@ -2057,49 +2057,52 @@ img {
     background: linear-gradient(90deg, rgba(123, 44, 191, 0.2), rgba(123, 44, 191, 0.05));
 }
 
-/* Rank Number Circle */
+/* ==================== RANKING BADGES (TRANSPARENT GLASS) ==================== */
+
+/* Default Rank Number (Gray) */
 .rank-num {
     width: 32px !important;
     height: 32px !important;
-    min-width: 32px !important; /* Prevents squishing */
-    border-radius: 50% !important; /* Forces perfect circle */
-    
+    min-width: 32px !important;
+    border-radius: 50% !important;
     display: flex !important;
     align-items: center;
     justify-content: center;
-    
     font-weight: 700;
-    font-size: 12px;
+    font-size: 13px;
     flex-shrink: 0;
     
-    /* Default style for Rank 4+ */
-    background: rgba(255, 255, 255, 0.05); 
-    color: #888;
+    /* Transparent Glass Style */
+    background: rgba(255, 255, 255, 0.03); 
     border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #888;
 }
 
-/* 🥇 Rank 1: Transparent Gold Glow */
+/* 🥇 Rank 1: Gold Glass */
 .rank-num.rank-1 {
-    background: rgba(255, 215, 0, 0.15) !important; /* See-through */
+    background: rgba(255, 215, 0, 0.1) !important;
     border: 1px solid #FFD700 !important;
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
-    font-size: 20px; /* Make emoji bigger */
+    color: #FFD700 !important;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+    font-size: 15px;
 }
 
-/* 🥈 Rank 2: Transparent Silver Glow */
+/* 🥈 Rank 2: Silver Glass */
 .rank-num.rank-2 {
-    background: rgba(224, 224, 224, 0.15) !important;
+    background: rgba(224, 224, 224, 0.1) !important;
     border: 1px solid #E0E0E0 !important;
-    box-shadow: 0 0 10px rgba(224, 224, 224, 0.2);
-    font-size: 18px;
+    color: #E0E0E0 !important;
+    box-shadow: 0 0 15px rgba(224, 224, 224, 0.15);
+    font-size: 14px;
 }
 
-/* 🥉 Rank 3: Transparent Bronze Glow */
+/* 🥉 Rank 3: Bronze Glass */
 .rank-num.rank-3 {
-    background: rgba(205, 127, 50, 0.15) !important;
+    background: rgba(205, 127, 50, 0.1) !important;
     border: 1px solid #CD7F32 !important;
-    box-shadow: 0 0 10px rgba(205, 127, 50, 0.2);
-    font-size: 18px;
+    color: #CD7F32 !important;
+    box-shadow: 0 0 15px rgba(205, 127, 50, 0.15);
+    font-size: 14px;
 }
 .rank-info {
     flex: 1;
