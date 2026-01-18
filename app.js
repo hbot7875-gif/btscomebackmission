@@ -9156,12 +9156,11 @@ async function renderPlaylists() {
         </div>
     `;
 
-    // --- 2. EXISTING CONTENT + LIST CONTAINER ---
+        // --- 2. CONTAINER ---
     container.innerHTML = `
         ${renderGuide('playlists')}
         ${makerPanelHTML}
-        
-        <!-- Existing Request System -->
+        <!-- Request Button -->
         <div class="card" style="background: linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(123, 44, 191, 0.05)); border: 1px solid rgba(0, 255, 136, 0.3); margin-bottom: 20px;">
             <div class="card-header"><h3 style="margin:0;">📝 Request a Playlist</h3></div>
             <div class="card-body" style="padding: 20px; text-align: center;">
@@ -9170,7 +9169,7 @@ async function renderPlaylists() {
             </div>
         </div>
 
-        <!-- Official Playlists List -->
+        <!-- LIST -->
         <div class="card">
             <div class="card-header"><h3>🎵 Official Playlists</h3></div>
             <div class="card-body">
@@ -9181,33 +9180,30 @@ async function renderPlaylists() {
         </div>
     `;
 
-    // --- 3. FETCH AND RENDER LIST ---
+    // --- 3. FETCH AND RENDER ---
     try {
         const data = await api('getPlaylists');
         const playlists = data.playlists || [];
         const listEl = $('playlists-list');
         
         if (playlists.length) {
-            // Sort: Newest first
             playlists.reverse(); 
             
             listEl.innerHTML = playlists.map(pl => {
-                // Ensure we use the correct property names from your backend/excel
-                // Excel: Name, Link, Platform, Type, Team
-                const link = pl.link || pl.url || '#'; 
-                const name = pl.name || 'Untitled Playlist';
-                const platform = pl.platform || 'Spotify';
-                const team = pl.team || 'All';
-                const type = pl.type || 'Playlist';
-
+                // Determine icon based on platform
+                const icon = getPlaylistIcon(pl.platform); 
+                
                 return `
                 <div class="playlist-card" style="background: linear-gradient(135deg, #1a1a2e, #16213e); border: 1px solid rgba(123, 44, 191, 0.3); border-radius: 12px; padding: 15px;">
-                    <a href="${sanitize(link)}" target="_blank" style="display: flex; align-items: center; gap: 15px; text-decoration: none; color: inherit;">
-                        <span style="font-size: 24px;">${getPlaylistIcon(platform)}</span>
+                    <a href="${sanitize(pl.link)}" target="_blank" style="display: flex; align-items: center; gap: 15px; text-decoration: none; color: inherit;">
+                        <span style="font-size: 24px;">${icon}</span>
                         <div style="flex: 1;">
-                            <div style="color: #fff; font-size: 14px; font-weight: 600;">${sanitize(name)}</div>
-                            <div style="color: #888; font-size: 11px; margin-top: 3px;">
-                                ${sanitize(platform)} • ${sanitize(type)} • <span style="color:${teamColor(team)}">${sanitize(team)}</span>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                ${pl.week ? `<span style="background:rgba(123,44,191,0.3); color:#d4a5ff; font-size:10px; padding:2px 6px; border-radius:4px; border:1px solid rgba(123,44,191,0.5);">${sanitize(pl.week)}</span>` : ''}
+                                <div style="color: #fff; font-size: 14px; font-weight: 600;">${sanitize(pl.name)}</div>
+                            </div>
+                            <div style="color: #888; font-size: 11px;">
+                                ${sanitize(pl.platform)} • ${sanitize(pl.type)} • <span style="color:${teamColor(pl.team)}">${sanitize(pl.team)}</span>
                             </div>
                         </div>
                         <span style="color: #7b2cbf; font-size: 18px;">→</span>
@@ -9217,6 +9213,11 @@ async function renderPlaylists() {
         } else {
             listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#888;">No playlists found.</div>`;
         }
+    } catch (e) {
+        console.error(e);
+        $('playlists-list').innerHTML = `<p style="color:red; text-align:center;">Failed to load playlists.</p>`;
+    }
+}
         
         // Update notification state
         if (typeof STATE !== 'undefined' && STATE.lastChecked) {
