@@ -6955,51 +6955,76 @@ async function renderAlbum2x() {
     `;
 }
 // ==================== RANKINGS ====================
+
 async function renderRankings() {
-    const container = $('rankings-list');
+    const container = document.getElementById('rankings-list');
     if (!container) return;
+    
     const myTeam = STATE.data?.profile?.team || 'Team';
     const tColor = teamColor(myTeam);
     
     container.innerHTML = `
         ${renderGuide('rankings')}
-        <div class="ranking-tabs">
-            <button id="rank-tab-overall" class="ranking-tab active">🏆 Overall</button>
-            <button id="rank-tab-team" class="ranking-tab" style="--team-color: ${tColor};">${myTeam}</button>
+        <div class="ranking-tabs" style="display:flex;gap:10px;margin-bottom:20px;">
+            <button id="rank-tab-overall" class="filter-btn active" style="flex:1;">🏆 Overall</button>
+            <button id="rank-tab-team" class="filter-btn" style="flex:1;border-color:${tColor};color:${tColor};">${sanitize(myTeam)}</button>
         </div>
         <div id="rankings-content-container">
             <div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
         </div>
     `;
     
-    $('rank-tab-overall').onclick = () => switchRankingTab('overall');
-    $('rank-tab-team').onclick = () => switchRankingTab('team');
+    document.getElementById('rank-tab-overall').onclick = () => switchRankingTab('overall');
+    document.getElementById('rank-tab-team').onclick = () => switchRankingTab('team');
+    
+    // Load initial view
     await renderOverallRankings();
 }
 
 async function switchRankingTab(tab) {
-    const overallTab = $('rank-tab-overall');
-    const teamTab = $('rank-tab-team');
-    const contentContainer = $('rankings-content-container');
+    const overallTab = document.getElementById('rank-tab-overall');
+    const teamTab = document.getElementById('rank-tab-team');
+    const contentContainer = document.getElementById('rankings-content-container');
+    
     if (!overallTab || !teamTab || !contentContainer) return;
+    
+    // Update tabs
+    if (tab === 'overall') { 
+        overallTab.classList.add('active'); 
+        overallTab.style.background = '#9d4edd';
+        overallTab.style.color = '#fff';
+        
+        teamTab.classList.remove('active'); 
+        teamTab.style.background = 'transparent';
+    } else { 
+        overallTab.classList.remove('active'); 
+        overallTab.style.background = 'transparent';
+        
+        teamTab.classList.add('active'); 
+        const myTeam = STATE.data?.profile?.team;
+        const tColor = teamColor(myTeam);
+        teamTab.style.background = tColor + '22'; // low opacity background
+    }
     
     contentContainer.innerHTML = `<div class="loading-skeleton"><div class="skeleton-card"></div></div>`;
     loading(true);
     
-    if (tab === 'overall') { 
-        overallTab.classList.add('active'); 
-        teamTab.classList.remove('active'); 
-        await renderOverallRankings(); 
-    } else { 
-        overallTab.classList.remove('active'); 
-        teamTab.classList.add('active'); 
-        await renderMyTeamRankings(); 
+    try {
+        if (tab === 'overall') { 
+            await renderOverallRankings(); 
+        } else { 
+            await renderMyTeamRankings(); 
+        }
+    } catch (e) {
+        console.error(e);
+        contentContainer.innerHTML = '<p class="error-text">Failed to load rankings</p>';
+    } finally {
+        loading(false);
     }
-    loading(false);
 }
 
 async function renderOverallRankings() {
-    const container = $('rankings-content-container');
+    const container = document.getElementById('rankings-content-container');
     if (!container) return;
     
     try {
@@ -7007,7 +7032,7 @@ async function renderOverallRankings() {
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
         
         if (!data.rankings || data.rankings.length === 0) {
-            container.innerHTML = '<div class="empty-state">No rankings available</div>';
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">📉</div><p>No ranking data available</p></div>';
             return;
         }
 
@@ -7016,38 +7041,36 @@ async function renderOverallRankings() {
             const tColor = teamColor(r.team);
             
             // Medals for Top 3
-            let rankDisplay = i + 1;
-            if (i === 0) rankDisplay = '🥇';
-            if (i === 1) rankDisplay = '🥈';
-            if (i === 2) rankDisplay = '🥉';
+            let rankDisplay = `<div class="rank-num">${i + 1}</div>`;
+            if (i === 0) rankDisplay = `<div class="rank-num" style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#000;font-size:18px;">🥇</div>`;
+            if (i === 1) rankDisplay = `<div class="rank-num" style="background:linear-gradient(135deg,#C0C0C0,#E0E0E0);color:#000;font-size:16px;">🥈</div>`;
+            if (i === 2) rankDisplay = `<div class="rank-num" style="background:linear-gradient(135deg,#CD7F32,#DA8A67);color:#000;font-size:16px;">🥉</div>`;
 
             return `
-            <div class="rank-item ${isMe ? 'highlight' : ''}" style="border-left: 3px solid ${tColor};">
-                <!-- Rank Number -->
-                <div class="rank-num">${rankDisplay}</div>
+            <div class="rank-item ${isMe ? 'highlight' : ''}" style="border-left: 3px solid ${tColor};" onclick="viewAgentProfile('${r.agentNo}')">
+                ${rankDisplay}
                 
-                <!-- Info -->
                 <div class="rank-info">
                     <div class="rank-name">
                         ${sanitize(r.name)}
                         ${isMe ? '<span class="you-badge">YOU</span>' : ''}
                     </div>
                     <div class="rank-team" style="color: ${tColor};">
-                        ${r.team.replace('Team ', '')}
+                        ${r.team ? r.team.replace('Team ', '') : 'Agent'}
                     </div>
                 </div>
                 
-                <!-- XP -->
                 <div class="rank-xp">${fmt(r.totalXP)} XP</div>
             </div>
             `;
         }).join('');
         
         container.innerHTML = `
-            <div class="rankings-header">
+            <div class="rankings-header" style="display:flex;justify-content:space-between;padding:0 5px;margin-bottom:10px;">
                 <span class="week-badge">${STATE.week}</span>
+                <span style="font-size:11px;color:#888;">Top 100</span>
             </div>
-            ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
+            ${STATE.lastUpdated ? `<div class="last-updated-banner" style="font-size:10px;text-align:center;color:#666;margin-bottom:15px;">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
             <div class="rankings-list">
                 ${rankingsHtml}
             </div>
@@ -7058,29 +7081,34 @@ async function renderOverallRankings() {
         container.innerHTML = '<p class="error-text">Failed to load overall rankings</p>'; 
     }
 }
+
 async function renderMyTeamRankings() {
     const container = document.getElementById('rankings-content-container');
     if (!container) return;
     
     const myTeam = STATE.data?.profile?.team;
     if (!myTeam) { 
-        container.innerHTML = '<p class="error-text">Could not identify your team.</p>'; 
+        container.innerHTML = '<div class="card"><div class="card-body error-text">Could not identify your team. Try re-logging in.</div></div>'; 
         return; 
     }
     
     try {
-        // Fetch global rankings
+        // ✅ FETCH GLOBAL RANKINGS (Limit 1000 to get everyone)
+        // This ensures the numbers match the overall list exactly
         const data = await api('getRankings', { week: STATE.week, limit: 1000 });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
         
-        // Filter for my team
-        const teamMembers = (data.rankings || []).filter(r => r.team === myTeam);
+        // Filter for my team members
+        // Safer check: handle nulls and trim spaces
+        const teamMembers = (data.rankings || []).filter(r => 
+            r.team && r.team.trim() === myTeam.trim()
+        );
         
-        // Sort by XP
-        teamMembers.sort((a, b) => b.totalXP - a.totalXP);
+        // Sort by Total XP (Highest to Lowest)
+        teamMembers.sort((a, b) => (b.totalXP || 0) - (a.totalXP || 0));
         
         if (teamMembers.length === 0) {
-            container.innerHTML = '<div class="empty-state">No team data available</div>';
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><p>No team data available yet</p></div>';
             return;
         }
 
@@ -7088,18 +7116,16 @@ async function renderMyTeamRankings() {
             const isMe = String(r.agentNo) === String(STATE.agentNo);
             const tColor = teamColor(myTeam);
             
-            // Medals for Top 3
-            let rankDisplay = i + 1;
-            if (i === 0) rankDisplay = '🥇';
-            if (i === 1) rankDisplay = '🥈';
-            if (i === 2) rankDisplay = '🥉';
+            // Medals for Top 3 (Internal Team Rank)
+            let rankBadge = `<div class="rank-num">${i + 1}</div>`;
+            if (i === 0) rankBadge = `<div class="rank-num" style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#000;font-size:18px;">🥇</div>`;
+            if (i === 1) rankBadge = `<div class="rank-num" style="background:linear-gradient(135deg,#C0C0C0,#E0E0E0);color:#000;font-size:16px;">🥈</div>`;
+            if (i === 2) rankBadge = `<div class="rank-num" style="background:linear-gradient(135deg,#CD7F32,#DA8A67);color:#000;font-size:16px;">🥉</div>`;
 
             return `
             <div class="rank-item ${isMe ? 'highlight' : ''}" style="border-left: 3px solid ${tColor};">
-                <!-- Rank Number -->
-                <div class="rank-num">${rankDisplay}</div>
+                ${rankBadge}
                 
-                <!-- Info Section -->
                 <div class="rank-info">
                     <div class="rank-name">
                         ${sanitize(r.name)}
@@ -7110,19 +7136,18 @@ async function renderMyTeamRankings() {
                     </div>
                 </div>
                 
-                <!-- XP -->
                 <div class="rank-xp">${fmt(r.totalXP)} XP</div>
             </div>
             `;
         }).join('');
         
         container.innerHTML = `
-            <div class="rankings-header" style="display:flex;justify-content:center;margin-bottom:15px;">
+            <div class="rankings-header" style="text-align:center;margin-bottom:15px;">
                 <span class="week-badge" style="background-color: ${teamColor(myTeam)}22; color: ${teamColor(myTeam)}; border: 1px solid ${teamColor(myTeam)};">
                     ${myTeam} Leaderboard
                 </span>
             </div>
-            ${STATE.lastUpdated ? `<div class="last-updated-banner" style="font-size:10px;text-align:center;color:#666;margin-bottom:10px;">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
+            ${STATE.lastUpdated ? `<div class="last-updated-banner" style="font-size:10px;text-align:center;color:#666;margin-bottom:15px;">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
             <div class="rankings-list">
                 ${rankingsHtml}
             </div>
@@ -7130,10 +7155,9 @@ async function renderMyTeamRankings() {
         
     } catch (e) { 
         console.error('Team Rankings Error:', e);
-        container.innerHTML = '<p class="error-text">Failed to load team rankings.</p>'; 
+        container.innerHTML = `<div class="card"><div class="card-body error-text">Failed to load team rankings: ${e.message}</div></div>`; 
     }
 }
-
 // ==================== TEAM LEVEL (FIXED - WINNER ONLY AFTER ADMIN APPROVAL) ====================
 async function renderTeamLevel() {
     const container = $('team-level-content');
