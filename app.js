@@ -5510,30 +5510,44 @@ if (missionCardsContainer) {
     `;
 }
         
-        // Top Agents Rankings
+        // Top Agents Rankings (Home Page)
         const rankList = rankings.rankings || [];
         const topAgentsEl = document.getElementById('home-top-agents');
         
         if (topAgentsEl) {
             topAgentsEl.innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => {
-                // Determine styling class based on rank position
+                const isMe = String(r.agentNo) === String(STATE.agentNo);
+                const tColor = teamColor(r.team);
+                
+                // Medals for Top 3 (Matches Rankings Page)
                 let rankClass = '';
-                if (i === 0) rankClass = 'rank-1';
-                else if (i === 1) rankClass = 'rank-2';
-                else if (i === 2) rankClass = 'rank-3';
+                let rankContent = i + 1;
+                
+                if (i === 0) { rankClass = 'rank-1'; rankContent = '🥇'; }
+                else if (i === 1) { rankClass = 'rank-2'; rankContent = '🥈'; }
+                else if (i === 2) { rankClass = 'rank-3'; rankContent = '🥉'; }
 
                 return `
-                <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" onclick="loadPage('rankings')">
-                    <div class="rank-num ${rankClass}">${i + 1}</div>
+                <div class="rank-item ${isMe ? 'highlight' : ''}" 
+                     style="border-left: 3px solid ${tColor}; cursor:pointer;" 
+                     onclick="loadPage('rankings')">
+                     
+                    <div class="rank-num ${rankClass}">${rankContent}</div>
                     
                     <div class="rank-info">
-                        <div class="rank-name">${sanitize(r.name)}</div>
-                        <div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div>
+                        <div class="rank-name">
+                            ${sanitize(r.name)}
+                            ${isMe ? '<span class="you-badge">YOU</span>' : ''}
+                        </div>
+                        <div class="rank-team" style="color:${tColor}">
+                            ${r.team ? r.team.replace('Team ', '') : 'Agent'}
+                        </div>
                     </div>
                     
                     <div class="rank-xp">${fmt(r.totalXP)} XP</div>
                 </div>
-            `}).join('') : '<p class="empty-text">No data yet</p>';
+                `;
+            }).join('') : '<p class="empty-text">No data yet</p>';
         }
         
         // Team Standings
