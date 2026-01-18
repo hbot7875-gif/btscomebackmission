@@ -5250,55 +5250,33 @@ async function renderHome() {
     const weekEl = $('current-week');
     if (weekEl) weekEl.textContent = `Week: ${selectedWeek}`;
 
+    // Background load all weeks data if missing
     if (!STATE.allWeeksData) {
-        try {
-            STATE.allWeeksData = await api('getAllWeeksStats', { agentNo: STATE.agentNo });
-            console.log('Loaded allWeeksData for NY banner:', STATE.allWeeksData);
-        } catch (e) {
-            console.log('Could not load all weeks data:', e);
-        }
+        api('getAllWeeksStats', { agentNo: STATE.agentNo })
+            .then(res => STATE.allWeeksData = res)
+            .catch(e => console.log('Could not load all weeks data:', e));
     }
-    // Add this helper function
-function getCachedTopAgents() {
-    return STATE.dashboardCache?.topAgents || [];
-}
 
-function getCachedTeamComparison() {
-    return STATE.dashboardCache?.teamComparison || [];
-}
-
-function getCachedAnnouncements() {
-    return STATE.dashboardCache?.announcements || [];
-}
-    // BTS Countdown HTML
-    const btsCountdownHtml = renderBTSCountdown();
+    // Prepare static HTML components
+    const btsCountdownHtml = (typeof renderBTSCountdown === 'function') ? renderBTSCountdown() : '';
+    const guideHtml = (typeof renderGuide === 'function') ? renderGuide('home') : '';
     
-    // Guide HTML
-    const guideHtml = renderGuide('home');
-    
-    
-   
-
-const refreshNotice = `
-    <div style="
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 14px;
-        background: rgba(123,44,191,0.1);
-        border: 1px solid rgba(123,44,191,0.2);
-        border-radius: 10px;
-        margin-bottom: 16px;
-    ">
-        <span style="font-size: 16px;">⏰</span>
-        <div style="flex: 1;">
-            <span style="color: #fff; font-size: 12px;">Streams update hourly</span>
-            ${STATE.lastUpdated ? `<span style="color: #888; font-size: 11px;"> • Last: ${formatLastUpdated(STATE.lastUpdated)}</span>` : ''}
+    const refreshNotice = `
+        <div style="
+            display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+            background: rgba(123,44,191,0.08); border: 1px solid rgba(123,44,191,0.15);
+            border-radius: 10px; margin-bottom: 16px;
+        ">
+            <span style="font-size: 14px;">⏰</span>
+            <span style="color: #aaa; font-size: 12px;">
+                Streams update hourly
+                ${STATE.lastUpdated ? ` • Last: ${formatLastUpdated(STATE.lastUpdated)}` : ''}
+            </span>
         </div>
-    </div>
-`;
-    
+    `;
+
     try {
+        // 1. Fetch Data
         const [summary, rankings, goals] = await Promise.all([
             api('getWeeklySummary', { week: selectedWeek }), 
             api('getRankings', { week: selectedWeek, limit: 5 }), 
@@ -5317,74 +5295,16 @@ const refreshNotice = `
         const daysLeft = getDaysRemaining(selectedWeek);
         const agentName = STATE.data?.profile?.name || 'Agent';
         
-        // Calculate tip - Find track with lowest progress
-        const trackGoals = goals.trackGoals || {};
-        let lowestTrack = null;
-        let lowestProgress = 100;
-        
-        for (const [trackName, info] of Object.entries(trackGoals)) {
-            const tp = info.teams?.[team] || {};
-            const current = tp.current || 0;
-            const goal = info.goal || 1;
-            const progress = (current / goal) * 100;
-            
-            if (progress < 100 && progress < lowestProgress) {
-                lowestProgress = progress;
-                lowestTrack = {
-                    name: trackName,
-                    current: current,
-                    goal: goal,
-                    needed: Math.max(0, goal - current)
-                };
-            }
-        }
-        
-        // Tip HTML
-        const tipHtml = lowestTrack && !isCompleted ? `
-            <div class="home-tip">
-                <span class="home-tip-icon">💡</span>
-                <div class="home-tip-content">
-                    <div class="home-tip-label">TIP FOR ${sanitize(team)}</div>
-                    <div class="home-tip-text">
-                        Focus on <strong>${sanitize(lowestTrack.name)}</strong> 
-                        — need <strong class="text-success">${fmt(lowestTrack.needed)}</strong> more streams!
-                    </div>
-                </div>
-            </div>
-        ` : '';
-        
-        // In renderHome() - Find this section and replace it:
-
-// In renderHome() - Simplified quick stats:
-
-const quickStatsEl = document.querySelector('.quick-stats-section');
+        // 2. Render Quick Stats Section (Countdown, Streak, XP)
+        const quickStatsEl = document.querySelector('.quick-stats-section');
         if (quickStatsEl) {
-            const refreshNotice = `
-                <div style="
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    padding: 10px 14px;
-                    background: rgba(123,44,191,0.08);
-                    border: 1px solid rgba(123,44,191,0.15);
-                    border-radius: 10px;
-                    margin-bottom: 16px;
-                ">
-                    <span style="font-size: 14px;">⏰</span>
-                    <span style="color: #aaa; font-size: 12px;">
-                        Streams update hourly
-                        ${STATE.lastUpdated ? ` • Last: ${formatLastUpdated(STATE.lastUpdated)}` : ''}
-                    </span>
-                </div>
-            `;
-            
-            // ==================== MODIFIED: ADD STREAK & ACTIVITY WIDGETS ====================
+            const streakWidget = (typeof renderStreakWidget === 'function') ? renderStreakWidget() : '';
+            const activityWidget = (typeof renderActivityWidget === 'function') ? renderActivityWidget() : '';
+
             quickStatsEl.innerHTML = `
                 ${btsCountdownHtml}
                 ${refreshNotice}
-                
-                <!-- ✅ ADD STREAK WIDGET -->
-                ${renderStreakWidget()}
+                ${streakWidget}
                 
                 <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
                     <div class="card-body">
@@ -5415,102 +5335,85 @@ const quickStatsEl = document.querySelector('.quick-stats-section');
                         ${isCompleted ? `<div class="results-alert" onclick="loadPage('summary')">🏆 View Final Results →</div>` : ''}
                     </div>
                 </div>
-                
-                <!-- ✅ ADD ACTIVITY WIDGET -->
-                ${renderActivityWidget()}
+                ${activityWidget}
             `;
-   
-    
-    startBTSCountdown();
-    updateActivityFeedUI();
-}
-        
-        // Album goals and 2x status
+            
+            if (typeof startBTSCountdown === 'function') startBTSCountdown();
+            if (typeof updateActivityFeedUI === 'function') updateActivityFeedUI();
+        }
+
+        // 3. Render Mission Cards
+        const trackGoals = goals.trackGoals || {};
         const albumGoals = goals.albumGoals || {};
         const album2xStatus = STATE.data?.album2xStatus || {};
-        const teamTracks = CONFIG.TEAM_ALBUM_TRACKS[team] || [];
-        const tracksCompleted2x = teamTracks.filter(t => (album2xStatus.tracks?.[t] || 0) >= 2).length;
-        
-        // Goal lists
+        const allTeamTracks = (CONFIG.getTeamAlbumTracksForWeek) ? CONFIG.getTeamAlbumTracksForWeek(selectedWeek) : {};
+        const teamTracks = allTeamTracks[team] || [];
+        const tracksCompleted2x = teamTracks.filter(t => (album2xStatus.tracks?.[t] || 0) >= (CONFIG.ALBUM_CHALLENGE?.REQUIRED_STREAMS || 2)).length;
+
         const trackGoalsList = Object.entries(trackGoals).map(([trackName, info]) => {
             const tp = info.teams?.[team] || {};
-            return { 
-                name: trackName, 
-                current: tp.current || 0, 
-                goal: info.goal || 0, 
-                done: tp.status === 'Completed' || (tp.current || 0) >= (info.goal || 0) 
-            };
+            return { name: trackName, current: tp.current || 0, goal: info.goal || 0, done: tp.status === 'Completed' || (tp.current || 0) >= (info.goal || 0) };
         });
-        
+
         const albumGoalsList = Object.entries(albumGoals).map(([albumName, info]) => {
             const ap = info.teams?.[team] || {};
-            return { 
-                name: albumName, 
-                current: ap.current || 0, 
-                goal: info.goal || 0, 
-                done: ap.status === 'Completed' || (ap.current || 0) >= (info.goal || 0) 
-            };
+            return { name: albumName, current: ap.current || 0, goal: info.goal || 0, done: ap.status === 'Completed' || (ap.current || 0) >= (info.goal || 0) };
         });
-        
-        // Mission Cards
-        // In renderHome() - Find missionCardsContainer and replace with this:
 
-// In renderHome() - Replace the missionCardsContainer section with this:
-
-const missionCardsContainer = document.querySelector('.missions-grid');
-if (missionCardsContainer) {
-    missionCardsContainer.innerHTML = `
-        <div class="mission-card expanded" onclick="loadPage('goals')">
-            <div class="mission-icon">🎵</div>
-            <h3>Track Goals</h3>
-            <div class="mission-status ${teamData.trackGoalPassed ? 'complete' : ''}">
-                ${teamData.trackGoalPassed ? '✅ Complete' : '⏳ In Progress'}
-            </div>
-            <div class="goals-list">
-                ${trackGoalsList.length ? trackGoalsList.map(g => `
-                    <div class="goal-mini ${g.done ? 'done' : ''}">
-                        <span class="goal-name">${sanitize(g.name)}</span>
-                        <span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span>
+        const missionCardsContainer = document.querySelector('.missions-grid');
+        if (missionCardsContainer) {
+            missionCardsContainer.innerHTML = `
+                <div class="mission-card expanded" onclick="loadPage('goals')">
+                    <div class="mission-icon">🎵</div>
+                    <h3>Track Goals</h3>
+                    <div class="mission-status ${teamData.trackGoalPassed ? 'complete' : ''}">
+                        ${teamData.trackGoalPassed ? '✅ Complete' : '⏳ In Progress'}
                     </div>
-                `).join('') : '<p class="no-goals">No track goals</p>'}
-            </div>
-        </div>
-        
-        <div class="mission-card expanded" onclick="loadPage('goals')">
-            <div class="mission-icon">💿</div>
-            <h3>Album Goals</h3>
-            <div class="mission-status ${teamData.albumGoalPassed ? 'complete' : ''}">
-                ${teamData.albumGoalPassed ? '✅ Complete' : '⏳ In Progress'}
-            </div>
-            <div class="goals-list">
-                ${albumGoalsList.length ? albumGoalsList.map(g => `
-                    <div class="goal-mini ${g.done ? 'done' : ''}">
-                        <span class="goal-name">${sanitize(g.name)}</span>
-                        <span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span>
+                    <div class="goals-list">
+                        ${trackGoalsList.length ? trackGoalsList.map(g => `
+                            <div class="goal-mini ${g.done ? 'done' : ''}">
+                                <span class="goal-name">${sanitize(g.name)}</span>
+                                <span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span>
+                            </div>
+                        `).join('') : '<p class="no-goals">No track goals</p>'}
                     </div>
-                `).join('') : '<p class="no-goals">No album goals</p>'}
-            </div>
-        </div>
-        
-        <div class="mission-card" onclick="loadPage('album2x')">
-            <div class="mission-icon">✨</div>
-            <h3>Album 2X</h3>
-            <div class="mission-subtitle">${sanitize(CONFIG.TEAMS[team]?.album || team)}</div>
-            <div class="mission-status ${album2xStatus.passed ? 'complete' : ''}">
-                ${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}
-            </div>
-            <div class="mission-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" 
-                         style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div>
                 </div>
-                <span>${tracksCompleted2x}/${teamTracks.length} tracks</span>
-            </div>
-        </div>
-    `;
-}
+                
+                <div class="mission-card expanded" onclick="loadPage('goals')">
+                    <div class="mission-icon">💿</div>
+                    <h3>Album Goals</h3>
+                    <div class="mission-status ${teamData.albumGoalPassed ? 'complete' : ''}">
+                        ${teamData.albumGoalPassed ? '✅ Complete' : '⏳ In Progress'}
+                    </div>
+                    <div class="goals-list">
+                        ${albumGoalsList.length ? albumGoalsList.map(g => `
+                            <div class="goal-mini ${g.done ? 'done' : ''}">
+                                <span class="goal-name">${sanitize(g.name)}</span>
+                                <span class="goal-progress">${fmt(g.current)}/${fmt(g.goal)} ${g.done ? '✅' : ''}</span>
+                            </div>
+                        `).join('') : '<p class="no-goals">No album goals</p>'}
+                    </div>
+                </div>
+                
+                <div class="mission-card" onclick="loadPage('album2x')">
+                    <div class="mission-icon">✨</div>
+                    <h3>Album 2X</h3>
+                    <div class="mission-subtitle">${sanitize(CONFIG.TEAMS[team]?.album || team)}</div>
+                    <div class="mission-status ${album2xStatus.passed ? 'complete' : ''}">
+                        ${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}
+                    </div>
+                    <div class="mission-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill ${album2xStatus.passed ? 'complete' : ''}" 
+                                 style="width:${teamTracks.length ? (tracksCompleted2x/teamTracks.length*100) : 0}%"></div>
+                        </div>
+                        <span>${tracksCompleted2x}/${teamTracks.length} tracks</span>
+                    </div>
+                </div>
+            `;
+        }
         
-        // Top Agents Rankings (Home Page)
+        // 4. Render Top Agents (Updated with Medals and Styling)
         const rankList = rankings.rankings || [];
         const topAgentsEl = document.getElementById('home-top-agents');
         
@@ -5519,7 +5422,7 @@ if (missionCardsContainer) {
                 const isMe = String(r.agentNo) === String(STATE.agentNo);
                 const tColor = teamColor(r.team);
                 
-                // Medals for Top 3 (Matches Rankings Page)
+                // Medals for Top 3
                 let rankClass = '';
                 let rankContent = i + 1;
                 
@@ -5550,12 +5453,11 @@ if (missionCardsContainer) {
             }).join('') : '<p class="empty-text">No data yet</p>';
         }
         
-        // Team Standings
+        // 5. Render Standings
         const sortedTeams = Object.keys(summary.teams || {}).sort((a, b) => 
             (summary.teams[b].teamXP || 0) - (summary.teams[a].teamXP || 0)
         );
-        
-        const standingsEl = $('home-standings');
+        const standingsEl = document.getElementById('home-standings');
         if (standingsEl) {
             standingsEl.innerHTML = sortedTeams.length ? `
                 <div class="standings-header">
@@ -5569,17 +5471,11 @@ if (missionCardsContainer) {
                         <div class="standing-item ${t === team ? 'my-team' : ''}" 
                              onclick="loadPage('team-level')" 
                              style="--team-color:${teamColor(t)}">
-                            <div class="standing-rank">${i+1}</div>
+                            <div class="standing-rank"><div class="rank-num ${i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''}">${i+1}</div></div>
                             ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}
                             <div class="standing-info">
                                 <div class="standing-name" style="color:${teamColor(t)}">${t}</div>
                                 <div class="standing-xp">${fmt(td.teamXP)} XP</div>
-                                <div class="standing-members">👥 ${getTeamMemberCount(t)} agents</div>
-                            </div>
-                            <div class="standing-missions">
-                                ${td.trackGoalPassed ? '🎵✅' : '🎵❌'} 
-                                ${td.albumGoalPassed ? '💿✅' : '💿❌'} 
-                                ${td.album2xPassed ? '✨✅' : '✨❌'}
                             </div>
                         </div>
                     `;
@@ -5592,7 +5488,14 @@ if (missionCardsContainer) {
         
     } catch (e) { 
         console.error('Error rendering home:', e); 
-        showToast('Failed to load home', 'error'); 
+        // Remove skeletons if error occurs
+        const topAgentsEl = document.getElementById('home-top-agents');
+        if (topAgentsEl) topAgentsEl.innerHTML = '<p class="error-text" style="text-align:center;">Failed to load data. Tap to retry.</p><div style="text-align:center;"><button class="btn-sm btn-secondary" onclick="renderHome()">Retry</button></div>';
+        
+        const standingsEl = document.getElementById('home-standings');
+        if (standingsEl) standingsEl.innerHTML = '<p class="error-text" style="text-align:center;">Failed to load standings.</p>';
+        
+        showToast('Failed to load home data', 'error'); 
     }
 }
 // ==================== ONLINE TRACKING ====================
