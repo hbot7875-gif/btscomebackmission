@@ -11829,29 +11829,33 @@ function renderBadgeHTML(badge) {
 }
 // ==================== NAMJOON'S BRAIN (STRATEGY CENTER) ====================
 
-// ==================== NAMJOON'S BRAIN (STRATEGY CENTER) ====================
 async function renderNamjoonBrain() {
-    // Ensure the container exists with the CORRECT ROUTER ID (page-namjoon)
-    let container = document.getElementById('namjoon-content');
+    // 1. Define the Container ID (Must match the HTML structure)
+    const contentId = 'namjoon-content';
+    const pageId = 'page-namjoon'; // ⚠️ CRITICAL: MUST MATCH ROUTE ID
     
+    let container = document.getElementById(contentId);
+    
+    // 2. Create Page if it doesn't exist
     if (!container) {
         const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
         if (mainContent) {
             const page = document.createElement('section');
-            page.id = 'page-namjoon'; // ✅ CRITICAL: Must be 'page-namjoon' to match router
-            page.className = 'page';
-            page.innerHTML = '<div id="namjoon-content"></div>';
+            page.id = pageId; 
+            page.className = 'page'; // Router will add 'active' class
+            page.innerHTML = `<div id="${contentId}"></div>`;
             mainContent.appendChild(page);
-            container = document.getElementById('namjoon-content');
+            container = document.getElementById(contentId);
+        } else {
+            console.error("Main content wrapper not found!");
+            return;
         }
     }
     
-    // Safety check - if container still doesn't exist, stop
-    if (!container) return;
-
-    // Show loading skeleton
+    // 3. Show Loading State
     container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
 
+    // 4. Get Data
     const myTeam = STATE.data?.profile?.team;
     
     if (!myTeam) {
@@ -11866,8 +11870,9 @@ async function renderNamjoonBrain() {
         ]);
 
         const teamMembers = agentsData.agents ? agentsData.agents.filter(a => a.team === myTeam).length : 1;
-        const trackGoals = goalsData.trackGoals || {};
         
+        // Calculate Gaps
+        const trackGoals = goalsData.trackGoals || {};
         let totalGoal = 0;
         let currentStreams = 0;
         
@@ -11879,6 +11884,7 @@ async function renderNamjoonBrain() {
         const remainingGap = Math.max(0, totalGoal - currentStreams);
         const daysRemaining = getDaysRemaining(STATE.week) || 1;
         
+        // 5. Render Content
         container.innerHTML = `
             <div class="card" style="background: linear-gradient(135deg, #2c3e50, #000000); border: 1px solid #7b2cbf; margin-bottom: 20px;">
                 <div class="card-body" style="padding: 20px;">
@@ -11907,16 +11913,14 @@ async function renderNamjoonBrain() {
                         </div>
                     </div>
 
-                    <!-- SLIDER -->
                     <div style="margin-bottom: 25px;">
                         <label style="color:#fff; font-size:13px; display:block; margin-bottom:10px;">
                             📉 Participation Rate: <span id="slider-val" style="color:#7b2cbf;">50%</span>
                         </label>
                         <input type="range" id="active-agents-slider" min="10" max="100" value="50" style="width:100%; accent-color: #7b2cbf;">
-                        <p style="font-size:10px; color:#666; margin-top:5px;">Adjust based on how many people are actually helping.</p>
+                        <p style="font-size:10px; color:#666; margin-top:5px;">Adjust if fewer people are helping.</p>
                     </div>
 
-                    <!-- RESULT -->
                     <div style="text-align:center; margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 12px;">
                         <p style="color:#aaa; font-size:12px; margin-bottom:5px;">YOUR DAILY TARGET</p>
                         <div id="calculated-target" style="font-size: 42px; font-weight: 800; color: #00ff88; text-shadow: 0 0 20px rgba(0,255,136,0.3);">0</div>
@@ -11929,7 +11933,6 @@ async function renderNamjoonBrain() {
                 </div>
             </div>
 
-            <!-- CHECKLIST CONTAINER -->
             <div id="namjoon-todo-container" style="display:none;">
                 <div class="card">
                     <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
@@ -11941,6 +11944,7 @@ async function renderNamjoonBrain() {
             </div>
         `;
 
+        // 6. Attach Logic
         const slider = document.getElementById('active-agents-slider');
         const display = document.getElementById('slider-val');
         const resultDisplay = document.getElementById('calculated-target');
@@ -11951,6 +11955,7 @@ async function renderNamjoonBrain() {
             const activeAgents = Math.max(1, Math.floor(teamMembers * percentage));
             const streamsPerAgentTotal = remainingGap / activeAgents;
             const streamsPerDay = Math.ceil(streamsPerAgentTotal / Math.max(1, daysRemaining));
+            
             resultDisplay.textContent = fmt(streamsPerDay);
             window.currentDailyTarget = streamsPerDay;
         }
@@ -11961,7 +11966,7 @@ async function renderNamjoonBrain() {
 
     } catch (e) {
         console.error(e);
-        container.innerHTML = `<div class="card"><div class="card-body error-text">Could not load strategy data.<br>${e.message}</div></div>`;
+        container.innerHTML = `<div class="card"><div class="card-body error-text">Could not load strategy.<br>${e.message}</div></div>`;
     }
 }
 
