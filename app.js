@@ -4779,7 +4779,7 @@ async function renderPageByRoute(pageName) {
             case 'chat': await renderChat(); break;
             case 'sotd': await renderSOTD(); break;
             case 'song-of-day': await renderSOTD(); break; 
-            case 'namjoon-brain': await renderNamjoonBrain(); break;
+            case 'namjoon': await renderNamjoonBrain(); break;
             case 'streaming-tips': await renderStreamingTips(); break;
             case 'guide': await renderGuidePage(); break; 
         }
