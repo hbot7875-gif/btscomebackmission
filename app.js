@@ -355,7 +355,7 @@ const STATE = {
     lastChecked: {
         badges: 0,
         announcements: null,
-        : -1,              // -1 = not initialized yet
+        playlists: -1,              // -1 = not initialized yet
         missions: -1,               // -1 = not initialized yet
         album2xBadge: {},           // Object: { "Test Week 1": true, "Week 1": true }
         songOfDay: null,            // Date string: "Mon Dec 02 2024"
@@ -9109,8 +9109,6 @@ async function renderAnnouncements() {
 }
 // ==================== PLAYLISTS PAGE ====================
 
-// ==================== PLAYLISTS PAGE ====================
-
 async function renderPlaylists() {
     const container = $('playlists-content');
     if (!container) return;
@@ -9137,6 +9135,8 @@ async function renderPlaylists() {
                             <option value="Spotify">Spotify</option>
                             <option value="Apple Music">Apple Music</option>
                             <option value="YouTube">YouTube</option>
+                            <option value="Stationhead">Stationhead</option>
+                            <option value="Renaissance">Renaissance</option>
                         </select>
                         
                         <select id="pl-team" style="padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
@@ -9232,73 +9232,6 @@ async function renderPlaylists() {
         if (listEl) listEl.innerHTML = `<p style="color:red; text-align:center;">Failed to load playlists.</p>`;
     }
 }
-
-    // --- 2. EXISTING CONTENT + LIST CONTAINER ---
-    container.innerHTML = `
-        ${renderGuide('playlists')}
-        ${makerPanelHTML}
-        
-        <!-- Existing Request System -->
-        <div class="card" style="background: linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(123, 44, 191, 0.05)); border: 1px solid rgba(0, 255, 136, 0.3); margin-bottom: 20px;">
-            <div class="card-header"><h3 style="margin:0;">📝 Request a Playlist</h3></div>
-            <div class="card-body" style="padding: 20px; text-align: center;">
-                <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">Not a maker? Request one here!</p>
-                <a href="https://forms.gle/hwHMSDxVjNhcLh1U6" target="_blank" class="btn-secondary" style="display:inline-block; padding:10px 20px; text-align:center;">Open Request Form</a>
-            </div>
-        </div>
-
-        <!-- Official Playlists List -->
-        <div class="card">
-            <div class="card-header"><h3>🎵 Official Playlists</h3></div>
-            <div class="card-body">
-                <div id="playlists-list" style="display:flex; flex-direction:column; gap:10px;">
-                    <div class="loading-text" style="text-align:center; padding:20px; color:#888;">⏳ Loading...</div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // --- 3. FETCH AND RENDER LIST ---
-    try {
-        const data = await api('getPlaylists');
-        const playlists = data.playlists || [];
-        const listEl = $('playlists-list');
-        
-        if (playlists.length) {
-            // Sort: Newest first (assuming bottom of sheet is newest)
-            playlists.reverse(); 
-            
-            listEl.innerHTML = playlists.map(pl => `
-                <div class="playlist-card" style="background: linear-gradient(135deg, #1a1a2e, #16213e); border: 1px solid rgba(123, 44, 191, 0.3); border-radius: 12px; padding: 15px;">
-                    <a href="${sanitize(pl.link || pl.url)}" target="_blank" style="display: flex; align-items: center; gap: 15px; text-decoration: none; color: inherit;">
-                        <span style="font-size: 24px;">${getPlaylistIcon(pl.platform)}</span>
-                        <div style="flex: 1;">
-                            <div style="color: #fff; font-size: 14px; font-weight: 600;">${sanitize(pl.name)}</div>
-                            <div style="color: #888; font-size: 11px; margin-top: 3px;">
-                                ${sanitize(pl.platform)} • <span style="color:${teamColor(pl.team)}">${sanitize(pl.team)}</span>
-                            </div>
-                        </div>
-                        <span style="color: #7b2cbf; font-size: 18px;">→</span>
-                    </a>
-                </div>
-            `).join('');
-        } else {
-            listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#888;">No playlists found.</div>`;
-        }
-        
-        // Update notification state
-        if (typeof STATE !== 'undefined' && STATE.lastChecked) {
-            STATE.lastChecked.playlists = playlists.length;
-            if (typeof saveNotificationState === 'function') saveNotificationState();
-        }
-
-    } catch (e) {
-        console.error(e);
-        const listEl = $('playlists-list');
-        if (listEl) listEl.innerHTML = `<p style="color:red; text-align:center;">Failed to load playlists.</p>`;
-    }
-}
-
 // ==================== SUBMIT NEW PLAYLIST LOGIC ====================
 
 async function submitNewPlaylist() {
