@@ -3751,6 +3751,25 @@ img {
     font-weight: 700;
     color: var(--success);
 }
+/* ===== EXPANDABLE BADGE GRID (NEW) ===== */
+.hidden-badges-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
+    opacity: 0;
+}
+
+.hidden-badges-container.expanded {
+    max-height: 2000px; /* Large enough to fit all badges */
+    opacity: 1;
+}
+
+.badge-grid {
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); 
+    gap: 10px;
+    margin-bottom: 10px;
+}
 /* ==================== SHAREABLE STATS CARD (NEW) ==================== */
 
 /* Share Card Container */
