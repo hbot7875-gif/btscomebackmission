@@ -6020,7 +6020,6 @@ async function renderDrawer() {
     if (!STATE.allWeeksData) {
         try {
             STATE.allWeeksData = await api('getAllWeeksStats', { agentNo: STATE.agentNo });
-            console.log('Loaded allWeeksData:', STATE.allWeeksData);
         } catch (e) {
             console.log('Could not load all weeks data:', e);
         }
@@ -6034,12 +6033,9 @@ async function renderDrawer() {
     let allSpecialBadges = [];
     let weeksParticipated = 0;
     
-    // Get agent's team (for winner badge check)
     const agentTeam = STATE.allWeeksData?.agentTeam || team;
     
     if (STATE.allWeeksData?.weeks?.length > 0) {
-        console.log('Processing', STATE.allWeeksData.weeks.length, 'weeks for badges');
-        
         STATE.allWeeksData.weeks.forEach(weekData => {
             const weekName = weekData.week;
             const weekXP = parseInt(weekData.stats?.totalXP) || 0;
@@ -6049,43 +6045,26 @@ async function renderDrawer() {
             overallXP += weekXP;
             overallTrackStreams += weekTracks;
             overallAlbumStreams += weekAlbums;
-            
             if (weekXP > 0) weeksParticipated++;
             
-            // ✅ XP badges for this week
-            const weekBadges = getLevelBadges(STATE.agentNo, weekXP, weekName);
-            allXpBadges = allXpBadges.concat(weekBadges);
+            allXpBadges = allXpBadges.concat(getLevelBadges(STATE.agentNo, weekXP, weekName));
             
-            // ✅ FIX: Get 2X badge for THIS week's data
             const album2xBadge = getAlbum2xBadgeForWeek(STATE.agentNo, weekData, weekName);
-            if (album2xBadge) {
-                console.log(`✅ Found 2X badge for ${weekName}:`, album2xBadge);
-                allSpecialBadges.push(album2xBadge);
-            }
+            if (album2xBadge) allSpecialBadges.push(album2xBadge);
             
-            // ✅ FIX: Get winner badge if team won this week
             const winnerBadge = getWinnerBadgeForWeek(STATE.agentNo, weekData, agentTeam);
-            if (winnerBadge) {
-                console.log(`✅ Found Winner badge for ${weekName}:`, winnerBadge);
-                allSpecialBadges.push(winnerBadge);
-            }
+            if (winnerBadge) allSpecialBadges.push(winnerBadge);
         });
-        
     } else {
-        // Fallback to current week only
-        console.log('No allWeeksData, using current week only');
         overallXP = parseInt(stats.totalXP) || 0;
         overallTrackStreams = parseInt(stats.trackScrobbles) || 0;
         overallAlbumStreams = parseInt(stats.albumScrobbles) || 0;
         weeksParticipated = overallXP > 0 ? 1 : 0;
         allXpBadges = getLevelBadges(STATE.agentNo, overallXP, STATE.week);
-        
-        // Current week special badges
         const album2xBadge = getAlbum2xBadgeForWeek(STATE.agentNo, STATE.data, STATE.week);
         if (album2xBadge) allSpecialBadges.push(album2xBadge);
     }
     
-    // Remove duplicate special badges (same name + week)
     const seenBadges = new Set();
     const uniqueSpecialBadges = allSpecialBadges.filter(b => {
         const key = `${b.name}_${b.week}`;
@@ -6094,88 +6073,46 @@ async function renderDrawer() {
         return true;
     });
     
-    console.log('=== BADGE SUMMARY ===');
-    console.log('Special Badges:', uniqueSpecialBadges.length, uniqueSpecialBadges);
-    console.log('XP Badges:', allXpBadges.length);
-    
-    // Current week stats
+    const totalBadgeCount = uniqueSpecialBadges.length + allXpBadges.length;
     const currentWeekXP = parseInt(stats.totalXP) || 0;
     const currentWeekTracks = parseInt(stats.trackScrobbles) || 0;
     const currentWeekAlbums = parseInt(stats.albumScrobbles) || 0;
-    
-    // ✅ Special badges first (winner, 2X), then XP badges
-    const allBadges = [...uniqueSpecialBadges, ...allXpBadges];
-    const totalBadgeCount = allBadges.length;
 
-    console.log('=== DRAWER BADGES DEBUG ===');
-    console.log('All Weeks Data:', STATE.allWeeksData);
-    console.log('Special Badges:', uniqueSpecialBadges);
-    console.log('XP Badges:', allXpBadges.length);
-    console.log('Total Badges:', totalBadgeCount);
-    
+    // --- LOGIC FOR EXPAND/COLLAPSE ---
+    const VISIBLE_LIMIT = 12;
+    const visibleXpBadges = allXpBadges.slice(0, VISIBLE_LIMIT);
+    const hiddenXpBadges = allXpBadges.slice(VISIBLE_LIMIT);
+
     container.innerHTML = `
         <!-- Agent Profile Card -->
         <div class="card" style="border-color: ${teamColor(team)}; margin-bottom: 20px; overflow: hidden;">
-            <div style="
-                background: linear-gradient(135deg, ${teamColor(team)}33, transparent);
-                padding: 30px;
-                text-align: center;
-            ">
-                <div style="
-                    width: 90px;
-                    height: 90px;
-                    border-radius: 50%;
-                    margin: 0 auto 15px;
-                    border: 3px solid ${teamColor(team)};
-                    overflow: hidden;
-                    background: ${teamColor(team)}22;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 36px;
-                    box-shadow: 0 0 20px ${teamColor(team)}44;
-                ">
+            <div style="background: linear-gradient(135deg, ${teamColor(team)}33, transparent); padding: 30px; text-align: center;">
+                <div style="width: 90px; height: 90px; border-radius: 50%; margin: 0 auto 15px; border: 3px solid ${teamColor(team)}; overflow: hidden; background: ${teamColor(team)}22; display: flex; align-items: center; justify-content: center; font-size: 36px; box-shadow: 0 0 20px ${teamColor(team)}44;">
                     ${teamPfp(team) ? `<img src="${teamPfp(team)}" style="width:100%;height:100%;object-fit:cover;">` : (profile.name || 'A')[0].toUpperCase()}
                 </div>
                 <h2 style="color: #fff; margin: 0 0 5px 0; font-size: 20px;">${sanitize(profile.name || 'Agent')}</h2>
                 <p style="color: ${teamColor(team)}; margin: 0 0 8px 0; font-weight: 600;">Team ${team}</p>
                 <p style="color: #666; margin: 0; font-size: 11px;">Agent ID: ${STATE.agentNo}</p>
-                
-                ${isAdmin ? `
-                    <div style="
-                        margin-top: 12px;
-                        padding: 6px 14px;
-                        background: linear-gradient(135deg, #ffd700, #ff8c00);
-                        color: #000;
-                        border-radius: 20px;
-                        font-size: 11px;
-                        font-weight: bold;
-                        display: inline-block;
-                    ">👑 ADMIN</div>
-                ` : ''}
+                ${isAdmin ? `<div style="margin-top: 12px; padding: 6px 14px; background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block;">👑 ADMIN</div>` : ''}
             </div>
         </div>
         
-        <!-- ===== OVERALL STATS (ALL WEEKS) ===== -->
+        <!-- Overall Stats -->
         <div class="card" style="margin-bottom: 20px; border-color: #ffd700;">
             <div class="card-header" style="background: rgba(255,215,0,0.05);">
-                <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
-                    🏆 Overall Stats
-                    <span style="font-size: 10px; color: #666; font-weight: normal;">(All Weeks Combined)</span>
-                </h3>
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">🏆 Overall Stats <span style="font-size: 10px; color: #666;">(All Weeks)</span></h3>
             </div>
             <div class="card-body">
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; text-align: center;">
-                    <div style="padding: 18px; background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05)); border-radius: 12px; border: 1px solid rgba(255,215,0,0.2);">
+                    <div style="padding: 18px; background: rgba(255,215,0,0.1); border-radius: 12px; border: 1px solid rgba(255,215,0,0.2);">
                         <div style="font-size: 28px; font-weight: bold; color: #ffd700;">${fmt(overallXP)}</div>
                         <div style="font-size: 10px; color: #888; margin-top: 4px;">Total XP</div>
                     </div>
-                    <div style="padding: 18px; background: linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,255,136,0.05)); border-radius: 12px; border: 1px solid rgba(0,255,136,0.2);">
+                    <div style="padding: 18px; background: rgba(0,255,136,0.1); border-radius: 12px; border: 1px solid rgba(0,255,136,0.2);">
                         <div style="font-size: 28px; font-weight: bold; color: #00ff88;">${totalBadgeCount}</div>
                         <div style="font-size: 10px; color: #888; margin-top: 4px;">Total Badges</div>
                     </div>
                 </div>
-                
                 <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">
                     <div style="padding: 12px 8px; background: rgba(255,255,255,0.03); border-radius: 8px;">
                         <div style="font-size: 18px; font-weight: bold; color: #fff;">${fmt(overallTrackStreams)}</div>
@@ -6193,18 +6130,11 @@ async function renderDrawer() {
             </div>
         </div>
         
-        <!-- ===== CURRENT WEEK STATS ===== -->
+        <!-- Current Week Stats -->
         <div class="card" style="margin-bottom: 20px; border-color: #7b2cbf;">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0;">📊 This Week</h3>
-                <span style="
-                    padding: 4px 10px;
-                    background: rgba(123,44,191,0.2);
-                    border-radius: 12px;
-                    font-size: 10px;
-                    color: #7b2cbf;
-                    font-weight: 600;
-                ">${STATE.week}</span>
+                <span style="padding: 4px 10px; background: rgba(123,44,191,0.2); border-radius: 12px; font-size: 10px; color: #7b2cbf; font-weight: 600;">${STATE.week}</span>
             </div>
             <div class="card-body">
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
@@ -6221,58 +6151,23 @@ async function renderDrawer() {
                         <div style="font-size: 9px; color: #888; margin-top: 3px;">Team Rank</div>
                     </div>
                 </div>
-                
-                <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
-                    <div style="padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #666; font-size: 11px;">🎵 Tracks</span>
-                        <span style="color: #fff; font-weight: 600; font-size: 13px;">${fmt(currentWeekTracks)}</span>
-                    </div>
-                    <div style="padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #666; font-size: 11px;">💿 Albums</span>
-                        <span style="color: #fff; font-weight: 600; font-size: 13px;">${fmt(currentWeekAlbums)}</span>
-                    </div>
-                </div>
             </div>
         </div>
         
-        <!-- ===== BADGES SECTION (FIXED) ===== -->
+        <!-- ===== BADGE COLLECTION ===== -->
         <div class="card" style="margin-bottom: 20px;">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0;">🎖️ Badge Collection</h3>
                 <span style="color: #ffd700; font-size: 11px; font-weight: 600;">${totalBadgeCount} earned</span>
             </div>
             <div class="card-body">
-                ${allBadges.length > 0 ? `
-                    <!-- Show special badges first (winner, 2X) -->
+                ${totalBadgeCount > 0 ? `
+                    <!-- Special Badges -->
                     ${uniqueSpecialBadges.length > 0 ? `
-                        <div style="margin-bottom: 15px;">
-                            <div style="color: #888; font-size: 10px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">✨ Special Badges</div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 10px;">
-                                ${uniqueSpecialBadges.map(badge => `
-                                    <div style="text-align: center;">
-                                        <div class="badge-circle holographic" style="
-                                            width: 50px;
-                                            height: 50px;
-                                            margin: 0 auto;
-                                            border-radius: 50%;
-                                            overflow: hidden;
-                                            border: 2px solid ${badge.type === 'winner' ? '#ffd700' : '#7b2cbf'};
-                                            display: flex;
-                                            align-items: center;
-                                            justify-content: center;
-                                            background: ${badge.type === 'winner' ? 'rgba(255,215,0,0.1)' : 'rgba(123,44,191,0.1)'};
-                                        ">
-                                            ${badge.imageUrl ? `
-                                                <img src="${badge.imageUrl}" style="width:100%;height:100%;object-fit:cover;" 
-                                                     onerror="this.style.display='none';this.parentElement.innerHTML='${badge.icon || '🎖️'}';">
-                                            ` : `<span style="font-size:22px;">${badge.icon || '🎖️'}</span>`}
-                                        </div>
-                                        <div style="margin-top: 5px; font-size: 8px; color: ${badge.type === 'winner' ? '#ffd700' : '#7b2cbf'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                            ${sanitize(badge.name)}
-                                        </div>
-                                        <div style="font-size: 7px; color: #666;">${sanitize(badge.week)}</div>
-                                    </div>
-                                `).join('')}
+                        <div style="margin-bottom: 20px;">
+                            <div style="color: #888; font-size: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">✨ Special Badges</div>
+                            <div class="badge-grid">
+                                ${uniqueSpecialBadges.map(b => renderBadgeHTML(b)).join('')}
                             </div>
                         </div>
                     ` : ''}
@@ -6280,43 +6175,27 @@ async function renderDrawer() {
                     <!-- XP Badges -->
                     ${allXpBadges.length > 0 ? `
                         <div>
-                            <div style="color: #888; font-size: 10px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">⭐ XP Badges</div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 10px;">
-                                ${allXpBadges.slice(0, 12).map(badge => `
-                                    <div style="text-align: center;">
-                                        <div class="badge-circle holographic" style="
-                                            width: 50px;
-                                            height: 50px;
-                                            margin: 0 auto;
-                                            border-radius: 50%;
-                                            overflow: hidden;
-                                            border: 2px solid #555;
-                                            display: flex;
-                                            align-items: center;
-                                            justify-content: center;
-                                            background: rgba(123,44,191,0.1);
-                                        ">
-                                            ${badge.imageUrl ? `
-                                                <img src="${badge.imageUrl}" style="width:100%;height:100%;object-fit:cover;" 
-                                                     onerror="this.style.display='none';this.parentElement.innerHTML='🎖️';">
-                                            ` : `<span style="font-size:22px;">🎖️</span>`}
-                                        </div>
-                                        <div style="margin-top: 5px; font-size: 8px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sanitize(badge.name)}</div>
-                                        <div style="font-size: 7px; color: #666;">${sanitize(badge.week)}</div>
-                                    </div>
-                                `).join('')}
+                            <div style="color: #888; font-size: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">⭐ XP Badges</div>
+                            
+                            <!-- Visible Badges -->
+                            <div class="badge-grid">
+                                ${visibleXpBadges.map(b => renderBadgeHTML(b)).join('')}
                             </div>
-                            ${allXpBadges.length > 12 ? `
-                                <div style="text-align: center; margin-top: 12px;">
-                                    <span style="color: #666; font-size: 11px;">+${allXpBadges.length - 12} more XP badges</span>
+
+                            <!-- Hidden Badges Container -->
+                            ${hiddenXpBadges.length > 0 ? `
+                                <div id="hidden-xp-badges" class="hidden-badges-container">
+                                    <div class="badge-grid" style="margin-top: 10px;">
+                                        ${hiddenXpBadges.map(b => renderBadgeHTML(b)).join('')}
+                                    </div>
                                 </div>
+                                
+                                <button onclick="toggleHiddenBadges(this)" class="btn-secondary" style="width: 100%; margin-top: 12px; padding: 10px; font-size: 12px; background:rgba(255,255,255,0.05);">
+                                    View All Badges →
+                                </button>
                             ` : ''}
                         </div>
                     ` : ''}
-                    
-                    <button onclick="loadPage('profile')" class="btn-secondary" style="width: 100%; margin-top: 12px; padding: 10px; font-size: 12px;">
-                        View All Badges →
-                    </button>
                 ` : `
                     <div style="text-align: center; padding: 25px 15px;">
                         <div style="font-size: 36px; margin-bottom: 10px;">🔒</div>
@@ -6326,91 +6205,44 @@ async function renderDrawer() {
             </div>
         </div>
         
-        <!-- ===== ALBUM CHALLENGE STATUS ===== -->
+        <!-- Album Challenge Status -->
         <div class="card" style="border-color: ${album2xStatus.passed ? '#00ff88' : '#7b2cbf'}; margin-bottom: 20px;">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0;">✨ ${CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME} Challenge</h3>
-                <span style="
-                    padding: 4px 10px;
-                    border-radius: 12px;
-                    font-size: 10px;
-                    font-weight: 600;
-                    background: ${album2xStatus.passed ? 'rgba(0,255,136,0.1)' : 'rgba(123,44,191,0.1)'};
-                    color: ${album2xStatus.passed ? '#00ff88' : '#7b2cbf'};
-                ">${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}</span>
+                <span style="padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; background: ${album2xStatus.passed ? 'rgba(0,255,136,0.1)' : 'rgba(123,44,191,0.1)'}; color: ${album2xStatus.passed ? '#00ff88' : '#7b2cbf'};">${album2xStatus.passed ? '✅ Complete' : '⏳ In Progress'}</span>
             </div>
             <div class="card-body" style="text-align: center; padding: 18px;">
                 <div style="font-size: 32px; margin-bottom: 8px;">${album2xStatus.passed ? '🎉' : '🎯'}</div>
                 <p style="color: #888; margin: 0 0 12px 0; font-size: 12px;">
-                    ${album2xStatus.passed 
-                        ? `You earned the <strong style="color: #7b2cbf;">${CONFIG.ALBUM_CHALLENGE.BADGE_NAME}</strong> badge!`
-                        : `Stream each track ${CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS}X to earn a badge!`
-                    }
+                    ${album2xStatus.passed ? `You earned the <strong style="color: #7b2cbf;">${CONFIG.ALBUM_CHALLENGE.BADGE_NAME}</strong> badge!` : `Stream each track ${CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS}X to earn a badge!`}
                 </p>
-                <button onclick="loadPage('album2x')" class="btn-secondary" style="padding: 8px 18px; font-size: 11px;">
-                    View Progress →
-                </button>
+                <button onclick="loadPage('album2x')" class="btn-secondary" style="padding: 8px 18px; font-size: 11px;">View Progress →</button>
             </div>
         </div>
         
-        <!-- ===== QUICK ACTIONS ===== -->
+        <!-- Quick Actions -->
         <div class="card" style="margin-bottom: 20px;">
-            <div class="card-header">
-                <h3 style="margin: 0;">⚡ Quick Actions</h3>
-            </div>
+            <div class="card-header"><h3 style="margin: 0;">⚡ Quick Actions</h3></div>
             <div class="card-body" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                <button onclick="loadPage('profile')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">
-                    👤 Profile
-                </button>
-                <button onclick="loadPage('rankings')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">
-                    🏆 Rankings
-                </button>
-                <button onclick="loadPage('goals')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">
-                    🎯 Goals
-                </button>
-                <button onclick="loadPage('secret-missions')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">
-                    🕵️ Missions
-                </button>
-                <button onclick="loadPage('playlists')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">
-                    🎵 Playlists
-                </button>
-                <button onclick="loadPage('team-level')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">
-                    📊 Teams
-                </button>
+                <button onclick="loadPage('profile')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">👤 Profile</button>
+                <button onclick="loadPage('rankings')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">🏆 Rankings</button>
+                <button onclick="loadPage('goals')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">🎯 Goals</button>
+                <button onclick="loadPage('secret-missions')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">🕵️ Missions</button>
+                <button onclick="loadPage('playlists')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">🎵 Playlists</button>
+                <button onclick="loadPage('team-level')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">📊 Teams</button>
             </div>
         </div>
         
-        ${isAdmin ? `
-            <!-- ===== ADMIN SECTION ===== -->
-            <div class="card" style="border-color: #ffd700; margin-bottom: 20px;">
-                <div class="card-header" style="background: rgba(255,215,0,0.05);">
-                    <h3 style="margin: 0; color: #ffd700;">👑 Admin Controls</h3>
-                </div>
-                <div class="card-body">
-                    <button onclick="showAdminPanel()" class="btn-primary" style="
-                        width: 100%; 
-                        padding: 14px; 
-                        background: linear-gradient(135deg, #ffd700, #ff8c00); 
-                        color: #000;
-                        font-weight: bold;
-                        font-size: 13px;
-                    ">
-                        🎛️ Open Mission Control
-                    </button>
-                </div>
-            </div>
-        ` : ''}
+        ${isAdmin ? `<div class="card" style="border-color: #ffd700; margin-bottom: 20px;"><div class="card-header" style="background: rgba(255,215,0,0.05);"><h3 style="margin: 0; color: #ffd700;">👑 Admin Controls</h3></div><div class="card-body"><button onclick="showAdminPanel()" class="btn-primary" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; font-weight: bold; font-size: 13px;">🎛️ Open Mission Control</button></div></div>` : ''}
         
-        <!-- App Info -->
         <div style="text-align: center; padding: 15px; color: #888; font-size: 10px;">
             <p style="margin: 0;">BTS Spy Battle v5.0</p>
             <p style="margin: 4px 0 0 0;">💜 Fighting! 💜</p>
         </div>
     `;
     
-    // Update notification state
-    const currentXP = parseInt(stats.totalXP) || 0;
-    STATE.lastChecked.badges = Math.floor(currentXP / 50);
+    const currentXPStats = parseInt(stats.totalXP) || 0;
+    STATE.lastChecked.badges = Math.floor(currentXPStats / 50);
     STATE.lastChecked.album2xBadge = album2xStatus.passed || false;
     saveNotificationState();
 }
@@ -11995,6 +11827,56 @@ window.addEventListener('beforeunload', () => {
         navigator.sendBeacon(CONFIG.API_URL + '?action=removeOnlineUser&agentNo=' + STATE.agentNo);
     }
 });
+// ==================== HELPER FUNCTIONS FOR DRAWER ====================
+
+// 1. Toggle Function
+window.toggleHiddenBadges = function(btn) {
+    const container = document.getElementById('hidden-xp-badges');
+    if (!container) return;
+    
+    const isExpanded = container.classList.contains('expanded');
+    
+    if (isExpanded) {
+        container.classList.remove('expanded');
+        btn.innerHTML = `View All Badges →`;
+        // Optional: Scroll back up slightly
+        btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+        container.classList.add('expanded');
+        btn.innerHTML = `↑ Show Less`;
+    }
+};
+
+// 2. Badge HTML Generator (Helper)
+function renderBadgeHTML(badge) {
+    const isWinner = badge.type === 'winner';
+    const isSpecial = badge.type === 'achievement' || isWinner;
+    const color = isWinner ? '#ffd700' : isSpecial ? '#c56cf0' : '#7b2cbf'; // Gold, Pink, Purple
+    const bgStyle = isSpecial ? `${color}15` : 'rgba(123,44,191,0.1)';
+    const borderStyle = isSpecial ? color : '#555';
+
+    return `
+        <div style="text-align: center;">
+            <div class="badge-circle holographic" style="
+                width: 50px; height: 50px; margin: 0 auto;
+                border-radius: 50%; overflow: hidden;
+                border: 2px solid ${borderStyle};
+                display: flex; align-items: center; justify-content: center;
+                background: ${bgStyle};
+                transition: transform 0.2s;
+            " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                ${badge.imageUrl ? `
+                    <img src="${badge.imageUrl}" style="width:100%;height:100%;object-fit:cover;" 
+                         onerror="this.style.display='none';this.parentElement.innerHTML='${badge.icon || '🎖️'}';">
+                ` : `<span style="font-size:22px;">${badge.icon || '🎖️'}</span>`}
+            </div>
+            <div style="margin-top: 5px; font-size: 8px; color: ${isSpecial ? color : '#888'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${sanitize(badge.name)}
+            </div>
+            <div style="font-size: 7px; color: #666;">${sanitize(badge.week)}</div>
+        </div>
+    `;
+}
 
 
 // ==================== EXPORTS & INIT ====================
