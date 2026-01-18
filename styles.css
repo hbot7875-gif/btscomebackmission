@@ -2078,33 +2078,29 @@ img {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Top 1: Gold */
+/* 🥇 Rank 1: Transparent Gold Glow */
 .rank-num.rank-1 {
-    background: linear-gradient(135deg, #FFD700, #FFA500) !important;
-    color: #000 !important;
-    border: none !important;
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
-    font-size: 16px;
+    background: rgba(255, 215, 0, 0.15) !important; /* See-through */
+    border: 1px solid #FFD700 !important;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+    font-size: 20px; /* Make emoji bigger */
 }
 
-/* Top 2: Silver */
+/* 🥈 Rank 2: Transparent Silver Glow */
 .rank-num.rank-2 {
-    background: linear-gradient(135deg, #E0E0E0, #B0B0B0) !important;
-    color: #000 !important;
-    border: none !important;
-    box-shadow: 0 0 10px rgba(192, 192, 192, 0.3);
-    font-size: 15px;
+    background: rgba(224, 224, 224, 0.15) !important;
+    border: 1px solid #E0E0E0 !important;
+    box-shadow: 0 0 10px rgba(224, 224, 224, 0.2);
+    font-size: 18px;
 }
 
-/* Top 3: Bronze */
+/* 🥉 Rank 3: Transparent Bronze Glow */
 .rank-num.rank-3 {
-    background: linear-gradient(135deg, #CD7F32, #A0522D) !important;
-    color: #000 !important;
-    border: none !important;
-    box-shadow: 0 0 10px rgba(205, 127, 50, 0.3);
-    font-size: 15px;
+    background: rgba(205, 127, 50, 0.15) !important;
+    border: 1px solid #CD7F32 !important;
+    box-shadow: 0 0 10px rgba(205, 127, 50, 0.2);
+    font-size: 18px;
 }
-
 .rank-info {
     flex: 1;
     min-width: 0; /* ✅ KEY FIX: Allows text truncation in flexbox */
