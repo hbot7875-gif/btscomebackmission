@@ -5512,18 +5512,28 @@ if (missionCardsContainer) {
         
         // Top Agents Rankings
         const rankList = rankings.rankings || [];
-        const topAgentsEl = $('home-top-agents');
+        const topAgentsEl = document.getElementById('home-top-agents');
+        
         if (topAgentsEl) {
-            topAgentsEl.innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => `
+            topAgentsEl.innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => {
+                // Determine styling class based on rank position
+                let rankClass = '';
+                if (i === 0) rankClass = 'rank-1';
+                else if (i === 1) rankClass = 'rank-2';
+                else if (i === 2) rankClass = 'rank-3';
+
+                return `
                 <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" onclick="loadPage('rankings')">
-                    <div class="rank-num">${i+1}</div>
+                    <div class="rank-num ${rankClass}">${i + 1}</div>
+                    
                     <div class="rank-info">
                         <div class="rank-name">${sanitize(r.name)}</div>
                         <div class="rank-team" style="color:${teamColor(r.team)}">${r.team}</div>
                     </div>
+                    
                     <div class="rank-xp">${fmt(r.totalXP)} XP</div>
                 </div>
-            `).join('') : '<p class="empty-text">No data yet</p>';
+            `}).join('') : '<p class="empty-text">No data yet</p>';
         }
         
         // Team Standings
