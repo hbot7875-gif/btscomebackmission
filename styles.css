@@ -2030,12 +2030,13 @@ img {
     }
 }
 
-/* ==================== UNIFIED RANKINGS UI ==================== */
+/* ==================== UNIFIED RANKINGS UI (Mobile Fixed) ==================== */
 
 .rankings-list {
     width: 100%;
     box-sizing: border-box;
     padding-bottom: 20px;
+    overflow-x: hidden;
 }
 
 .rank-item {
@@ -2043,13 +2044,12 @@ img {
     align-items: center;
     width: 100%;
     max-width: 100%;
-    box-sizing: border-box; /* Crucial for preventing scroll */
+    box-sizing: border-box; /* ✅ Prevents horizontal scroll */
     padding: 12px 10px;
     margin-bottom: 8px;
-    background: #1a1a2e; /* Dark background */
+    background: #1a1a2e;
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 8px;
-    /* border-left is handled inline by JS for color */
     gap: 12px;
 }
 
@@ -2058,8 +2058,8 @@ img {
 }
 
 .rank-num {
-    width: 30px;
-    min-width: 30px;
+    width: 32px;
+    min-width: 32px; /* ✅ Prevents shrinking */
     text-align: center;
     font-weight: 700;
     font-size: 14px;
@@ -2067,19 +2067,13 @@ img {
     flex-shrink: 0;
 }
 
-/* Top 3 larger emojis */
-.rank-item:nth-child(1) .rank-num,
-.rank-item:nth-child(2) .rank-num,
-.rank-item:nth-child(3) .rank-num {
-    font-size: 18px;
-}
-
 .rank-info {
     flex: 1;
-    min-width: 0; /* MAGIC FIX: Allows text truncation in Flexbox */
+    min-width: 0; /* ✅ KEY FIX: Allows text truncation in flexbox */
     display: flex;
     flex-direction: column;
     justify-content: center;
+    overflow: hidden;
 }
 
 .rank-name {
@@ -2088,7 +2082,7 @@ img {
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Adds ... if name is too long */
+    text-overflow: ellipsis; /* ✅ Shows "..." if too long */
     display: flex;
     align-items: center;
 }
@@ -2101,6 +2095,7 @@ img {
     border-radius: 4px;
     font-weight: bold;
     margin-left: 6px;
+    flex-shrink: 0;
 }
 
 .rank-team {
@@ -2108,33 +2103,34 @@ img {
     font-weight: 600;
     margin-top: 2px;
     opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .rank-xp {
-    font-family: 'Orbitron', monospace; /* Keep your font preference */
+    font-family: 'Orbitron', monospace;
     font-weight: 700;
     color: #ffd700;
     font-size: 13px;
     white-space: nowrap;
     text-align: right;
-    flex-shrink: 0;
+    flex-shrink: 0; /* ✅ Ensures XP is always visible */
     background: rgba(255, 215, 0, 0.1);
     padding: 4px 8px;
     border-radius: 6px;
     border: 1px solid rgba(255, 215, 0, 0.2);
-}
-/* ==================== GLOBAL OVERFLOW FIX ==================== */
-/* Add this to prevent any page horizontal scrolling */
-html, body {
-    overflow-x: hidden;
-    width: 100%;
-    max-width: 100%;
+    min-width: 60px;
+    display: flex;
+    justify-content: center;
 }
 
-.rankings-list {
-    width: 100%;
-    box-sizing: border-box;
-    overflow-x: hidden;
+/* Mobile Tweaks */
+@media (max-width: 380px) {
+    .rank-item { padding: 10px 8px; gap: 8px; }
+    .rank-num { width: 26px; min-width: 26px; font-size: 13px; }
+    .rank-xp { font-size: 11px; padding: 3px 6px; min-width: 50px; }
+    .rank-name { font-size: 13px; }
 }
 
 /* ==================== STANDINGS (Retained your style) ==================== */
