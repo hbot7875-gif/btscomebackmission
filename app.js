@@ -5257,9 +5257,7 @@ async function renderHome() {
             .catch(e => console.log('Could not load all weeks data:', e));
     }
 
-    // Prepare static HTML components
     const btsCountdownHtml = (typeof renderBTSCountdown === 'function') ? renderBTSCountdown() : '';
-    const guideHtml = (typeof renderGuide === 'function') ? renderGuide('home') : '';
     
     const refreshNotice = `
         <div style="
@@ -5295,7 +5293,7 @@ async function renderHome() {
         const daysLeft = getDaysRemaining(selectedWeek);
         const agentName = STATE.data?.profile?.name || 'Agent';
         
-        // 2. Render Quick Stats Section (Countdown, Streak, XP)
+        // 2. Render Quick Stats Section
         const quickStatsEl = document.querySelector('.quick-stats-section');
         if (quickStatsEl) {
             const streakWidget = (typeof renderStreakWidget === 'function') ? renderStreakWidget() : '';
@@ -5413,50 +5411,44 @@ async function renderHome() {
             `;
         }
         
-        // 4. Render Top Agents (Updated with Medals and Styling)
+        // 4. Render Top Agents (MEDAL STYLE)
         const rankList = rankings.rankings || [];
         const topAgentsEl = document.getElementById('home-top-agents');
-        
         if (topAgentsEl) {
             topAgentsEl.innerHTML = rankList.length ? rankList.slice(0, 5).map((r, i) => {
-                const isMe = String(r.agentNo) === String(STATE.agentNo);
-                const tColor = teamColor(r.team);
-                
-                // Medals for Top 3
                 let rankClass = '';
                 let rankContent = i + 1;
-                
                 if (i === 0) { rankClass = 'rank-1'; rankContent = '🥇'; }
                 else if (i === 1) { rankClass = 'rank-2'; rankContent = '🥈'; }
                 else if (i === 2) { rankClass = 'rank-3'; rankContent = '🥉'; }
+                
+                const isMe = String(r.agentNo) === String(STATE.agentNo);
 
                 return `
                 <div class="rank-item ${isMe ? 'highlight' : ''}" 
-                     style="border-left: 3px solid ${tColor}; cursor:pointer;" 
+                     style="border-left: 3px solid ${teamColor(r.team)}; cursor:pointer;"
                      onclick="loadPage('rankings')">
-                     
                     <div class="rank-num ${rankClass}">${rankContent}</div>
-                    
                     <div class="rank-info">
                         <div class="rank-name">
                             ${sanitize(r.name)}
                             ${isMe ? '<span class="you-badge">YOU</span>' : ''}
                         </div>
-                        <div class="rank-team" style="color:${tColor}">
+                        <div class="rank-team" style="color:${teamColor(r.team)}">
                             ${r.team ? r.team.replace('Team ', '') : 'Agent'}
                         </div>
                     </div>
-                    
                     <div class="rank-xp">${fmt(r.totalXP)} XP</div>
                 </div>
                 `;
             }).join('') : '<p class="empty-text">No data yet</p>';
         }
         
-        // 5. Render Standings
+        // 5. Render Battle Standings (YOUR PREFERRED STYLE)
         const sortedTeams = Object.keys(summary.teams || {}).sort((a, b) => 
             (summary.teams[b].teamXP || 0) - (summary.teams[a].teamXP || 0)
         );
+        
         const standingsEl = document.getElementById('home-standings');
         if (standingsEl) {
             standingsEl.innerHTML = sortedTeams.length ? `
@@ -5471,11 +5463,17 @@ async function renderHome() {
                         <div class="standing-item ${t === team ? 'my-team' : ''}" 
                              onclick="loadPage('team-level')" 
                              style="--team-color:${teamColor(t)}">
-                            <div class="standing-rank"><div class="rank-num ${i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''}">${i+1}</div></div>
+                            <div class="standing-rank">${i+1}</div>
                             ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}
                             <div class="standing-info">
                                 <div class="standing-name" style="color:${teamColor(t)}">${t}</div>
                                 <div class="standing-xp">${fmt(td.teamXP)} XP</div>
+                                <div class="standing-members">👥 ${getTeamMemberCount(t)} agents</div>
+                            </div>
+                            <div class="standing-missions">
+                                ${td.trackGoalPassed ? '🎵✅' : '🎵❌'} 
+                                ${td.albumGoalPassed ? '💿✅' : '💿❌'} 
+                                ${td.album2xPassed ? '✨✅' : '✨❌'}
                             </div>
                         </div>
                     `;
@@ -5488,7 +5486,7 @@ async function renderHome() {
         
     } catch (e) { 
         console.error('Error rendering home:', e); 
-        // Remove skeletons if error occurs
+        // Handle error states
         const topAgentsEl = document.getElementById('home-top-agents');
         if (topAgentsEl) topAgentsEl.innerHTML = '<p class="error-text" style="text-align:center;">Failed to load data. Tap to retry.</p><div style="text-align:center;"><button class="btn-sm btn-secondary" onclick="renderHome()">Retry</button></div>';
         
