@@ -1522,15 +1522,39 @@ img {
     font-size: 16px;
 }
 
+/* ==================== CARD HEADER BUTTONS ==================== */
+
 .card-link {
-    font-size: 12px;
-    color: var(--purple-glow);
-    transition: color var(--transition-fast);
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff !important; /* Force white text */
+    background: linear-gradient(135deg, rgba(123, 44, 191, 0.2), rgba(123, 44, 191, 0.1));
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(123, 44, 191, 0.4);
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
+/* Hover Effect - Glows and moves up slightly */
 .card-link:hover {
-    color: var(--text-bright);
+    background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+    border-color: #9d4edd;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(123, 44, 191, 0.4);
     text-decoration: none;
+}
+
+/* Click Effect - Presses down */
+.card-link:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(123, 44, 191, 0.3);
+    opacity: 0.8;
 }
 
 .card-body {
