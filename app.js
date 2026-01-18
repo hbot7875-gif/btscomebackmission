@@ -1346,6 +1346,8 @@ async function checkNewSongOfDay() {
             return null;
         }
         
+        // ✅ NEW CHECK: Explicitly check if we already dismissed this specific ID today
+        const notifId = `sotd_${today}`;
         if (lastCheckedDate !== today) {
             return {
                 type: 'sotd',
@@ -1359,7 +1361,7 @@ async function checkNewSongOfDay() {
                 },
                 actionText: 'Play Now',
                 week: STATE.week,
-                id: `sotd_${today}`
+                id: notifId
             };
         }
         
