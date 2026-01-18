@@ -2030,148 +2030,99 @@ img {
     }
 }
 
-/* ==================== RANKING TABS ==================== */
-.ranking-tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
-    padding: 6px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
+/* ==================== UNIFIED RANKINGS UI ==================== */
+
+.rankings-list {
+    width: 100%;
+    box-sizing: border-box;
+    padding-bottom: 20px;
 }
 
-.ranking-tab {
-    flex: 1;
-    padding: 12px 16px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: var(--radius-md);
-    color: var(--text-dim);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.ranking-tab:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text);
-}
-
-.ranking-tab.active {
-    background: var(--purple-main);
-    border-color: var(--purple-glow);
-    color: #fff;
-    box-shadow: 0 0 15px rgba(157, 78, 221, 0.3);
-}
-
-/* Team-specific active tab uses team color */
-.ranking-tab[style*="--team-color"].active {
-    background: var(--team-color);
-    border-color: var(--team-color);
-    color: #000;
-    text-shadow: none;
-}
-
-.rankings-header {
-    margin-bottom: var(--spacing-md);
-}
-
-/* ==================== RANKINGS (Width Fixed) ==================== */
 .rank-item {
     display: flex;
     align-items: center;
-    width: 100%;                  /* ✅ Fixes width issues */
-    max-width: 100%;              /* ✅ Prevents overflow */
-    box-sizing: border-box;       /* ✅ Includes padding in width calculation */
-    padding: 12px 10px;           /* Reduced horizontal padding */
-    border-radius: var(--radius-md);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box; /* Crucial for preventing scroll */
+    padding: 12px 10px;
     margin-bottom: 8px;
-    background: var(--bg-dark);
-    border: 1px solid var(--border);
-    transition: all var(--transition-fast);
-    cursor: pointer;
-    gap: 10px;                    /* Consistent gap */
-}
-
-.rank-item:hover {
-    border-color: var(--purple-main);
-    background: var(--bg-hover);
+    background: #1a1a2e; /* Dark background */
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    /* border-left is handled inline by JS for color */
+    gap: 12px;
 }
 
 .rank-item.highlight {
-    background: linear-gradient(90deg, rgba(157, 78, 221, 0.15), rgba(157, 78, 221, 0.05));
-    border-left: 3px solid var(--purple-main);
+    background: linear-gradient(90deg, rgba(123, 44, 191, 0.2), rgba(123, 44, 191, 0.05));
 }
 
 .rank-num {
-    width: 32px;                 /* Tighter width for mobile */
-    min-width: 32px;             /* Prevent shrinking */
-    height: 32px;
-    background: linear-gradient(135deg, var(--purple-main), var(--purple-dark));
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 30px;
+    min-width: 30px;
+    text-align: center;
     font-weight: 700;
-    font-size: 13px;
-    color: white;
-    box-shadow: 0 4px 15px rgba(157, 78, 221, 0.3);
-    flex-shrink: 0;              /* Never shrink */
+    font-size: 14px;
+    color: #888;
+    flex-shrink: 0;
 }
 
-/* Top 3 Colors */
-.rank-item:nth-child(1) .rank-num { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
-.rank-item:nth-child(2) .rank-num { background: linear-gradient(135deg, #C0C0C0, #E0E0E0); color: #000; }
-.rank-item:nth-child(3) .rank-num { background: linear-gradient(135deg, #CD7F32, #DA8A67); color: #000; }
+/* Top 3 larger emojis */
+.rank-item:nth-child(1) .rank-num,
+.rank-item:nth-child(2) .rank-num,
+.rank-item:nth-child(3) .rank-num {
+    font-size: 18px;
+}
 
 .rank-info {
-    flex: 1;                     /* Takes up remaining space */
-    min-width: 0;                /* ✅ CRITICAL: Allows text truncation to work */
+    flex: 1;
+    min-width: 0; /* MAGIC FIX: Allows text truncation in Flexbox */
     display: flex;
     flex-direction: column;
     justify-content: center;
-    overflow: hidden;            /* Contains the content */
 }
 
 .rank-name {
-    font-weight: 600;
     font-size: 14px;
-    color: var(--text-bright);
-    white-space: nowrap;         /* Force single line */
-    overflow: hidden;            /* Hide overflow */
-    text-overflow: ellipsis;     /* Add ... if too long */
-    line-height: 1.3;
+    color: #fff;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adds ... if name is too long */
+    display: flex;
+    align-items: center;
+}
+
+.you-badge {
+    font-size: 9px;
+    background: #fff;
+    color: #000;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-weight: bold;
+    margin-left: 6px;
 }
 
 .rank-team {
     font-size: 11px;
-    font-weight: 500;
-    color: var(--text-dim);
+    font-weight: 600;
     margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    opacity: 0.9;
 }
 
 .rank-xp {
-    font-family: 'Orbitron', monospace;
+    font-family: 'Orbitron', monospace; /* Keep your font preference */
     font-weight: 700;
-    color: var(--purple-glow);
+    color: #ffd700;
     font-size: 13px;
     white-space: nowrap;
     text-align: right;
-    flex-shrink: 0;              /* Ensure XP is never hidden */
-    background: rgba(255, 255, 255, 0.05);
+    flex-shrink: 0;
+    background: rgba(255, 215, 0, 0.1);
     padding: 4px 8px;
     border-radius: 6px;
-    min-width: 60px;             /* Ensure minimum readable width */
-    display: flex;
-    justify-content: center;
+    border: 1px solid rgba(255, 215, 0, 0.2);
 }
-
 /* ==================== GLOBAL OVERFLOW FIX ==================== */
 /* Add this to prevent any page horizontal scrolling */
 html, body {
