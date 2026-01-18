@@ -9136,8 +9136,6 @@ async function renderPlaylists() {
                             <option value="Spotify">Spotify</option>
                             <option value="Apple Music">Apple Music</option>
                             <option value="YouTube">YouTube</option>
-                            <option value="Stationhead">Stationhead</option>
-                            <option value="Renaissance">Renaissance</option>
                         </select>
                         
                         <select id="pl-team" style="padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
