@@ -2057,14 +2057,52 @@ img {
     background: linear-gradient(90deg, rgba(123, 44, 191, 0.2), rgba(123, 44, 191, 0.05));
 }
 
+/* Rank Number Circle */
 .rank-num {
-    width: 32px;
-    min-width: 32px; /* ✅ Prevents shrinking */
-    text-align: center;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important; /* Prevents squishing */
+    border-radius: 50% !important; /* Forces perfect circle */
+    
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    
     font-weight: 700;
-    font-size: 14px;
-    color: #888;
+    font-size: 12px;
     flex-shrink: 0;
+    
+    /* Default style for Rank 4+ */
+    background: rgba(255, 255, 255, 0.05); 
+    color: #888;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Top 1: Gold */
+.rank-num.rank-1 {
+    background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+    color: #000 !important;
+    border: none !important;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+    font-size: 16px;
+}
+
+/* Top 2: Silver */
+.rank-num.rank-2 {
+    background: linear-gradient(135deg, #E0E0E0, #B0B0B0) !important;
+    color: #000 !important;
+    border: none !important;
+    box-shadow: 0 0 10px rgba(192, 192, 192, 0.3);
+    font-size: 15px;
+}
+
+/* Top 3: Bronze */
+.rank-num.rank-3 {
+    background: linear-gradient(135deg, #CD7F32, #A0522D) !important;
+    color: #000 !important;
+    border: none !important;
+    box-shadow: 0 0 10px rgba(205, 127, 50, 0.3);
+    font-size: 15px;
 }
 
 .rank-info {
