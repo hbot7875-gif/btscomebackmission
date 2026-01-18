@@ -7611,3 +7611,941 @@ body {
         font-size: 22px;
     }
 }
+// ==================== CSS ====================
+function ensureAppCSS() {
+    if ($('app-custom-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'app-custom-styles';
+    style.innerHTML = `
+        .admin-panel{position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;background:#0a0a0f!important;z-index:999999!important;display:flex!important;flex-direction:column!important}
+        .admin-panel-header{background:#1a1a2e;padding:15px;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center}
+        .admin-panel-content{flex:1;overflow-y:auto;padding:20px}
+        .admin-panel-tabs{display:flex;background:#12121a;padding:10px;gap:10px;overflow-x:auto}
+        .admin-tab{padding:8px 16px;border:1px solid #333;border-radius:20px;background:transparent;color:#888;cursor:pointer;white-space:nowrap;transition:all .3s}
+        .admin-tab:hover{background:rgba(123,44,191,.2);border-color:#7b2cbf}
+        .admin-tab.active{background:#7b2cbf;color:#fff;border-color:#7b2cbf}
+        .admin-tab-content{display:none}
+        .admin-tab-content.active{display:block}
+        .admin-mission-card{background:#1a1a2e;padding:15px;border-radius:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+        .admin-modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);z-index:999998;display:flex;align-items:center;justify-content:center}
+        .admin-modal{background:linear-gradient(145deg,#1a1a2e,#0a0a0f);border-radius:16px;width:90%;max-width:400px;border:1px solid #7b2cbf;box-shadow:0 0 50px rgba(123,44,191,.3)}
+        .admin-modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px;border-bottom:1px solid #333}
+        .admin-modal-header h3{color:#fff;margin:0}
+        .admin-modal-close{background:none;border:none;color:#888;font-size:28px;cursor:pointer;padding:0;line-height:1}
+        .admin-modal-body{padding:20px}
+        .admin-modal-footer{display:flex;gap:10px;padding:20px;border-top:1px solid #333;justify-content:flex-end}
+        .terminal-style{background:#0a0a0f;border:1px solid #333;border-radius:8px;padding:15px}
+        .terminal-label{color:#888;font-size:12px;display:block;margin-bottom:5px}
+        .terminal-input{width:100%;background:transparent;border:1px solid #444;border-radius:4px;padding:10px;color:#fff;font-family:monospace}
+        .admin-error{color:#ff4444;text-align:center;padding:10px;display:none}
+        .admin-error.show{display:block}
+        .create-mission-form{padding:10px 0}
+        .form-section{margin-bottom:20px}
+        .form-section h4{color:#fff;margin-bottom:10px;font-size:14px}
+        .form-input,.form-textarea{width:100%;background:#12121a;border:1px solid #333;border-radius:8px;padding:12px;color:#fff;margin-bottom:10px;font-size:14px}
+        .form-textarea{min-height:80px;resize:vertical}
+        .mission-type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+        .mission-type-option{padding:12px;background:#12121a;border:1px solid #333;border-radius:8px;cursor:pointer;text-align:center;color:#888;transition:all .3s}
+        .mission-type-option:hover{border-color:#7b2cbf}
+        .mission-type-option.selected{background:rgba(123,44,191,.2);border-color:#7b2cbf;color:#fff}
+        .team-checkboxes{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+        .team-checkbox{display:flex;align-items:center;gap:6px;cursor:pointer}
+        .form-actions{margin-top:20px}
+        .btn-primary{background:linear-gradient(135deg,#7b2cbf,#5a1f99);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:600;transition:all .3s}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 5px 20px rgba(123,44,191,.4)}
+        .btn-secondary{background:#333;color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer}
+        .loading-text{color:#888;text-align:center;padding:20px}
+        .badge-circle{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;background:#1a1a2e;transition:transform .3s,box-shadow .3s}
+        .badge-circle.holographic{background:linear-gradient(135deg,#1a1a2e,#2a2a3e);border:none!important;padding:3px}
+        .badge-circle.holographic::before{content:'';position:absolute;top:-3px;left:-3px;right:-3px;bottom:-3px;border-radius:50%;background:conic-gradient(from 0deg,#ffd700,#ff6b6b,#c56cf0,#7b2cbf,#00d4ff,#00ff88,#ffd700);z-index:-1;animation:holoSpin 4s linear infinite}
+        .badge-circle.holographic::after{content:'';position:absolute;top:3px;left:3px;right:3px;bottom:3px;border-radius:50%;background:#1a1a2e;z-index:-1}
+        .badge-circle.holographic{box-shadow:0 0 15px rgba(255,215,0,.4),0 0 30px rgba(123,44,191,.3),0 0 45px rgba(0,212,255,.2)}
+        .badge-circle:hover{transform:scale(1.1)}
+        @keyframes holoSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        .badge-circle img{width:100%;height:100%;object-fit:cover;border-radius:50%;position:relative;z-index:1}
+        .assets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:15px;padding:10px}
+        .asset-chip{position:relative;aspect-ratio:1;border-radius:16px;overflow:hidden;background:linear-gradient(145deg,#1a1a2e,#12121a);border:2px solid rgba(123,44,191,.3);cursor:pointer;transition:all .3s}
+        .asset-chip:hover{transform:translateY(-5px) scale(1.05);box-shadow:0 10px 30px rgba(123,44,191,.4)}
+        .asset-chip-inner{width:100%;height:100%;border-radius:14px;overflow:hidden;background:#1a1a2e;position:relative}
+        .asset-chip img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+        .asset-chip:hover img{transform:scale(1.1)}
+        .asset-chip-number{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.8);color:#ffd700;padding:4px 8px;border-radius:10px;font-size:11px;font-weight:bold;z-index:2}
+        .badges-showcase{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:15px;padding:10px}
+        .badge-showcase-item{display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 8px;background:linear-gradient(145deg,rgba(26,26,46,.8),rgba(18,18,26,.9));border-radius:12px;border:1px solid rgba(123,44,191,.2);transition:all .3s}
+        .badge-showcase-item:hover{transform:translateY(-5px);border-color:rgba(255,215,0,.5)}
+        .badge-name{margin-top:8px;font-weight:600;color:#ffd700;font-size:11px}
+        .badge-week{font-size:9px;color:#7b2cbf;margin-top:2px}
+        .playlist-card,.gc-card,.role-card{background:linear-gradient(145deg,#1a1a2e,#12121a);border-radius:12px;padding:15px;margin-bottom:10px;border:1px solid rgba(123,44,191,.3);transition:all .3s}
+        .playlist-card:hover,.role-card:hover{transform:translateX(5px)}
+        .gc-link-btn{display:inline-block;padding:10px 20px;background:linear-gradient(135deg,#7b2cbf,#5a1f99);color:#fff;border-radius:8px;text-decoration:none;font-size:14px;transition:all .3s}
+        .gc-link-btn:hover{transform:scale(1.05);box-shadow:0 5px 20px rgba(123,44,191,.4)}
+        .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-100px);padding:8px 16px;border-radius:20px;background:#1a1a2e;color:#fff;display:inline-flex;align-items:center;gap:8px;max-width:fit-content;z-index:9999999;opacity:0;transition:all .3s;font-size:12px;box-shadow:0 4px 15px rgba(0,0,0,0.3)}
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        .toast-icon{font-size:14px}
+        .toast-msg{font-size:12px;white-space:nowrap}
+        .toast-success{border:1px solid #00ff88;background:rgba(0,40,20,0.95)}
+        .toast-error{border:1px solid #ff4444;background:rgba(40,20,20,0.95)}
+        .toast-info{border:1px solid #7b2cbf;background:rgba(30,20,40,0.95)}
+    `;
+    document.head.appendChild(style);
+}
+function ensureStreakCSS() {
+    if (document.getElementById('streak-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'streak-styles';
+    style.textContent = `
+        /* ==================== STREAK ANIMATIONS ==================== */
+        
+        @keyframes fireFlicker {
+            0%, 100% { 
+                transform: scale(1) rotate(-3deg); 
+                filter: brightness(1);
+            }
+            50% { 
+                transform: scale(1.1) rotate(3deg); 
+                filter: brightness(1.2);
+            }
+        }
+        
+        @keyframes riskPulse {
+            0%, 100% { 
+                box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+                border-color: rgba(255, 68, 68, 0.3);
+            }
+            50% { 
+                box-shadow: 0 0 25px 5px rgba(255, 68, 68, 0.3);
+                border-color: rgba(255, 68, 68, 0.8);
+            }
+        }
+        
+        @keyframes completedGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
+            50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.4); }
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        @keyframes progressFill {
+            from { width: 0%; }
+        }
+        
+        /* ==================== MAIN STREAK WIDGET ==================== */
+        
+        .streak-widget {
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.4s ease-out;
+            transition: all 0.3s ease;
+        }
+        
+        .streak-widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff6b35, #ffd700, #ff6b35);
+            background-size: 200% 100%;
+            animation: shimmer 3s linear infinite;
+        }
+        
+        .streak-widget.at-risk {
+            border-color: #ff4444;
+            animation: slideUp 0.4s ease-out, riskPulse 2s ease-in-out infinite;
+        }
+        
+        .streak-widget.at-risk::before {
+            background: linear-gradient(90deg, #ff4444, #ffa500, #ff4444);
+            background-size: 200% 100%;
+        }
+        
+        .streak-widget.completed {
+            border-color: #00ff88;
+            animation: slideUp 0.4s ease-out, completedGlow 3s ease-in-out infinite;
+        }
+        
+        .streak-widget.completed::before {
+            background: linear-gradient(90deg, #00ff88, #00ffcc, #00ff88);
+            background-size: 200% 100%;
+        }
+        
+        /* ==================== HEADER ==================== */
+        
+        .streak-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .streak-fire-icon {
+            font-size: 50px;
+            animation: fireFlicker 1.5s ease-in-out infinite;
+            filter: drop-shadow(0 0 10px rgba(255, 107, 53, 0.5));
+        }
+        
+        .streak-fire-icon.inactive {
+            animation: none;
+            filter: grayscale(0.5);
+            opacity: 0.6;
+        }
+        
+        .streak-count {
+            flex: 1;
+        }
+        
+        .streak-number {
+            font-size: 42px;
+            font-weight: 800;
+            color: #ff6b35;
+            line-height: 1;
+            text-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+        }
+        
+        .streak-number.zero {
+            color: #888;
+            text-shadow: none;
+        }
+        
+        .streak-label {
+            color: #888;
+            font-size: 13px;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* ==================== STATUS BADGE ==================== */
+        
+        .streak-status {
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        
+        .streak-status.done {
+            background: rgba(0, 255, 136, 0.15);
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+        
+        .streak-status.risk {
+            background: rgba(255, 68, 68, 0.15);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            animation: riskPulse 1.5s ease-in-out infinite;
+        }
+        
+        .streak-status.pending {
+            background: rgba(255, 165, 0, 0.15);
+            color: #ffa500;
+            border: 1px solid rgba(255, 165, 0, 0.3);
+        }
+        
+        /* ==================== FREEZE BUTTON ==================== */
+        
+        .streak-freeze-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            padding: 6px 12px;
+            background: rgba(0, 191, 255, 0.1);
+            border: 1px solid rgba(0, 191, 255, 0.3);
+            border-radius: 20px;
+            font-size: 12px;
+            color: #00bfff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .streak-freeze-btn:hover {
+            background: rgba(0, 191, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        /* ==================== TODAY'S PROGRESS ==================== */
+        
+        .streak-today-progress {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        
+        .streak-today-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .streak-today-title {
+            color: #888;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .streak-today-count {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        
+        .streak-today-current {
+            font-size: 20px;
+            font-weight: 800;
+            color: #ff6b35;
+        }
+        
+        .streak-today-divider,
+        .streak-today-required {
+            color: #888;
+            font-size: 14px;
+        }
+        
+        .streak-today-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .streak-today-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffa500, #ff6b35);
+            border-radius: 8px;
+            transition: width 0.4s ease;
+        }
+        
+        .streak-today-fill.complete {
+            background: #00ff88;
+        }
+        
+        /* ==================== MILESTONE PROGRESS ==================== */
+        
+        .streak-progress {
+            margin-top: 20px;
+        }
+        
+        .streak-progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .streak-progress-milestone {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #aaa;
+        }
+        
+        .streak-progress-milestone .icon {
+            font-size: 20px;
+        }
+        
+        .streak-progress-days {
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        
+        .streak-progress-bar {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .streak-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b35, #ffd700);
+            border-radius: 10px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: progressFill 1s ease-out;
+        }
+        
+        /* ==================== STATS ==================== */
+        
+        .streak-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .streak-stat {
+            flex: 1;
+            text-align: center;
+            padding: 12px 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .streak-stat:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+        }
+        
+        .streak-stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+        }
+        
+        .streak-stat-label {
+            font-size: 10px;
+            color: #888;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* ==================== HISTORY DOTS ==================== */
+        
+        .streak-history {
+            display: flex;
+            gap: 5px;
+            margin-top: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .streak-history-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .streak-history-dot:hover {
+            transform: scale(1.3);
+            z-index: 1;
+        }
+        
+        .streak-history-dot.active {
+            background: #ff6b35;
+            box-shadow: 0 0 8px rgba(255, 107, 53, 0.5);
+        }
+        
+        .streak-history-dot.today {
+            border: 2px solid #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+        }
+        
+        .streak-history-dot.today.active {
+            background: #00ff88;
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+        
+        /* ==================== RISK ALERT ==================== */
+        
+        .streak-risk-alert {
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.15), rgba(255, 68, 68, 0.05));
+            border: 1px solid rgba(255, 68, 68, 0.4);
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            animation: riskPulse 2s ease-in-out infinite;
+        }
+        
+        .streak-risk-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+        
+        .streak-risk-content {
+            flex: 1;
+        }
+        
+        .streak-risk-title {
+            color: #ff6b6b;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        .streak-risk-text {
+            color: #888;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        .streak-risk-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ff4444);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .streak-risk-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(255, 68, 68, 0.4);
+        }
+        
+        /* ==================== INSTRUCTIONS ==================== */
+        
+        .streak-instructions {
+            background: linear-gradient(135deg, rgba(123, 44, 191, 0.15), rgba(123, 44, 191, 0.05));
+            border: 1px solid rgba(123, 44, 191, 0.3);
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        
+        .streak-instructions-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #7b2cbf;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        
+        .streak-requirement {
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .streak-requirement-number {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ff6b35;
+        }
+        
+        .streak-requirement-text {
+            color: #888;
+            font-size: 12px;
+        }
+        
+        .streak-instructions-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .streak-instructions-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            color: #aaa;
+            font-size: 12px;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        
+        .streak-instructions-list li:last-child {
+            margin-bottom: 0;
+        }
+        
+        .streak-instructions-list .icon {
+            flex-shrink: 0;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* ==================== MILESTONE POPUP ==================== */
+        
+        .streak-milestone-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+            padding: 20px;
+        }
+        
+        .streak-milestone-card {
+            text-align: center;
+            padding: 50px 40px;
+            max-width: 380px;
+            width: 100%;
+            animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .streak-milestone-badge-icon {
+            font-size: 90px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 30px currentColor);
+        }
+        
+        .streak-milestone-days {
+            font-size: 64px;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 8px;
+            text-shadow: 0 0 40px currentColor;
+        }
+        
+        .streak-milestone-subtitle {
+            color: #888;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+        }
+        
+        .streak-milestone-badge-box {
+            display: inline-block;
+            padding: 18px 35px;
+            border-radius: 25px;
+            margin-bottom: 35px;
+        }
+        
+        .streak-milestone-badge-name {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .streak-milestone-close-btn {
+            padding: 16px 50px;
+            background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .streak-milestone-close-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 25px rgba(123, 44, 191, 0.5);
+        }
+        
+        /* ==================== FREEZE POPUP ==================== */
+        
+        .streak-freeze-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        .streak-freeze-card {
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+            border: 1px solid rgba(0, 191, 255, 0.3);
+            border-radius: 24px;
+            padding: 30px;
+            max-width: 380px;
+            width: 100%;
+            animation: slideUp 0.3s ease;
+        }
+        
+        .streak-freeze-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .streak-freeze-title {
+            color: #00bfff;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .streak-freeze-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        
+        .streak-freeze-close:hover {
+            color: white;
+        }
+        
+        .streak-freeze-count-box {
+            text-align: center;
+            padding: 25px;
+            background: rgba(0, 191, 255, 0.1);
+            border-radius: 18px;
+            margin-bottom: 24px;
+        }
+        
+        .streak-freeze-count-number {
+            font-size: 56px;
+            font-weight: 800;
+            color: #00bfff;
+            line-height: 1;
+            text-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
+        }
+        
+        .streak-freeze-count-label {
+            color: #888;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        
+        .streak-freeze-info {
+            color: #bbb;
+            font-size: 14px;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+        
+        .streak-freeze-info strong {
+            color: white;
+        }
+        
+        .streak-freeze-info ul {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0 0 0;
+        }
+        
+        .streak-freeze-info li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-left: 15px;
+            position: relative;
+        }
+        
+        .streak-freeze-info li::before {
+            content: '•';
+            color: #00bfff;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        .streak-freeze-buy-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #00bfff, #0088cc);
+            border: none;
+            border-radius: 14px;
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .streak-freeze-buy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 191, 255, 0.4);
+        }
+        
+        /* ==================== DEBUG PANEL ==================== */
+        
+        .streak-debug-panel {
+            background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+            border: 2px solid #333;
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .streak-debug-title {
+            color: #ff6b6b;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .streak-debug-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .streak-debug-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .streak-debug-label {
+            color: #666;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        
+        .streak-debug-value {
+            color: #00ff88;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        
+        .streak-debug-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .streak-debug-btn {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .streak-debug-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .streak-debug-btn.danger {
+            background: rgba(255, 68, 68, 0.2);
+            border-color: rgba(255, 68, 68, 0.4);
+            color: #ff6b6b;
+        }
+        
+        .streak-debug-btn.success {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: rgba(0, 255, 136, 0.4);
+            color: #00ff88;
+        }
+        
+        /* ==================== RESPONSIVE ==================== */
+        
+        @media (max-width: 400px) {
+            .streak-widget {
+                padding: 18px;
+            }
+            
+            .streak-header {
+                gap: 12px;
+            }
+            
+            .streak-fire-icon {
+                font-size: 40px;
+            }
+            
+            .streak-number {
+                font-size: 36px;
+            }
+            
+            .streak-status {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+            
+            .streak-stats {
+                gap: 8px;
+            }
+            
+            .streak-stat-value {
+                font-size: 18px;
+            }
+            
+            .streak-history-dot {
+                width: 12px;
+                height: 12px;
+            }
+            
+            .streak-milestone-days {
+                font-size: 48px;
+            }
+            
+            .streak-milestone-badge-icon {
+                font-size: 70px;
+            }
+        }
+    `;
+    
+    document.head.appendChild(style);
+    console.log('✅ Streak CSS loaded');
+}
