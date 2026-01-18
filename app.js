@@ -4945,32 +4945,47 @@ let notificationInterval = null;
 
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
-    loading(true);
+    
+    // 1. TRY TO RENDER CACHED DATA IMMEDIATELY
+    const cached = localStorage.getItem('dashboard_cache_' + STATE.agentNo);
+    if (cached) {
+        try {
+            const data = JSON.parse(cached);
+            STATE.data = data;
+            STATE.weeks = data.availableWeeks || [];
+            STATE.week = data.week || STATE.weeks[0];
+            
+            // Render immediately with old data
+            $('login-screen').classList.remove('active');
+            $('login-screen').style.display = 'none';
+            $('dashboard-screen').classList.add('active');
+            $('dashboard-screen').style.display = 'flex';
+            setupDashboard();
+            loadPage('home'); 
+            console.log('⚡ Rendered from cache');
+        } catch (e) { console.log('Cache invalid'); }
+    } else {
+        // Only show spinner if no cache exists
+        loading(true);
+    }
 
     startHeartbeat();
-    updateOnlineCount();
-    setInterval(updateOnlineCount, 30000);
-    
-    if (notificationInterval) {
-        clearInterval(notificationInterval);
-        notificationInterval = null;
-    }
     
     try {
-        const startTime = Date.now();
-        
+        // 2. FETCH FRESH DATA IN BACKGROUND
         const dashboardData = await api('getDashboardData', { 
             agentNo: STATE.agentNo, 
             week: ''
         });
         
-        console.log(`✅ Dashboard loaded in ${Date.now() - startTime}ms`);
+        // 3. UPDATE CACHE
+        localStorage.setItem('dashboard_cache_' + STATE.agentNo, JSON.stringify(dashboardData));
         
+        // Update State
         STATE.weeks = dashboardData.availableWeeks || [];
         STATE.week = dashboardData.week || dashboardData.currentWeek || STATE.weeks[0];
-        STATE.lastUpdated = dashboardData.lastUpdated;
-        
         STATE.data = {
+            // ... (keep your existing mapping logic here) ...
             agentNo: dashboardData.agent.agentNo,
             week: dashboardData.week,
             profile: dashboardData.agent.profile,
@@ -4990,57 +5005,31 @@ async function loadDashboard() {
             },
             lastUpdated: dashboardData.lastUpdated
         };
+
+        // 4. RE-RENDER WITH FRESH DATA
+        setupDashboard(); // Update avatars/names
+        const currentPage = ROUTER.initialized ? STATE.page : 'home';
+        loadPage(currentPage); // Refresh current page with new data
         
-        STATE.dashboardCache = {
-            topAgents: dashboardData.topAgents || [],
-            trackGoals: dashboardData.trackGoals || {},
-            albumGoals: dashboardData.albumGoals || {},
-            announcements: dashboardData.announcements || [],
-            teamComparison: dashboardData.teamComparison || [],
-            teamName: dashboardData.team.name,
-            teamLevel: dashboardData.team.level,
-            teamPfp: dashboardData.team.pfp,
-            currentWeek: dashboardData.currentWeek
-        };
-        
-        $('login-screen').classList.remove('active');
-        $('login-screen').style.display = 'none';
-        $('dashboard-screen').classList.add('active');
-        $('dashboard-screen').style.display = 'flex';
-        
-        setupDashboard();
-        loadNotificationState();
-        setupNotificationChecks();
-        
-        const startPage = initRouter();
-        await loadPage(startPage === 'login' ? 'home' : startPage);
-        
-        await initStreakTracker();
-        initActivityFeed();
+        // 5. TRIGGER HEAVY BACKGROUND TASKS *AFTER* UI IS READY
         setTimeout(() => {
-            checkForNewMissionsBackground();
-        }, 2000); 
-        
-        loadAllWeeksData();
-        
-        setTimeout(() => {
+            initStreakTracker();
+            initActivityFeed();
+            loadAllWeeksData();
             checkNotifications();
-        }, 2000);
-        
-        notificationInterval = setInterval(() => {
-            checkNotifications();
-        }, 5 * 60 * 1000);
-        
-        if (STATE.isAdmin) addAdminIndicator();
-        
+        }, 1000); // Wait 1 second to let UI breathe
+
     } catch (e) {
         console.error('❌ Dashboard error:', e);
-        showToast('Error: ' + e.message, 'error');
-        
-        $('login-screen').classList.add('active');
-        $('login-screen').style.display = 'flex';
-        $('dashboard-screen').classList.remove('active');
-        $('dashboard-screen').style.display = 'none';
+        if (!cached) {
+            // Only show error screen if we have no cache to show
+            showToast('Connection failed', 'error');
+            $('login-screen').classList.add('active');
+            $('login-screen').style.display = 'flex';
+            $('dashboard-screen').classList.remove('active');
+        } else {
+            showToast('Could not refresh data. Showing cached version.', 'info');
+        }
     } finally { 
         loading(false); 
     }
