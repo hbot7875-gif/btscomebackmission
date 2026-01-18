@@ -292,7 +292,7 @@
                     <div class="card">
                         <div class="card-header">
                             <h3><span class="header-icon">🏆</span> Top Agents</h3>
-                            <a href="#" class="card-link" onclick="loadPage('rankings')">View All →</a>
+                            <a href="#" class="card-link" onclick="event.preventDefault(); loadPage('rankings');">View All →</a>
                         </div>
                         <div class="card-body" id="home-top-agents">
                             <div class="loading-skeleton"><div class="skeleton-item"></div></div>
@@ -301,7 +301,7 @@
                     <div class="card">
                         <div class="card-header">
                             <h3><span class="header-icon">🎭</span> Battle Standings</h3>
-                            <a href="#" class="card-link" onclick="loadPage('comparison')">Details →</a>
+                            <a href="#" class="card-link" onclick="event.preventDefault(); loadPage('comparison');">Details →</a>
                         </div>
                         <div class="card-body" id="home-standings">
                             <div class="loading-skeleton"><div class="skeleton-item"></div></div>
