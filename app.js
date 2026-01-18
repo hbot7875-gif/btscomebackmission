@@ -9108,266 +9108,100 @@ async function renderAnnouncements() {
     }
 }
 // ==================== PLAYLISTS (WITH REQUEST FEATURE) ====================
+// ==================== PLAYLISTS PAGE ====================
+
 async function renderPlaylists() {
     const container = $('playlists-content');
     if (!container) return;
-    
 
-    const PLAYLIST_REQUEST_FORM = 'https://forms.gle/hwHMSDxVjNhcLh1U6';  
-    const PLAYLIST_TRACKER_SHEET = 'https://docs.google.com/spreadsheets/d/1_EFaH_-uAZUjxtZyuwKBsQF4HCzdsbBN4XRqLUWMMDY/edit?usp=sharing';  // ← Your Google Sheet link
-    
-    container.innerHTML = `
-        ${renderGuide('playlists')}
-        
-        <!-- ===== NEW PLAYLIST REQUEST SYSTEM ===== -->
-        <div class="card" style="
-            background: linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(123, 44, 191, 0.05));
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            margin-bottom: 20px;
-        ">
-            <div class="card-header" style="border-bottom: 1px solid rgba(0,255,136,0.2);">
-                <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 24px;">📝</span>
-                    <span>Need a Playlist? Request Here!</span>
-                </h3>
-            </div>
-            <div class="card-body" style="padding: 20px;">
-                
-                <!-- Why We Made This -->
-                <div style="
-                    background: rgba(255, 255, 255, 0.03);
-                    border-radius: 12px;
-                    padding: 15px;
-                    margin-bottom: 20px;
-                ">
-                    <div style="display: flex; align-items: flex-start; gap: 12px;">
-                        <span style="font-size: 24px;">💡</span>
-                        <div>
-                            <div style="color: #ffd700; font-size: 13px; font-weight: 600; margin-bottom: 6px;">
-                                Why did we create this system?
-                            </div>
-                            <div style="color: #aaa; font-size: 12px; line-height: 1.6;">
-                                Many agents were having trouble scrolling up in the Playlist GC to find old playlists. 
-                                So we made this easier for everyone! Now you can:
-                                <br><br>
-                                <strong style="color: #fff;">1.</strong> Fill a simple form to request any playlist you need
-                                <br>
-                                <strong style="color: #fff;">2.</strong> Playlist makers will create it and add the link
-                                <br>
-                                <strong style="color: #fff;">3.</strong> Find all playlist links easily in one spreadsheet!
-                            </div>
-                        </div>
-                    </div>
+    // --- 1. THE PLAYLIST MAKER FORM (UI) ---
+    const makerPanelHTML = `
+        <div class="card" style="border: 1px solid #ffd700; background: linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(0,0,0,0.2)); margin-bottom: 25px;">
+            <div class="card-header" style="cursor: pointer; display:flex; justify-content:space-between; align-items:center;" onclick="document.getElementById('maker-form').style.display = document.getElementById('maker-form').style.display === 'none' ? 'block' : 'none'">
+                <div>
+                    <h3 style="color: #ffd700; margin:0;">🎵 Playlist Maker Panel</h3>
+                    <span style="font-size: 10px; color: #888;">(Click to Expand)</span>
                 </div>
-                
-                <!-- Step by Step Guide -->
-                <div style="
-                    background: rgba(123, 44, 191, 0.1);
-                    border: 1px solid rgba(123, 44, 191, 0.3);
-                    border-radius: 12px;
-                    padding: 15px;
-                    margin-bottom: 20px;
-                ">
-                    <div style="color: #7b2cbf; font-size: 14px; font-weight: 600; margin-bottom: 12px;">
-                        📋 How It Works (3 Simple Steps!)
-                    </div>
+                <span style="color:#ffd700;">▼</span>
+            </div>
+            
+            <div id="maker-form" class="card-body" style="display: none; padding-top: 15px;">
+                <div style="display: grid; gap: 10px;">
+                    <input type="text" id="pl-name" placeholder="Playlist Name (e.g. Focus V1)" class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
                     
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <!-- Step 1 -->
-                        <div style="display: flex; align-items: flex-start; gap: 12px;">
-                            <div style="
-                                width: 28px;
-                                height: 28px;
-                                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                                border-radius: 50%;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                color: #fff;
-                                font-weight: bold;
-                                font-size: 14px;
-                                flex-shrink: 0;
-                            ">1</div>
-                            <div>
-                                <div style="color: #fff; font-size: 13px; font-weight: 600;">Fill the Request Form</div>
-                                <div style="color: #888; font-size: 11px; margin-top: 3px;">
-                                    Tell us what playlist you need (which songs, platform, etc.)
-                                </div>
-                            </div>
-                        </div>
+                    <input type="text" id="pl-url" placeholder="Playlist Link (URL)" class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <select id="pl-platform" style="padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
+                            <option value="Spotify">Spotify</option>
+                            <option value="Apple Music">Apple Music</option>
+                            <option value="YouTube">YouTube</option>
+                            <option value="Stationhead">Stationhead</option>
+                            <option value="Renaissance">Renaissance</option>
+                        </select>
                         
-                        <!-- Step 2 -->
-                        <div style="display: flex; align-items: flex-start; gap: 12px;">
-                            <div style="
-                                width: 28px;
-                                height: 28px;
-                                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                                border-radius: 50%;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                color: #fff;
-                                font-weight: bold;
-                                font-size: 14px;
-                                flex-shrink: 0;
-                            ">2</div>
-                            <div>
-                                <div style="color: #fff; font-size: 13px; font-weight: 600;">Wait for Playlist Makers</div>
-                                <div style="color: #888; font-size: 11px; margin-top: 3px;">
-                                    Our amazing Playlist Makers 🎵 will create your playlist and add the link
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Step 3 -->
-                        <div style="display: flex; align-items: flex-start; gap: 12px;">
-                            <div style="
-                                width: 28px;
-                                height: 28px;
-                                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                                border-radius: 50%;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                color: #fff;
-                                font-weight: bold;
-                                font-size: 14px;
-                                flex-shrink: 0;
-                            ">3</div>
-                            <div>
-                                <div style="color: #fff; font-size: 13px; font-weight: 600;">Find Your Playlist in the Sheet</div>
-                                <div style="color: #888; font-size: 11px; margin-top: 3px;">
-                                    Open the tracker spreadsheet to find all playlist links in one place!
-                                </div>
-                            </div>
-                        </div>
+                        <select id="pl-team" style="padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
+                            <option value="All">All Teams</option>
+                            <option value="Team Indigo">Team Indigo</option>
+                            <option value="Team Echo">Team Echo</option>
+                            <option value="Team Agust D">Team Agust D</option>
+                            <option value="Team JITB">Team JITB</option>
+                        </select>
                     </div>
-                </div>
-                
-                <!-- Action Buttons -->
-                <div style="display: flex; flex-direction: column; gap: 12px;">
+
+                    <input type="password" id="pl-password" placeholder="🔒 Enter Maker Password" class="form-input" style="width: 100%; padding: 12px; background: #1a0505; border: 1px solid #ff4444; color: white; border-radius: 8px;">
                     
-                    <!-- Request Form Button -->
-                    <a href="${PLAYLIST_REQUEST_FORM}" target="_blank" rel="noopener noreferrer" style="
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 10px;
-                        padding: 16px 24px;
-                        background: linear-gradient(135deg, #00ff88, #00cc6a);
-                        color: #000;
-                        border-radius: 12px;
-                        text-decoration: none;
-                        font-size: 15px;
-                        font-weight: bold;
-                        box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
-                        transition: all 0.3s ease;
-                    ">
-                        <span style="font-size: 20px;">📝</span>
-                        <span>Request a Playlist</span>
-                        <span style="font-size: 14px;">→</span>
-                    </a>
-                    
-                    <!-- Tracker Sheet Button -->
-                    <a href="${PLAYLIST_TRACKER_SHEET}" target="_blank" rel="noopener noreferrer" style="
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 10px;
-                        padding: 16px 24px;
-                        background: linear-gradient(135deg, #4285f4, #2d6fe8);
-                        color: #fff;
-                        border-radius: 12px;
-                        text-decoration: none;
-                        font-size: 15px;
-                        font-weight: bold;
-                        box-shadow: 0 4px 20px rgba(66, 133, 244, 0.3);
-                        transition: all 0.3s ease;
-                    ">
-                        <span style="font-size: 20px;">📊</span>
-                        <span>View Playlist Tracker</span>
-                        <span style="font-size: 14px;">→</span>
-                    </a>
+                    <button onclick="submitNewPlaylist()" class="btn-primary" style="width: 100%; background: #ffd700; color: #000; font-weight: bold; padding: 12px; border:none; border-radius:8px; cursor:pointer;">
+                        + Publish Playlist
+                    </button>
                 </div>
-                
-                <!-- Info Note -->
-                <div style="
-                    margin-top: 16px;
-                    padding: 12px;
-                    background: rgba(255, 215, 0, 0.08);
-                    border: 1px dashed rgba(255, 215, 0, 0.3);
-                    border-radius: 10px;
-                    text-align: center;
-                ">
-                    <span style="color: #ffd700; font-size: 12px;">
-                        💜 Playlist Makers are volunteers helping our mission! Please be patient and kind. Thank you! 💜
-                    </span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- ===== OFFICIAL PLAYLISTS ===== -->
-        <div class="card">
-            <div class="card-header">
-                <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 20px;">🎵</span>
-                    <span>Official Streaming Playlists</span>
-                </h3>
-            </div>
-            <div class="card-body">
-                <div id="playlists-list" style="display:flex;flex-direction:column;gap:10px;">
-                    <div class="loading-text" style="text-align:center;padding:20px;color:#888;">
-                        ⏳ Loading playlists...
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- ===== NEED HELP? ===== -->
-        <div class="card" style="background: rgba(255,255,255,0.02); margin-top: 20px;">
-            <div class="card-body" style="text-align: center; padding: 20px;">
-                <div style="font-size: 24px; margin-bottom: 10px;">❓</div>
-                <div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
-                    Have Questions?
-                </div>
-                <div style="color: #888; font-size: 12px; line-height: 1.6;">
-                    If you have any doubts about requesting playlists or finding links,<br>
-                    ask in the <strong style="color: #7b2cbf;">Secret Comms</strong> chat or your <strong style="color: #7b2cbf;">Team GC</strong>!
-                </div>
-                <button onclick="loadPage('chat')" class="btn-secondary" style="margin-top: 15px; padding: 10px 24px;">
-                    💬 Go to Secret Comms
-                </button>
             </div>
         </div>
     `;
-    
-    // ===== LOAD EXISTING PLAYLISTS FROM API =====
+
+    // --- 2. EXISTING CONTENT + LIST CONTAINER ---
+    container.innerHTML = `
+        ${renderGuide('playlists')}
+        ${makerPanelHTML}
+        
+        <!-- Existing Request System -->
+        <div class="card" style="background: linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(123, 44, 191, 0.05)); border: 1px solid rgba(0, 255, 136, 0.3); margin-bottom: 20px;">
+            <div class="card-header"><h3 style="margin:0;">📝 Request a Playlist</h3></div>
+            <div class="card-body" style="padding: 20px; text-align: center;">
+                <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">Not a maker? Request one here!</p>
+                <a href="https://forms.gle/hwHMSDxVjNhcLh1U6" target="_blank" class="btn-secondary" style="display:inline-block; padding:10px 20px; text-align:center;">Open Request Form</a>
+            </div>
+        </div>
+
+        <!-- Official Playlists List -->
+        <div class="card">
+            <div class="card-header"><h3>🎵 Official Playlists</h3></div>
+            <div class="card-body">
+                <div id="playlists-list" style="display:flex; flex-direction:column; gap:10px;">
+                    <div class="loading-text" style="text-align:center; padding:20px; color:#888;">⏳ Loading...</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // --- 3. FETCH AND RENDER LIST ---
     try {
         const data = await api('getPlaylists');
         const playlists = data.playlists || [];
         const listEl = $('playlists-list');
         
         if (playlists.length) {
+            // Sort: Newest first (assuming bottom of sheet is newest)
+            playlists.reverse(); 
+            
             listEl.innerHTML = playlists.map(pl => `
-                <div class="playlist-card" style="
-                    background: linear-gradient(135deg, rgba(26, 26, 46, 0.9), rgba(18, 18, 26, 0.95));
-                    border: 1px solid rgba(123, 44, 191, 0.3);
-                    border-radius: 12px;
-                    padding: 15px;
-                    transition: all 0.3s ease;
-                ">
-                    <a href="${sanitize(pl.link || pl.url)}" target="_blank" rel="noopener noreferrer" class="playlist-link" style="
-                        display: flex;
-                        align-items: center;
-                        gap: 15px;
-                        text-decoration: none;
-                        color: inherit;
-                    ">
-                        <span class="playlist-icon" style="font-size: 28px;">${getPlaylistIcon(pl.platform)}</span>
+                <div class="playlist-card" style="background: linear-gradient(135deg, #1a1a2e, #16213e); border: 1px solid rgba(123, 44, 191, 0.3); border-radius: 12px; padding: 15px;">
+                    <a href="${sanitize(pl.link || pl.url)}" target="_blank" style="display: flex; align-items: center; gap: 15px; text-decoration: none; color: inherit;">
+                        <span style="font-size: 24px;">${getPlaylistIcon(pl.platform)}</span>
                         <div style="flex: 1;">
-                            <div class="playlist-name" style="color: #fff; font-size: 14px; font-weight: 600;">${sanitize(pl.name)}</div>
-                            <div class="playlist-type" style="color: #888; font-size: 11px; margin-top: 3px;">
-                                ${sanitize(pl.platform || 'Streaming')} • ${sanitize(pl.type || 'Playlist')}
+                            <div style="color: #fff; font-size: 14px; font-weight: 600;">${sanitize(pl.name)}</div>
+                            <div style="color: #888; font-size: 11px; margin-top: 3px;">
+                                ${sanitize(pl.platform)} • <span style="color:${teamColor(pl.team)}">${sanitize(pl.team)}</span>
                             </div>
                         </div>
                         <span style="color: #7b2cbf; font-size: 18px;">→</span>
@@ -9375,30 +9209,92 @@ async function renderPlaylists() {
                 </div>
             `).join('');
         } else {
-            listEl.innerHTML = `
-                <div style="text-align:center;padding:40px;color:#888;">
-                    <div style="font-size:48px;margin-bottom:15px;">📭</div>
-                    <p style="margin: 0;">No official playlists added yet</p>
-                    <p style="font-size:12px;margin-top:8px;">Use the request form above to ask for playlists!</p>
-                </div>
-            `;
+            listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#888;">No playlists found.</div>`;
         }
         
         // Update notification state
-        STATE.lastChecked.playlists = playlists.length;
-        saveNotificationState();
-        
+        if (typeof STATE !== 'undefined' && STATE.lastChecked) {
+            STATE.lastChecked.playlists = playlists.length;
+            if (typeof saveNotificationState === 'function') saveNotificationState();
+        }
+
     } catch (e) {
-        console.error('Failed to load playlists:', e);
-        $('playlists-list').innerHTML = `
-            <div style="text-align:center;padding:30px;">
-                <p style="color:#ff6b6b;">❌ Failed to load playlists</p>
-                <button onclick="renderPlaylists()" class="btn-secondary" style="margin-top:10px;">🔄 Retry</button>
-            </div>
-        `;
+        console.error(e);
+        const listEl = $('playlists-list');
+        if (listEl) listEl.innerHTML = `<p style="color:red; text-align:center;">Failed to load playlists.</p>`;
     }
 }
 
+// ==================== SUBMIT NEW PLAYLIST LOGIC ====================
+
+async function submitNewPlaylist() {
+    const nameInput = document.getElementById('pl-name');
+    const urlInput = document.getElementById('pl-url');
+    const platformInput = document.getElementById('pl-platform');
+    const teamInput = document.getElementById('pl-team');
+    const passwordInput = document.getElementById('pl-password');
+    
+    if (!nameInput || !urlInput || !passwordInput) return;
+
+    const name = nameInput.value.trim();
+    const url = urlInput.value.trim();
+    const platform = platformInput.value;
+    const team = teamInput.value;
+    const password = passwordInput.value.trim();
+    
+    // 1. Validation
+    if (!name || !url || !password) {
+        showToast('❌ Please fill all fields (Name, Link, Password)', 'error');
+        return;
+    }
+
+    // 2. Loading State
+    loading(true);
+
+    try {
+        // 3. Send POST Request using fetch (API usually defaults to GET)
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'addPlaylist',
+                password: password, // The secret password defined in GAS Config
+                name: name,
+                url: url,
+                platform: platform,
+                type: 'Playlist',
+                team: team,
+                targetWeek: STATE.week || 'Week 1',
+                agentNo: STATE.agentNo || 'Unknown' // Tracks who added it
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showToast('✅ Playlist Added Successfully!', 'success');
+            
+            // Clear Form
+            nameInput.value = '';
+            urlInput.value = '';
+            passwordInput.value = '';
+            
+            // Hide Form
+            const form = document.getElementById('maker-form');
+            if (form) form.style.display = 'none';
+            
+            // Refresh List immediately to show new item
+            renderPlaylists();
+        } else {
+            showToast('❌ ' + (result.error || 'Failed to add'), 'error');
+        }
+
+    } catch (e) {
+        console.error(e);
+        showToast('❌ Network Error', 'error');
+    } finally {
+        loading(false);
+    }
+}
 // ==================== GC LINKS ====================
 async function renderGCLinks() {
     const container = $('gc-links-content');
@@ -11924,6 +11820,7 @@ window.setTodaysSong = setTodaysSong;
 window.renderSecretMissions = renderSecretMissions;
 window.renderAnnouncements = renderAnnouncements;
 window.renderPlaylists = renderPlaylists;
+window.submitNewPlaylist = submitNewPlaylist;
 window.renderSummary = renderSummary;
 window.renderComparison = renderComparison;
 window.renderGCLinks = renderGCLinks;
