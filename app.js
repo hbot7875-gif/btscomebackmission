@@ -7040,15 +7040,17 @@ async function renderOverallRankings() {
             const isMe = String(r.agentNo) === String(STATE.agentNo);
             const tColor = teamColor(r.team);
             
-            // Medals for Top 3
-            let rankDisplay = `<div class="rank-num">${i + 1}</div>`;
-            if (i === 0) rankDisplay = `<div class="rank-num" style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#000;font-size:18px;">🥇</div>`;
-            if (i === 1) rankDisplay = `<div class="rank-num" style="background:linear-gradient(135deg,#C0C0C0,#E0E0E0);color:#000;font-size:16px;">🥈</div>`;
-            if (i === 2) rankDisplay = `<div class="rank-num" style="background:linear-gradient(135deg,#CD7F32,#DA8A67);color:#000;font-size:16px;">🥉</div>`;
+            // Determine Rank Class and Content
+            let rankClass = '';
+            let rankContent = i + 1;
+            
+            if (i === 0) { rankClass = 'rank-1'; rankContent = '🥇'; }
+            else if (i === 1) { rankClass = 'rank-2'; rankContent = '🥈'; }
+            else if (i === 2) { rankClass = 'rank-3'; rankContent = '🥉'; }
 
             return `
-            <div class="rank-item ${isMe ? 'highlight' : ''}" style="border-left: 3px solid ${tColor};" onclick="viewAgentProfile('${r.agentNo}')">
-                ${rankDisplay}
+            <div class="rank-item ${isMe ? 'highlight' : ''}" style="border-left: 3px solid ${tColor};">
+                <div class="rank-num ${rankClass}">${rankContent}</div>
                 
                 <div class="rank-info">
                     <div class="rank-name">
@@ -7088,27 +7090,25 @@ async function renderMyTeamRankings() {
     
     const myTeam = STATE.data?.profile?.team;
     if (!myTeam) { 
-        container.innerHTML = '<div class="card"><div class="card-body error-text">Could not identify your team. Try re-logging in.</div></div>'; 
+        container.innerHTML = '<div class="card"><div class="card-body error-text">Could not identify your team.</div></div>'; 
         return; 
     }
     
     try {
-        // ✅ FETCH GLOBAL RANKINGS (Limit 1000 to get everyone)
-        // This ensures the numbers match the overall list exactly
+        // Fetch ALL rankings to ensure accurate positioning relative to global
         const data = await api('getRankings', { week: STATE.week, limit: 1000 });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
         
-        // Filter for my team members
-        // Safer check: handle nulls and trim spaces
+        // Filter for my team
         const teamMembers = (data.rankings || []).filter(r => 
             r.team && r.team.trim() === myTeam.trim()
         );
         
-        // Sort by Total XP (Highest to Lowest)
+        // Sort by XP
         teamMembers.sort((a, b) => (b.totalXP || 0) - (a.totalXP || 0));
         
         if (teamMembers.length === 0) {
-            container.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><p>No team data available yet</p></div>';
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><p>No team data available</p></div>';
             return;
         }
 
@@ -7116,15 +7116,17 @@ async function renderMyTeamRankings() {
             const isMe = String(r.agentNo) === String(STATE.agentNo);
             const tColor = teamColor(myTeam);
             
-            // Medals for Top 3 (Internal Team Rank)
-            let rankBadge = `<div class="rank-num">${i + 1}</div>`;
-            if (i === 0) rankBadge = `<div class="rank-num" style="background:linear-gradient(135deg,#FFD700,#FFA500);color:#000;font-size:18px;">🥇</div>`;
-            if (i === 1) rankBadge = `<div class="rank-num" style="background:linear-gradient(135deg,#C0C0C0,#E0E0E0);color:#000;font-size:16px;">🥈</div>`;
-            if (i === 2) rankBadge = `<div class="rank-num" style="background:linear-gradient(135deg,#CD7F32,#DA8A67);color:#000;font-size:16px;">🥉</div>`;
+            // Determine Rank Class and Content (Internal Team Rank)
+            let rankClass = '';
+            let rankContent = i + 1;
+            
+            if (i === 0) { rankClass = 'rank-1'; rankContent = '🥇'; }
+            else if (i === 1) { rankClass = 'rank-2'; rankContent = '🥈'; }
+            else if (i === 2) { rankClass = 'rank-3'; rankContent = '🥉'; }
 
             return `
             <div class="rank-item ${isMe ? 'highlight' : ''}" style="border-left: 3px solid ${tColor};">
-                ${rankBadge}
+                <div class="rank-num ${rankClass}">${rankContent}</div>
                 
                 <div class="rank-info">
                     <div class="rank-name">
