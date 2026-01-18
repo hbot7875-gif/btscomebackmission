@@ -10199,6 +10199,7 @@ async function renderGuidePage() {
                 <button class="guide-nav-btn active" data-section="what-is">Mission</button>
                 <button class="guide-nav-btn" data-section="teams">Teams</button>
                 <button class="guide-nav-btn" data-section="goals">Goals & XP</button>
+                <button class="guide-nav-btn" data-section="streaks">🔥 Streaks</button>
                 <button class="guide-nav-btn" data-section="winning">How to Win</button>
                 <button class="guide-nav-btn" data-section="rules">Rules</button>
                 <button class="guide-nav-btn" data-section="attendance">Attendance</button>
@@ -10312,7 +10313,56 @@ async function renderGuidePage() {
                     </ul>
                 </div>
             </div>
-            
+            <!-- Section 3.5: Daily Streaks (NEW) -->
+            <div class="guide-section" id="guide-streaks">
+                <div class="guide-section-header" onclick="toggleGuideSection(this)">
+                    <span class="guide-section-icon">🔥</span>
+                    <span class="guide-section-title">Daily Streaks & Freezes</span>
+                    <span class="guide-section-toggle">▼</span>
+                </div>
+                <div class="guide-section-content">
+                    <p class="guide-text">
+                        Consistency is power! Maintain a daily streak to earn exclusive badges and show your dedication.
+                    </p>
+                    
+                    <div class="guide-highlight">
+                        <div class="guide-highlight-title">🎯 Daily Requirement: 10 Streams</div>
+                        <div class="guide-highlight-content">
+                            You must record at least <strong>10 streams</strong> (Tracks or Albums) within 24 hours to keep your streak alive.<br>
+                            <span style="font-size:11px;opacity:0.8;">(Resets every night at Midnight)</span>
+                        </div>
+                    </div>
+
+                    <div class="guide-section-subtitle">🧊 How Freezes Work</div>
+                    <p class="guide-text">Life happens! If you miss a day, a <strong>Streak Freeze</strong> automatically activates to save your streak.</p>
+                    
+                    <ul class="guide-list">
+                        <li>You get <strong>2 Freezes</strong> automatically on the 1st of every month.</li>
+                        <li>If you have 0 freezes and miss a day, your streak resets to 0. 💔</li>
+                        <li>Need more? You can buy a freeze for <strong>20 XP</strong> by clicking the 🧊 icon on the home dashboard.</li>
+                    </ul>
+
+                    <div class="guide-section-subtitle">🏆 Streak Milestones</div>
+                    <div class="guide-gc-grid">
+                        <div class="guide-gc-item">
+                            <span class="guide-gc-icon">🌱</span>
+                            <div class="guide-gc-info"><div class="guide-gc-name">3 Days</div><div class="guide-gc-desc">Begin Badge</div></div>
+                        </div>
+                        <div class="guide-gc-item">
+                            <span class="guide-gc-icon">🔥</span>
+                            <div class="guide-gc-info"><div class="guide-gc-name">7 Days</div><div class="guide-gc-desc">Fire Badge</div></div>
+                        </div>
+                        <div class="guide-gc-item">
+                            <span class="guide-gc-icon">💪</span>
+                            <div class="guide-gc-info"><div class="guide-gc-name">21 Days</div><div class="guide-gc-desc">Runner Badge</div></div>
+                        </div>
+                        <div class="guide-gc-item">
+                            <span class="guide-gc-icon">💜</span>
+                            <div class="guide-gc-info"><div class="guide-gc-name">100 Days</div><div class="guide-gc-desc">Bulletproof Badge</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <!-- Section 4: How to Win the Week -->
             <div class="guide-section" id="guide-winning">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
@@ -10574,6 +10624,11 @@ async function renderGuidePage() {
                 <div class="guide-quick-link" onclick="handleGuideQuickLink('gc-links')">
                     <span class="guide-quick-link-icon">👥</span>
                     <span class="guide-quick-link-text">GC Links</span>
+                </div>
+                <div class="guide-quick-links">
+                <div class="guide-quick-link" onclick="handleGuideQuickLink('home')">
+                    <span class="guide-quick-link-icon">🔥</span>
+                    <span class="guide-quick-link-text">Check Streak</span>
                 </div>
             </div>
         </div>
