@@ -7059,7 +7059,7 @@ async function renderOverallRankings() {
     }
 }
 async function renderMyTeamRankings() {
-    const container = $('rankings-content-container');
+    const container = document.getElementById('rankings-content-container');
     if (!container) return;
     
     const myTeam = STATE.data?.profile?.team;
@@ -7069,35 +7069,43 @@ async function renderMyTeamRankings() {
     }
     
     try {
-        // ✅ CHANGE: Fetch ALL global rankings (limit 1000) to ensure data consistency
-        // Instead of calling 'getTeamRankings', we get the master list and filter it.
+        // Fetch global rankings
         const data = await api('getRankings', { week: STATE.week, limit: 1000 });
-        
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
         
-        // 1. Filter for only members of my team
+        // Filter for my team
         const teamMembers = (data.rankings || []).filter(r => r.team === myTeam);
         
-        // 2. Sort by Total XP (Highest to Lowest)
+        // Sort by XP
         teamMembers.sort((a, b) => b.totalXP - a.totalXP);
         
-        const rankingsHtml = teamMembers.length ? teamMembers.map((r, i) => `
-            <div class="rank-item ${String(r.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}" 
-                 style="border-left: 3px solid ${teamColor(myTeam)};">
-                
-                <!-- Rank Number (1, 2, 3...) -->
-                <div class="rank-num">
-                    ${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
-                </div>
+        if (teamMembers.length === 0) {
+            container.innerHTML = '<div class="empty-state">No team data available</div>';
+            return;
+        }
+
+        const rankingsHtml = teamMembers.map((r, i) => {
+            const isMe = String(r.agentNo) === String(STATE.agentNo);
+            const tColor = teamColor(myTeam);
+            
+            // Medals for Top 3
+            let rankDisplay = i + 1;
+            if (i === 0) rankDisplay = '🥇';
+            if (i === 1) rankDisplay = '🥈';
+            if (i === 2) rankDisplay = '🥉';
+
+            return `
+            <div class="rank-item ${isMe ? 'highlight' : ''}" style="border-left: 3px solid ${tColor};">
+                <!-- Rank Number -->
+                <div class="rank-num">${rankDisplay}</div>
                 
                 <!-- Info Section -->
                 <div class="rank-info">
                     <div class="rank-name">
                         ${sanitize(r.name)}
-                        ${String(r.agentNo) === String(STATE.agentNo) ? ' <span style="font-size:10px;background:#fff;color:#000;padding:1px 4px;border-radius:4px;font-weight:bold;">YOU</span>' : ''}
+                        ${isMe ? '<span class="you-badge">YOU</span>' : ''}
                     </div>
-                    <!-- Display Global Rank for context -->
-                    <div class="rank-team" style="color:#888; font-size:10px;">
+                    <div class="rank-team" style="color: #aaa;">
                         Global Rank: #${r.rank}
                     </div>
                 </div>
@@ -7105,22 +7113,23 @@ async function renderMyTeamRankings() {
                 <!-- XP -->
                 <div class="rank-xp">${fmt(r.totalXP)} XP</div>
             </div>
-        `).join('') : '<div style="text-align:center;padding:20px;color:#888;">No data for your team yet</div>';
+            `;
+        }).join('');
         
         container.innerHTML = `
-            <div class="rankings-header">
-                <span class="week-badge" style="background-color: ${teamColor(myTeam)}; color: #fff;">
+            <div class="rankings-header" style="display:flex;justify-content:center;margin-bottom:15px;">
+                <span class="week-badge" style="background-color: ${teamColor(myTeam)}22; color: ${teamColor(myTeam)}; border: 1px solid ${teamColor(myTeam)};">
                     ${myTeam} Leaderboard
                 </span>
             </div>
-            ${STATE.lastUpdated ? `<div class="last-updated-banner">📊 Synced with Overall Rankings</div>` : ''}
+            ${STATE.lastUpdated ? `<div class="last-updated-banner" style="font-size:10px;text-align:center;color:#666;margin-bottom:10px;">📊 Updated: ${formatLastUpdated(STATE.lastUpdated)}</div>` : ''}
             <div class="rankings-list">
                 ${rankingsHtml}
             </div>
         `;
         
     } catch (e) { 
-        console.error(e);
+        console.error('Team Rankings Error:', e);
         container.innerHTML = '<p class="error-text">Failed to load team rankings.</p>'; 
     }
 }
