@@ -11829,42 +11829,45 @@ function renderBadgeHTML(badge) {
 }
 // ==================== NAMJOON'S BRAIN (STRATEGY CENTER) ====================
 
+// ==================== NAMJOON'S BRAIN (STRATEGY CENTER) ====================
 async function renderNamjoonBrain() {
-    const container = $('namjoon-brain-content');
+    // Ensure the container exists with the CORRECT ROUTER ID (page-namjoon)
+    let container = document.getElementById('namjoon-content');
     
-    // If container doesn't exist (first load), create it
     if (!container) {
-        const page = document.createElement('section');
-        page.id = 'page-namjoon-brain';
-        page.className = 'page active';
-        page.innerHTML = '<div id="namjoon-brain-content"></div>';
-        document.querySelector('main') ? document.querySelector('main').appendChild(page) : document.body.appendChild(page);
+        const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
+        if (mainContent) {
+            const page = document.createElement('section');
+            page.id = 'page-namjoon'; // ✅ CRITICAL: Must be 'page-namjoon' to match router
+            page.className = 'page';
+            page.innerHTML = '<div id="namjoon-content"></div>';
+            mainContent.appendChild(page);
+            container = document.getElementById('namjoon-content');
+        }
     }
     
-    const content = $('namjoon-brain-content');
+    // Safety check - if container still doesn't exist, stop
+    if (!container) return;
+
+    // Show loading skeleton
+    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
+
     const myTeam = STATE.data?.profile?.team;
     
     if (!myTeam) {
-        content.innerHTML = '<div class="card"><div class="card-body error-text">Please log in to access Namjoon\'s strategies.</div></div>';
+        container.innerHTML = '<div class="card"><div class="card-body error-text">Please log in to access Namjoon\'s strategies.</div></div>';
         return;
     }
 
-    content.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
-
     try {
-        // 1. Get Goals and Team Member Count
         const [goalsData, agentsData] = await Promise.all([
             api('getGoalsProgress', { week: STATE.week }),
-            api('getAllAgents') // We need this to count team members
+            api('getAllAgents')
         ]);
 
-        const teamMembers = agentsData.agents.filter(a => a.team === myTeam).length || 1;
-        
-        // Find the most critical goal (Tracks or Albums)
-        // We focus on Tracks for the calculation example, but you could toggle
+        const teamMembers = agentsData.agents ? agentsData.agents.filter(a => a.team === myTeam).length : 1;
         const trackGoals = goalsData.trackGoals || {};
         
-        // Calculate Total Gap
         let totalGoal = 0;
         let currentStreams = 0;
         
@@ -11876,24 +11879,22 @@ async function renderNamjoonBrain() {
         const remainingGap = Math.max(0, totalGoal - currentStreams);
         const daysRemaining = getDaysRemaining(STATE.week) || 1;
         
-        // Render UI
-        content.innerHTML = `
-            <div class="card" style="background: linear-gradient(135deg, #2c3e50, #000000); border: 1px solid #7b2cbf;">
+        container.innerHTML = `
+            <div class="card" style="background: linear-gradient(135deg, #2c3e50, #000000); border: 1px solid #7b2cbf; margin-bottom: 20px;">
                 <div class="card-body" style="padding: 20px;">
                     <div style="display:flex; gap: 15px; align-items:center; margin-bottom: 20px;">
-                        <div style="width:60px; height:60px; border-radius:50%; background: #fff; overflow:hidden; border: 2px solid #7b2cbf;">
-                            <!-- Placeholder for Namjoon PFP -->
-                            <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:30px;">🧠</div>
+                        <div style="width:60px; height:60px; border-radius:50%; background: #fff; overflow:hidden; border: 2px solid #7b2cbf; display:flex; align-items:center; justify-content:center; font-size:30px;">
+                            🧠
                         </div>
                         <div>
-                            <h2 style="margin:0; color:#fff; font-family: monospace;">NAMJOON'S BRAIN</h2>
+                            <h2 style="margin:0; color:#fff; font-family: monospace; font-size: 18px;">NAMJOON'S BRAIN</h2>
                             <p style="margin:0; color:#aaa; font-size:12px;">Strategic Analysis • IQ 148 Mode</p>
                         </div>
                     </div>
 
                     <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                            <span style="color:#aaa; font-size:12px;">Team Gap (All Tracks)</span>
+                            <span style="color:#aaa; font-size:12px;">Team Gap</span>
                             <span style="color:#ff6b6b; font-weight:bold;">${fmt(remainingGap)} streams</span>
                         </div>
                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
@@ -11906,52 +11907,40 @@ async function renderNamjoonBrain() {
                         </div>
                     </div>
 
-                    <!-- THE SLIDER STRATEGY -->
+                    <!-- SLIDER -->
                     <div style="margin-bottom: 25px;">
                         <label style="color:#fff; font-size:13px; display:block; margin-bottom:10px;">
-                            📉 Reality Check: How many agents are actually helping?
+                            📉 Participation Rate: <span id="slider-val" style="color:#7b2cbf;">50%</span>
                         </label>
                         <input type="range" id="active-agents-slider" min="10" max="100" value="50" style="width:100%; accent-color: #7b2cbf;">
-                        <div style="display:flex; justify-content:space-between; margin-top:5px;">
-                            <span style="font-size:10px; color:#666;">Pessimistic (10%)</span>
-                            <span id="slider-val" style="color:#7b2cbf; font-weight:bold;">50%</span>
-                            <span style="font-size:10px; color:#666;">Optimistic (100%)</span>
-                        </div>
+                        <p style="font-size:10px; color:#666; margin-top:5px;">Adjust based on how many people are actually helping.</p>
                     </div>
 
-                    <!-- THE RESULT -->
-                    <div style="text-align:center; margin-bottom: 20px;">
-                        <p style="color:#aaa; font-size:12px; margin-bottom:5px;">YOUR DAILY MISSION</p>
-                        <div id="calculated-target" style="font-size: 42px; font-weight: 800; color: #00ff88; text-shadow: 0 0 20px rgba(0,255,136,0.3);">
-                            0
-                        </div>
+                    <!-- RESULT -->
+                    <div style="text-align:center; margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 12px;">
+                        <p style="color:#aaa; font-size:12px; margin-bottom:5px;">YOUR DAILY TARGET</p>
+                        <div id="calculated-target" style="font-size: 42px; font-weight: 800; color: #00ff88; text-shadow: 0 0 20px rgba(0,255,136,0.3);">0</div>
                         <p style="color:#fff; font-size:14px;">Streams / Day</p>
                     </div>
 
-                    <button onclick="generateToDoList()" class="btn-primary" style="width:100%; background: linear-gradient(135deg, #7b2cbf, #9d4edd);">
-                        📝 Generate To-Do Checklist
+                    <button onclick="generateToDoList()" class="btn-primary" style="width:100%;">
+                        📝 Create Checklist
                     </button>
                 </div>
             </div>
 
-            <!-- TO DO LIST CONTAINER -->
-            <div id="namjoon-todo-container" style="display:none; margin-top: 20px;">
+            <!-- CHECKLIST CONTAINER -->
+            <div id="namjoon-todo-container" style="display:none;">
                 <div class="card">
                     <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>✅ Today's Checklist</h3>
-                        <button onclick="clearNamjoonList()" style="background:none; border:none; color:#ff6b6b; font-size:12px; cursor:pointer;">Reset</button>
+                        <h3>✅ Daily Plan</h3>
+                        <button onclick="clearNamjoonList()" style="background:none; border:none; color:#ff6b6b; font-size:12px;">Reset</button>
                     </div>
-                    <div class="card-body" id="namjoon-checklist">
-                        <!-- Items go here -->
-                    </div>
-                    <div class="card-footer" style="padding:15px; border-top:1px solid rgba(255,255,255,0.1); text-align:center;">
-                        <p style="color:#888; font-size:11px; margin:0;">"Teamwork makes the dream work." - RM</p>
-                    </div>
+                    <div class="card-body" id="namjoon-checklist" style="display:flex; flex-direction:column; gap:8px;"></div>
                 </div>
             </div>
         `;
 
-        // Logic to update calculation live
         const slider = document.getElementById('active-agents-slider');
         const display = document.getElementById('slider-val');
         const resultDisplay = document.getElementById('calculated-target');
@@ -11959,26 +11948,20 @@ async function renderNamjoonBrain() {
         function calculate() {
             const percentage = parseInt(slider.value) / 100;
             display.textContent = slider.value + '%';
-            
             const activeAgents = Math.max(1, Math.floor(teamMembers * percentage));
             const streamsPerAgentTotal = remainingGap / activeAgents;
-            const streamsPerDay = Math.ceil(streamsPerAgentTotal / daysRemaining);
-            
+            const streamsPerDay = Math.ceil(streamsPerAgentTotal / Math.max(1, daysRemaining));
             resultDisplay.textContent = fmt(streamsPerDay);
-            return streamsPerDay;
+            window.currentDailyTarget = streamsPerDay;
         }
 
         slider.addEventListener('input', calculate);
-        
-        // Initial calc
-        window.currentDailyTarget = calculate();
-
-        // Load saved list if exists
+        calculate(); 
         loadNamjoonList();
 
     } catch (e) {
         console.error(e);
-        content.innerHTML = '<p class="error-text">Namjoon is thinking... (Error loading data)</p>';
+        container.innerHTML = `<div class="card"><div class="card-body error-text">Could not load strategy data.<br>${e.message}</div></div>`;
     }
 }
 
