@@ -5162,6 +5162,33 @@ function setupDashboard() {
     if (logoutBtn) { logoutBtn.onclick = null; logoutBtn.onclick = e => { e.preventDefault(); e.stopPropagation(); logout(); }; }
     
     updateTime();
+    // ==================== INJECT NAMJOON'S BRAIN BUTTON ====================
+    // Finds the MISSIONS section in the sidebar and adds the button
+    const navSections = document.querySelectorAll('.nav-section');
+    navSections.forEach(section => {
+        const title = section.querySelector('.nav-section-title');
+        // Look for the MISSIONS section
+        if (title && title.textContent.trim() === 'MISSIONS') {
+            // Check if button already exists to avoid duplicates
+            if (!section.querySelector('button[onclick*="namjoon"]')) {
+                const btnHTML = `
+                    <button onclick="loadPage('namjoon'); document.getElementById('sidebar').classList.remove('open');" class="nav-link" style="background:none; border:none; width:100%; text-align:left; cursor:pointer; font-family:inherit; font-size:inherit; padding: 12px 15px; display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.7);">
+                        <span class="nav-icon">🧠</span>
+                        <span class="nav-text">Namjoon's Brain</span>
+                    </button>
+                `;
+                
+                // Insert AFTER the "Goals" link
+                const goalsLink = section.querySelector('[data-page="goals"]');
+                if (goalsLink) {
+                    goalsLink.insertAdjacentHTML('afterend', btnHTML);
+                } else {
+                    // Fallback: add to end of section
+                    section.insertAdjacentHTML('beforeend', btnHTML);
+                }
+            }
+        }
+    });
 }
 // ==================== ROLE-BASED NAVIGATION ====================
 
@@ -11838,130 +11865,197 @@ function renderBadgeHTML(badge) {
         </div>
     `;
 }
-// ==================== NAMJOON'S BRAIN LOGIC ====================
+// ==================== NAMJOON'S BRAIN (STRATEGY CENTER) ====================
 
-function renderNamjoonsBrain(teamName, trackGoals, albumGoals) {
-    // 1. Get Member Count (Avoid division by zero)
-    const totalMembers = getTeamMemberCount(teamName) || 1;
+async function renderNamjoonBrain() {
+    // 1. Define IDs (MUST match what the Router expects: 'namjoon')
+    const pageId = 'page-namjoon'; 
+    const contentId = 'namjoon-content';
     
-    // Namjoon knows some people go AFK. He calculates based on 60% active rate for safety.
-    const activeMembersEstimate = Math.ceil(totalMembers * 0.6) || 1;
-
-    // 2. Calculate Remaining Goals
-    let remainingTracks = 0;
-    let remainingAlbums = 0;
-
-    Object.values(trackGoals).forEach(g => {
-        const teamProgress = g.teams?.[teamName] || {};
-        const goal = g.goal || 0;
-        const current = teamProgress.current || 0;
-        if (current < goal) remainingTracks += (goal - current);
-    });
-
-    Object.values(albumGoals).forEach(g => {
-        const teamProgress = g.teams?.[teamName] || {};
-        const goal = g.goal || 0;
-        const current = teamProgress.current || 0;
-        if (current < goal) remainingAlbums += (goal - current);
-    });
-
-    // 3. Calculate "My Share" (Remaining / Active Members)
-    // We add a +1 buffer to ensure we cross the line
-    const myTrackShare = remainingTracks > 0 ? Math.ceil(remainingTracks / activeMembersEstimate) + 1 : 0;
-    const myAlbumShare = remainingAlbums > 0 ? Math.ceil(remainingAlbums / activeMembersEstimate) + 1 : 0;
-
-    // 4. Generate Daily To-Do Items
-    const todoId = `namjoon_todo_${new Date().toDateString()}`;
-    const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
-
-    // Namjoon's Quote
-    const quotes = [
-        "Teamwork makes the dream work.",
-        "We can do this if we stick together.",
-        "Efficiency is key. Here is your strategy.",
-        "Let's focus on the remaining targets.",
-        "I've calculated the optimal path to victory."
-    ];
-    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-
-    // RM Image (Indigo Era)
-    const rmImage = "https://i.pinimg.com/736x/8d/83/96/8d839686007e59005934570329063529.jpg";
-
-    return `
-        <div class="namjoon-card">
-            <div class="namjoon-header">
-                <img src="${rmImage}" class="namjoon-avatar" alt="RM">
-                <div>
-                    <div style="font-weight:bold; color:#fff; font-size:14px;">🧠 Namjoon's Brain</div>
-                    <div class="namjoon-bubble">${randomQuote}</div>
-                </div>
-            </div>
-
-            <div class="namjoon-stat-grid">
-                <div class="namjoon-stat-box">
-                    <div class="namjoon-stat-val" style="color:#7b2cbf;">${activeMembersEstimate}</div>
-                    <div class="namjoon-stat-lbl">Active Agents</div>
-                </div>
-                <div class="namjoon-stat-box">
-                    <div class="namjoon-stat-val" style="color:${myTrackShare > 0 ? '#ff6b6b' : '#00ff88'};">
-                        ${myTrackShare > 0 ? myTrackShare : 'DONE'}
-                    </div>
-                    <div class="namjoon-stat-lbl">Your Track Goal</div>
-                </div>
-                <div class="namjoon-stat-box">
-                    <div class="namjoon-stat-val" style="color:${myAlbumShare > 0 ? '#ff6b6b' : '#00ff88'};">
-                        ${myAlbumShare > 0 ? myAlbumShare : 'DONE'}
-                    </div>
-                    <div class="namjoon-stat-lbl">Your Album Goal</div>
-                </div>
-            </div>
-
-            <div style="font-size:11px; color:#888; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">
-                📋 Your Daily Strategy List
-            </div>
-
-            <div class="namjoon-todo-list">
-                ${renderNamjoonTask('task_track', `Stream ${myTrackShare} goal tracks`, savedState['task_track'], myTrackShare === 0)}
-                ${renderNamjoonTask('task_album', `Stream ${myAlbumShare} goal albums`, savedState['task_album'], myAlbumShare === 0)}
-                ${renderNamjoonTask('task_2x', `Complete Album 2X Check`, savedState['task_2x'])}
-                ${renderNamjoonTask('task_proof', `Post Proof in Team GC`, savedState['task_proof'])}
-            </div>
+    let container = document.getElementById(contentId);
+    
+    // 2. Create Page if it doesn't exist
+    if (!container) {
+        const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
+        if (mainContent) {
+            const page = document.createElement('section');
+            page.id = pageId; // ✅ FIXED: Matches Router ID
+            page.className = 'page';
+            page.innerHTML = `<div id="${contentId}"></div>`;
+            mainContent.appendChild(page);
+            container = document.getElementById(contentId);
             
-            <div style="margin-top:15px; font-size:10px; color:#666; text-align:center;">
-                *Calculated based on estimated active members to ensure victory.
+            // Add CSS for this page
+            const style = document.createElement('style');
+            style.innerHTML = `
+                .todo-item { display:flex; align-items:center; gap:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px; margin-bottom:8px; cursor:pointer; transition:all 0.2s; }
+                .todo-item:hover { background:rgba(255,255,255,0.08); }
+                .todo-item.checked { background:rgba(0,255,136,0.1); opacity:0.7; }
+                .todo-item .checkbox { width:20px; height:20px; border:2px solid #7b2cbf; border-radius:4px; display:flex; align-items:center; justify-content:center; }
+                .todo-item.checked .checkbox { background:#00ff88; border-color:#00ff88; color:#000; }
+                .todo-item.checked .text { text-decoration:line-through; color:#888; }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
+
+    const myTeam = STATE.data?.profile?.team;
+    
+    if (!myTeam) {
+        container.innerHTML = '<div class="card"><div class="card-body error-text">Please log in to access Namjoon\'s strategies.</div></div>';
+        return;
+    }
+
+    try {
+        const [goalsData, agentsData] = await Promise.all([
+            api('getGoalsProgress', { week: STATE.week }),
+            api('getAllAgents')
+        ]);
+
+        const teamMembers = agentsData.agents ? agentsData.agents.filter(a => a.team === myTeam).length : 1;
+        const trackGoals = goalsData.trackGoals || {};
+        
+        let totalGoal = 0;
+        let currentStreams = 0;
+        
+        Object.values(trackGoals).forEach(track => {
+            totalGoal += (track.goal || 0);
+            currentStreams += (track.teams?.[myTeam]?.current || 0);
+        });
+
+        const remainingGap = Math.max(0, totalGoal - currentStreams);
+        const daysRemaining = getDaysRemaining(STATE.week) || 1;
+        
+        container.innerHTML = `
+            <div class="card" style="background: linear-gradient(135deg, #2c3e50, #000000); border: 1px solid #7b2cbf; margin-bottom: 20px;">
+                <div class="card-body" style="padding: 20px;">
+                    <div style="display:flex; gap: 15px; align-items:center; margin-bottom: 20px;">
+                        <div style="width:50px; height:50px; border-radius:50%; background: #fff; display:flex; align-items:center; justify-content:center; font-size:24px; border:2px solid #7b2cbf;">🧠</div>
+                        <div>
+                            <h2 style="margin:0; color:#fff; font-size:18px;">NAMJOON'S BRAIN</h2>
+                            <p style="margin:0; color:#aaa; font-size:12px;">Strategic Analysis • IQ 148</p>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span style="color:#aaa; font-size:12px;">Team Gap</span>
+                            <span style="color:#ff6b6b; font-weight:bold;">${fmt(remainingGap)}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:#aaa; font-size:12px;">Days Left</span>
+                            <span style="color:#ffd700; font-weight:bold;">${daysRemaining}</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 25px;">
+                        <label style="color:#fff; font-size:13px; display:block; margin-bottom:10px;">
+                            📉 Participation: <span id="slider-val" style="color:#7b2cbf;">50%</span>
+                        </label>
+                        <input type="range" id="active-agents-slider" min="1" max="100" value="50" style="width:100%; accent-color:#7b2cbf;">
+                    </div>
+
+                    <div style="text-align:center; margin-bottom: 20px; padding:15px; background:rgba(0,0,0,0.3); border-radius:12px;">
+                        <p style="color:#aaa; font-size:12px; margin-bottom:5px;">YOUR DAILY TARGET</p>
+                        <div id="calculated-target" style="font-size: 42px; font-weight: 800; color: #00ff88; text-shadow: 0 0 20px rgba(0,255,136,0.3);">0</div>
+                        <p style="color:#fff; font-size:14px;">Streams / Day</p>
+                    </div>
+
+                    <button onclick="generateToDoList()" class="btn-primary" style="width:100%;">📝 Generate Checklist</button>
+                </div>
             </div>
-        </div>
-    `;
+
+            <div id="namjoon-todo-container" style="display:none;">
+                <div class="card">
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>✅ Daily Plan</h3>
+                        <button onclick="clearNamjoonList()" style="background:none; border:none; color:#ff6b6b; font-size:12px;">Reset</button>
+                    </div>
+                    <div class="card-body" id="namjoon-checklist"></div>
+                </div>
+            </div>
+        `;
+
+        const slider = document.getElementById('active-agents-slider');
+        const display = document.getElementById('slider-val');
+        const resultDisplay = document.getElementById('calculated-target');
+
+        function calculate() {
+            const percentage = parseInt(slider.value) / 100;
+            display.textContent = slider.value + '%';
+            const activeAgents = Math.max(1, Math.floor(teamMembers * percentage));
+            const streamsPerAgentTotal = remainingGap / activeAgents;
+            const streamsPerDay = Math.ceil(streamsPerAgentTotal / Math.max(1, daysRemaining));
+            resultDisplay.textContent = fmt(streamsPerDay);
+            // Save to global scope for the generator
+            window.currentNamjoonTarget = streamsPerDay;
+        }
+
+        slider.addEventListener('input', calculate);
+        calculate();
+        loadNamjoonList();
+
+    } catch (e) {
+        container.innerHTML = `<p class="error-text">Error: ${e.message}</p>`;
+    }
 }
 
-function renderNamjoonTask(id, text, isChecked, isDone = false) {
-    if (isDone) return ''; // Don't show completed tasks
+// 3. Helper Functions
+function generateToDoList() {
+    const target = window.currentNamjoonTarget || 20;
+    const container = document.getElementById('namjoon-todo-container');
+    const list = document.getElementById('namjoon-checklist');
     
-    return `
-        <div class="namjoon-task ${isChecked ? 'checked' : ''}" onclick="toggleNamjoonTask('${id}')">
-            <div class="namjoon-checkbox">${isChecked ? '✓' : ''}</div>
-            <div class="task-text" style="font-size:13px; color:${isChecked ? '#888' : '#fff'};">
-                ${text}
+    container.style.display = 'block';
+    
+    const chunkSize = 10;
+    const chunks = Math.ceil(target / chunkSize);
+    let html = '';
+    
+    for(let i=0; i<chunks; i++) {
+        const amount = (i === chunks-1 && target % chunkSize !== 0) ? target % chunkSize : chunkSize;
+        const id = `nj-todo-${i}`;
+        html += `
+            <div class="todo-item" id="${id}" onclick="toggleNamjoonTodo('${id}')">
+                <div class="checkbox">✓</div>
+                <div class="text" style="flex:1; color:#fff;">Stream ${amount} Tracks</div>
+                <div style="font-size:10px; color:#666;">Set ${i+1}</div>
             </div>
-        </div>
-    `;
+        `;
+    }
+    list.innerHTML = html;
+    container.scrollIntoView({ behavior: 'smooth' });
 }
 
-function toggleNamjoonTask(taskId) {
-    const todoId = `namjoon_todo_${new Date().toDateString()}`;
-    const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
-    
-    // Toggle state
-    savedState[taskId] = !savedState[taskId];
-    
-    // Save
-    localStorage.setItem(todoId, JSON.stringify(savedState));
-    
-    // Haptic feedback
-    if (navigator.vibrate) navigator.vibrate(10);
-    
-    // Re-render Goals page to update UI
-    renderGoals(); 
+function toggleNamjoonTodo(id) {
+    const el = document.getElementById(id);
+    if(el) {
+        el.classList.toggle('checked');
+        if(el.classList.contains('checked') && navigator.vibrate) navigator.vibrate(50);
+        saveNamjoonList();
+    }
+}
+
+function saveNamjoonList() {
+    const list = document.getElementById('namjoon-checklist');
+    if(list) localStorage.setItem('namjoon_list_' + STATE.agentNo, list.innerHTML);
+}
+
+function loadNamjoonList() {
+    const saved = localStorage.getItem('namjoon_list_' + STATE.agentNo);
+    if(saved) {
+        document.getElementById('namjoon-checklist').innerHTML = saved;
+        document.getElementById('namjoon-todo-container').style.display = 'block';
+    }
+}
+
+function clearNamjoonList() {
+    document.getElementById('namjoon-todo-container').style.display = 'none';
+    localStorage.removeItem('namjoon_list_' + STATE.agentNo);
 }
 
 // ==================== EXPORTS & INIT ====================
@@ -12052,6 +12146,11 @@ window.setManualStreak = setManualStreak;
 window.checkMonthlyFreezeReset = checkMonthlyFreezeReset;
 window.renderStreakWidget = renderStreakWidget;
 window.STREAK_STATE = STREAK_STATE;
+
+window.renderNamjoonBrain = renderNamjoonBrain;
+window.generateToDoList = generateToDoList;
+window.toggleNamjoonTodo = toggleNamjoonTodo;
+window.clearNamjoonList = clearNamjoonList;
 
 console.log('🔥 Streak Tracker System loaded!');
 
