@@ -11838,6 +11838,68 @@ function renderBadgeHTML(badge) {
         </div>
     `;
 }
+// ==================== NAMJOON PAGE RENDERER ====================
+async function renderNamjoonBrain() {
+    console.log('🧠 Loading Namjoon Brain Page...');
+    
+    // 1. Get or Create Container
+    let container = document.getElementById('namjoon-content');
+    
+    // If the page structure doesn't exist yet, create it
+    if (!container) {
+        const page = document.getElementById('page-namjoon');
+        if (page) {
+            page.innerHTML = `
+                <div class="page-header">
+                    <h1>🧠 Namjoon's Brain</h1>
+                    <p class="page-subtitle">Strategic Analysis Center</p>
+                </div>
+                <div id="namjoon-content"></div>
+            `;
+            container = document.getElementById('namjoon-content');
+        }
+    }
+    
+    if (!container) return;
+
+    // 2. Show Loading
+    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card large"></div></div>';
+
+    try {
+        // 3. Fetch Data (We need goals data for the brain logic)
+        const team = STATE.data?.profile?.team;
+        const data = await api('getGoalsProgress', { week: STATE.week });
+        
+        const trackGoals = data.trackGoals || {};
+        const albumGoals = data.albumGoals || {};
+
+        // 4. Use your existing helper function to generate the HTML
+        // Note: calling the PLURAL function here
+        const html = renderNamjoonsBrain(team, trackGoals, albumGoals);
+        
+        container.innerHTML = html;
+        
+        // Add a back button since this is a standalone page
+        container.innerHTML += `
+            <div style="margin-top: 20px;">
+                <button onclick="loadPage('goals')" class="btn-secondary" style="width:100%">
+                    ← Back to Goals
+                </button>
+            </div>
+        `;
+
+    } catch (e) {
+        console.error('Namjoon Error:', e);
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-body error-state">
+                    <p>Failed to load strategy data.</p>
+                    <button onclick="renderNamjoonBrain()" class="btn-secondary">Retry</button>
+                </div>
+            </div>
+        `;
+    }
+}
 // ==================== NAMJOON'S BRAIN LOGIC ====================
 
 function renderNamjoonsBrain(teamName, trackGoals, albumGoals) {
