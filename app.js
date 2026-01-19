@@ -11454,7 +11454,7 @@ function showProtocolInfo() {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px;">
                     <div>
                         <span style="color: #00ff88; font-weight: bold;">x163 (Total)</span><br>
-                        <span style="color: #aaa;">Your total fair share to clear the team gap.</span>
+                        <span style="color: #aaa;">Your total week's fair share to clear the team gap.</span>
                     </div>
                     <div>
                         <span style="color: #ffd700; font-weight: bold;">28/day (Pace)</span><br>
