@@ -627,14 +627,30 @@ function renderGuide(pageName) {
 async function api(action, params = {}) {
     const url = new URL(CONFIG.API_URL);
     url.searchParams.set('action', action);
+    
+    // 1. Add other params
     Object.entries(params).forEach(([k, v]) => { 
         if (v != null) url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v); 
     });
+
+    // 2. 🔥 CACHE BUSTER: This forces a fresh fetch every time
+    url.searchParams.set('_t', new Date().getTime()); 
+
     console.log('📡 API:', action, params);
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 30000);
-        const res = await fetch(url, { signal: controller.signal });
+        
+        // 3. 🔥 Add cache: 'no-store' to headers
+        const res = await fetch(url, { 
+            signal: controller.signal,
+            cache: "no-store", 
+            headers: {
+                'Pragma': 'no-cache',
+                'Cache-Control': 'no-cache'
+            }
+        });
+        
         clearTimeout(timeout);
         const text = await res.text();
         let data;
@@ -4862,6 +4878,7 @@ function initApp() {
     ensureAppCSS(); 
     ensureStreakCSS(); 
     ensureNamjoonCSS();
+    ensureFavicon();
     loading(false);
     setupLoginListeners();
     loadAllAgents();
@@ -11492,6 +11509,16 @@ function showProtocolInfo() {
     // Close logic
     document.getElementById('close-info-btn').onclick = () => overlay.remove();
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+}
+function ensureFavicon() {
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+    }
+    // Uses the logo already defined in your CONFIG
+    link.href = CONFIG.COMEBACK.BTS_LOGO;
 }
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
