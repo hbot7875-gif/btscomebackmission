@@ -4623,6 +4623,7 @@ const ROUTES = {
     'sotd': 'sotd',
     'song-of-day': 'sotd',
     'guide': 'guide',
+    'namjoon': 'namjoon', 
     'streaming-tips': 'streaming-tips',
     'login': 'login'
 };
@@ -4645,6 +4646,7 @@ const PAGE_TO_ROUTE = {
     'summary': 'summary',
     'sotd': 'sotd',
     'guide': 'guide',
+    'namjoon': 'namjoon',
     'streaming-tips': 'streaming-tips',
     'login': 'login'
 };
@@ -4778,6 +4780,7 @@ async function renderPageByRoute(pageName) {
             case 'sotd': await renderSOTD(); break;
             case 'song-of-day': await renderSOTD(); break; 
             case 'streaming-tips': await renderStreamingTips(); break;
+            case 'namjoon': await renderNamjoonBrain(); break;
             case 'guide': await renderGuidePage(); break; 
         }
     } catch (e) {
@@ -11100,8 +11103,7 @@ function toggleNamjoonTask(taskId) {
     renderNamjoonBrain(); 
 }
 
-// Add to Routes
-window.renderNamjoonBrain = renderNamjoonBrain;
+
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
@@ -11169,5 +11171,6 @@ window.adminConfirmPolice = adminConfirmPolice;
 window.isTeamEligibleForWin = isTeamEligibleForWin;
 window.getTeamEligibilityStatus = getTeamEligibilityStatus;
 window.getWeekWinner = getWeekWinner;
+window.renderNamjoonBrain = renderNamjoonBrain;
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded with Voting System 🗳️💜');
