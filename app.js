@@ -11865,192 +11865,105 @@ function renderBadgeHTML(badge) {
         </div>
     `;
 }
-// ==================== NAMJOON PAGE RENDERER ====================
+// ==================== NAMJOON PAGE RENDERER (DEBUGGED) ====================
 async function renderNamjoonBrain() {
-    console.log('🧠 Loading Namjoon Brain Page...');
+    console.log('🧠 [DEBUG] renderNamjoonBrain() STARTED');
     
-    // 1. Get or Create Container
-    let container = document.getElementById('namjoon-content');
+    // 1. CHECK/CREATE PAGE CONTAINER
+    // Your router looks for 'page-namjoon', so we must ensure it exists
+    let page = document.getElementById('page-namjoon');
     
-    // If the page structure doesn't exist yet, create it
-    if (!container) {
-        const page = document.getElementById('page-namjoon');
-        if (page) {
-            page.innerHTML = `
-                <div class="page-header">
-                    <h1>🧠 Namjoon's Brain</h1>
-                    <p class="page-subtitle">Strategic Analysis Center</p>
-                </div>
-                <div id="namjoon-content"></div>
-            `;
-            container = document.getElementById('namjoon-content');
+    if (!page) {
+        console.log('🧠 [DEBUG] Page element missing. Creating <section id="page-namjoon">...');
+        const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
+        
+        if (!mainContent) {
+            console.error('❌ [DEBUG] FATAL: .pages-wrapper not found in DOM');
+            showToast('Error: UI container missing', 'error');
+            return;
         }
+        
+        page = document.createElement('section');
+        page.id = 'page-namjoon';
+        page.className = 'page';
+        // Add basic structure
+        page.innerHTML = `
+            <div class="page-header">
+                <h1>🧠 Namjoon's Brain</h1>
+                <p class="page-subtitle">Strategic Analysis</p>
+            </div>
+            <div id="namjoon-content"></div>
+        `;
+        mainContent.appendChild(page);
+        console.log('🧠 [DEBUG] Page element created and appended.');
     }
-    
-    if (!container) return;
 
-    // 2. Show Loading
+    // 2. FORCE VISIBILITY (Override Router if needed)
+    // Hide all other pages
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    // Show this page
+    page.classList.add('active');
+    console.log('🧠 [DEBUG] Page set to active class');
+
+    // 3. GET CONTENT CONTAINER
+    const container = document.getElementById('namjoon-content');
+    if (!container) {
+        console.error('❌ [DEBUG] #namjoon-content container missing inside page');
+        return;
+    }
+
+    // 4. SHOW LOADING STATE
     container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card large"></div></div>';
 
     try {
-        // 3. Fetch Data (We need goals data for the brain logic)
-        const team = STATE.data?.profile?.team;
-        const data = await api('getGoalsProgress', { week: STATE.week });
+        // 5. FETCH DATA
+        console.log('🧠 [DEBUG] Fetching API data for goals...');
+        const team = STATE.data?.profile?.team || 'Unknown';
         
+        // Ensure week is set
+        const week = STATE.week || 'Week 1';
+        
+        const data = await api('getGoalsProgress', { week: week });
+        console.log('🧠 [DEBUG] Data received:', data);
+
         const trackGoals = data.trackGoals || {};
         const albumGoals = data.albumGoals || {};
 
-        // 4. Use your existing helper function to generate the HTML
-        // Note: calling the PLURAL function here
-        const html = renderNamjoonsBrain(team, trackGoals, albumGoals);
+        // 6. CALL HELPER FUNCTION
+        if (typeof renderNamjoonsBrain !== 'function') {
+            throw new Error('Helper function renderNamjoonsBrain() is not defined');
+        }
+
+        console.log('🧠 [DEBUG] Generating HTML...');
+        const brainHTML = renderNamjoonsBrain(team, trackGoals, albumGoals);
         
-        container.innerHTML = html;
+        // 7. INJECT HTML
+        container.innerHTML = brainHTML;
         
-        // Add a back button since this is a standalone page
+        // 8. ADD BACK BUTTON
         container.innerHTML += `
-            <div style="margin-top: 20px;">
-                <button onclick="loadPage('goals')" class="btn-secondary" style="width:100%">
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="loadPage('goals')" class="btn-secondary" style="width: 100%;">
                     ← Back to Goals
                 </button>
             </div>
         `;
+        
+        console.log('🧠 [DEBUG] Render complete.');
 
     } catch (e) {
-        console.error('Namjoon Error:', e);
+        console.error('❌ [DEBUG] Error in renderNamjoonBrain:', e);
         container.innerHTML = `
             <div class="card">
                 <div class="card-body error-state">
-                    <p>Failed to load strategy data.</p>
-                    <button onclick="renderNamjoonBrain()" class="btn-secondary">Retry</button>
+                    <div style="font-size: 40px; margin-bottom: 10px;">⚠️</div>
+                    <h3>System Error</h3>
+                    <p style="color: #ff6b6b; font-size: 12px; font-family: monospace;">${e.message}</p>
+                    <button onclick="renderNamjoonBrain()" class="btn-primary" style="margin-top:10px">Retry Analysis</button>
                 </div>
             </div>
         `;
     }
-}
-// ==================== NAMJOON'S BRAIN LOGIC ====================
-
-function renderNamjoonsBrain(teamName, trackGoals, albumGoals) {
-    // 1. Get Member Count (Avoid division by zero)
-    const totalMembers = getTeamMemberCount(teamName) || 1;
-    
-    // Namjoon knows some people go AFK. He calculates based on 60% active rate for safety.
-    const activeMembersEstimate = Math.ceil(totalMembers * 0.6) || 1;
-
-    // 2. Calculate Remaining Goals
-    let remainingTracks = 0;
-    let remainingAlbums = 0;
-
-    Object.values(trackGoals).forEach(g => {
-        const teamProgress = g.teams?.[teamName] || {};
-        const goal = g.goal || 0;
-        const current = teamProgress.current || 0;
-        if (current < goal) remainingTracks += (goal - current);
-    });
-
-    Object.values(albumGoals).forEach(g => {
-        const teamProgress = g.teams?.[teamName] || {};
-        const goal = g.goal || 0;
-        const current = teamProgress.current || 0;
-        if (current < goal) remainingAlbums += (goal - current);
-    });
-
-    // 3. Calculate "My Share" (Remaining / Active Members)
-    // We add a +1 buffer to ensure we cross the line
-    const myTrackShare = remainingTracks > 0 ? Math.ceil(remainingTracks / activeMembersEstimate) + 1 : 0;
-    const myAlbumShare = remainingAlbums > 0 ? Math.ceil(remainingAlbums / activeMembersEstimate) + 1 : 0;
-
-    // 4. Generate Daily To-Do Items
-    const todoId = `namjoon_todo_${new Date().toDateString()}`;
-    const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
-
-    // Namjoon's Quote
-    const quotes = [
-        "Teamwork makes the dream work.",
-        "We can do this if we stick together.",
-        "Efficiency is key. Here is your strategy.",
-        "Let's focus on the remaining targets.",
-        "I've calculated the optimal path to victory."
-    ];
-    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-
-    // RM Image (Indigo Era)
-    const rmImage = "https://i.pinimg.com/736x/8d/83/96/8d839686007e59005934570329063529.jpg";
-
-    return `
-        <div class="namjoon-card">
-            <div class="namjoon-header">
-                <img src="${rmImage}" class="namjoon-avatar" alt="RM">
-                <div>
-                    <div style="font-weight:bold; color:#fff; font-size:14px;">🧠 Namjoon's Brain</div>
-                    <div class="namjoon-bubble">${randomQuote}</div>
-                </div>
-            </div>
-
-            <div class="namjoon-stat-grid">
-                <div class="namjoon-stat-box">
-                    <div class="namjoon-stat-val" style="color:#7b2cbf;">${activeMembersEstimate}</div>
-                    <div class="namjoon-stat-lbl">Active Agents</div>
-                </div>
-                <div class="namjoon-stat-box">
-                    <div class="namjoon-stat-val" style="color:${myTrackShare > 0 ? '#ff6b6b' : '#00ff88'};">
-                        ${myTrackShare > 0 ? myTrackShare : 'DONE'}
-                    </div>
-                    <div class="namjoon-stat-lbl">Your Track Goal</div>
-                </div>
-                <div class="namjoon-stat-box">
-                    <div class="namjoon-stat-val" style="color:${myAlbumShare > 0 ? '#ff6b6b' : '#00ff88'};">
-                        ${myAlbumShare > 0 ? myAlbumShare : 'DONE'}
-                    </div>
-                    <div class="namjoon-stat-lbl">Your Album Goal</div>
-                </div>
-            </div>
-
-            <div style="font-size:11px; color:#888; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">
-                📋 Your Daily Strategy List
-            </div>
-
-            <div class="namjoon-todo-list">
-                ${renderNamjoonTask('task_track', `Stream ${myTrackShare} goal tracks`, savedState['task_track'], myTrackShare === 0)}
-                ${renderNamjoonTask('task_album', `Stream ${myAlbumShare} goal albums`, savedState['task_album'], myAlbumShare === 0)}
-                ${renderNamjoonTask('task_2x', `Complete Album 2X Check`, savedState['task_2x'])}
-                ${renderNamjoonTask('task_proof', `Post Proof in Team GC`, savedState['task_proof'])}
-            </div>
-            
-            <div style="margin-top:15px; font-size:10px; color:#666; text-align:center;">
-                *Calculated based on estimated active members to ensure victory.
-            </div>
-        </div>
-    `;
-}
-
-function renderNamjoonTask(id, text, isChecked, isDone = false) {
-    if (isDone) return ''; // Don't show completed tasks
-    
-    return `
-        <div class="namjoon-task ${isChecked ? 'checked' : ''}" onclick="toggleNamjoonTask('${id}')">
-            <div class="namjoon-checkbox">${isChecked ? '✓' : ''}</div>
-            <div class="task-text" style="font-size:13px; color:${isChecked ? '#888' : '#fff'};">
-                ${text}
-            </div>
-        </div>
-    `;
-}
-
-function toggleNamjoonTask(taskId) {
-    const todoId = `namjoon_todo_${new Date().toDateString()}`;
-    const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
-    
-    // Toggle state
-    savedState[taskId] = !savedState[taskId];
-    
-    // Save
-    localStorage.setItem(todoId, JSON.stringify(savedState));
-    
-    // Haptic feedback
-    if (navigator.vibrate) navigator.vibrate(10);
-    
-    // Re-render Goals page to update UI
-    renderGoals(); 
 }
 
 // ==================== EXPORTS & INIT ====================
