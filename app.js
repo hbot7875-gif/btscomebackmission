@@ -4974,51 +4974,52 @@ async function handleFind() {
 
 let notificationInterval = null;
 
+// ==================== LOAD DASHBOARD ====================
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
     
-    // 1. Load from Cache (Immediate display)
+    // 1. SHOW CACHE FIRST (For speed)
     const cached = localStorage.getItem('dashboard_cache_' + STATE.agentNo);
     if (cached) {
         try {
             const data = JSON.parse(cached);
-            // Only use cache if it's less than 1 hour old (Optional check)
             STATE.data = data;
             STATE.weeks = data.availableWeeks || [];
             STATE.week = data.week || STATE.weeks[0];
             
+            // Show UI immediately
             $('login-screen').classList.remove('active');
             $('login-screen').style.display = 'none';
             $('dashboard-screen').classList.add('active');
             $('dashboard-screen').style.display = 'flex';
             setupDashboard();
             loadPage('home'); 
-            console.log('⚡ Rendered from cache');
+            console.log('⚡ Displaying Cached Data (Background refresh starting...)');
         } catch (e) { console.log('Cache invalid'); }
     } else {
+        // Only show spinner if we have absolutely nothing
         loading(true);
     }
 
     startHeartbeat();
     
     try {
-        // 2. Fetch Fresh Data (Network)
-        // The cache buster in Fix #1 ensures this gets new data
+        // 2. FETCH FRESH DATA (Network)
+        // The api() function now has _t, so this WILL get new data from server
         const dashboardData = await api('getDashboardData', { 
             agentNo: STATE.agentNo, 
             week: ''
         });
         
-        console.log("📥 Fresh Data Received:", dashboardData.lastUpdated); // Debug Log
+        console.log("📥 Fresh Data Received. Last Update:", dashboardData.lastUpdated);
 
-        // 3. Save to Cache
+        // 3. UPDATE STORAGE
         localStorage.setItem('dashboard_cache_' + STATE.agentNo, JSON.stringify(dashboardData));
         
-        // 4. Update State
+        // 4. UPDATE STATE
         STATE.weeks = dashboardData.availableWeeks || [];
         STATE.week = dashboardData.week || dashboardData.currentWeek || STATE.weeks[0];
         STATE.data = {
-            // ... (Your existing mapping code) ...
             agentNo: dashboardData.agent.agentNo,
             week: dashboardData.week,
             profile: dashboardData.agent.profile,
@@ -5028,33 +5029,49 @@ async function loadDashboard() {
             trackContributions: dashboardData.agent.trackContributions,
             albumContributions: dashboardData.agent.albumContributions,
             album2xStatus: dashboardData.agent.album2xStatus,
-            teamInfo: dashboardData.team, // Simplified assignment
+            teamInfo: {
+                level: dashboardData.team.level,
+                teamXP: dashboardData.team.teamXP,
+                winner: dashboardData.team.isWinner,
+                trackGoalPassed: dashboardData.team.missions?.tracksPassed,
+                albumGoalPassed: dashboardData.team.missions?.albumsPassed,
+                album2xPassed: dashboardData.team.missions?.album2xPassed
+            },
             lastUpdated: dashboardData.lastUpdated
         };
 
-        // 5. Force UI Refresh
+        // 5. FORCE UI REFRESH
         setupDashboard(); 
         
-        // Only reload the page content if the fresh data is actually newer/different
-        // Or just force it:
+        // Force the current page to re-render with new data
         const currentPage = ROUTER.initialized ? STATE.page : 'home';
         await loadPage(currentPage); 
         
-        // Trigger background checks
+        // 6. BACKGROUND CHECKS
         setTimeout(() => {
+            if (typeof initStreakTracker === 'function') initStreakTracker();
+            if (typeof initActivityFeed === 'function') initActivityFeed();
+            
             loadAllWeeksData();
             checkNotifications();
             if (typeof showNewFeatureAlert === 'function') showNewFeatureAlert();
-        }, 1500);
+        }, 1000);
         
     } catch (e) {
-        console.error('❌ Dashboard error:', e);
-        // ... error handling ...
+        console.error('❌ Dashboard Refresh Error:', e);
+        // If we failed to get fresh data, we just stay on the cached data
+        if (!cached) {
+            showToast('Connection failed', 'error');
+            $('login-screen').classList.add('active');
+            $('login-screen').style.display = 'flex';
+            $('dashboard-screen').classList.remove('active');
+        } else {
+            showToast('Network error - Showing cached data', 'info');
+        }
     } finally { 
         loading(false); 
     }
 }
-
 // ==================== DATE HELPERS ====================
 
 function getTodayString() {
