@@ -11136,7 +11136,7 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
             <div class="namjoon-header">
                 <img src="${rmImage}" class="namjoon-avatar" alt="RM">
                 <div>
-                    <div style="font-weight:bold; color:#fff; font-size:14px;">🧠 Namjoon's Strategy</div>
+                    <div style="font-weight:bold; color:#fff; font-size:14px;">🧠 The 148 Protocol</div>
                     <div class="namjoon-bubble">${randomQuote}</div>
                 </div>
             </div>
