@@ -4858,6 +4858,7 @@ function initApp() {
     console.log('🚀 Starting App v5.0 with Routing...');
     ensureAppCSS(); 
     ensureStreakCSS(); 
+    ensureNamjoonCSS();
     loading(false);
     setupLoginListeners();
     loadAllAgents();
@@ -5013,12 +5014,15 @@ async function loadDashboard() {
         
         // 5. TRIGGER HEAVY BACKGROUND TASKS *AFTER* UI IS READY
         setTimeout(() => {
-            initStreakTracker();
-            initActivityFeed();
+            // Only call these if they actually exist
+            if (typeof initStreakTracker === 'function') initStreakTracker();
+            if (typeof initActivityFeed === 'function') initActivityFeed();
+            
+            // These still exist
             loadAllWeeksData();
             checkNotifications();
-        }, 1000); // Wait 1 second to let UI breathe
-
+        }, 1000);
+        
     } catch (e) {
         console.error('❌ Dashboard error:', e);
         if (!cached) {
@@ -10932,6 +10936,172 @@ function renderBadgeHTML(badge) {
         </div>
     `;
 }
+// ==================== NAMJOON'S BRAIN MODULE ====================
+
+// 1. CSS STYLES
+function ensureNamjoonCSS() {
+    if (document.getElementById('namjoon-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'namjoon-styles';
+    style.innerHTML = `
+        .namjoon-card { background: linear-gradient(135deg, #2c0b47, #1a1a2e); border: 1px solid #7b2cbf; border-radius: 16px; padding: 20px; margin-bottom: 25px; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(123, 44, 191, 0.3); }
+        .namjoon-card::before { content: '🧠'; position: absolute; top: -20px; right: -20px; font-size: 150px; opacity: 0.05; transform: rotate(20deg); }
+        .namjoon-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        .namjoon-avatar { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #7b2cbf; object-fit: cover; }
+        .namjoon-bubble { background: rgba(255,255,255,0.1); border-radius: 0 15px 15px 15px; padding: 10px 15px; font-size: 13px; color: #e0e0e0; line-height: 1.4; position: relative; font-style: italic; }
+        .namjoon-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; text-align: center; }
+        .namjoon-stat-box { background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px 5px; }
+        .namjoon-stat-val { font-size: 18px; font-weight: bold; color: #fff; }
+        .namjoon-stat-lbl { font-size: 9px; color: #aaa; text-transform: uppercase; }
+        .namjoon-todo-list { display: flex; flex-direction: column; gap: 8px; }
+        .namjoon-task { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 10px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+        .namjoon-task:hover { background: rgba(255,255,255,0.08); }
+        .namjoon-task.checked { background: rgba(0, 255, 136, 0.1); border-color: rgba(0, 255, 136, 0.3); }
+        .namjoon-task.checked .task-text { text-decoration: line-through; color: #888; }
+        .namjoon-checkbox { width: 20px; height: 20px; border-radius: 6px; border: 2px solid #7b2cbf; display: flex; align-items: center; justify-content: center; color: transparent; }
+        .namjoon-task.checked .namjoon-checkbox { background: #00ff88; border-color: #00ff88; color: #000; }
+    `;
+    document.head.appendChild(style);
+}
+
+// 2. PAGE RENDERER (Connects Router to Logic)
+async function renderNamjoonBrain() {
+    console.log('🧠 Loading Namjoon Brain Page...');
+    
+    // Create section if missing
+    let page = document.getElementById('page-namjoon');
+    if (!page) {
+        const main = document.querySelector('.pages-wrapper');
+        page = document.createElement('section');
+        page.id = 'page-namjoon';
+        page.className = 'page';
+        page.innerHTML = `<div class="page-header"><h1>🧠 Namjoon's Brain</h1><p class="page-subtitle">Strategic Analysis</p></div><div id="namjoon-content"></div>`;
+        main.appendChild(page);
+    }
+
+    // Force visibility
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    page.classList.add('active');
+
+    const container = document.getElementById('namjoon-content');
+    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card large"></div></div>';
+
+    try {
+        // Fetch fresh data
+        const team = STATE.data?.profile?.team || 'Unknown';
+        const data = await api('getGoalsProgress', { week: STATE.week });
+        
+        // Render
+        const html = renderNamjoonsBrain(team, data.trackGoals || {}, data.albumGoals || {});
+        container.innerHTML = html;
+        
+        container.innerHTML += `<div style="margin-top:20px"><button onclick="loadPage('goals')" class="btn-secondary" style="width:100%">← Back to Goals</button></div>`;
+        
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="card"><div class="card-body error-state"><p>Network error. Try again.</p><button onclick="renderNamjoonBrain()" class="btn-secondary">Retry</button></div></div>`;
+    }
+}
+
+// 3. LOGIC HELPER (Calculates the stats)
+function renderNamjoonsBrain(teamName, trackGoals, albumGoals) {
+    const totalMembers = getTeamMemberCount(teamName) || 1;
+    const activeMembersEstimate = Math.ceil(totalMembers * 0.6) || 1;
+
+    let remainingTracks = 0;
+    let remainingAlbums = 0;
+
+    Object.values(trackGoals).forEach(g => {
+        const current = g.teams?.[teamName]?.current || 0;
+        const goal = g.goal || 0;
+        if (current < goal) remainingTracks += (goal - current);
+    });
+
+    Object.values(albumGoals).forEach(g => {
+        const current = g.teams?.[teamName]?.current || 0;
+        const goal = g.goal || 0;
+        if (current < goal) remainingAlbums += (goal - current);
+    });
+
+    const myTrackShare = remainingTracks > 0 ? Math.ceil(remainingTracks / activeMembersEstimate) + 1 : 0;
+    const myAlbumShare = remainingAlbums > 0 ? Math.ceil(remainingAlbums / activeMembersEstimate) + 1 : 0;
+
+    const todoId = `namjoon_todo_${new Date().toDateString()}`;
+    const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
+    
+    const quotes = [
+        "Teamwork makes the dream work.",
+        "We can do this if we stick together.",
+        "Efficiency is key. Here is your strategy.",
+        "I've calculated the optimal path to victory."
+    ];
+    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+    const rmImage = "https://i.pinimg.com/736x/8d/83/96/8d839686007e59005934570329063529.jpg";
+
+    return `
+        <div class="namjoon-card">
+            <div class="namjoon-header">
+                <img src="${rmImage}" class="namjoon-avatar" alt="RM">
+                <div>
+                    <div style="font-weight:bold; color:#fff; font-size:14px;">🧠 Namjoon's Brain</div>
+                    <div class="namjoon-bubble">${randomQuote}</div>
+                </div>
+            </div>
+
+            <div class="namjoon-stat-grid">
+                <div class="namjoon-stat-box">
+                    <div class="namjoon-stat-val" style="color:#7b2cbf;">${activeMembersEstimate}</div>
+                    <div class="namjoon-stat-lbl">Active Agents</div>
+                </div>
+                <div class="namjoon-stat-box">
+                    <div class="namjoon-stat-val" style="color:${myTrackShare > 0 ? '#ff6b6b' : '#00ff88'};">
+                        ${myTrackShare > 0 ? myTrackShare : 'DONE'}
+                    </div>
+                    <div class="namjoon-stat-lbl">Your Track Goal</div>
+                </div>
+                <div class="namjoon-stat-box">
+                    <div class="namjoon-stat-val" style="color:${myAlbumShare > 0 ? '#ff6b6b' : '#00ff88'};">
+                        ${myAlbumShare > 0 ? myAlbumShare : 'DONE'}
+                    </div>
+                    <div class="namjoon-stat-lbl">Your Album Goal</div>
+                </div>
+            </div>
+
+            <div style="font-size:11px; color:#888; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">
+                📋 Your Daily Strategy List
+            </div>
+
+            <div class="namjoon-todo-list">
+                ${renderNamjoonTask('task_track', `Stream ${myTrackShare} goal tracks`, savedState['task_track'], myTrackShare === 0)}
+                ${renderNamjoonTask('task_album', `Stream ${myAlbumShare} goal albums`, savedState['task_album'], myAlbumShare === 0)}
+                ${renderNamjoonTask('task_2x', `Complete Album 2X Check`, savedState['task_2x'])}
+                ${renderNamjoonTask('task_proof', `Post Proof in Team GC`, savedState['task_proof'])}
+            </div>
+        </div>
+    `;
+}
+
+function renderNamjoonTask(id, text, isChecked, isDone = false) {
+    if (isDone) return ''; 
+    return `
+        <div class="namjoon-task ${isChecked ? 'checked' : ''}" onclick="toggleNamjoonTask('${id}')">
+            <div class="namjoon-checkbox">${isChecked ? '✓' : ''}</div>
+            <div class="task-text" style="font-size:13px; color:${isChecked ? '#888' : '#fff'};">${text}</div>
+        </div>
+    `;
+}
+
+function toggleNamjoonTask(taskId) {
+    const todoId = `namjoon_todo_${new Date().toDateString()}`;
+    const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
+    savedState[taskId] = !savedState[taskId];
+    localStorage.setItem(todoId, JSON.stringify(savedState));
+    if (navigator.vibrate) navigator.vibrate(10);
+    renderNamjoonBrain(); 
+}
+
+// Add to Routes
+window.renderNamjoonBrain = renderNamjoonBrain;
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
