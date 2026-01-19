@@ -627,14 +627,30 @@ function renderGuide(pageName) {
 async function api(action, params = {}) {
     const url = new URL(CONFIG.API_URL);
     url.searchParams.set('action', action);
+    
+    // 1. Add other params
     Object.entries(params).forEach(([k, v]) => { 
         if (v != null) url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v); 
     });
+
+    // 2. 🔥 CACHE BUSTER: This forces a fresh fetch every time
+    url.searchParams.set('_t', new Date().getTime()); 
+
     console.log('📡 API:', action, params);
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 30000);
-        const res = await fetch(url, { signal: controller.signal });
+        
+        // 3. 🔥 Add cache: 'no-store' to headers
+        const res = await fetch(url, { 
+            signal: controller.signal,
+            cache: "no-store", 
+            headers: {
+                'Pragma': 'no-cache',
+                'Cache-Control': 'no-cache'
+            }
+        });
+        
         clearTimeout(timeout);
         const text = await res.text();
         let data;
@@ -4950,7 +4966,7 @@ let notificationInterval = null;
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
     
-    
+    // 1. Load from Cache first (Instant display)
     const cached = localStorage.getItem('dashboard_cache_' + STATE.agentNo);
     if (cached) {
         try {
@@ -4958,7 +4974,6 @@ async function loadDashboard() {
             STATE.data = data;
             STATE.weeks = data.availableWeeks || [];
             STATE.week = data.week || STATE.weeks[0];
-            
             
             $('login-screen').classList.remove('active');
             $('login-screen').style.display = 'none';
@@ -4969,27 +4984,29 @@ async function loadDashboard() {
             console.log('⚡ Rendered from cache');
         } catch (e) { console.log('Cache invalid'); }
     } else {
-        
+        // Only show loader if we have NO cache
         loading(true);
     }
 
     startHeartbeat();
     
     try {
-       
+        // 2. Fetch Fresh Data (Network)
+        // The api() change above ensures this is actually NEW data
         const dashboardData = await api('getDashboardData', { 
             agentNo: STATE.agentNo, 
             week: ''
         });
         
-      
+        console.log("📥 Fresh Data Received:", dashboardData.lastUpdated);
+
+        // 3. Save to Cache
         localStorage.setItem('dashboard_cache_' + STATE.agentNo, JSON.stringify(dashboardData));
         
-        // Update State
+        // 4. Update State with Fresh Data
         STATE.weeks = dashboardData.availableWeeks || [];
         STATE.week = dashboardData.week || dashboardData.currentWeek || STATE.weeks[0];
         STATE.data = {
-            
             agentNo: dashboardData.agent.agentNo,
             week: dashboardData.week,
             profile: dashboardData.agent.profile,
@@ -5010,22 +5027,21 @@ async function loadDashboard() {
             lastUpdated: dashboardData.lastUpdated
         };
 
+        // 5. FORCE UI REFRESH
+        setupDashboard(); 
         
-        setupDashboard(); // Update avatars/names
+        // Reload current page to show new numbers
         const currentPage = ROUTER.initialized ? STATE.page : 'home';
-        loadPage(currentPage); // Refresh current page with new data
+        await loadPage(currentPage); 
         
-        
+        // 6. Trigger background checks
         setTimeout(() => {
-            // Safety checks for removed functions
             if (typeof initStreakTracker === 'function') initStreakTracker();
             if (typeof initActivityFeed === 'function') initActivityFeed();
-            
             
             loadAllWeeksData();
             checkNotifications();
 
-            
             if (typeof showNewFeatureAlert === 'function') showNewFeatureAlert();
             
         }, 1500);
@@ -5033,19 +5049,17 @@ async function loadDashboard() {
     } catch (e) {
         console.error('❌ Dashboard error:', e);
         if (!cached) {
-            // Only show error screen if we have no cache to show
             showToast('Connection failed', 'error');
             $('login-screen').classList.add('active');
             $('login-screen').style.display = 'flex';
             $('dashboard-screen').classList.remove('active');
         } else {
-            showToast('Could not refresh data. Showing cached version.', 'info');
+            showToast('Could not refresh data. Using cached version.', 'info');
         }
     } finally { 
         loading(false); 
     }
-}
-
+}s
 // ==================== DATE HELPERS ====================
 
 function getTodayString() {
