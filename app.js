@@ -633,10 +633,10 @@ async function api(action, params = {}) {
         if (v != null) url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v); 
     });
 
-    // 2. 🔥 CACHE BUSTER: This makes every request unique so the browser can't reuse old data
+    // 2. 🔥 CACHE BUSTER: Forces a fresh request every time
     url.searchParams.set('_t', Date.now()); 
 
-    console.log('📡 API Request:', action, params); // Debug log
+    console.log('📡 API Request:', action, params);
 
     try {
         const controller = new AbortController();
@@ -671,14 +671,6 @@ async function api(action, params = {}) {
     } catch (e) {
         console.error('API Network Error:', e);
         throw e;
-    }
-}
-function preloadDashboardData() {
-    // Fire background API calls to cache data
-    if (STATE.week) {
-        api('getRankings', { week: STATE.week, limit: 50 }).catch(() => {});
-        api('getGoalsProgress', { week: STATE.week }).catch(() => {});
-        api('getWeeklySummary', { week: STATE.week }).catch(() => {});
     }
 }
 
@@ -4975,48 +4967,24 @@ async function handleFind() {
 let notificationInterval = null;
 
 // ==================== LOAD DASHBOARD ====================
+// ==================== LOAD DASHBOARD (LIVE ONLY) ====================
 async function loadDashboard() {
-    console.log('🏠 Loading dashboard...');
+    console.log('🏠 Loading dashboard (Live Data)...');
     
-    // 1. SHOW CACHE FIRST (For speed)
-    const cached = localStorage.getItem('dashboard_cache_' + STATE.agentNo);
-    if (cached) {
-        try {
-            const data = JSON.parse(cached);
-            STATE.data = data;
-            STATE.weeks = data.availableWeeks || [];
-            STATE.week = data.week || STATE.weeks[0];
-            
-            // Show UI immediately
-            $('login-screen').classList.remove('active');
-            $('login-screen').style.display = 'none';
-            $('dashboard-screen').classList.add('active');
-            $('dashboard-screen').style.display = 'flex';
-            setupDashboard();
-            loadPage('home'); 
-            console.log('⚡ Displaying Cached Data (Background refresh starting...)');
-        } catch (e) { console.log('Cache invalid'); }
-    } else {
-        // Only show spinner if we have absolutely nothing
-        loading(true);
-    }
-
+    // 1. Always show loading spinner immediately
+    loading(true);
     startHeartbeat();
     
     try {
-        // 2. FETCH FRESH DATA (Network)
-        // The api() function now has _t, so this WILL get new data from server
+        // 2. Fetch Fresh Data (No Cache Check)
         const dashboardData = await api('getDashboardData', { 
             agentNo: STATE.agentNo, 
             week: ''
         });
         
-        console.log("📥 Fresh Data Received. Last Update:", dashboardData.lastUpdated);
+        console.log("📥 Fresh Data Loaded:", dashboardData.lastUpdated);
 
-        // 3. UPDATE STORAGE
-        localStorage.setItem('dashboard_cache_' + STATE.agentNo, JSON.stringify(dashboardData));
-        
-        // 4. UPDATE STATE
+        // 3. Update State
         STATE.weeks = dashboardData.availableWeeks || [];
         STATE.week = dashboardData.week || dashboardData.currentWeek || STATE.weeks[0];
         STATE.data = {
@@ -5040,34 +5008,40 @@ async function loadDashboard() {
             lastUpdated: dashboardData.lastUpdated
         };
 
-        // 5. FORCE UI REFRESH
+        // 4. Switch Screens & Render
+        $('login-screen').classList.remove('active');
+        $('login-screen').style.display = 'none';
+        $('dashboard-screen').classList.add('active');
+        $('dashboard-screen').style.display = 'flex';
+        
         setupDashboard(); 
         
-        // Force the current page to re-render with new data
+        // Load initial page
         const currentPage = ROUTER.initialized ? STATE.page : 'home';
         await loadPage(currentPage); 
         
-        // 6. BACKGROUND CHECKS
+        // 5. Trigger background checks
         setTimeout(() => {
             if (typeof initStreakTracker === 'function') initStreakTracker();
             if (typeof initActivityFeed === 'function') initActivityFeed();
             
             loadAllWeeksData();
             checkNotifications();
+
             if (typeof showNewFeatureAlert === 'function') showNewFeatureAlert();
+            
         }, 1000);
         
     } catch (e) {
-        console.error('❌ Dashboard Refresh Error:', e);
-        // If we failed to get fresh data, we just stay on the cached data
-        if (!cached) {
-            showToast('Connection failed', 'error');
-            $('login-screen').classList.add('active');
-            $('login-screen').style.display = 'flex';
-            $('dashboard-screen').classList.remove('active');
-        } else {
-            showToast('Network error - Showing cached data', 'info');
-        }
+        console.error('❌ Dashboard Load Error:', e);
+        
+        showToast('Connection failed. Please check your internet.', 'error');
+        
+        // Send back to login if live fetch fails
+        $('login-screen').classList.add('active');
+        $('login-screen').style.display = 'flex';
+        $('dashboard-screen').classList.remove('active');
+        
     } finally { 
         loading(false); 
     }
