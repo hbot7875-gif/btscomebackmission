@@ -4950,7 +4950,7 @@ let notificationInterval = null;
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
     
-    // 1. TRY TO RENDER CACHED DATA IMMEDIATELY
+    
     const cached = localStorage.getItem('dashboard_cache_' + STATE.agentNo);
     if (cached) {
         try {
@@ -4959,7 +4959,7 @@ async function loadDashboard() {
             STATE.weeks = data.availableWeeks || [];
             STATE.week = data.week || STATE.weeks[0];
             
-            // Render immediately with old data
+            
             $('login-screen').classList.remove('active');
             $('login-screen').style.display = 'none';
             $('dashboard-screen').classList.add('active');
@@ -4969,27 +4969,27 @@ async function loadDashboard() {
             console.log('⚡ Rendered from cache');
         } catch (e) { console.log('Cache invalid'); }
     } else {
-        // Only show spinner if no cache exists
+        
         loading(true);
     }
 
     startHeartbeat();
     
     try {
-        // 2. FETCH FRESH DATA IN BACKGROUND
+       
         const dashboardData = await api('getDashboardData', { 
             agentNo: STATE.agentNo, 
             week: ''
         });
         
-        // 3. UPDATE CACHE
+      
         localStorage.setItem('dashboard_cache_' + STATE.agentNo, JSON.stringify(dashboardData));
         
         // Update State
         STATE.weeks = dashboardData.availableWeeks || [];
         STATE.week = dashboardData.week || dashboardData.currentWeek || STATE.weeks[0];
         STATE.data = {
-            // ... (keep your existing mapping logic here) ...
+            
             agentNo: dashboardData.agent.agentNo,
             week: dashboardData.week,
             profile: dashboardData.agent.profile,
@@ -5010,21 +5010,25 @@ async function loadDashboard() {
             lastUpdated: dashboardData.lastUpdated
         };
 
-        // 4. RE-RENDER WITH FRESH DATA
+        
         setupDashboard(); // Update avatars/names
         const currentPage = ROUTER.initialized ? STATE.page : 'home';
         loadPage(currentPage); // Refresh current page with new data
         
-        // 5. TRIGGER HEAVY BACKGROUND TASKS *AFTER* UI IS READY
+        
         setTimeout(() => {
-            // Only call these if they actually exist
+            // Safety checks for removed functions
             if (typeof initStreakTracker === 'function') initStreakTracker();
             if (typeof initActivityFeed === 'function') initActivityFeed();
             
-            // These still exist
+            
             loadAllWeeksData();
             checkNotifications();
-        }, 1000);
+
+            
+            if (typeof showNewFeatureAlert === 'function') showNewFeatureAlert();
+            
+        }, 1500);
         
     } catch (e) {
         console.error('❌ Dashboard error:', e);
@@ -11217,6 +11221,90 @@ function toggleNamjoonTask(taskId) {
     
     // Re-render
     renderNamjoonBrain(); 
+}
+// ==================== FEATURE ANNOUNCEMENT ====================
+function showNewFeatureAlert() {
+    // 1. Check if already seen
+    const key = 'has_seen_148_protocol_v1'; // Change 'v1' if you update it again later
+    if (localStorage.getItem(key)) return;
+
+    // 2. Create Modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 999999;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(5px); animation: fadeIn 0.3s ease;
+    `;
+
+    const rmImage = "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/c2bf66b6488fbaca00d279431366cb47826b0b86/team%20pfps/namjoon.jpg";
+
+    modal.innerHTML = `
+        <div style="
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+            border: 1px solid #7b2cbf; border-radius: 16px;
+            padding: 0; max-width: 320px; width: 90%;
+            box-shadow: 0 0 40px rgba(123, 44, 191, 0.4);
+            overflow: hidden; text-align: center;
+            animation: slideUp 0.4s ease;
+        ">
+            <div style="background: #7b2cbf; padding: 12px; color: #fff; font-weight: bold; font-family: 'Orbitron', monospace; font-size: 14px; letter-spacing: 1px;">
+                ⚡ SYSTEM UPDATE
+            </div>
+            
+            <div style="padding: 25px;">
+                <div style="
+                    width: 70px; height: 70px; margin: 0 auto 15px;
+                    border-radius: 50%; border: 3px solid #7b2cbf;
+                    overflow: hidden;
+                ">
+                    <img src="${rmImage}" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+
+                <h3 style="color: #fff; font-size: 18px; margin: 0 0 10px;">The 148 Protocol</h3>
+                
+                <p style="color: #aaa; font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
+                    Strategic command has been transferred to Namjoon.
+                    <br><br>
+                    <span style="color: #ffd700;">New Feature:</span> 
+                    Personalized daily targets calculated based on your team's real-time gaps.
+                </p>
+
+                <button id="check-protocol-btn" style="
+                    width: 100%; padding: 12px;
+                    background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                    border: none; border-radius: 8px;
+                    color: white; font-weight: bold; cursor: pointer;
+                    font-size: 14px; box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
+                ">
+                    🧠 Access The Protocol
+                </button>
+                
+                <button id="close-protocol-btn" style="
+                    background: transparent; border: none;
+                    color: #666; font-size: 12px; margin-top: 15px;
+                    text-decoration: underline; cursor: pointer;
+                ">
+                    Dismiss
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // 3. Mark as seen immediately so it doesn't show again
+    localStorage.setItem(key, 'true');
+
+    // 4. Button Logic
+    document.getElementById('check-protocol-btn').onclick = () => {
+        modal.remove();
+        loadPage('namjoon'); // Navigate to the new page
+    };
+
+    document.getElementById('close-protocol-btn').onclick = () => {
+        modal.remove();
+    };
 }
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
