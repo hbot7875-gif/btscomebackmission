@@ -11125,8 +11125,6 @@ async function renderNamjoonBrain() {
     }
 }
 
-// ==================== NAMJOON'S BRAIN RENDERER ====================
-
 // 3. LOGIC HELPER (Calculates Targets + Displays Lagging Members)
 function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
     const totalMembers = getTeamMemberCount(teamName) || 1;
@@ -11186,10 +11184,11 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
 
     specificTasks.sort((a, b) => b.gap - a.gap);
 
-    // --- 4. Process Album 2X Lagging Members ---
+    // --- 4. Process Album 2X Lagging Members (NEW) ---
     let pendingMembersHTML = '';
     const team2xData = album2xData?.teams?.[teamName] || {};
     const members = team2xData.members || [];
+    // Filter for members who have NOT passed
     const pendingList = members.filter(m => !m.passed).map(m => m.name || m.agentNo);
 
     if (pendingList.length > 0) {
@@ -11248,26 +11247,7 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
                 <div style="flex: 1;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                         <div style="font-weight:bold; color:#fff; font-size:14px;">🧠 The 148 Protocol</div>
-                        
-                        <!-- ✅ FIXED BUTTON: Larger hit area, Explicit window call -->
-                        <button type="button" onclick="window.showProtocolInfo()" style="
-                            background: rgba(255,255,255,0.15); 
-                            border: 1px solid rgba(255,255,255,0.3); 
-                            color: #fff; 
-                            border-radius: 50%; 
-                            width: 32px; 
-                            height: 32px; 
-                            min-width: 32px;
-                            font-size: 16px; 
-                            font-weight: bold;
-                            display: flex; 
-                            align-items: center; 
-                            justify-content: center; 
-                            cursor: pointer;
-                            z-index: 100;
-                            touch-action: manipulation;
-                        ">?</button>
-
+                        <button onclick="showProtocolInfo()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;">?</button>
                     </div>
                     <div class="namjoon-bubble">${randomQuote}</div>
                 </div>
@@ -11315,54 +11295,194 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
         </div>
     `;
 }
-
-// ==================== 148 PROTOCOL INFO MODAL ====================
-function showProtocolInfo() {
-    console.log('🧠 Opening Protocol Info...');
+// Updated Task Renderer Helper
+function renderNamjoonTask(id, text, isChecked, forceChecked = false) {
+    const checkedClass = (isChecked || forceChecked) ? 'checked' : '';
+    const checkMark = (isChecked || forceChecked) ? '✓' : '';
     
-    // Create Overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay active';
-    overlay.style.cssText = `
+    // If forced (like 2X passed from API), make it non-clickable but look done
+    const clickAction = forceChecked ? '' : `onclick="toggleNamjoonTask('${id}')"`;
+
+    return `
+        <div class="namjoon-task ${checkedClass}" ${clickAction}>
+            <div class="namjoon-checkbox">${checkMark}</div>
+            <div class="task-text" style="font-size:13px; color:${isChecked ? '#888' : '#fff'}; flex:1;">
+                ${text}
+            </div>
+        </div>
+    `;
+}
+
+// Updated Toggle Function
+function toggleNamjoonTask(taskId) {
+    const todoId = `namjoon_todo_${new Date().toDateString()}`;
+    const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
+    
+    // Toggle state
+    savedState[taskId] = !savedState[taskId];
+    
+    // Save
+    localStorage.setItem(todoId, JSON.stringify(savedState));
+    
+    // Haptic feedback
+    if (navigator.vibrate) navigator.vibrate(10);
+    
+    // Re-render
+    renderNamjoonBrain(); 
+}
+// ==================== FEATURE ANNOUNCEMENT ====================
+function showNewFeatureAlert() {
+    // 1. Check if already seen
+    const key = 'has_seen_148_protocol_v1'; // Change 'v1' if you update it again later
+    if (localStorage.getItem(key)) return;
+
+    // 2. Create Modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.85); z-index: 9999999;
+        background: rgba(0,0,0,0.85); z-index: 999999;
         display: flex; align-items: center; justify-content: center;
         backdrop-filter: blur(5px); animation: fadeIn 0.3s ease;
     `;
 
-    // Create Modal
+    const rmImage = "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/6c9cf38a7be372187ebd244d19a5e0357d4983c8/team%20pfps/baed0eb48e6ac22807df156ce76d8b4f.jpg";
+
+    modal.innerHTML = `
+        <div style="
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+            border: 1px solid #7b2cbf; border-radius: 16px;
+            padding: 0; max-width: 320px; width: 90%;
+            box-shadow: 0 0 40px rgba(123, 44, 191, 0.4);
+            overflow: hidden; text-align: center;
+            animation: slideUp 0.4s ease;
+        ">
+            <div style="background: #7b2cbf; padding: 12px; color: #fff; font-weight: bold; font-family: 'Orbitron', monospace; font-size: 14px; letter-spacing: 1px;">
+                ⚡ SYSTEM UPDATE
+            </div>
+            
+            <div style="padding: 25px;">
+                <div style="
+                    width: 70px; height: 70px; margin: 0 auto 15px;
+                    border-radius: 50%; border: 3px solid #7b2cbf;
+                    overflow: hidden;
+                ">
+                    <img src="${rmImage}" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+
+                <h3 style="color: #fff; font-size: 18px; margin: 0 0 10px;">The 148 Protocol</h3>
+                
+                <p style="color: #aaa; font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
+                    Strategic command has been transferred to Namjoon.
+                    <br><br>
+                    <span style="color: #ffd700;">New Feature:</span> 
+                    Personalized daily targets calculated based on your team's real-time gaps.
+                </p>
+
+                <button id="check-protocol-btn" style="
+                    width: 100%; padding: 12px;
+                    background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                    border: none; border-radius: 8px;
+                    color: white; font-weight: bold; cursor: pointer;
+                    font-size: 14px; box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
+                ">
+                    🧠 Access The Protocol
+                </button>
+                
+                <button id="close-protocol-btn" style="
+                    background: transparent; border: none;
+                    color: #666; font-size: 12px; margin-top: 15px;
+                    text-decoration: underline; cursor: pointer;
+                ">
+                    Dismiss
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // 3. Mark as seen immediately so it doesn't show again
+    localStorage.setItem(key, 'true');
+
+    // 4. Button Logic
+    document.getElementById('check-protocol-btn').onclick = () => {
+        modal.remove();
+        loadPage('namjoon'); // Navigate to the new page
+    };
+
+    document.getElementById('close-protocol-btn').onclick = () => {
+        modal.remove();
+    };
+}
+// ==================== 148 PROTOCOL INFO MODAL ====================
+function showProtocolInfo() {
+    // Create Modal Elements
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 999999;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(5px); animation: fadeIn 0.3s ease;
+    `;
+
     const modal = document.createElement('div');
     modal.style.cssText = `
         background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
         border: 1px solid #7b2cbf; border-radius: 16px;
         padding: 0; max-width: 350px; width: 90%;
         box-shadow: 0 0 30px rgba(123, 44, 191, 0.3);
-        overflow: hidden; max-height: 90vh; overflow-y: auto;
+        overflow: hidden;
     `;
 
     modal.innerHTML = `
         <div style="background: rgba(123,44,191,0.15); padding: 15px; border-bottom: 1px solid rgba(123,44,191,0.3); display: flex; align-items: center; justify-content: space-between;">
             <div style="font-weight: bold; color: #fff; font-family: 'Orbitron', monospace;">🧠 NAMJOON'S LOGIC</div>
-            <button id="close-info-btn" style="background: none; border: none; color: #888; font-size: 24px; padding: 0 10px; cursor: pointer;">×</button>
+            <button id="close-info-btn" style="background: none; border: none; color: #888; font-size: 20px; cursor: pointer;">×</button>
         </div>
         
         <div style="padding: 20px;">
+            
+            <!-- NEW: EXAMPLE BREAKDOWN -->
             <div style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; margin-bottom: 20px;">
                 <h4 style="color: #ffd700; font-size: 11px; margin: 0 0 8px 0; text-transform: uppercase;">📖 How to Read:</h4>
+                
                 <div style="font-size: 13px; color: #fff; font-weight: bold; margin-bottom: 8px;">
                     🎵 DNA <span style="color: #00ff88;">x163</span> — <span style="color: #ffd700;">28/day</span>
                 </div>
+
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px;">
-                    <div><span style="color: #00ff88; font-weight: bold;">x163 (Total)</span><br><span style="color: #aaa;">Your total week share to clear the team gap.</span></div>
-                    <div><span style="color: #ffd700; font-weight: bold;">28/day (Pace)</span><br><span style="color: #aaa;">How many to do <strong>today</strong> to finish on time.</span></div>
+                    <div>
+                        <span style="color: #00ff88; font-weight: bold;">x163 (Total)</span><br>
+                        <span style="color: #aaa;">Your total fair share to clear the team gap.</span>
+                    </div>
+                    <div>
+                        <span style="color: #ffd700; font-weight: bold;">28/day (Pace)</span><br>
+                        <span style="color: #aaa;">How many you should do <strong>today</strong> to finish on time.</span>
+                    </div>
                 </div>
             </div>
-            <p style="color: #aaa; font-size: 13px; line-height: 1.6; margin-bottom: 15px;">Namjoon calculates numbers based on active agents and days left.</p>
+
+            <p style="color: #aaa; font-size: 13px; line-height: 1.6; margin-bottom: 15px;">
+                Namjoon calculates these numbers based on how many <strong>active agents</strong> are helping and how many <strong>days</strong> are left.
+            </p>
+
             <ul style="padding-left: 20px; margin: 0; color: #ccc; font-size: 12px; line-height: 1.6;">
-                <li style="margin-bottom: 10px;"><strong>Dynamic:</strong> If team streams hard, numbers go DOWN! 📉</li>
-                <li style="margin-bottom: 8px;"><strong>Checklist:</strong> Tick the box yourself when done! ✅</li>
+                <li style="margin-bottom: 10px;">
+                    <strong>It's Dynamic:</strong> If the team streams hard today, your numbers for tomorrow will go <strong>DOWN</strong>! 📉
+                </li>
+                <li style="margin-bottom: 8px;">
+                    <strong>Your Checklist:</strong> This is a personal planner. <strong>Tick the box yourself</strong> when you finish your daily goal! ✅
+                </li>
             </ul>
-            <button id="got-it-btn" style="width: 100%; margin-top: 20px; padding: 12px; background: linear-gradient(135deg, #7b2cbf, #5a1f99); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer;">Got it!</button>
+
+            <button onclick="this.closest('.modal-overlay').remove()" style="
+                width: 100%; margin-top: 20px; padding: 12px;
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer;
+            ">
+                Got it!
+            </button>
         </div>
     `;
 
@@ -11370,10 +11490,8 @@ function showProtocolInfo() {
     document.body.appendChild(overlay);
 
     // Close logic
-    const close = () => { overlay.remove(); };
-    document.getElementById('close-info-btn').onclick = close;
-    document.getElementById('got-it-btn').onclick = close;
-    overlay.onclick = (e) => { if (e.target === overlay) close(); };
+    document.getElementById('close-info-btn').onclick = () => overlay.remove();
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
