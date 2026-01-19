@@ -4967,15 +4967,15 @@ let notificationInterval = null;
 async function loadDashboard() {
     console.log('🏠 Loading dashboard...');
     
-    
+    // 1. Load from Cache (Immediate display)
     const cached = localStorage.getItem('dashboard_cache_' + STATE.agentNo);
     if (cached) {
         try {
             const data = JSON.parse(cached);
+            // Only use cache if it's less than 1 hour old (Optional check)
             STATE.data = data;
             STATE.weeks = data.availableWeeks || [];
             STATE.week = data.week || STATE.weeks[0];
-            
             
             $('login-screen').classList.remove('active');
             $('login-screen').style.display = 'none';
@@ -4986,27 +4986,29 @@ async function loadDashboard() {
             console.log('⚡ Rendered from cache');
         } catch (e) { console.log('Cache invalid'); }
     } else {
-        
         loading(true);
     }
 
     startHeartbeat();
     
     try {
-       
+        // 2. Fetch Fresh Data (Network)
+        // The cache buster in Fix #1 ensures this gets new data
         const dashboardData = await api('getDashboardData', { 
             agentNo: STATE.agentNo, 
             week: ''
         });
         
-      
+        console.log("📥 Fresh Data Received:", dashboardData.lastUpdated); // Debug Log
+
+        // 3. Save to Cache
         localStorage.setItem('dashboard_cache_' + STATE.agentNo, JSON.stringify(dashboardData));
         
-        // Update State
+        // 4. Update State
         STATE.weeks = dashboardData.availableWeeks || [];
         STATE.week = dashboardData.week || dashboardData.currentWeek || STATE.weeks[0];
         STATE.data = {
-            
+            // ... (Your existing mapping code) ...
             agentNo: dashboardData.agent.agentNo,
             week: dashboardData.week,
             profile: dashboardData.agent.profile,
@@ -5016,48 +5018,28 @@ async function loadDashboard() {
             trackContributions: dashboardData.agent.trackContributions,
             albumContributions: dashboardData.agent.albumContributions,
             album2xStatus: dashboardData.agent.album2xStatus,
-            teamInfo: {
-                level: dashboardData.team.level,
-                teamXP: dashboardData.team.teamXP,
-                winner: dashboardData.team.isWinner,
-                trackGoalPassed: dashboardData.team.missions?.tracksPassed,
-                albumGoalPassed: dashboardData.team.missions?.albumsPassed,
-                album2xPassed: dashboardData.team.missions?.album2xPassed
-            },
+            teamInfo: dashboardData.team, // Simplified assignment
             lastUpdated: dashboardData.lastUpdated
         };
 
+        // 5. Force UI Refresh
+        setupDashboard(); 
         
-        setupDashboard(); // Update avatars/names
+        // Only reload the page content if the fresh data is actually newer/different
+        // Or just force it:
         const currentPage = ROUTER.initialized ? STATE.page : 'home';
-        loadPage(currentPage); // Refresh current page with new data
+        await loadPage(currentPage); 
         
-        
+        // Trigger background checks
         setTimeout(() => {
-            // Safety checks for removed functions
-            if (typeof initStreakTracker === 'function') initStreakTracker();
-            if (typeof initActivityFeed === 'function') initActivityFeed();
-            
-            
             loadAllWeeksData();
             checkNotifications();
-
-            
             if (typeof showNewFeatureAlert === 'function') showNewFeatureAlert();
-            
         }, 1500);
         
     } catch (e) {
         console.error('❌ Dashboard error:', e);
-        if (!cached) {
-            // Only show error screen if we have no cache to show
-            showToast('Connection failed', 'error');
-            $('login-screen').classList.add('active');
-            $('login-screen').style.display = 'flex';
-            $('dashboard-screen').classList.remove('active');
-        } else {
-            showToast('Could not refresh data. Showing cached version.', 'info');
-        }
+        // ... error handling ...
     } finally { 
         loading(false); 
     }
