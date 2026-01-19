@@ -10971,7 +10971,7 @@ function ensureNamjoonCSS() {
 async function renderNamjoonBrain() {
     console.log('🧠 Loading Namjoon Brain Page...');
     
-    // Create section if missing
+    // Create/Get Page
     let page = document.getElementById('page-namjoon');
     if (!page) {
         const main = document.querySelector('.pages-wrapper');
@@ -10990,53 +10990,68 @@ async function renderNamjoonBrain() {
     container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card large"></div></div>';
 
     try {
-        // Fetch fresh data
         const team = STATE.data?.profile?.team || 'Unknown';
-        const data = await api('getGoalsProgress', { week: STATE.week });
+        const week = STATE.week || 'Week 1';
+
+        // ✅ FETCH BOTH GOALS AND ALBUM 2X DATA
+        const [goalsData, album2xData] = await Promise.all([
+            api('getGoalsProgress', { week: week }),
+            api('getAlbum2xStatus', { week: week, team: team, agentNo: STATE.agentNo })
+        ]);
         
-        // Render
-        const html = renderNamjoonsBrain(team, data.trackGoals || {}, data.albumGoals || {});
+        // Render with extra data
+        const html = renderNamjoonsBrain(
+            team, 
+            goalsData.trackGoals || {}, 
+            goalsData.albumGoals || {},
+            album2xData // Pass the 2x data to the helper
+        );
+        
         container.innerHTML = html;
-        
         container.innerHTML += `<div style="margin-top:20px"><button onclick="loadPage('goals')" class="btn-secondary" style="width:100%">← Back to Goals</button></div>`;
         
     } catch (e) {
         console.error(e);
-        container.innerHTML = `<div class="card"><div class="card-body error-state"><p>Network error. Try again.</p><button onclick="renderNamjoonBrain()" class="btn-secondary">Retry</button></div></div>`;
+        container.innerHTML = `<div class="card"><div class="card-body error-state"><p>Analysis Failed. Network Error.</p><button onclick="renderNamjoonBrain()" class="btn-secondary">Retry</button></div></div>`;
     }
 }
 
-// 3. LOGIC HELPER (Calculates Specific Targets per Track/Album)
-function renderNamjoonsBrain(teamName, trackGoals, albumGoals) {
+// 3. LOGIC HELPER (Calculates Targets + Displays Lagging Members)
+function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
     const totalMembers = getTeamMemberCount(teamName) || 1;
-    // Estimate 60% of members are active contributors
     const activeMembersEstimate = Math.ceil(totalMembers * 0.6) || 1;
+
+    // --- 1. Daily Math ---
+    const daysLeft = getDaysRemaining(STATE.week);
+    const safeDays = daysLeft <= 0 ? 1 : daysLeft;
+    const isUrgent = daysLeft <= 1;
 
     const specificTasks = [];
     let totalStreamsNeeded = 0;
 
-    // --- 1. Analyze Tracks Individually ---
+    // --- 2. Analyze Tracks ---
     Object.entries(trackGoals).forEach(([trackName, info]) => {
         const current = info.teams?.[teamName]?.current || 0;
         const goal = info.goal || 0;
         
         if (current < goal) {
             const gap = goal - current;
-            // Calculate fair share per active member + 1 safety buffer
             const myShare = Math.ceil(gap / activeMembersEstimate) + 1;
+            const dailyTarget = Math.ceil(myShare / safeDays);
             
             specificTasks.push({
                 id: 'track_' + trackName.replace(/[^a-zA-Z0-9]/g, ''),
                 type: '🎵',
                 name: trackName,
-                count: myShare,
-                gap: gap // Store total gap to sort by urgency
+                total: myShare,
+                daily: dailyTarget,
+                gap: gap
             });
             totalStreamsNeeded += myShare;
         }
     });
 
-    // --- 2. Analyze Albums Individually ---
+    // --- 3. Analyze Albums ---
     Object.entries(albumGoals).forEach(([albumName, info]) => {
         const current = info.teams?.[teamName]?.current || 0;
         const goal = info.goal || 0;
@@ -11044,35 +11059,74 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals) {
         if (current < goal) {
             const gap = goal - current;
             const myShare = Math.ceil(gap / activeMembersEstimate) + 1;
+            const dailyTarget = Math.ceil(myShare / safeDays);
             
             specificTasks.push({
                 id: 'album_' + albumName.replace(/[^a-zA-Z0-9]/g, ''),
                 type: '💿',
                 name: albumName,
-                count: myShare,
+                total: myShare,
+                daily: dailyTarget,
                 gap: gap
             });
             totalStreamsNeeded += myShare;
         }
     });
 
-    // --- 3. Sort by "Biggest Gap" (Most Urgent First) ---
     specificTasks.sort((a, b) => b.gap - a.gap);
 
-    // --- 4. Prepare UI ---
-    const todoId = `namjoon_todo_${new Date().toDateString()}`; // Unique storage key per day
+    // --- 4. Process Album 2X Lagging Members (NEW) ---
+    let pendingMembersHTML = '';
+    const team2xData = album2xData?.teams?.[teamName] || {};
+    const members = team2xData.members || [];
+    // Filter for members who have NOT passed
+    const pendingList = members.filter(m => !m.passed).map(m => m.name || m.agentNo);
+
+    if (pendingList.length > 0) {
+        pendingMembersHTML = `
+            <div style="background:rgba(255,68,68,0.1); border:1px solid rgba(255,68,68,0.3); border-radius:10px; padding:12px; margin-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="color:#ff6b6b; font-weight:bold; font-size:12px;">🚨 ALBUM 2X INCOMPLETE</span>
+                    <span style="background:#ff6b6b; color:white; font-size:10px; padding:2px 6px; border-radius:6px;">${pendingList.length} Left</span>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:5px;">
+                    ${pendingList.map(name => `
+                        <span style="font-size:10px; color:#ccc; background:rgba(0,0,0,0.3); padding:3px 8px; border-radius:4px;">
+                            ${name}
+                        </span>
+                    `).join('')}
+                </div>
+                <div style="font-size:9px; color:#aaa; margin-top:8px; font-style:italic;">
+                    *Help them stream or send reminders in GC!
+                </div>
+            </div>
+        `;
+    } else if (members.length > 0) {
+        pendingMembersHTML = `
+            <div style="background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); border-radius:10px; padding:10px; margin-bottom:15px; text-align:center;">
+                <span style="color:#00ff88; font-weight:bold; font-size:12px;">✨ TEAM 2X COMPLETE!</span>
+            </div>
+        `;
+    }
+
+    // --- 5. Prepare UI ---
+    const todoId = `namjoon_todo_${new Date().toDateString()}`;
     const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
-    
-    // Always add the 2X challenge as a fixed task
     const album2xPassed = STATE.data?.album2xStatus?.passed || false;
-    const tasksHTML = specificTasks.map(task => 
-        renderNamjoonTask(task.id, `${task.type} Stream <strong>${task.name}</strong> x${task.count}`, savedState[task.id])
-    ).join('');
+    
+    const tasksHTML = specificTasks.map(task => {
+        const dailyText = isUrgent 
+            ? `<span style="color:#ff6b6b; font-weight:bold;">⚠️ DUE TODAY</span>` 
+            : `<span style="color:#ffd700;">${task.daily}/day</span>`;
+        const taskLabel = `${task.type} <strong>${task.name}</strong> <span style="opacity:0.7">x${task.total}</span> — ${dailyText}`;
+        return renderNamjoonTask(task.id, taskLabel, savedState[task.id]);
+    }).join('');
 
     const quotes = [
-        "Focus on the targets below. We are close.",
-        "I've analyzed the gaps. Here is your personalized plan.",
-        "Teamwork makes the dream work. Let's close these gaps."
+        "No agent left behind. Check the list.",
+        "Efficiency is key. Focus on the gaps.",
+        "I've identified who needs support.",
+        "Teamwork makes the dream work."
     ];
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
     const rmImage = "https://i.pinimg.com/736x/8d/83/96/8d839686007e59005934570329063529.jpg";
@@ -11087,88 +11141,47 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals) {
                 </div>
             </div>
 
-            <!-- Summary Stats -->
+            <!-- Stats Grid -->
             <div class="namjoon-stat-grid">
                 <div class="namjoon-stat-box">
                     <div class="namjoon-stat-val" style="color:#7b2cbf;">${activeMembersEstimate}</div>
                     <div class="namjoon-stat-lbl">Active Agents</div>
                 </div>
                 <div class="namjoon-stat-box">
-                    <div class="namjoon-stat-val" style="color:${specificTasks.length > 0 ? '#ff6b6b' : '#00ff88'};">
-                        ${specificTasks.length}
+                    <div class="namjoon-stat-val" style="color:${daysLeft <= 2 ? '#ff6b6b' : '#00ff88'};">
+                        ${daysLeft}
                     </div>
-                    <div class="namjoon-stat-lbl">Targets Left</div>
+                    <div class="namjoon-stat-lbl">Days Left</div>
                 </div>
                 <div class="namjoon-stat-box">
                     <div class="namjoon-stat-val" style="color:#ffd700;">
                         ${totalStreamsNeeded}
                     </div>
-                    <div class="namjoon-stat-lbl">Est. Streams</div>
+                    <div class="namjoon-stat-lbl">My Total Need</div>
                 </div>
             </div>
 
+            <!-- 🚨 ALBUM 2X ALERT SECTION -->
+            ${pendingMembersHTML}
+
             <div style="font-size:11px; color:#888; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px; display:flex; justify-content:space-between;">
-                <span>📋 Priority Target List</span>
+                <span>📋 Daily Plan</span>
                 <span>${new Date().toLocaleDateString()}</span>
             </div>
 
             <div class="namjoon-todo-list">
                 ${specificTasks.length === 0 ? 
                     `<div style="text-align:center; padding:20px; color:#00ff88; background:rgba(0,255,136,0.1); border-radius:10px;">
-                        🎉 All Track & Album Goals Met!<br>
-                        <span style="font-size:11px; color:#ccc;">Focus on Album 2X or general streaming now.</span>
+                        🎉 All Goals Met! Help the members listed above.
                     </div>` 
                     : tasksHTML
                 }
                 
-                <!-- Always show 2X status -->
-                ${renderNamjoonTask('task_2x_check', `✨ Complete Album 2X Challenge`, savedState['task_2x_check'] || album2xPassed, album2xPassed)}
-                
-                <!-- Always show Proof task -->
+                ${renderNamjoonTask('task_2x_check', `✨ Complete My Album 2X`, savedState['task_2x_check'] || album2xPassed, album2xPassed)}
                 ${renderNamjoonTask('task_proof_daily', `📸 Post Proof in Team GC`, savedState['task_proof_daily'])}
             </div>
-            
-            <div style="margin-top:15px; font-size:10px; color:#666; text-align:center; line-height:1.4;">
-                *Targets calculated based on remaining gap divided by estimated active members.
-            </div>
         </div>
     `;
-}
-
-// Updated Task Renderer
-function renderNamjoonTask(id, text, isChecked, forceChecked = false) {
-    const checkedClass = (isChecked || forceChecked) ? 'checked' : '';
-    const checkMark = (isChecked || forceChecked) ? '✓' : '';
-    
-    // If forced (like 2X passed from API), make it non-clickable but look done
-    const clickAction = forceChecked ? '' : `onclick="toggleNamjoonTask('${id}')"`;
-
-    return `
-        <div class="namjoon-task ${checkedClass}" ${clickAction}>
-            <div class="namjoon-checkbox">${checkMark}</div>
-            <div class="task-text" style="font-size:13px; color:${isChecked ? '#888' : '#fff'}; flex:1;">
-                ${text}
-            </div>
-        </div>
-    `;
-}
-
-// Updated Toggle Function
-function toggleNamjoonTask(taskId) {
-    const todoId = `namjoon_todo_${new Date().toDateString()}`;
-    const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
-    
-    // Toggle state
-    savedState[taskId] = !savedState[taskId];
-    
-    // Save
-    localStorage.setItem(todoId, JSON.stringify(savedState));
-    
-    // Haptic feedback
-    if (navigator.vibrate) navigator.vibrate(10);
-    
-    // Re-render
-    renderNamjoonBrain(); 
 }
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
