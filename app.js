@@ -663,14 +663,6 @@ async function api(action, params = {}) {
         throw e;
     }
 }
-function preloadDashboardData() {
-    // Fire background API calls to cache data
-    if (STATE.week) {
-        api('getRankings', { week: STATE.week, limit: 50 }).catch(() => {});
-        api('getGoalsProgress', { week: STATE.week }).catch(() => {});
-        api('getWeeklySummary', { week: STATE.week }).catch(() => {});
-    }
-}
 
 // ==================== NOTIFICATION STATE MANAGEMENT ====================
 
