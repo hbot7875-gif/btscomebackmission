@@ -11129,7 +11129,7 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
         "Teamwork makes the dream work."
     ];
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-    const rmImage = "https://i.pinimg.com/736x/8d/83/96/8d839686007e59005934570329063529.jpg";
+    const rmImage = "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/c2bf66b6488fbaca00d279431366cb47826b0b86/team%20pfps/namjoon.jpg";
 
     return `
         <div class="namjoon-card">
