@@ -5162,6 +5162,33 @@ function setupDashboard() {
     if (logoutBtn) { logoutBtn.onclick = null; logoutBtn.onclick = e => { e.preventDefault(); e.stopPropagation(); logout(); }; }
     
     updateTime();
+    // ==================== INJECT NAMJOON'S BRAIN BUTTON ====================
+    // Finds the MISSIONS section in the sidebar and adds the button
+    const navSections = document.querySelectorAll('.nav-section');
+    navSections.forEach(section => {
+        const title = section.querySelector('.nav-section-title');
+        // Look for the MISSIONS section
+        if (title && title.textContent.trim() === 'MISSIONS') {
+            // Check if button already exists to avoid duplicates
+            if (!section.querySelector('button[onclick*="namjoon"]')) {
+                const btnHTML = `
+                    <button onclick="loadPage('namjoon'); document.getElementById('sidebar').classList.remove('open');" class="nav-link" style="background:none; border:none; width:100%; text-align:left; cursor:pointer; font-family:inherit; font-size:inherit; padding: 12px 15px; display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.7);">
+                        <span class="nav-icon">🧠</span>
+                        <span class="nav-text">Namjoon's Brain</span>
+                    </button>
+                `;
+                
+                // Insert AFTER the "Goals" link
+                const goalsLink = section.querySelector('[data-page="goals"]');
+                if (goalsLink) {
+                    goalsLink.insertAdjacentHTML('afterend', btnHTML);
+                } else {
+                    // Fallback: add to end of section
+                    section.insertAdjacentHTML('beforeend', btnHTML);
+                }
+            }
+        }
+    });
 }
 // ==================== ROLE-BASED NAVIGATION ====================
 
