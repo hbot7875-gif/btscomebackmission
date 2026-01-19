@@ -624,36 +624,52 @@ function renderGuide(pageName) {
 }
 
 // ==================== API ====================
-// ==================== API ====================
 async function api(action, params = {}) {
     const url = new URL(CONFIG.API_URL);
     url.searchParams.set('action', action);
     
-    // 1. Add other params
+    // 1. Add normal parameters
     Object.entries(params).forEach(([k, v]) => { 
         if (v != null) url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v); 
     });
 
-    // 2. CACHE BUSTER: Keeps data fresh without breaking CORS
+    // 2. 🔥 CACHE BUSTER: This makes every request unique so the browser can't reuse old data
     url.searchParams.set('_t', Date.now()); 
 
-    console.log('📡 API:', action, params);
+    console.log('📡 API Request:', action, params); // Debug log
+
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 30000);
         
-        // 3. FIXED: Removed 'headers' to stop CORS Preflight error
-        const res = await fetch(url, { signal: controller.signal });
+        // 3. Simple fetch (No custom headers to avoid CORS errors)
+        const res = await fetch(url.toString(), { 
+            signal: controller.signal,
+            method: 'GET'
+        });
         
         clearTimeout(timeout);
         const text = await res.text();
+        
         let data;
-        try { data = JSON.parse(text); } catch (e) { throw new Error('Invalid JSON response'); }
-        if (data.lastUpdated) { STATE.lastUpdated = data.lastUpdated; updateTime(); }
+        try { 
+            data = JSON.parse(text); 
+        } catch (e) { 
+            console.error("JSON Parse Error:", text);
+            throw new Error('Invalid JSON response'); 
+        }
+
+        // 4. Update the global Last Updated time immediately
+        if (data.lastUpdated) { 
+            STATE.lastUpdated = data.lastUpdated; 
+            updateTime(); 
+        }
+        
         if (data.error) throw new Error(data.error);
         return data;
+
     } catch (e) {
-        console.error('API Error:', e);
+        console.error('API Network Error:', e);
         throw e;
     }
 }
