@@ -11865,10 +11865,8 @@ function renderBadgeHTML(badge) {
         </div>
     `;
 }
-// ==================== NAMJOON'S BRAIN (STRATEGY CENTER) ====================
-
 async function renderNamjoonBrain() {
-    // 1. Define IDs (MUST match what the Router expects: 'namjoon')
+    // 1. Define IDs
     const pageId = 'page-namjoon'; 
     const contentId = 'namjoon-content';
     
@@ -11879,8 +11877,9 @@ async function renderNamjoonBrain() {
         const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
         if (mainContent) {
             const page = document.createElement('section');
-            page.id = pageId; // ✅ FIXED: Matches Router ID
-            page.className = 'page';
+            page.id = pageId; 
+            // ✅ FIX: Added 'active' class here so it appears immediately upon creation
+            page.className = 'page active'; 
             page.innerHTML = `<div id="${contentId}"></div>`;
             mainContent.appendChild(page);
             container = document.getElementById(contentId);
@@ -11894,15 +11893,29 @@ async function renderNamjoonBrain() {
                 .todo-item .checkbox { width:20px; height:20px; border:2px solid #7b2cbf; border-radius:4px; display:flex; align-items:center; justify-content:center; }
                 .todo-item.checked .checkbox { background:#00ff88; border-color:#00ff88; color:#000; }
                 .todo-item.checked .text { text-decoration:line-through; color:#888; }
+                /* Fix for the slider appearing correctly */
+                input[type=range] { width: 100%; accent-color: #7b2cbf; cursor: pointer; }
             `;
             document.head.appendChild(style);
         }
+    }
+    
+    // 2b. Force active class in case the element existed but was hidden
+    const pageEl = document.getElementById(pageId);
+    if(pageEl) {
+        // Ensure other pages are hidden first
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        pageEl.classList.add('active');
     }
     
     if (!container) return;
     
     container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
 
+    // ... (The rest of your function remains exactly the same) ...
+    // Copy the rest of the logic from your previous file from here down
+    // (Data fetching, calculation logic, HTML generation)
+    
     const myTeam = STATE.data?.profile?.team;
     
     if (!myTeam) {
@@ -11956,7 +11969,7 @@ async function renderNamjoonBrain() {
                         <label style="color:#fff; font-size:13px; display:block; margin-bottom:10px;">
                             📉 Participation: <span id="slider-val" style="color:#7b2cbf;">50%</span>
                         </label>
-                        <input type="range" id="active-agents-slider" min="1" max="100" value="50" style="width:100%; accent-color:#7b2cbf;">
+                        <input type="range" id="active-agents-slider" min="1" max="100" value="50">
                     </div>
 
                     <div style="text-align:center; margin-bottom: 20px; padding:15px; background:rgba(0,0,0,0.3); border-radius:12px;">
@@ -11991,7 +12004,6 @@ async function renderNamjoonBrain() {
             const streamsPerAgentTotal = remainingGap / activeAgents;
             const streamsPerDay = Math.ceil(streamsPerAgentTotal / Math.max(1, daysRemaining));
             resultDisplay.textContent = fmt(streamsPerDay);
-            // Save to global scope for the generator
             window.currentNamjoonTarget = streamsPerDay;
         }
 
@@ -12002,60 +12014,6 @@ async function renderNamjoonBrain() {
     } catch (e) {
         container.innerHTML = `<p class="error-text">Error: ${e.message}</p>`;
     }
-}
-
-// 3. Helper Functions
-function generateToDoList() {
-    const target = window.currentNamjoonTarget || 20;
-    const container = document.getElementById('namjoon-todo-container');
-    const list = document.getElementById('namjoon-checklist');
-    
-    container.style.display = 'block';
-    
-    const chunkSize = 10;
-    const chunks = Math.ceil(target / chunkSize);
-    let html = '';
-    
-    for(let i=0; i<chunks; i++) {
-        const amount = (i === chunks-1 && target % chunkSize !== 0) ? target % chunkSize : chunkSize;
-        const id = `nj-todo-${i}`;
-        html += `
-            <div class="todo-item" id="${id}" onclick="toggleNamjoonTodo('${id}')">
-                <div class="checkbox">✓</div>
-                <div class="text" style="flex:1; color:#fff;">Stream ${amount} Tracks</div>
-                <div style="font-size:10px; color:#666;">Set ${i+1}</div>
-            </div>
-        `;
-    }
-    list.innerHTML = html;
-    container.scrollIntoView({ behavior: 'smooth' });
-}
-
-function toggleNamjoonTodo(id) {
-    const el = document.getElementById(id);
-    if(el) {
-        el.classList.toggle('checked');
-        if(el.classList.contains('checked') && navigator.vibrate) navigator.vibrate(50);
-        saveNamjoonList();
-    }
-}
-
-function saveNamjoonList() {
-    const list = document.getElementById('namjoon-checklist');
-    if(list) localStorage.setItem('namjoon_list_' + STATE.agentNo, list.innerHTML);
-}
-
-function loadNamjoonList() {
-    const saved = localStorage.getItem('namjoon_list_' + STATE.agentNo);
-    if(saved) {
-        document.getElementById('namjoon-checklist').innerHTML = saved;
-        document.getElementById('namjoon-todo-container').style.display = 'block';
-    }
-}
-
-function clearNamjoonList() {
-    document.getElementById('namjoon-todo-container').style.display = 'none';
-    localStorage.removeItem('namjoon_list_' + STATE.agentNo);
 }
 
 // ==================== EXPORTS & INIT ====================
