@@ -11133,7 +11133,7 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
         "Teamwork makes the dream work."
     ];
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-    const rmImage = "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/c2bf66b6488fbaca00d279431366cb47826b0b86/team%20pfps/namjoon.jpg";
+    const rmImage = "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/6c9cf38a7be372187ebd244d19a5e0357d4983c8/team%20pfps/baed0eb48e6ac22807df156ce76d8b4f.jpg";
 
     return `
         <div class="namjoon-card">
@@ -11237,7 +11237,7 @@ function showNewFeatureAlert() {
         backdrop-filter: blur(5px); animation: fadeIn 0.3s ease;
     `;
 
-    const rmImage = "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/c2bf66b6488fbaca00d279431366cb47826b0b86/team%20pfps/namjoon.jpg";
+    const rmImage = "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/6c9cf38a7be372187ebd244d19a5e0357d4983c8/team%20pfps/baed0eb48e6ac22807df156ce76d8b4f.jpg";
 
     modal.innerHTML = `
         <div style="
