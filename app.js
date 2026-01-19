@@ -11865,6 +11865,43 @@ function renderBadgeHTML(badge) {
         </div>
     `;
 }
+window.generateToDoList = function () {
+    const todoContainer = document.getElementById('namjoon-todo-container');
+    const checklist = document.getElementById('namjoon-checklist');
+
+    if (!todoContainer || !checklist) {
+        console.warn('Namjoon todo elements not found');
+        return;
+    }
+
+    todoContainer.style.display =
+    todoContainer.style.display === 'none' ? 'block' : 'none';
+
+
+    const target = window.currentNamjoonTarget || 0;
+
+    checklist.innerHTML = `
+        <div class="todo-item">
+            <div class="checkbox"></div>
+            <div class="text">Stream ${target} times today</div>
+        </div>
+        <div class="todo-item">
+            <div class="checkbox"></div>
+            <div class="text">Coordinate with team</div>
+        </div>
+        <div class="todo-item">
+            <div class="checkbox"></div>
+            <div class="text">Report completion</div>
+        </div>
+    `;
+
+    checklist.querySelectorAll('.todo-item').forEach(item => {
+        item.addEventListener('click', () => {
+            item.classList.toggle('checked');
+        });
+    });
+};
+
 async function renderNamjoonBrain() {
     // 1. Define IDs
     const pageId = 'page-namjoon'; 
