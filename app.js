@@ -11183,6 +11183,41 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
         </div>
     `;
 }
+// Updated Task Renderer Helper
+function renderNamjoonTask(id, text, isChecked, forceChecked = false) {
+    const checkedClass = (isChecked || forceChecked) ? 'checked' : '';
+    const checkMark = (isChecked || forceChecked) ? '✓' : '';
+    
+    // If forced (like 2X passed from API), make it non-clickable but look done
+    const clickAction = forceChecked ? '' : `onclick="toggleNamjoonTask('${id}')"`;
+
+    return `
+        <div class="namjoon-task ${checkedClass}" ${clickAction}>
+            <div class="namjoon-checkbox">${checkMark}</div>
+            <div class="task-text" style="font-size:13px; color:${isChecked ? '#888' : '#fff'}; flex:1;">
+                ${text}
+            </div>
+        </div>
+    `;
+}
+
+// Updated Toggle Function
+function toggleNamjoonTask(taskId) {
+    const todoId = `namjoon_todo_${new Date().toDateString()}`;
+    const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
+    
+    // Toggle state
+    savedState[taskId] = !savedState[taskId];
+    
+    // Save
+    localStorage.setItem(todoId, JSON.stringify(savedState));
+    
+    // Haptic feedback
+    if (navigator.vibrate) navigator.vibrate(10);
+    
+    // Re-render
+    renderNamjoonBrain(); 
+}
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
