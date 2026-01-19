@@ -11493,9 +11493,6 @@ function showProtocolInfo() {
     document.getElementById('close-info-btn').onclick = () => overlay.remove();
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
-
-// Export for onclick
-window.showProtocolInfo = showProtocolInfo;
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
@@ -11550,6 +11547,7 @@ window.shareStats = shareStats;
 window.copyShareText = copyShareText;
 window.clearSOTDLocalStorage = clearSOTDLocalStorage;
 window.resetMissionNotifications = resetMissionNotifications;
+window.showProtocolInfo = showProtocolInfo;
 
 // Guide page functions
 window.renderGuidePage = renderGuidePage;
