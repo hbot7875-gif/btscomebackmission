@@ -8901,10 +8901,115 @@ function resetSOTDProgress() {
 
 // ==================== STREAMING TIPS PAGE ====================
 async function renderStreamingTips() {
-    // Page already has static content in HTML, nothing to render dynamically
+    const page = document.getElementById('page-streaming-tips');
+    if (!page) return;
+
+    // 1. Clear existing content to avoid duplicates
+    page.innerHTML = '';
+
+    // 2. Build the HTML structure
+    page.innerHTML = `
+        <div class="page-header">
+            <h1>📚 Streaming Protocols</h1>
+            <p class="page-subtitle">Official Spotify Guidelines</p>
+        </div>
+        
+        <div id="tips-container" style="display: flex; flex-direction: column; gap: 15px;">
+            
+            <!-- Tip 1: Album Streaming -->
+            <div class="card" style="border-left: 4px solid #9d4edd;">
+                <div class="card-body" style="padding: 20px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                        <span style="font-size:24px;">💿</span>
+                        <h3 style="margin:0; color:#fff; font-size:16px;">Album Streaming</h3>
+                    </div>
+                    <p style="color:#ccc; font-size:13px; line-height:1.6; margin-bottom:10px;">
+                        Top-to-bottom album streaming reflects <strong>genuine listening behavior</strong> and is strongly recommended.
+                    </p>
+                    <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
+                        <span style="color:#a0a0b8; font-size:12px;">💡 If repeating an album, play other songs or playlists in between.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tip 2: Artist Looping (Warning) -->
+            <div class="card" style="border-left: 4px solid #ff4444; background: linear-gradient(135deg, rgba(255,68,68,0.05), rgba(18,18,31,1));">
+                <div class="card-body" style="padding: 20px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                        <span style="font-size:24px;">⚠️</span>
+                        <h3 style="margin:0; color:#ff6b6b; font-size:16px;">Artist Looping Warning</h3>
+                    </div>
+                    <p style="color:#ccc; font-size:13px; line-height:1.6; margin-bottom:10px;">
+                        Playing the same artist continuously can <strong>reduce recommendations</strong> and lead to stream deletions.
+                    </p>
+                    <p style="color:#fff; font-size:13px; font-weight:600;">
+                        Balanced listening protects BTS' long-term performance.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Tip 3: Reusing Playlists -->
+            <div class="card" style="border-left: 4px solid #00d4ff;">
+                <div class="card-body" style="padding: 20px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                        <span style="font-size:24px;">🔄</span>
+                        <h3 style="margin:0; color:#00d4ff; font-size:16px;">Reusing Playlists?</h3>
+                    </div>
+                    <p style="color:#ccc; font-size:13px; line-height:1.6;">
+                        You <strong>can reuse playlists</strong> on different days or even the same day.
+                    </p>
+                    <p style="color:#a0a0b8; font-size:12px; margin-top:8px;">
+                        Just avoid constant repetition and switch between albums and other playlists frequently.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Tip 4: Night Streaming -->
+            <div class="card" style="border-left: 4px solid #7b2cbf;">
+                <div class="card-body" style="padding: 20px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                        <span style="font-size:24px;">🌙</span>
+                        <h3 style="margin:0; color:#e0aaff; font-size:16px;">Night Streaming Strategy</h3>
+                    </div>
+                    <p style="color:#ccc; font-size:13px; line-height:1.6; margin-bottom:10px;">
+                        Long playlists are fine at night. If you can't interact for 2-3 hours, <strong>queue 2-3 shorter playlists</strong> instead.
+                    </p>
+                    <div style="background:rgba(123,44,191,0.2); padding:8px 12px; border-radius:20px; display:inline-block;">
+                        <span style="color:#fff; font-size:11px; font-weight:bold;">🚫 Turn Autoplay OFF</span>
+                    </div>
+                    <span style="color:#888; font-size:11px; margin-left:8px;">to avoid random playback.</span>
+                </div>
+            </div>
+
+            <!-- Tip 5: Volume -->
+            <div class="card" style="border-left: 4px solid #00ff88;">
+                <div class="card-body" style="padding: 20px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                        <span style="font-size:24px;">🔊</span>
+                        <h3 style="margin:0; color:#00ff88; font-size:16px;">Spotify Volume Matters</h3>
+                    </div>
+                    <p style="color:#ccc; font-size:13px; line-height:1.6; margin-bottom:10px;">
+                        Streams should be played at an audible volume. It is recommended to keep Spotify volume at <strong>50% or higher</strong>.
+                    </p>
+                    <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:10px; margin-top:10px;">
+                        <span style="color:#ff6b6b; font-size:11px;">
+                            ❌ Muted playback or extremely low volume may be treated as low-quality streams and filtered.
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        
+        <div style="text-align:center; margin-top:30px; margin-bottom:20px;">
+            <button onclick="loadPage('home')" class="btn-primary" style="width:100%;">
+                ✅ I Understand
+            </button>
+        </div>
+    `;
+
     console.log('📚 Streaming Tips page loaded');
 }
-
 // ==================== SUBMIT SONG ANSWER (2 CHANCES - FIXED) ====================
 async function submitSongAnswer() {
     const input = $('youtube-answer');
@@ -11306,6 +11411,88 @@ function showNewFeatureAlert() {
         modal.remove();
     };
 }
+// ==================== 148 PROTOCOL INFO MODAL ====================
+function showProtocolInfo() {
+    // Create Modal Elements
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 999999;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(5px); animation: fadeIn 0.3s ease;
+    `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+        border: 1px solid #7b2cbf; border-radius: 16px;
+        padding: 0; max-width: 350px; width: 90%;
+        box-shadow: 0 0 30px rgba(123, 44, 191, 0.3);
+        overflow: hidden;
+    `;
+
+    modal.innerHTML = `
+        <div style="background: rgba(123,44,191,0.15); padding: 15px; border-bottom: 1px solid rgba(123,44,191,0.3); display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-weight: bold; color: #fff; font-family: 'Orbitron', monospace;">🧠 NAMJOON'S LOGIC</div>
+            <button id="close-info-btn" style="background: none; border: none; color: #888; font-size: 20px; cursor: pointer;">×</button>
+        </div>
+        
+        <div style="padding: 20px;">
+            
+            <!-- NEW: EXAMPLE BREAKDOWN -->
+            <div style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; margin-bottom: 20px;">
+                <h4 style="color: #ffd700; font-size: 11px; margin: 0 0 8px 0; text-transform: uppercase;">📖 How to Read:</h4>
+                
+                <div style="font-size: 13px; color: #fff; font-weight: bold; margin-bottom: 8px;">
+                    🎵 DNA <span style="color: #00ff88;">x163</span> — <span style="color: #ffd700;">28/day</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px;">
+                    <div>
+                        <span style="color: #00ff88; font-weight: bold;">x163 (Total)</span><br>
+                        <span style="color: #aaa;">Your total fair share to clear the team gap.</span>
+                    </div>
+                    <div>
+                        <span style="color: #ffd700; font-weight: bold;">28/day (Pace)</span><br>
+                        <span style="color: #aaa;">How many you should do <strong>today</strong> to finish on time.</span>
+                    </div>
+                </div>
+            </div>
+
+            <p style="color: #aaa; font-size: 13px; line-height: 1.6; margin-bottom: 15px;">
+                Namjoon calculates these numbers based on how many <strong>active agents</strong> are helping and how many <strong>days</strong> are left.
+            </p>
+
+            <ul style="padding-left: 20px; margin: 0; color: #ccc; font-size: 12px; line-height: 1.6;">
+                <li style="margin-bottom: 10px;">
+                    <strong>It's Dynamic:</strong> If the team streams hard today, your numbers for tomorrow will go <strong>DOWN</strong>! 📉
+                </li>
+                <li style="margin-bottom: 8px;">
+                    <strong>Your Checklist:</strong> This is a personal planner. <strong>Tick the box yourself</strong> when you finish your daily goal! ✅
+                </li>
+            </ul>
+
+            <button onclick="this.closest('.modal-overlay').remove()" style="
+                width: 100%; margin-top: 20px; padding: 12px;
+                background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer;
+            ">
+                Got it!
+            </button>
+        </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Close logic
+    document.getElementById('close-info-btn').onclick = () => overlay.remove();
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+}
+
+// Export for onclick
+window.showProtocolInfo = showProtocolInfo;
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
