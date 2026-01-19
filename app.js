@@ -624,6 +624,7 @@ function renderGuide(pageName) {
 }
 
 // ==================== API ====================
+// ==================== API ====================
 async function api(action, params = {}) {
     const url = new URL(CONFIG.API_URL);
     url.searchParams.set('action', action);
@@ -633,23 +634,16 @@ async function api(action, params = {}) {
         if (v != null) url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v); 
     });
 
-    // 2. 🔥 CACHE BUSTER: This forces a fresh fetch every time
-    url.searchParams.set('_t', new Date().getTime()); 
+    // 2. CACHE BUSTER: Keeps data fresh without breaking CORS
+    url.searchParams.set('_t', Date.now()); 
 
     console.log('📡 API:', action, params);
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 30000);
         
-        // 3. 🔥 Add cache: 'no-store' to headers
-        const res = await fetch(url, { 
-            signal: controller.signal,
-            cache: "no-store", 
-            headers: {
-                'Pragma': 'no-cache',
-                'Cache-Control': 'no-cache'
-            }
-        });
+        // 3. FIXED: Removed 'headers' to stop CORS Preflight error
+        const res = await fetch(url, { signal: controller.signal });
         
         clearTimeout(timeout);
         const text = await res.text();
