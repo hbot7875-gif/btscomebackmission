@@ -11247,7 +11247,7 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
                 <div style="flex: 1;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                         <div style="font-weight:bold; color:#fff; font-size:14px;">🧠 The 148 Protocol</div>
-                        <button onclick="showProtocolInfo()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;">?</button>
+                        <<button type="button" onclick="window.showProtocolInfo()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;">?</button>
                     </div>
                     <div class="namjoon-bubble">${randomQuote}</div>
                 </div>
