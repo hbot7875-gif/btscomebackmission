@@ -11006,37 +11006,73 @@ async function renderNamjoonBrain() {
     }
 }
 
-// 3. LOGIC HELPER (Calculates the stats)
+// 3. LOGIC HELPER (Calculates Specific Targets per Track/Album)
 function renderNamjoonsBrain(teamName, trackGoals, albumGoals) {
     const totalMembers = getTeamMemberCount(teamName) || 1;
+    // Estimate 60% of members are active contributors
     const activeMembersEstimate = Math.ceil(totalMembers * 0.6) || 1;
 
-    let remainingTracks = 0;
-    let remainingAlbums = 0;
+    const specificTasks = [];
+    let totalStreamsNeeded = 0;
 
-    Object.values(trackGoals).forEach(g => {
-        const current = g.teams?.[teamName]?.current || 0;
-        const goal = g.goal || 0;
-        if (current < goal) remainingTracks += (goal - current);
+    // --- 1. Analyze Tracks Individually ---
+    Object.entries(trackGoals).forEach(([trackName, info]) => {
+        const current = info.teams?.[teamName]?.current || 0;
+        const goal = info.goal || 0;
+        
+        if (current < goal) {
+            const gap = goal - current;
+            // Calculate fair share per active member + 1 safety buffer
+            const myShare = Math.ceil(gap / activeMembersEstimate) + 1;
+            
+            specificTasks.push({
+                id: 'track_' + trackName.replace(/[^a-zA-Z0-9]/g, ''),
+                type: '🎵',
+                name: trackName,
+                count: myShare,
+                gap: gap // Store total gap to sort by urgency
+            });
+            totalStreamsNeeded += myShare;
+        }
     });
 
-    Object.values(albumGoals).forEach(g => {
-        const current = g.teams?.[teamName]?.current || 0;
-        const goal = g.goal || 0;
-        if (current < goal) remainingAlbums += (goal - current);
+    // --- 2. Analyze Albums Individually ---
+    Object.entries(albumGoals).forEach(([albumName, info]) => {
+        const current = info.teams?.[teamName]?.current || 0;
+        const goal = info.goal || 0;
+        
+        if (current < goal) {
+            const gap = goal - current;
+            const myShare = Math.ceil(gap / activeMembersEstimate) + 1;
+            
+            specificTasks.push({
+                id: 'album_' + albumName.replace(/[^a-zA-Z0-9]/g, ''),
+                type: '💿',
+                name: albumName,
+                count: myShare,
+                gap: gap
+            });
+            totalStreamsNeeded += myShare;
+        }
     });
 
-    const myTrackShare = remainingTracks > 0 ? Math.ceil(remainingTracks / activeMembersEstimate) + 1 : 0;
-    const myAlbumShare = remainingAlbums > 0 ? Math.ceil(remainingAlbums / activeMembersEstimate) + 1 : 0;
+    // --- 3. Sort by "Biggest Gap" (Most Urgent First) ---
+    specificTasks.sort((a, b) => b.gap - a.gap);
 
-    const todoId = `namjoon_todo_${new Date().toDateString()}`;
+    // --- 4. Prepare UI ---
+    const todoId = `namjoon_todo_${new Date().toDateString()}`; // Unique storage key per day
     const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
     
+    // Always add the 2X challenge as a fixed task
+    const album2xPassed = STATE.data?.album2xStatus?.passed || false;
+    const tasksHTML = specificTasks.map(task => 
+        renderNamjoonTask(task.id, `${task.type} Stream <strong>${task.name}</strong> x${task.count}`, savedState[task.id])
+    ).join('');
+
     const quotes = [
-        "Teamwork makes the dream work.",
-        "We can do this if we stick together.",
-        "Efficiency is key. Here is your strategy.",
-        "I've calculated the optimal path to victory."
+        "Focus on the targets below. We are close.",
+        "I've analyzed the gaps. Here is your personalized plan.",
+        "Teamwork makes the dream work. Let's close these gaps."
     ];
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
     const rmImage = "https://i.pinimg.com/736x/8d/83/96/8d839686007e59005934570329063529.jpg";
@@ -11046,64 +11082,94 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals) {
             <div class="namjoon-header">
                 <img src="${rmImage}" class="namjoon-avatar" alt="RM">
                 <div>
-                    <div style="font-weight:bold; color:#fff; font-size:14px;">🧠 Namjoon's Brain</div>
+                    <div style="font-weight:bold; color:#fff; font-size:14px;">🧠 Namjoon's Strategy</div>
                     <div class="namjoon-bubble">${randomQuote}</div>
                 </div>
             </div>
 
+            <!-- Summary Stats -->
             <div class="namjoon-stat-grid">
                 <div class="namjoon-stat-box">
                     <div class="namjoon-stat-val" style="color:#7b2cbf;">${activeMembersEstimate}</div>
                     <div class="namjoon-stat-lbl">Active Agents</div>
                 </div>
                 <div class="namjoon-stat-box">
-                    <div class="namjoon-stat-val" style="color:${myTrackShare > 0 ? '#ff6b6b' : '#00ff88'};">
-                        ${myTrackShare > 0 ? myTrackShare : 'DONE'}
+                    <div class="namjoon-stat-val" style="color:${specificTasks.length > 0 ? '#ff6b6b' : '#00ff88'};">
+                        ${specificTasks.length}
                     </div>
-                    <div class="namjoon-stat-lbl">Your Track Goal</div>
+                    <div class="namjoon-stat-lbl">Targets Left</div>
                 </div>
                 <div class="namjoon-stat-box">
-                    <div class="namjoon-stat-val" style="color:${myAlbumShare > 0 ? '#ff6b6b' : '#00ff88'};">
-                        ${myAlbumShare > 0 ? myAlbumShare : 'DONE'}
+                    <div class="namjoon-stat-val" style="color:#ffd700;">
+                        ${totalStreamsNeeded}
                     </div>
-                    <div class="namjoon-stat-lbl">Your Album Goal</div>
+                    <div class="namjoon-stat-lbl">Est. Streams</div>
                 </div>
             </div>
 
-            <div style="font-size:11px; color:#888; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">
-                📋 Your Daily Strategy List
+            <div style="font-size:11px; color:#888; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px; display:flex; justify-content:space-between;">
+                <span>📋 Priority Target List</span>
+                <span>${new Date().toLocaleDateString()}</span>
             </div>
 
             <div class="namjoon-todo-list">
-                ${renderNamjoonTask('task_track', `Stream ${myTrackShare} goal tracks`, savedState['task_track'], myTrackShare === 0)}
-                ${renderNamjoonTask('task_album', `Stream ${myAlbumShare} goal albums`, savedState['task_album'], myAlbumShare === 0)}
-                ${renderNamjoonTask('task_2x', `Complete Album 2X Check`, savedState['task_2x'])}
-                ${renderNamjoonTask('task_proof', `Post Proof in Team GC`, savedState['task_proof'])}
+                ${specificTasks.length === 0 ? 
+                    `<div style="text-align:center; padding:20px; color:#00ff88; background:rgba(0,255,136,0.1); border-radius:10px;">
+                        🎉 All Track & Album Goals Met!<br>
+                        <span style="font-size:11px; color:#ccc;">Focus on Album 2X or general streaming now.</span>
+                    </div>` 
+                    : tasksHTML
+                }
+                
+                <!-- Always show 2X status -->
+                ${renderNamjoonTask('task_2x_check', `✨ Complete Album 2X Challenge`, savedState['task_2x_check'] || album2xPassed, album2xPassed)}
+                
+                <!-- Always show Proof task -->
+                ${renderNamjoonTask('task_proof_daily', `📸 Post Proof in Team GC`, savedState['task_proof_daily'])}
+            </div>
+            
+            <div style="margin-top:15px; font-size:10px; color:#666; text-align:center; line-height:1.4;">
+                *Targets calculated based on remaining gap divided by estimated active members.
             </div>
         </div>
     `;
 }
 
-function renderNamjoonTask(id, text, isChecked, isDone = false) {
-    if (isDone) return ''; 
+// Updated Task Renderer
+function renderNamjoonTask(id, text, isChecked, forceChecked = false) {
+    const checkedClass = (isChecked || forceChecked) ? 'checked' : '';
+    const checkMark = (isChecked || forceChecked) ? '✓' : '';
+    
+    // If forced (like 2X passed from API), make it non-clickable but look done
+    const clickAction = forceChecked ? '' : `onclick="toggleNamjoonTask('${id}')"`;
+
     return `
-        <div class="namjoon-task ${isChecked ? 'checked' : ''}" onclick="toggleNamjoonTask('${id}')">
-            <div class="namjoon-checkbox">${isChecked ? '✓' : ''}</div>
-            <div class="task-text" style="font-size:13px; color:${isChecked ? '#888' : '#fff'};">${text}</div>
+        <div class="namjoon-task ${checkedClass}" ${clickAction}>
+            <div class="namjoon-checkbox">${checkMark}</div>
+            <div class="task-text" style="font-size:13px; color:${isChecked ? '#888' : '#fff'}; flex:1;">
+                ${text}
+            </div>
         </div>
     `;
 }
 
+// Updated Toggle Function
 function toggleNamjoonTask(taskId) {
     const todoId = `namjoon_todo_${new Date().toDateString()}`;
     const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
+    
+    // Toggle state
     savedState[taskId] = !savedState[taskId];
+    
+    // Save
     localStorage.setItem(todoId, JSON.stringify(savedState));
+    
+    // Haptic feedback
     if (navigator.vibrate) navigator.vibrate(10);
+    
+    // Re-render
     renderNamjoonBrain(); 
 }
-
-
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
