@@ -5173,46 +5173,6 @@ function setupDashboard() {
     
     updateTime();
 }
-// ==================== ROLE-BASED NAVIGATION ====================
-
-async function setupRoleBasedNavigation() {
-  try {
-    console.log('🔧 Setting up role-based navigation...');
-    
-    // Check if user has attendance role
-    const hasAttendance = await checkMyRole('attendance');
-    const navAttendance = document.getElementById('nav-attendance-checker');
-    
-    if (navAttendance) {
-      navAttendance.style.display = hasAttendance ? 'flex' : 'none';
-      if (hasAttendance) console.log('✅ Attendance Checker link shown');
-    }
-    
-    // Check if user has police role
-    const hasPolice = await checkMyRole('police');
-    const navPolice = document.getElementById('nav-police-panel');
-    
-    if (navPolice) {
-      navPolice.style.display = hasPolice ? 'flex' : 'none';
-      if (hasPolice) console.log('✅ Police Panel link shown');
-    }
-    
-    // ✅ Show/hide entire HELPER ARMY section
-    const helperSection = document.getElementById('nav-section-helper');
-    if (helperSection) {
-      // Show section if user has ANY helper role
-      const hasAnyRole = hasAttendance || hasPolice;
-      helperSection.style.display = hasAnyRole ? 'block' : 'none';
-      
-      if (hasAnyRole) {
-        console.log('✅ Helper Army section shown');
-      }
-    }
-    
-  } catch (e) {
-    console.error('Error setting up role navigation:', e);
-  }
-}
 async function logout() {
     if (confirm('Logout?')) {
         // Instant offline
@@ -10736,32 +10696,30 @@ async function renderGuidePage() {
                 </div>
             </div>
             
-            <!-- Quick Links -->
             <div class="guide-quick-links">
-                <div class="guide-quick-link" onclick="handleGuideQuickLink('home')">
-                    <span class="guide-quick-link-icon">🏠</span>
-                    <span class="guide-quick-link-text">Dashboard</span>
-                </div>
-                <div class="guide-quick-link" onclick="handleGuideQuickLink('goals')">
-                    <span class="guide-quick-link-icon">🎯</span>
-                    <span class="guide-quick-link-text">Goals</span>
-                </div>
-                <div class="guide-quick-link" onclick="handleGuideQuickLink('playlists')">
-                    <span class="guide-quick-link-icon">🎵</span>
-                    <span class="guide-quick-link-text">Playlists</span>
-                </div>
-                <div class="guide-quick-link" onclick="handleGuideQuickLink('gc-links')">
-                    <span class="guide-quick-link-icon">👥</span>
-                    <span class="guide-quick-link-text">GC Links</span>
-                </div>
-                <div class="guide-quick-links">
-                <div class="guide-quick-link" onclick="handleGuideQuickLink('home')">
-                    <span class="guide-quick-link-icon">🔥</span>
-                    <span class="guide-quick-link-text">Check Streak</span>
-                </div>
+            <div class="guide-quick-link" onclick="handleGuideQuickLink('home')">
+                <span class="guide-quick-link-icon">🏠</span>
+                <span class="guide-quick-link-text">Dashboard</span>
+            </div>
+            <div class="guide-quick-link" onclick="handleGuideQuickLink('goals')">
+                <span class="guide-quick-link-icon">🎯</span>
+                <span class="guide-quick-link-text">Goals</span>
+            </div>
+            <div class="guide-quick-link" onclick="handleGuideQuickLink('playlists')">
+                <span class="guide-quick-link-icon">🎵</span>
+                <span class="guide-quick-link-text">Playlists</span>
+            </div>
+            <div class="guide-quick-link" onclick="handleGuideQuickLink('gc-links')">
+                <span class="guide-quick-link-icon">👥</span>
+                <span class="guide-quick-link-text">GC Links</span>
+            </div>
+            <!-- Added correctly without nested div -->
+            <div class="guide-quick-link" onclick="handleGuideQuickLink('home')">
+                <span class="guide-quick-link-icon">🔥</span>
+                <span class="guide-quick-link-text">Check Streak</span>
             </div>
         </div>
-    `;
+`;
     
     // Initialize navigation
     initGuideNav();
@@ -11491,9 +11449,9 @@ window.renderGCLinks = renderGCLinks;
 window.renderHelperRoles = renderHelperRoles;
 window.shareStats = shareStats;
 window.copyShareText = copyShareText;
-window.clearSOTDLocalStorage = clearSOTDLocalStorage;
 window.resetMissionNotifications = resetMissionNotifications;
 window.showProtocolInfo = showProtocolInfo;
+
 
 // Guide page functions
 window.renderGuidePage = renderGuidePage;
