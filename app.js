@@ -8850,6 +8850,8 @@ async function submitSOTDAnswer() {
         }
     }
 }
+window.extractYouTubeId = extractYouTubeId;
+window.submitSOTDAnswer = submitSOTDAnswer;    
 
 // ==================== RESET SOTD (DEBUG) ====================
 function resetSOTDProgress() {
