@@ -1217,15 +1217,9 @@ async function checkNewPlaylists() {
 async function checkNewMissions() {
     try {
         const team = STATE.data?.profile?.team;
-        if (!team) {
-            console.log('⚠️ No team assigned, skipping mission check');
-            return null;
-        }
+        if (!team) return null;
         
-        if (!STATE.lastChecked?._initialized) {
-            console.log('⚠️ Notification state not initialized');
-            return null;
-        }
+        if (!STATE.lastChecked?._initialized) return null;
         
         const data = await api('getTeamSecretMissions', { 
             team: team, 
@@ -1240,18 +1234,8 @@ async function checkNewMissions() {
         const seenIds = STATE.lastChecked.seenMissionIds || [];
         const isFirstCheck = !STATE.lastChecked._missionBaselineSet;
         
-        console.log('🔍 Mission check:', {
-            active: activeMissions.length,
-            completed: completedMissions.length,
-            seenIds: seenIds.length,
-            isFirstCheck: isFirstCheck
-        });
-        
-        // ============================================================
-        // FIRST TIME: Set baseline and DON'T notify
-        // ============================================================
+        // 1. FIRST TIME LOAD: Set baseline, don't notify
         if (isFirstCheck) {
-            console.log('🔄 First mission check - setting baseline');
             STATE.lastChecked.missionCount = activeMissions.length;
             STATE.lastChecked.seenMissionIds = activeMissions.map(m => m.id).filter(Boolean);
             STATE.lastChecked.seenCompletedMissionIds = completedMissions.map(m => m.id).filter(Boolean);
@@ -1260,89 +1244,98 @@ async function checkNewMissions() {
             return null;
         }
         
-        // ============================================================
-        // CHECK FOR NEWLY COMPLETED MISSIONS (XP Award!)
-        // ============================================================
+        // 2. CHECK FOR RECENTLY COMPLETED/FAILED MISSIONS
         const seenCompletedIds = STATE.lastChecked.seenCompletedMissionIds || [];
         const newlyCompleted = completedMissions.filter(m => 
             m.id && !seenCompletedIds.includes(m.id)
         );
         
         if (newlyCompleted.length > 0) {
-            console.log('🎉 Mission completed! Team earned XP');
-            
             const mission = newlyCompleted[0];
-            const xpAwarded = mission.xpReward || 5;
             
-            // Update seen completed
+            // LOGIC: Did we pass or fail?
+            // If Admin clicked "Fail", progress is usually 0 or less than target.
+            // If Admin clicked "Approve", progress is usually set to target.
+            const currentProgress = mission.progress?.[team] || 0;
+            const target = mission.goalTarget || 1;
+            const isFailure = currentProgress < target; // If we didn't hit goal but it's closed
+            
+            // Update seen list
             STATE.lastChecked.seenCompletedMissionIds = completedMissions.map(m => m.id).filter(Boolean);
             saveNotificationState();
             
-            // Show celebration notification
-            return {
-                type: 'mission_complete',
-                icon: '🎉',
-                title: `+${xpAwarded} XP Earned!`,
-                message: `${team} completed: ${mission.title || 'Secret Mission'}`,
-                action: () => loadPage('secret-missions'),
-                actionText: 'View Missions',
-                priority: 'high',
-                week: STATE.week,
-                id: `complete_${mission.id}`
-            };
+            if (isFailure) {
+                // ❌ FAILURE NOTIFICATION
+                return {
+                    type: 'mission_fail', // New type
+                    icon: '💀',
+                    title: 'Mission Failed',
+                    message: `Team ${team} failed: ${mission.title || 'Secret Mission'}. 0 XP awarded.`,
+                    action: () => loadPage('secret-missions'),
+                    actionText: 'View Details',
+                    priority: 'high', // Force popup
+                    week: STATE.week,
+                    id: `fail_${mission.id}`
+                };
+            } else {
+                // ✅ SUCCESS NOTIFICATION
+                const xpAwarded = mission.xpReward || 5;
+                return {
+                    type: 'mission_complete',
+                    icon: '🎉',
+                    title: `+${xpAwarded} XP Earned!`,
+                    message: `${team} completed: ${mission.title || 'Secret Mission'}`,
+                    action: () => loadPage('secret-missions'),
+                    actionText: 'View Missions',
+                    priority: 'high', // Force popup
+                    week: STATE.week,
+                    id: `complete_${mission.id}`
+                };
+            }
         }
         
-        // ============================================================
-        // CHECK FOR NEW MISSIONS (Existing Logic)
-        // ============================================================
+        // 3. CHECK FOR NEWLY ACTIVE MISSIONS (Standard logic)
         const allCurrentIds = activeMissions.map(m => m.id).filter(Boolean);
         const newMissionIds = allCurrentIds.filter(id => !seenIds.includes(id));
         
-        if (newMissionIds.length === 0) {
-            STATE.lastChecked.missionCount = activeMissions.length;
-            return null;
-        }
-        
-        console.log('🔔 Found new mission IDs:', newMissionIds);
-        
-        // Check for assigned missions (higher priority)
-        const newAssignedToMe = myAssigned.filter(m => 
-            m.id && newMissionIds.includes(m.id)
-        );
-        
-        // Activate notification dot
-        const dot = document.getElementById('dot-mission');
-        if (dot) {
-            dot.classList.add('active');
-            console.log('🔴 Mission notification dot activated');
-        }
-        
-        if (newAssignedToMe.length > 0) {
-            const mission = newAssignedToMe[0];
+        if (newMissionIds.length > 0) {
+            // ... (Your existing new mission logic here) ...
+            // Just updating ids to keep it clean
+            const newAssignedToMe = myAssigned.filter(m => m.id && newMissionIds.includes(m.id));
+            
+            // Dot indicator
+            const dot = document.getElementById('dot-mission');
+            if (dot) dot.classList.add('active');
+
+            if (newAssignedToMe.length > 0) {
+                const mission = newAssignedToMe[0];
+                return {
+                    type: 'mission',
+                    icon: '🎯',
+                    title: 'Mission Assigned to YOU!',
+                    message: mission.title || 'New classified mission',
+                    action: () => loadPage('secret-missions'),
+                    actionText: 'View Mission',
+                    priority: 'high',
+                    week: STATE.week,
+                    id: mission.id
+                };
+            }
+            
+            const newMission = activeMissions.find(m => newMissionIds.includes(m.id));
             return {
                 type: 'mission',
-                icon: '🎯',
-                title: 'Mission Assigned to YOU!',
-                message: mission.title || mission.briefing || 'New classified mission',
+                icon: '🕵️',
+                title: 'New Team Mission!',
+                message: newMission?.title || 'Your team has a secret mission!',
                 action: () => loadPage('secret-missions'),
-                actionText: 'View Mission',
-                priority: 'high',
+                actionText: 'View Missions',
                 week: STATE.week,
-                id: mission.id
+                id: newMission?.id
             };
         }
         
-        const newMission = activeMissions.find(m => newMissionIds.includes(m.id));
-        return {
-            type: 'mission',
-            icon: '🕵️',
-            title: 'New Team Mission!',
-            message: newMission?.title || newMission?.briefing || 'Your team has a secret mission!',
-            action: () => loadPage('secret-missions'),
-            actionText: 'View Missions',
-            week: STATE.week,
-            id: newMission?.id
-        };
+        return null;
         
     } catch (e) {
         console.error('❌ Mission check error:', e);
