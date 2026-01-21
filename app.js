@@ -2743,77 +2743,102 @@ function renderAdminMissionCard(mission) {
         </div>
     `;
 }
-// Approve mission for a SINGLE team
-async function adminApproveMissionForTeam(missionId, teamName) {
-    // Show confirmation modal
+// ==================== UPDATE: ADMIN MODAL WITH FAIL OPTION ====================
+
+function adminApproveMissionForTeam(missionId, teamName) {
+    // Show confirmation modal with BOTH Approve and Fail options
     const modal = document.createElement('div');
     modal.className = 'admin-confirm-modal';
     modal.innerHTML = `
         <style>
             .admin-confirm-modal {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.9);
-                z-index: 9999999;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.9); z-index: 9999999;
+                display: flex; align-items: center; justify-content: center; padding: 20px;
             }
             .confirm-box {
                 background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
-                border: 1px solid rgba(0,255,136,0.3);
-                border-radius: 16px;
-                padding: 25px;
-                max-width: 400px;
-                width: 100%;
-                text-align: center;
+                border: 1px solid rgba(123,44,191,0.5);
+                border-radius: 16px; padding: 25px; width: 100%; max-width: 400px; text-align: center;
             }
         </style>
         
         <div class="confirm-box" onclick="event.stopPropagation()">
-            <div style="font-size:48px;margin-bottom:15px;">✅</div>
-            <h3 style="color:#fff;margin:0 0 10px;">Approve Mission?</h3>
+            <h3 style="color:#fff;margin:0 0 10px;">Manage Team Status</h3>
             <p style="color:#888;font-size:13px;margin-bottom:20px;">
-                Approve mission completion for <strong style="color:${teamColor(teamName)}">${teamName}</strong>?<br>
-                <span style="color:#00ff88;">This will award XP to the team.</span>
+                Action for <strong style="color:${teamColor(teamName)}">${teamName}</strong>
             </p>
             
-            <div style="display:flex;gap:10px;justify-content:center;">
-                <button onclick="this.closest('.admin-confirm-modal').remove()" style="
-                    padding: 12px 25px;
-                    background: rgba(255,255,255,0.1);
-                    border: 1px solid rgba(255,255,255,0.2);
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <!-- FAIL BUTTON -->
+                <button onclick="executeTeamFailure('${missionId}', '${teamName}'); this.closest('.admin-confirm-modal').remove();" style="
+                    padding: 15px;
+                    background: rgba(255, 68, 68, 0.1);
+                    border: 1px solid #ff4444;
                     border-radius: 8px;
-                    color: #888;
+                    color: #ff4444;
                     cursor: pointer;
-                    font-size: 13px;
-                ">Cancel</button>
+                    font-weight: bold;
+                ">
+                    ❌ FAIL TEAM
+                    <div style="font-size:9px;font-weight:normal;opacity:0.8;margin-top:4px;">No XP Awarded</div>
+                </button>
                 
+                <!-- APPROVE BUTTON -->
                 <button onclick="executeTeamApproval('${missionId}', '${teamName}'); this.closest('.admin-confirm-modal').remove();" style="
-                    padding: 12px 25px;
-                    background: linear-gradient(135deg, #00ff88, #00cc6a);
-                    border: none;
+                    padding: 15px;
+                    background: rgba(0, 255, 136, 0.1);
+                    border: 1px solid #00ff88;
                     border-radius: 8px;
-                    color: #000;
+                    color: #00ff88;
                     cursor: pointer;
-                    font-size: 13px;
-                    font-weight: 600;
-                ">✓ Approve</button>
+                    font-weight: bold;
+                ">
+                    ✅ APPROVE
+                    <div style="font-size:9px;font-weight:normal;opacity:0.8;margin-top:4px;">Award XP</div>
+                </button>
             </div>
+
+            <button onclick="this.closest('.admin-confirm-modal').remove()" style="
+                margin-top: 15px; background: none; border: none; color: #888; text-decoration: underline; cursor: pointer; font-size: 12px;
+            ">Cancel / Close</button>
         </div>
     `;
     
-    modal.onclick = (e) => {
-        if (e.target === modal) modal.remove();
-    };
-    
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     document.body.appendChild(modal);
 }
 window.adminApproveMissionForTeam = adminApproveMissionForTeam;
+// ==================== NEW: EXECUTE FAILURE ====================
+
+async function executeTeamFailure(missionId, teamName) {
+    if (!confirm(`⚠️ Confirm FAIL for ${teamName}?\n\nThis will mark the mission as 'Failed' for them and they will receive 0 XP.`)) return;
+
+    loading(true);
+    try {
+        // We call the API with a specific action for failing
+        const res = await api('failTeamMission', { 
+            missionId: missionId, 
+            team: teamName, 
+            agentNo: STATE.agentNo, 
+            sessionToken: STATE.adminSession 
+        });
+        
+        if (res.success) { 
+            showToast(`🚫 ${teamName} marked as FAILED.`, 'info'); 
+            loadActiveTeamMissions(); // Reload the list
+        } else { 
+            showToast('❌ ' + (res.error || 'Failed to update status'), 'error'); 
+        }
+    } catch (e) { 
+        showToast('❌ Error: ' + e.message, 'error'); 
+    } finally { 
+        loading(false); 
+    }
+}
+
+// Export to window so HTML onclick can see it
+window.executeTeamFailure = executeTeamFailure;
 // Execute the approval
 async function executeTeamApproval(missionId, teamName) {
     loading(true);
