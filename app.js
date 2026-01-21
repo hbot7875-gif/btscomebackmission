@@ -5173,38 +5173,88 @@ function setupDashboard() {
     
     updateTime();
 }
+// ==================== FIX FOR LOGOUT ====================
+
+// 1. Define the missing cleanup function
+function cleanupStreakAndActivity() {
+    // Clear any streak-related timers if they exist
+    if (window.streakInterval) {
+        clearInterval(window.streakInterval);
+        window.streakInterval = null;
+    }
+    // Stop activity feed updates if applicable
+    if (typeof ACTIVITY_STATE !== 'undefined' && ACTIVITY_STATE.autoRefreshInterval) {
+        clearInterval(ACTIVITY_STATE.autoRefreshInterval);
+        ACTIVITY_STATE.autoRefreshInterval = null;
+    }
+    console.log('🧹 Streak and activity timers cleaned up');
+}
+
+// 2. Updated Robust Logout Function
 async function logout() {
-    if (confirm('Logout?')) {
-        // Instant offline
-        try {
+    if (!confirm('Are you sure you want to logout?')) return;
+
+    console.log('👋 Logging out...');
+
+    // 1. Try to notify server (don't let failure stop logout)
+    try {
+        if (STATE.agentNo) {
             await api('removeOnlineUser', { agentNo: STATE.agentNo });
-        } catch (e) {}
-        
-        stopHeartbeat();
-        stopUnreadCheck();
-        
-        if (notificationInterval) {
-            clearInterval(notificationInterval);
-            notificationInterval = null;
         }
-        cleanupStreakAndActivity();
-        
-        STATE.agentNo = null;
-        STATE.data = null;
-        STATE.isAdmin = false;
+    } catch (e) {
+        console.warn('Offline logout:', e);
+    }
+    
+    // 2. Stop all background processes
+    if (typeof stopHeartbeat === 'function') stopHeartbeat();
+    if (typeof stopUnreadCheck === 'function') stopUnreadCheck();
+    
+    if (typeof notificationInterval !== 'undefined' && notificationInterval) {
+        clearInterval(notificationInterval);
+        notificationInterval = null;
+    }
+
+    // 3. Clean up UI specific timers
+    cleanupStreakAndActivity();
+    
+    // 4. Reset State
+    STATE.agentNo = null;
+    STATE.data = null;
+    STATE.isAdmin = false;
+    
+    if (typeof ROUTER !== 'undefined') {
         ROUTER.initialized = false;
         ROUTER.lastRoute = null;
-        
-        localStorage.removeItem('spyAgent');
-        localStorage.removeItem('adminSession');
-        localStorage.removeItem('adminExpiry');
-        
-        history.replaceState({ page: 'login', route: 'login' }, '', '#/login');
-        
-        location.reload();
     }
+    
+    // 5. Clear Storage
+    localStorage.removeItem('spyAgent');
+    localStorage.removeItem('adminSession');
+    localStorage.removeItem('adminExpiry');
+    
+    // 6. Force Navigation & Reload
+    try {
+        history.replaceState({ page: 'login', route: 'login' }, '', '#/login');
+    } catch (e) {
+        window.location.hash = '#/login';
+    }
+    
+    window.location.reload();
 }
+
+// 3. Re-bind to window and button
 window.logout = logout;
+window.cleanupStreakAndActivity = cleanupStreakAndActivity;
+
+// Ensure button listener is attached even if DOM loaded earlier
+const btn = document.getElementById('logout-btn');
+if (btn) {
+    btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        logout();
+    };
+}
 // ==================== START APP ====================
 document.addEventListener('DOMContentLoaded', initApp);
 // ==================== START APP ====================
