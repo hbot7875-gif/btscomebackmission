@@ -11395,6 +11395,8 @@ function showProtocolInfo() {
     document.getElementById('close-info-btn').onclick = () => overlay.remove();
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
+window.showProtocolInfo = showProtocolInfo;
+    
 function ensureFavicon() {
     let link = document.querySelector("link[rel~='icon']");
     if (!link) {
@@ -11405,6 +11407,7 @@ function ensureFavicon() {
     // Uses the logo already defined in your CONFIG
     link.href = CONFIG.COMEBACK.BTS_LOGO;
 }
+
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
