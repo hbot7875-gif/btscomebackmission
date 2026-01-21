@@ -1,4 +1,4 @@
-(function() {
+
 // ==================== MAIN CONFIG ====================
 const CONFIG = {
     API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
@@ -11469,4 +11469,4 @@ window.renderNamjoonBrain = renderNamjoonBrain;
 window.toggleNamjoonTask = toggleNamjoonTask; 
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded with Voting System 🗳️💜');
-})();
+
