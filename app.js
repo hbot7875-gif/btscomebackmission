@@ -2813,7 +2813,7 @@ async function adminApproveMissionForTeam(missionId, teamName) {
     
     document.body.appendChild(modal);
 }
-
+window.adminApproveMissionForTeam = adminApproveMissionForTeam;
 // Execute the approval
 async function executeTeamApproval(missionId, teamName) {
     loading(true);
@@ -2898,6 +2898,7 @@ async function adminApproveAllTeams(missionId) {
         loading(false); 
     }
 }
+window.adminApproveAllTeams = adminApproveAllTeams;
 
 // Refresh mission progress from data
 async function adminRefreshMissionProgress(missionId) {
@@ -2921,7 +2922,7 @@ async function adminRefreshMissionProgress(missionId) {
         loading(false); 
     }
 }
-
+window.adminRefreshMissionProgress = adminRefreshMissionProgress;
 // Keep old function for backward compatibility but improved
 async function adminCompleteMission(id) {
     // Show team selection modal instead of prompt
@@ -8465,6 +8466,7 @@ async function markMissionComplete(missionId) {
         showToast('Error: ' + e.message, 'error');
     }
 }
+window.markMissionComplete = markMissionComplete;
 // ==================== SONG OF THE DAY (SOTD) ====================
 async function renderSOTD() {
     console.log('🎬 renderSOTD called');
@@ -10812,6 +10814,7 @@ function scrollToGuideSection(sectionId) {
         window.scrollTo({ top: pos, behavior: 'smooth' });
     }, 150);
 }
+window.handleGuideQuickLink = handleGuideQuickLink;
 // ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
