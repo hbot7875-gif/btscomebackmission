@@ -1002,7 +1002,7 @@ async function checkNotifications() {
             checkNewAnnouncements(),
             checkNewPlaylists(),
             checkNewMissions(),
-            checkNewSongOfDay()
+            checkNewSongOfDay(),
             checkNewSOTDResults()
         ]);
         
@@ -1436,99 +1436,128 @@ async function checkNewSOTDResults() {
         return null;
     }
 }
-// ==================== SHOW SOTD RESULT MODAL ====================
 function showSOTDResultModal(result) {
-    // Remove existing
     document.querySelectorAll('.sotd-modal-overlay').forEach(el => el.remove());
 
     const overlay = document.createElement('div');
     overlay.className = 'sotd-modal-overlay';
     overlay.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.85); z-index: 1000000;
+        background: rgba(0,0,0,0.9); z-index: 1000000;
         display: flex; align-items: center; justify-content: center;
         backdrop-filter: blur(8px); animation: fadeIn 0.4s ease;
     `;
 
     const winnerColor = teamColor(result.winner);
-    
-    // Confetti if they belong to the winning team
-    if (STATE.data?.profile?.team === result.winner && typeof confetti === 'function') {
-        confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-    }
+
+    // Helper to get score from result object keys
+    const scores = [
+        { name: 'Team Indigo', score: result.teamIndigo || 0 },
+        { name: 'Team Echo', score: result.teamEcho || 0 },
+        { name: 'Team Agust D', score: result.teamAgustD || 0 },
+        { name: 'Team JITB', score: result.teamJITB || 0 }
+    ].sort((a, b) => b.score - a.score); // Sort highest first
 
     overlay.innerHTML = `
         <div style="
             background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
             border: 2px solid ${winnerColor};
             border-radius: 20px;
-            padding: 30px;
+            padding: 25px;
             width: 90%;
             max-width: 380px;
             text-align: center;
-            box-shadow: 0 0 40px ${winnerColor}44;
+            box-shadow: 0 0 50px ${winnerColor}33;
             position: relative;
             overflow: hidden;
+            max-height: 90vh;
+            overflow-y: auto;
         ">
-            <!-- Background Glow -->
-            <div style="
-                position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-                background: radial-gradient(circle, ${winnerColor}22 0%, transparent 60%);
-                pointer-events: none;
-            "></div>
-
-            <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">
+            <!-- Header -->
+            <div style="font-size: 10px; color: #888; letter-spacing: 2px; margin-bottom: 15px;">
                 DAILY RESULTS • ${new Date(result.date).toLocaleDateString()}
             </div>
 
-            <div style="font-size: 50px; margin-bottom: 10px;">👑</div>
-            
-            <h2 style="margin: 0; color: #fff; font-size: 24px;">${result.winner}</h2>
-            <p style="color: ${winnerColor}; margin: 5px 0 20px 0; font-weight: bold;">Daily Champion</p>
-
-            <div style="
-                display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-                margin-bottom: 20px;
-            ">
-                <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px;">
-                    <div style="font-size: 18px; font-weight: bold; color: #fff;">${result.totalCorrect}</div>
-                    <div style="font-size: 10px; color: #aaa;">Correct Answers</div>
-                </div>
-                <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px;">
-                    <div style="font-size: 18px; font-weight: bold; color: #fff;">${result.totalParticipants}</div>
-                    <div style="font-size: 10px; color: #aaa;">Participants</div>
-                </div>
+            <!-- Winner Section -->
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 40px; margin-bottom: 5px;">👑</div>
+                <h2 style="margin: 0; color: #fff; font-size: 22px;">${result.winner}</h2>
+                <p style="color: ${winnerColor}; margin: 5px 0 0 0; font-weight: bold; font-size: 12px;">Daily Champion</p>
             </div>
 
             <!-- Song Reveal -->
             <div style="
-                background: rgba(123, 44, 191, 0.15);
-                border: 1px solid rgba(123, 44, 191, 0.3);
+                background: rgba(255,255,255,0.05);
                 border-radius: 12px;
-                padding: 15px;
+                padding: 12px;
                 margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                text-align: left;
             ">
-                <div style="font-size: 10px; color: #c56cf0; margin-bottom: 5px;">THE SONG WAS</div>
-                <div style="color: #fff; font-weight: bold; font-size: 16px;">🎵 ${result.song}</div>
-                <div style="color: #ccc; font-size: 12px;">${result.artist}</div>
+                <div style="font-size: 24px;">🎵</div>
+                <div>
+                    <div style="color: #fff; font-weight: bold; font-size: 14px;">${result.song}</div>
+                    <div style="color: #aaa; font-size: 11px;">${result.artist}</div>
+                </div>
+            </div>
+
+            <!-- ALL TEAMS SCORES -->
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-align: left; text-transform: uppercase;">Team Scores (Correct Answers)</div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    ${scores.map((t, i) => `
+                        <div style="
+                            display: flex; justify-content: space-between; align-items: center;
+                            padding: 8px 12px;
+                            background: ${t.name === result.winner ? winnerColor + '22' : 'rgba(255,255,255,0.03)'};
+                            border-left: 3px solid ${teamColor(t.name)};
+                            border-radius: 6px;
+                        ">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 10px; color: #666; width: 15px;">#${i+1}</span>
+                                <span style="color: #fff; font-size: 12px; font-weight: ${t.name === result.winner ? 'bold' : 'normal'}">
+                                    ${t.name}
+                                </span>
+                            </div>
+                            <span style="color: #fff; font-weight: bold; font-size: 12px;">${t.score}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Global Stats -->
+            <div style="
+                display: flex; justify-content: space-between; 
+                padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
+                margin-bottom: 20px; font-size: 11px; color: #888;
+            ">
+                <span>Total Correct: <strong style="color:#00ff88">${result.totalCorrect}</strong></span>
+                <span>Total Players: <strong style="color:#fff">${result.totalParticipants}</strong></span>
             </div>
 
             <button onclick="this.closest('.sotd-modal-overlay').remove()" style="
                 background: linear-gradient(135deg, ${winnerColor}, #1a1a2e);
                 border: 1px solid ${winnerColor};
                 color: #fff;
-                padding: 12px 30px;
-                border-radius: 25px;
+                padding: 12px 0;
+                width: 100%;
+                border-radius: 12px;
                 font-weight: bold;
                 cursor: pointer;
-                transition: transform 0.2s;
+                font-size: 13px;
             ">Close</button>
         </div>
     `;
 
     document.body.appendChild(overlay);
-}
 
+    // Confetti if user won
+    if (STATE.data?.profile?.team === result.winner && typeof confetti === 'function') {
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    }
+}
 // SMART Week Results Check - Only notify for RECENT completed weeks
 function checkWeekResults() {
     if (!STATE.weeks || STATE.weeks.length === 0) return null;
