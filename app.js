@@ -1003,6 +1003,7 @@ async function checkNotifications() {
             checkNewPlaylists(),
             checkNewMissions(),
             checkNewSongOfDay()
+            checkNewSOTDResults()
         ]);
         
         const notifications = [];
@@ -1382,6 +1383,150 @@ async function checkNewSongOfDay() {
     } catch (e) {
         return null;
     }
+}
+// ==================== CHECK SOTD RESULTS (MIDNIGHT) ====================
+async function checkNewSOTDResults() {
+    try {
+        // 1. Check if we already saw today's result announcement
+        // We use the client's current date string as the key
+        const todayStr = new Date().toDateString();
+        const seenKey = 'sotd_result_seen_' + todayStr;
+        
+        if (localStorage.getItem(seenKey)) {
+            return null; // Already saw results today
+        }
+
+        // 2. Fetch the latest finalized result from backend
+        const data = await api('getLatestSOTDResult');
+        
+        if (!data.success || !data.result) return null;
+
+        const result = data.result;
+        const resultDate = new Date(result.date).toDateString();
+        
+        // 3. Logic: Only show if the result is fresh (from yesterday/today)
+        // We don't want to show results from 3 weeks ago if they log in late
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        // Allow showing if result is from Yesterday or Today (in case of timezone diffs)
+        const isRelevant = resultDate === todayStr || resultDate === yesterday.toDateString();
+
+        if (isRelevant) {
+            return {
+                type: 'sotd_result',
+                icon: '🏆',
+                title: 'SOTD Results Are In!',
+                message: `Winner: ${result.winner} (${result.totalCorrect} correct)`,
+                priority: 'high',
+                week: STATE.week,
+                id: `sotd_res_${resultDate}`,
+                action: () => {
+                    localStorage.setItem(seenKey, 'true'); // Mark as seen
+                    showSOTDResultModal(result); // Show full visual modal
+                },
+                actionText: 'See Winner'
+            };
+        }
+        
+        return null;
+
+    } catch (e) {
+        console.error('SOTD Result check failed', e);
+        return null;
+    }
+}
+// ==================== SHOW SOTD RESULT MODAL ====================
+function showSOTDResultModal(result) {
+    // Remove existing
+    document.querySelectorAll('.sotd-modal-overlay').forEach(el => el.remove());
+
+    const overlay = document.createElement('div');
+    overlay.className = 'sotd-modal-overlay';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 1000000;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(8px); animation: fadeIn 0.4s ease;
+    `;
+
+    const winnerColor = teamColor(result.winner);
+    
+    // Confetti if they belong to the winning team
+    if (STATE.data?.profile?.team === result.winner && typeof confetti === 'function') {
+        confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+    }
+
+    overlay.innerHTML = `
+        <div style="
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
+            border: 2px solid ${winnerColor};
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 380px;
+            text-align: center;
+            box-shadow: 0 0 40px ${winnerColor}44;
+            position: relative;
+            overflow: hidden;
+        ">
+            <!-- Background Glow -->
+            <div style="
+                position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+                background: radial-gradient(circle, ${winnerColor}22 0%, transparent 60%);
+                pointer-events: none;
+            "></div>
+
+            <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">
+                DAILY RESULTS • ${new Date(result.date).toLocaleDateString()}
+            </div>
+
+            <div style="font-size: 50px; margin-bottom: 10px;">👑</div>
+            
+            <h2 style="margin: 0; color: #fff; font-size: 24px;">${result.winner}</h2>
+            <p style="color: ${winnerColor}; margin: 5px 0 20px 0; font-weight: bold;">Daily Champion</p>
+
+            <div style="
+                display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+                margin-bottom: 20px;
+            ">
+                <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px;">
+                    <div style="font-size: 18px; font-weight: bold; color: #fff;">${result.totalCorrect}</div>
+                    <div style="font-size: 10px; color: #aaa;">Correct Answers</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px;">
+                    <div style="font-size: 18px; font-weight: bold; color: #fff;">${result.totalParticipants}</div>
+                    <div style="font-size: 10px; color: #aaa;">Participants</div>
+                </div>
+            </div>
+
+            <!-- Song Reveal -->
+            <div style="
+                background: rgba(123, 44, 191, 0.15);
+                border: 1px solid rgba(123, 44, 191, 0.3);
+                border-radius: 12px;
+                padding: 15px;
+                margin-bottom: 20px;
+            ">
+                <div style="font-size: 10px; color: #c56cf0; margin-bottom: 5px;">THE SONG WAS</div>
+                <div style="color: #fff; font-weight: bold; font-size: 16px;">🎵 ${result.song}</div>
+                <div style="color: #ccc; font-size: 12px;">${result.artist}</div>
+            </div>
+
+            <button onclick="this.closest('.sotd-modal-overlay').remove()" style="
+                background: linear-gradient(135deg, ${winnerColor}, #1a1a2e);
+                border: 1px solid ${winnerColor};
+                color: #fff;
+                padding: 12px 30px;
+                border-radius: 25px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: transform 0.2s;
+            ">Close</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
 }
 
 // SMART Week Results Check - Only notify for RECENT completed weeks
