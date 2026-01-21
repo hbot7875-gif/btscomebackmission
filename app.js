@@ -11298,13 +11298,12 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
     `;
 }
 // Updated Task Renderer Helper
-// Updated Task Renderer Helper
 function renderNamjoonTask(id, text, isChecked, forceChecked = false) {
     const checkedClass = (isChecked || forceChecked) ? 'checked' : '';
     const checkMark = (isChecked || forceChecked) ? '✓' : '';
     
-    // CHANGE: Added 'this' to the arguments so we can animate it instantly
-    const clickAction = forceChecked ? '' : `onclick="toggleNamjoonTask(this, '${id}')"`;
+    // CHANGE: We pass 'this' so we can manipulate the element immediately
+    const clickAction = forceChecked ? '' : `onclick="window.toggleNamjoonTask(this, '${id}')"`;
 
     return `
         <div class="namjoon-task ${checkedClass}" ${clickAction}>
@@ -11315,40 +11314,42 @@ function renderNamjoonTask(id, text, isChecked, forceChecked = false) {
         </div>
     `;
 }
-// Updated Toggle Function
-// Updated Toggle Function (Optimized)
-function toggleNamjoonTask(taskId) {
+// Updated Toggle Function (Instant Visual Update + Global Export)
+function toggleNamjoonTask(element, taskId) {
+    // 1. Safety check
+    if (!element) return;
+
+    // 2. Get current state
     const todoId = `namjoon_todo_${new Date().toDateString()}`;
     const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
     
-    // Toggle state
+    // 3. Toggle state
     const newState = !savedState[taskId];
     savedState[taskId] = newState;
     
-    // Save
+    // 4. Save
     localStorage.setItem(todoId, JSON.stringify(savedState));
     
-    // Haptic feedback
+    // 5. Vibrate (Mobile)
     if (navigator.vibrate) navigator.vibrate(10);
     
-    // UX FIX: Update visual state immediately without reloading API
-    // This assumes the function is triggered by an onclick event
-    if (window.event && window.event.currentTarget) {
-        const el = window.event.currentTarget;
-        const checkbox = el.querySelector('.namjoon-checkbox');
-        
-        if (newState) {
-            el.classList.add('checked');
-            if (checkbox) checkbox.textContent = '✓';
-        } else {
-            el.classList.remove('checked');
-            if (checkbox) checkbox.textContent = '';
-        }
+    // 6. INSTANT UI UPDATE (No Reload)
+    const checkbox = element.querySelector('.namjoon-checkbox');
+    const text = element.querySelector('.task-text');
+    
+    if (newState) {
+        element.classList.add('checked');
+        if (checkbox) checkbox.textContent = '✓';
+        if (text) text.style.color = '#888';
     } else {
-        // Fallback: Re-render if we can't find the element
-        renderNamjoonBrain(); 
+        element.classList.remove('checked');
+        if (checkbox) checkbox.textContent = '';
+        if (text) text.style.color = '#fff';
     }
 }
+
+// 🔥 CRITICAL FIX: Make it visible to the HTML "onclick"
+window.toggleNamjoonTask = toggleNamjoonTask;
 // ==================== 148 PROTOCOL INFO MODAL ====================
 function showProtocolInfo() {
     // Create Modal Elements
