@@ -1387,30 +1387,32 @@ async function checkNewSongOfDay() {
 // ==================== CHECK SOTD RESULTS (MIDNIGHT) ====================
 async function checkNewSOTDResults() {
     try {
-        // 1. Check if we already saw today's result announcement
-        // We use the client's current date string as the key
-        const todayStr = new Date().toDateString();
-        const seenKey = 'sotd_result_seen_' + todayStr;
-        
-        if (localStorage.getItem(seenKey)) {
-            return null; // Already saw results today
-        }
-
-        // 2. Fetch the latest finalized result from backend
+        // 1. Fetch the latest finalized result from backend
         const data = await api('getLatestSOTDResult');
         
         if (!data.success || !data.result) return null;
 
         const result = data.result;
-        const resultDate = new Date(result.date).toDateString();
+        const resultDate = new Date(result.date).toDateString(); // e.g., "Wed Jan 21 2026"
         
-        // 3. Logic: Only show if the result is fresh (from yesterday/today)
-        // We don't want to show results from 3 weeks ago if they log in late
+        // 2. CHECK: Use RESULT DATE for the key, NOT today's date
+        // This fixes the bug where viewing a late result blocks the next one
+        const seenKey = 'sotd_result_seen_' + resultDate;
+        
+        if (localStorage.getItem(seenKey)) {
+            return null; // We have already seen THIS SPECIFIC result
+        }
+
+        // 3. Logic: Is this result recent enough?
+        // We allow results from Today or Yesterday
+        const today = new Date();
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         
-        // Allow showing if result is from Yesterday or Today (in case of timezone diffs)
-        const isRelevant = resultDate === todayStr || resultDate === yesterday.toDateString();
+        const todayStr = today.toDateString();
+        const yesterdayStr = yesterday.toDateString();
+
+        const isRelevant = resultDate === todayStr || resultDate === yesterdayStr;
 
         if (isRelevant) {
             return {
@@ -1420,10 +1422,11 @@ async function checkNewSOTDResults() {
                 message: `Winner: ${result.winner} (${result.totalCorrect} correct)`,
                 priority: 'high',
                 week: STATE.week,
-                id: `sotd_res_${resultDate}`,
+                id: `sotd_res_${resultDate}`, // Unique ID
                 action: () => {
-                    localStorage.setItem(seenKey, 'true'); // Mark as seen
-                    showSOTDResultModal(result); // Show full visual modal
+                    // FIX: Save using the RESULT date
+                    localStorage.setItem(seenKey, 'true'); 
+                    showSOTDResultModal(result);
                 },
                 actionText: 'See Winner'
             };
