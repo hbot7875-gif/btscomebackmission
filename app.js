@@ -5024,6 +5024,7 @@ async function loadDashboard() {
         setTimeout(() => {
             if (typeof initStreakTracker === 'function') initStreakTracker();
             if (typeof initActivityFeed === 'function') initActivityFeed();
+            if (typeof setupNotificationChecks === 'function') setupNotificationChecks();
             
             loadAllWeeksData();
             checkNotifications();
