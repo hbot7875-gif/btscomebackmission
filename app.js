@@ -10815,6 +10815,10 @@ function scrollToGuideSection(sectionId) {
     }, 150);
 }
 window.handleGuideQuickLink = handleGuideQuickLink;
+// Guide page functions
+window.renderGuidePage = renderGuidePage;
+window.toggleGuideSection = toggleGuideSection;
+window.scrollToGuideSection = scrollToGuideSection;
 // ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
