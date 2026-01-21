@@ -11298,12 +11298,13 @@ function renderNamjoonsBrain(teamName, trackGoals, albumGoals, album2xData) {
     `;
 }
 // Updated Task Renderer Helper
+// Updated Task Renderer Helper
 function renderNamjoonTask(id, text, isChecked, forceChecked = false) {
     const checkedClass = (isChecked || forceChecked) ? 'checked' : '';
     const checkMark = (isChecked || forceChecked) ? '✓' : '';
     
-    // If forced (like 2X passed from API), make it non-clickable but look done
-    const clickAction = forceChecked ? '' : `onclick="toggleNamjoonTask('${id}')"`;
+    // CHANGE: Added 'this' to the arguments so we can animate it instantly
+    const clickAction = forceChecked ? '' : `onclick="toggleNamjoonTask(this, '${id}')"`;
 
     return `
         <div class="namjoon-task ${checkedClass}" ${clickAction}>
@@ -11314,7 +11315,6 @@ function renderNamjoonTask(id, text, isChecked, forceChecked = false) {
         </div>
     `;
 }
-
 // Updated Toggle Function
 // Updated Toggle Function (Optimized)
 function toggleNamjoonTask(taskId) {
