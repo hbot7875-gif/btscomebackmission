@@ -5030,7 +5030,7 @@ async function loadDashboard() {
             loadAllWeeksData();
             checkNotifications();
 
-            if (typeof showNewFeatureAlert === 'function') showNewFeatureAlert();
+            
             
         }, 1000);
         
@@ -11316,12 +11316,14 @@ function renderNamjoonTask(id, text, isChecked, forceChecked = false) {
 }
 
 // Updated Toggle Function
+// Updated Toggle Function (Optimized)
 function toggleNamjoonTask(taskId) {
     const todoId = `namjoon_todo_${new Date().toDateString()}`;
     const savedState = JSON.parse(localStorage.getItem(todoId) || '{}');
     
     // Toggle state
-    savedState[taskId] = !savedState[taskId];
+    const newState = !savedState[taskId];
+    savedState[taskId] = newState;
     
     // Save
     localStorage.setItem(todoId, JSON.stringify(savedState));
@@ -11329,92 +11331,23 @@ function toggleNamjoonTask(taskId) {
     // Haptic feedback
     if (navigator.vibrate) navigator.vibrate(10);
     
-    // Re-render
-    renderNamjoonBrain(); 
-}
-// ==================== FEATURE ANNOUNCEMENT ====================
-function showNewFeatureAlert() {
-    // 1. Check if already seen
-    const key = 'has_seen_148_protocol_v1'; // Change 'v1' if you update it again later
-    if (localStorage.getItem(key)) return;
-
-    // 2. Create Modal
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.85); z-index: 999999;
-        display: flex; align-items: center; justify-content: center;
-        backdrop-filter: blur(5px); animation: fadeIn 0.3s ease;
-    `;
-
-    const rmImage = "https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/6c9cf38a7be372187ebd244d19a5e0357d4983c8/team%20pfps/baed0eb48e6ac22807df156ce76d8b4f.jpg";
-
-    modal.innerHTML = `
-        <div style="
-            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
-            border: 1px solid #7b2cbf; border-radius: 16px;
-            padding: 0; max-width: 320px; width: 90%;
-            box-shadow: 0 0 40px rgba(123, 44, 191, 0.4);
-            overflow: hidden; text-align: center;
-            animation: slideUp 0.4s ease;
-        ">
-            <div style="background: #7b2cbf; padding: 12px; color: #fff; font-weight: bold; font-family: 'Orbitron', monospace; font-size: 14px; letter-spacing: 1px;">
-                ⚡ SYSTEM UPDATE
-            </div>
-            
-            <div style="padding: 25px;">
-                <div style="
-                    width: 70px; height: 70px; margin: 0 auto 15px;
-                    border-radius: 50%; border: 3px solid #7b2cbf;
-                    overflow: hidden;
-                ">
-                    <img src="${rmImage}" style="width: 100%; height: 100%; object-fit: cover;">
-                </div>
-
-                <h3 style="color: #fff; font-size: 18px; margin: 0 0 10px;">The 148 Protocol</h3>
-                
-                <p style="color: #aaa; font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
-                    Strategic command has been transferred to Namjoon.
-                    <br><br>
-                    <span style="color: #ffd700;">New Feature:</span> 
-                    Personalized daily targets calculated based on your team's real-time gaps.
-                </p>
-
-                <button id="check-protocol-btn" style="
-                    width: 100%; padding: 12px;
-                    background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                    border: none; border-radius: 8px;
-                    color: white; font-weight: bold; cursor: pointer;
-                    font-size: 14px; box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
-                ">
-                    🧠 Access The Protocol
-                </button>
-                
-                <button id="close-protocol-btn" style="
-                    background: transparent; border: none;
-                    color: #666; font-size: 12px; margin-top: 15px;
-                    text-decoration: underline; cursor: pointer;
-                ">
-                    Dismiss
-                </button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // 3. Mark as seen immediately so it doesn't show again
-    localStorage.setItem(key, 'true');
-
-    // 4. Button Logic
-    document.getElementById('check-protocol-btn').onclick = () => {
-        modal.remove();
-        loadPage('namjoon'); // Navigate to the new page
-    };
-
-    document.getElementById('close-protocol-btn').onclick = () => {
-        modal.remove();
-    };
+    // UX FIX: Update visual state immediately without reloading API
+    // This assumes the function is triggered by an onclick event
+    if (window.event && window.event.currentTarget) {
+        const el = window.event.currentTarget;
+        const checkbox = el.querySelector('.namjoon-checkbox');
+        
+        if (newState) {
+            el.classList.add('checked');
+            if (checkbox) checkbox.textContent = '✓';
+        } else {
+            el.classList.remove('checked');
+            if (checkbox) checkbox.textContent = '';
+        }
+    } else {
+        // Fallback: Re-render if we can't find the element
+        renderNamjoonBrain(); 
+    }
 }
 // ==================== 148 PROTOCOL INFO MODAL ====================
 function showProtocolInfo() {
@@ -11574,6 +11507,7 @@ window.isTeamEligibleForWin = isTeamEligibleForWin;
 window.getTeamEligibilityStatus = getTeamEligibilityStatus;
 window.getWeekWinner = getWeekWinner;
 window.renderNamjoonBrain = renderNamjoonBrain;
+window.toggleNamjoonTask = toggleNamjoonTask; 
 
 console.log('🎮 BTS Spy Battle v5.0 Loaded with Voting System 🗳️💜');
 })();
