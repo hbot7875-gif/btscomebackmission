@@ -5204,6 +5204,7 @@ async function logout() {
         location.reload();
     }
 }
+window.logout = logout;
 // ==================== START APP ====================
 document.addEventListener('DOMContentLoaded', initApp);
 // ==================== START APP ====================
