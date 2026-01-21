@@ -4882,7 +4882,6 @@ function initApp() {
     ensureAppCSS(); 
     ensureStreakCSS(); 
     ensureNamjoonCSS();
-    ensureFavicon();
     loading(false);
     setupLoginListeners();
     loadAllAgents();
@@ -11396,17 +11395,6 @@ function showProtocolInfo() {
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
 window.showProtocolInfo = showProtocolInfo;
-    
-function ensureFavicon() {
-    let link = document.querySelector("link[rel~='icon']");
-    if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.head.appendChild(link);
-    }
-    // Uses the logo already defined in your CONFIG
-    link.href = CONFIG.COMEBACK.BTS_LOGO;
-}
 
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
