@@ -6338,20 +6338,19 @@ async function renderGoals() {
         const trackGoals = data.trackGoals || {};
         const albumGoals = data.albumGoals || {};
         
-        // 2. Generate Namjoon's HTML
-        const namjoonHTML = (typeof renderNamjoonsBrain === 'function') 
-            ? renderNamjoonsBrain(team, trackGoals, albumGoals) 
-            : '';
-        
-        // 3. Add ${namjoonHTML} into the main HTML string
+        // 3. Add HTML (REMOVED namjoonHTML injection)
         let html = renderGuide('goals') + `
             <div class="goals-header">
                 <h2 style="color:#fff;margin:0;">🎯 Team Goal Progress</h2>
                 <span class="week-badge">${STATE.week}</span>
             </div>
-            
-            <!-- NAMJOON'S BRAIN INSERTED HERE -->
-            ${namjoonHTML}
+
+            <!-- Added a button instead of the full widget to reduce clutter -->
+            <div style="margin-bottom: 20px;">
+                <button onclick="loadPage('namjoon')" class="btn-secondary" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px;">
+                    <span>🧠</span> Open 148 Protocol Analysis
+                </button>
+            </div>
             
             <div class="last-updated-banner">📊 Updated: ${formatLastUpdated(STATE.lastUpdated || 'recently')}</div>
         `;
