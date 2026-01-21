@@ -170,20 +170,14 @@ const STREAK_STATE = {
     dailyTarget: 10
 };
 
-// ==================== ACTIVITY CONFIG ====================
+// ==================== ACTIVITY CONFIG (UPDATED) ====================
 const ACTIVITY_CONFIG = {
     MAX_ACTIVITIES: 50,
     REFRESH_INTERVAL: 15000,
     SHOW_TYPES: [
-        'stream_milestone', 
-        'xp_milestone', 
-        'streak_update', 
-        'badge_earned', 
-        'goal_completed', 
-        'album2x_completed', 
-        'team_surge', 
-        'rank_change', 
-        'secret_mission'
+        'stream_milestone', 'xp_milestone', 'streak_update', 
+        'badge_earned', 'goal_completed', 'album2x_completed', 
+        'team_surge', 'rank_change', 'secret_mission'
     ],
     
     TYPES: {
@@ -227,9 +221,16 @@ const ACTIVITY_CONFIG = {
             template: (data) => `<strong>${data.name}</strong> moved up to <strong class="highlight">#${data.rank}</strong>!`,
             color: '#4caf50'
         },
+        // ✅ UPDATED: Handles both Success and Failure messages dynamically
         'secret_mission': {
             icon: '🕵️',
-            template: (data) => `<strong style="color:${teamColor(data.team)}">${data.team}</strong> completed a secret mission!`,
+            template: (data) => {
+                const title = data.title || 'Secret Mission';
+                const isFail = title.includes('(Failed)');
+                const color = isFail ? '#ff4444' : '#00ff88'; // Red for fail, Green for success
+                const action = isFail ? 'failed' : 'completed';
+                return `<strong style="color:${teamColor(data.team)}">${data.team}</strong> ${action}: <strong style="color:${color}">${title}</strong>`;
+            },
             color: '#9c27b0'
         }
     }
