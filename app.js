@@ -126,21 +126,7 @@ const CONFIG = {
 
 const STREAK_CONFIG = {
     // Activity requirement
-    ACTIVITY_THRESHOLD: 10, // Scrobbles needed per day
-    
-    // Milestones
-    MILESTONES: [3, 7, 14, 21, 30, 50, 100],
-    
-    // Badges for each milestone
-    BADGES: {
-        3:   { name: 'Begin',        icon: '🌱', color: '#00ff88' },
-        7:   { name: 'Fire ',        icon: '🔥', color: '#ff6b35' },
-        14:  { name: 'Not Today',    icon: '⚡', color: '#ffd700' },
-        21:  { name: 'Runner',       icon: '💪', color: '#ff4081' },
-        30:  { name: 'Mic Drop',     icon: '👑', color: '#9c27b0' },
-        50:  { name: 'Mikrokosmos',  icon: '🌟', color: '#00bcd4' },
-        100: { name: 'Bulletproof',  icon: '💜', color: '#7b2cbf' }
-    },
+    ACTIVITY_THRESHOLD: 10, 
     
     // Freeze settings
     FREEZE: {
@@ -10215,28 +10201,6 @@ async function renderGuidePage() {
                         <li>Agents receive <strong>2 Freezes</strong> on the 1st of every month.</li>
                         <li>If Freezes = 0 and you miss a day, the signal is lost (Streak 0). 💔</li>
                     </ul>
-
-                    <div class="guide-section-subtitle">🏆 Streak Milestones</div>
-                    <div class="guide-gc-grid">
-                        <div class="guide-gc-item">
-                            <span class="guide-gc-icon">🌱</span>
-                            <div class="guide-gc-info"><div class="guide-gc-name">3 Days</div><div class="guide-gc-desc">Begin Badge</div></div>
-                        </div>
-                        <div class="guide-gc-item">
-                            <span class="guide-gc-icon">🔥</span>
-                            <div class="guide-gc-info"><div class="guide-gc-name">7 Days</div><div class="guide-gc-desc">Fire Badge</div></div>
-                        </div>
-                        <div class="guide-gc-item">
-                            <span class="guide-gc-icon">💪</span>
-                            <div class="guide-gc-info"><div class="guide-gc-name">21 Days</div><div class="guide-gc-desc">Runner Badge</div></div>
-                        </div>
-                        <div class="guide-gc-item">
-                            <span class="guide-gc-icon">💜</span>
-                            <div class="guide-gc-info"><div class="guide-gc-name">100 Days</div><div class="guide-gc-desc">Bulletproof Badge</div></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Section 4: How to Win the Week -->
             <div class="guide-section" id="guide-winning">
