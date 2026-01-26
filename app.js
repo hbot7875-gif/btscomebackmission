@@ -6463,6 +6463,9 @@ async function renderAlbum2x() {
                             </div>
                             <div style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;">
                                 ${failedMembers.slice(0, 50).map(m => `
+                                    let dName = m.name || 'Secret Agent';
+                                    if(dName.toUpperCase().startsWith('AGENT')) dName = 'Secret Agent';
+                                     return `
                                     <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
                                         background:rgba(255,68,68,0.1);border-radius:6px;font-size:11px;color:#fff;">
                                         ❌ ${sanitize(m.name || m.agentNo)}
@@ -6569,8 +6572,12 @@ async function renderOverallRankings() {
             else if (i === 1) { rankClass = 'rank-2'; rankContent = '🥈'; }
             else if (i === 2) { rankClass = 'rank-3'; rankContent = '🥉'; }
 
-            // 🔥 FIX: Display 'Secret Agent' if name is missing, never AgentNo
-            const displayName = r.name ? sanitize(r.name) : 'Secret Agent';
+            // 🔒 SECURITY FIX: Hide Agent Numbers
+            // If name is missing OR name starts with "AGENT", hide it.
+            let displayName = r.name ? sanitize(r.name) : 'Secret Agent';
+            if (displayName.toUpperCase().startsWith('AGENT')) {
+                displayName = 'Secret Agent';
+            }
 
             return `
             <div class="rank-item ${isMe ? 'highlight' : ''}" style="border-left: 3px solid ${tColor};">
@@ -6643,8 +6650,11 @@ async function renderMyTeamRankings() {
             else if (i === 1) { rankClass = 'rank-2'; rankContent = '🥈'; }
             else if (i === 2) { rankClass = 'rank-3'; rankContent = '🥉'; }
 
-            // 🔥 FIX: Display 'Secret Agent' if name is missing
-            const displayName = r.name ? sanitize(r.name) : 'Secret Agent';
+            // 🔒 SECURITY FIX: Hide Agent Numbers
+            let displayName = r.name ? sanitize(r.name) : 'Secret Agent';
+            if (displayName.toUpperCase().startsWith('AGENT')) {
+                displayName = 'Secret Agent';
+            }
 
             return `
             <div class="rank-item ${isMe ? 'highlight' : ''}" style="border-left: 3px solid ${tColor};">
