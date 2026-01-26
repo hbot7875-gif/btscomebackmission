@@ -8943,7 +8943,45 @@ async function renderAnnouncements() {
     const container = $('announcements-content');
     if (!container) return;
     
-    container.innerHTML = renderGuide('announcements');
+    // --- JOURNALIST PANEL UI ---
+    const journalistPanelHTML = `
+        <div class="card" style="border: 1px solid #00d4ff; background: linear-gradient(135deg, rgba(0, 212, 255, 0.05), rgba(0,0,0,0.2)); margin-bottom: 25px;">
+            <div class="card-header" style="cursor: pointer; display:flex; justify-content:space-between; align-items:center;" onclick="document.getElementById('journalist-form').style.display = document.getElementById('journalist-form').style.display === 'none' ? 'block' : 'none'">
+                <div>
+                    <h3 style="color: #00d4ff; margin:0;">📰 Journalist & Voting Panel</h3>
+                    <span style="font-size: 10px; color: #888;">(Click to Expand)</span>
+                </div>
+                <span style="color:#00d4ff;">▼</span>
+            </div>
+            
+            <div id="journalist-form" class="card-body" style="display: none; padding-top: 15px;">
+                <div style="display: grid; gap: 10px;">
+                    <!-- Type Selection -->
+                    <select id="news-type" style="padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
+                        <option value="News">📰 News / Update</option>
+                        <option value="Voting">🗳️ Voting Alert (High Priority)</option>
+                    </select>
+
+                    <input type="text" id="news-title" placeholder="Headline (e.g., MAMA Voting Started!)" class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
+                    
+                    <textarea id="news-message" placeholder="Details / Instructions..." class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px; min-height: 80px; resize: vertical;"></textarea>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <input type="text" id="news-link" placeholder="Link URL (Optional)" class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
+                        <input type="text" id="news-link-text" placeholder="Button Text (e.g. Vote Now)" class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
+                    </div>
+
+                    <input type="password" id="news-password" placeholder="🔒 Enter Journalist Password" class="form-input" style="width: 100%; padding: 12px; background: #051a1a; border: 1px solid #00d4ff; color: white; border-radius: 8px;">
+                    
+                    <button onclick="submitJournalistNews()" class="btn-primary" style="width: 100%; background: #00d4ff; color: #000; font-weight: bold; padding: 12px; border:none; border-radius:8px; cursor:pointer;">
+                        📡 Broadcast Update
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = renderGuide('announcements') + journalistPanelHTML;
     
     try {
         const data = await api('getAnnouncements', { week: STATE.week });
@@ -8990,6 +9028,73 @@ async function renderAnnouncements() {
         container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p><button onclick="renderAnnouncements()" class="btn-secondary">Retry</button></div></div>';
     }
 }
+async function submitJournalistNews() {
+    const type = document.getElementById('news-type').value;
+    const title = document.getElementById('news-title').value.trim();
+    const message = document.getElementById('news-message').value.trim();
+    const link = document.getElementById('news-link').value.trim();
+    const linkText = document.getElementById('news-link-text').value.trim();
+    const password = document.getElementById('news-password').value.trim();
+    
+    // 1. Validation
+    if (!title || !message || !password) {
+        showToast('❌ Please fill Title, Message, and Password', 'error');
+        return;
+    }
+
+    // 2. Loading State
+    loading(true);
+
+    try {
+        // 3. Send POST Request
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'addAnnouncement',
+                password: password,
+                type: type,
+                title: title,
+                message: message,
+                link: link,
+                linkText: linkText,
+                week: 'all', // Show for every week
+                agentNo: STATE.agentNo || 'Unknown'
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showToast('✅ Announcement Published!', 'success');
+            
+            // Clear Form
+            document.getElementById('news-title').value = '';
+            document.getElementById('news-message').value = '';
+            document.getElementById('news-link').value = '';
+            document.getElementById('news-link-text').value = '';
+            document.getElementById('news-password').value = '';
+            
+            // Hide Form
+            document.getElementById('journalist-form').style.display = 'none';
+            
+            // Refresh Page
+            setTimeout(() => {
+                renderAnnouncements();
+            }, 1000);
+        } else {
+            showToast('❌ ' + (result.error || 'Failed to publish'), 'error');
+        }
+
+    } catch (e) {
+        console.error(e);
+        showToast('❌ Network Error', 'error');
+    } finally {
+        loading(false);
+    }
+}
+
+// Make it accessible to the HTML button
+window.submitJournalistNews = submitJournalistNews;
 // ==================== PLAYLISTS PAGE ====================
 
 async function renderPlaylists() {
