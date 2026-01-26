@@ -5965,7 +5965,6 @@ async function renderDrawer() {
     saveNotificationState();
 }
 // ==================== PROFILE (UPDATED: APPLY LEAVE) ====================
-// ==================== PROFILE (MOBILE OPTIMIZED) ====================
 async function renderProfile() {
     const container = $('profile-stats');
     if (!container) return;
@@ -6032,7 +6031,7 @@ async function renderProfile() {
                     </div>
                 </div>
                 
-                <!-- Button Container: flex-shrink:0 ensures button stays fixed width -->
+                <!-- Button Container -->
                 <div style="flex-shrink: 0;">
                     ${!isExempt ? `
                     <button onclick="openLeaveModal()" style="
@@ -6050,14 +6049,22 @@ async function renderProfile() {
                         APPLY
                     </button>
                     ` : `
-                    <button disabled style="opacity:0.5; border:1px solid #555; background:transparent; color:#888; padding:8px 12px; border-radius:6px; font-size:11px;">
-                        APPROVED
+                    <button onclick="cancelLeaveRequest()" style="
+                        background: rgba(255, 68, 68, 0.15);
+                        border: 1px solid #ff4444;
+                        color: #ff4444;
+                        padding: 10px 16px;
+                        border-radius: 8px;
+                        font-size: 11px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        white-space: nowrap;
+                        transition: all 0.2s;
+                    ">
+                        CANCEL LEAVE
                     </button>
                     `}
                 </div>
-            </div>
-        </div>
-    `;
     
     container.innerHTML = html;
 
