@@ -4961,7 +4961,7 @@ if (btn) {
 document.addEventListener('DOMContentLoaded', initApp);
 // ==================== START APP ====================
 document.addEventListener('DOMContentLoaded', initApp);
-// ==================== HOME RENDERER ====================
+// ==================== HOME RENDERER (FIXED) ====================
 async function renderHome() {
     const selectedWeek = STATE.week;
     const weekEl = $('current-week');
@@ -5012,15 +5012,21 @@ async function renderHome() {
         
         // 2. Render Quick Stats Section
         const quickStatsEl = document.querySelector('.quick-stats-section');
+        
         if (quickStatsEl) {
-            const streakWidget = (typeof renderStreakWidget === 'function') ? renderStreakWidget() : '';
-            const activityWidget = (typeof renderActivityWidget === 'function') ? renderActivityWidget() : '';
-
+            // ✅ FIX: Do NOT call renderStreakWidget here. Just create the DIV.
+            
             quickStatsEl.innerHTML = `
+                <!-- 1. Countdown -->
                 ${btsCountdownHtml}
-                ${refreshNotice}
-                ${streakWidget}
                 
+                <!-- 2. Refresh Notice -->
+                ${refreshNotice}
+                
+                <!-- 3. STREAK PLACEHOLDER (Fixed) -->
+                <div id="streak-widget-container"></div>
+                
+                <!-- 4. Welcome Card -->
                 <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
                     <div class="card-body">
                         <div class="quick-header">
@@ -5050,11 +5056,15 @@ async function renderHome() {
                         ${isCompleted ? `<div class="results-alert" onclick="loadPage('summary')">🏆 View Final Results →</div>` : ''}
                     </div>
                 </div>
-                ${activityWidget}
+                <div id="activity-widget-container"></div>
             `;
             
-            if (typeof startBTSCountdown === 'function') startBTSCountdown();
-            if (typeof updateActivityFeedUI === 'function') updateActivityFeedUI();
+            // ✅ FIX: NOW call the function, after the HTML exists in the DOM
+            setTimeout(() => {
+                if (typeof startBTSCountdown === 'function') startBTSCountdown();
+                if (typeof renderStreakWidget === 'function') renderStreakWidget(); // <--- Calls it here correctly
+                if (typeof updateActivityFeedUI === 'function') updateActivityFeedUI();
+            }, 50);
         }
 
         // 3. Render Mission Cards
