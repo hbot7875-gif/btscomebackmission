@@ -10476,9 +10476,10 @@ async function renderGuidePage() {
             <div class="guide-quick-link" onclick="handleGuideQuickLink('home')">
                 <span class="guide-quick-link-icon">🔥</span>
                 <span class="guide-quick-link-text">Check Streak</span>
-            </div>
+             </div>
         </div>
-    `;
+    </div>`;
+    
     
     // Initialize navigation
     initGuideNav();
