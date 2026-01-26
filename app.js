@@ -6112,7 +6112,7 @@ async function renderProfile() {
             <!-- Added flex-wrap and gap for mobile responsiveness -->
             <div class="card-body" style="padding: 15px; display:flex; flex-wrap: wrap; gap: 15px; align-items:center; justify-content:space-between;">
                 
-                <!-- Text Container: flex:1 lets it grow on desktop, min-width prevents crushing on mobile -->
+                <!-- Text Container -->
                 <div style="flex: 1; min-width: 200px;">
                     <div style="color: ${isExempt ? '#ccc' : '#ffa500'}; font-weight:700; font-size:13px; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
                         <span>${isExempt ? '💤' : '📝'}</span> 
@@ -6159,7 +6159,10 @@ async function renderProfile() {
                     </button>
                     `}
                 </div>
-    
+            </div>
+        </div>
+    `; // <--- THIS WAS MISSING
+
     container.innerHTML = html;
 
     // --- 3. CONTRIBUTIONS & BADGES (Existing Logic) ---
