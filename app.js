@@ -8420,6 +8420,18 @@ async function renderSOTD() {
     const container = document.getElementById('sotd-content');
     if (!container) return;
 
+    // ✅ FIX: Mark SOTD notification as seen when page loads
+    if (STATE.lastChecked) {
+        STATE.lastChecked.songOfDay = new Date().toDateString();
+        saveNotificationState();
+        
+        // Remove from local notification list immediately
+        if (STATE.notifications) {
+            STATE.notifications = STATE.notifications.filter(n => n.type !== 'sotd');
+            updateNotificationBadge();
+        }
+    }
+
     // Show loading
     container.innerHTML = `
         <div style="text-align:center;padding:60px 20px;">
@@ -8507,6 +8519,10 @@ async function renderSOTD() {
             const res = resultsData.result;
             const resDate = new Date(res.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             const winnerColor = teamColor(res.winner);
+
+            // ✅ FIX: Mark Results notification as seen if visible here
+            const resultKey = 'sotd_result_seen_' + new Date(res.date).toDateString();
+            localStorage.setItem(resultKey, 'true');
 
             html += `
                 <div class="card" style="border: 1px solid rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.02);">
