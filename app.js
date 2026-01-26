@@ -10225,7 +10225,9 @@ async function renderGuidePage() {
                         <li>Agents receive <strong>2 Freezes</strong> on the 1st of every month.</li>
                         <li>If Freezes = 0 and you miss a day, the signal is lost (Streak 0). 💔</li>
                     </ul>
-
+                </div>
+            </div>
+            
             <!-- Section 4: How to Win the Week -->
             <div class="guide-section" id="guide-winning">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
