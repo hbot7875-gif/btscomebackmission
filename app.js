@@ -3961,859 +3961,148 @@ function ensureStreakCSS() {
     const style = document.createElement('style');
     style.id = 'streak-styles';
     style.textContent = `
-        /* ==================== STREAK ANIMATIONS ==================== */
+        /* ==================== SPY HUD STREAK ==================== */
         
-        @keyframes fireFlicker {
-            0%, 100% { 
-                transform: scale(1) rotate(-3deg); 
-                filter: brightness(1);
-            }
-            50% { 
-                transform: scale(1.1) rotate(3deg); 
-                filter: brightness(1.2);
-            }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.6; box-shadow: 0 0 5px currentColor; }
+            50% { opacity: 1; box-shadow: 0 0 12px currentColor; }
         }
-        
-        @keyframes riskPulse {
-            0%, 100% { 
-                box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
-                border-color: rgba(255, 68, 68, 0.3);
-            }
-            50% { 
-                box-shadow: 0 0 25px 5px rgba(255, 68, 68, 0.3);
-                border-color: rgba(255, 68, 68, 0.8);
-            }
+
+        @keyframes scanline {
+            0% { left: -100%; }
+            100% { left: 100%; }
         }
-        
-        @keyframes completedGlow {
-            0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
-            50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.4); }
-        }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes bounceIn {
-            0% { transform: scale(0); opacity: 0; }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-        
-        @keyframes progressFill {
-            from { width: 0%; }
-        }
-        
-        /* ==================== MAIN STREAK WIDGET ==================== */
         
         .streak-widget {
-            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 24px;
+            background: rgba(10, 10, 15, 0.6); /* Very dark, slight see-through */
+            border: 1px solid #333;
+            border-left: 3px solid #555; /* Default border color */
+            border-radius: 4px; /* Sharper corners for tech look */
+            padding: 12px 16px;
             margin-bottom: 20px;
             position: relative;
             overflow: hidden;
-            animation: slideUp 0.4s ease-out;
-            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(5px);
         }
-        
-        .streak-widget::before {
+
+        /* Status Colors */
+        .streak-widget.status-active { border-left-color: #ff6b35; }
+        .streak-widget.status-done { border-left-color: #00ff88; }
+        .streak-widget.status-zero { border-left-color: #444; }
+
+        /* The "Scanline" effect for active streaks */
+        .streak-widget.status-active::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #ff6b35, #ffd700, #ff6b35);
-            background-size: 200% 100%;
-            animation: shimmer 3s linear infinite;
+            top: 0; left: 0; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.05), transparent);
+            animation: scanline 3s linear infinite;
+            pointer-events: none;
         }
-        
-        .streak-widget.at-risk {
-            border-color: #ff4444;
-            animation: slideUp 0.4s ease-out, riskPulse 2s ease-in-out infinite;
-        }
-        
-        .streak-widget.at-risk::before {
-            background: linear-gradient(90deg, #ff4444, #ffa500, #ff4444);
-            background-size: 200% 100%;
-        }
-        
-        .streak-widget.completed {
-            border-color: #00ff88;
-            animation: slideUp 0.4s ease-out, completedGlow 3s ease-in-out infinite;
-        }
-        
-        .streak-widget.completed::before {
-            background: linear-gradient(90deg, #00ff88, #00ffcc, #00ff88);
-            background-size: 200% 100%;
-        }
-        
-        /* ==================== HEADER ==================== */
-        
-        .streak-header {
+
+        /* ==================== ICON BOX ==================== */
+        .streak-icon-box {
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-        
-        .streak-fire-icon {
-            font-size: 50px;
-            animation: fireFlicker 1.5s ease-in-out infinite;
-            filter: drop-shadow(0 0 10px rgba(255, 107, 53, 0.5));
-        }
-        
-        .streak-fire-icon.inactive {
-            animation: none;
-            filter: grayscale(0.5);
-            opacity: 0.6;
-        }
-        
-        .streak-count {
-            flex: 1;
-        }
-        
-        .streak-number {
-            font-size: 42px;
-            font-weight: 800;
-            color: #ff6b35;
-            line-height: 1;
-            text-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
-        }
-        
-        .streak-number.zero {
-            color: #888;
-            text-shadow: none;
-        }
-        
-        .streak-label {
-            color: #888;
-            font-size: 13px;
-            margin-top: 6px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        /* ==================== STATUS BADGE ==================== */
-        
-        .streak-status {
-            padding: 8px 16px;
-            border-radius: 25px;
-            font-size: 12px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-        
-        .streak-status.done {
-            background: rgba(0, 255, 136, 0.15);
-            color: #00ff88;
-            border: 1px solid rgba(0, 255, 136, 0.3);
-        }
-        
-        .streak-status.risk {
-            background: rgba(255, 68, 68, 0.15);
-            color: #ff6b6b;
-            border: 1px solid rgba(255, 68, 68, 0.3);
-            animation: riskPulse 1.5s ease-in-out infinite;
-        }
-        
-        .streak-status.pending {
-            background: rgba(255, 165, 0, 0.15);
-            color: #ffa500;
-            border: 1px solid rgba(255, 165, 0, 0.3);
-        }
-        
-        /* ==================== FREEZE BUTTON ==================== */
-        
-        .streak-freeze-btn {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            padding: 6px 12px;
-            background: rgba(0, 191, 255, 0.1);
-            border: 1px solid rgba(0, 191, 255, 0.3);
-            border-radius: 20px;
-            font-size: 12px;
-            color: #00bfff;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .streak-freeze-btn:hover {
-            background: rgba(0, 191, 255, 0.2);
-            transform: scale(1.05);
-        }
-        
-        /* ==================== TODAY'S PROGRESS ==================== */
-        
-        .streak-today-progress {
+            justify-content: center;
+            font-size: 20px;
+            border-radius: 8px;
             background: rgba(255, 255, 255, 0.03);
-            border-radius: 14px;
-            padding: 16px;
-            margin-top: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
-        .streak-today-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        
-        .streak-today-title {
-            color: #888;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .streak-today-count {
-            display: flex;
-            align-items: baseline;
-            gap: 4px;
-        }
-        
-        .streak-today-current {
-            font-size: 20px;
-            font-weight: 800;
+
+        .streak-widget.status-active .streak-icon-box {
             color: #ff6b35;
+            border-color: rgba(255, 107, 53, 0.3);
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.1) inset;
+            animation: pulseGlow 4s infinite;
         }
-        
-        .streak-today-divider,
-        .streak-today-required {
-            color: #888;
-            font-size: 14px;
+
+        .streak-widget.status-done .streak-icon-box {
+            color: #00ff88;
+            border-color: rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.1) inset;
         }
-        
-        .streak-today-bar {
-            height: 8px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            overflow: hidden;
+
+        .streak-widget.status-zero .streak-icon-box {
+            color: #666;
+            font-size: 16px;
         }
-        
-        .streak-today-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ffa500, #ff6b35);
-            border-radius: 8px;
-            transition: width 0.4s ease;
+
+        /* ==================== INFO AREA ==================== */
+        .streak-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
-        
-        .streak-today-fill.complete {
-            background: #00ff88;
-        }
-        
-        /* ==================== MILESTONE PROGRESS ==================== */
-        
-        .streak-progress {
-            margin-top: 20px;
-        }
-        
-        .streak-progress-header {
+
+        .streak-title-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
-        
-        .streak-progress-milestone {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: #aaa;
-        }
-        
-        .streak-progress-milestone .icon {
-            font-size: 20px;
-        }
-        
-        .streak-progress-days {
-            color: #ffd700;
-            font-weight: 700;
-            font-size: 13px;
-        }
-        
-        .streak-progress-bar {
-            height: 10px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        .streak-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ff6b35, #ffd700);
-            border-radius: 10px;
-            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            animation: progressFill 1s ease-out;
-        }
-        
-        /* ==================== STATS ==================== */
-        
-        .streak-stats {
-            display: flex;
-            gap: 16px;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .streak-stat {
-            flex: 1;
-            text-align: center;
-            padding: 12px 8px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 12px;
-            transition: all 0.2s ease;
-        }
-        
-        .streak-stat:hover {
-            background: rgba(255, 255, 255, 0.05);
-            transform: translateY(-2px);
-        }
-        
-        .streak-stat-value {
-            font-size: 22px;
+
+        .streak-value {
+            font-family: 'Courier New', monospace; /* Tech font */
+            font-size: 18px;
             font-weight: 700;
             color: #fff;
-            line-height: 1;
+            letter-spacing: -0.5px;
         }
-        
-        .streak-stat-label {
+
+        .streak-label {
             font-size: 10px;
             color: #888;
-            margin-top: 6px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            margin-left: 6px;
         }
-        
-        /* ==================== HISTORY DOTS ==================== */
-        
-        .streak-history {
-            display: flex;
-            gap: 5px;
-            margin-top: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .streak-history-dot {
-            width: 14px;
-            height: 14px;
+
+        .streak-freeze {
+            font-size: 11px;
+            color: #00bfff;
+            background: rgba(0, 191, 255, 0.08);
+            border: 1px solid rgba(0, 191, 255, 0.2);
+            padding: 2px 6px;
             border-radius: 4px;
-            background: rgba(255, 255, 255, 0.08);
-            transition: all 0.2s ease;
-            cursor: pointer;
         }
-        
-        .streak-history-dot:hover {
-            transform: scale(1.3);
-            z-index: 1;
-        }
-        
-        .streak-history-dot.active {
-            background: #ff6b35;
-            box-shadow: 0 0 8px rgba(255, 107, 53, 0.5);
-        }
-        
-        .streak-history-dot.today {
-            border: 2px solid #ffd700;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
-        }
-        
-        .streak-history-dot.today.active {
-            background: #00ff88;
-            border-color: #00ff88;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-        }
-        
-        /* ==================== RISK ALERT ==================== */
-        
-        .streak-risk-alert {
-            background: linear-gradient(135deg, rgba(255, 68, 68, 0.15), rgba(255, 68, 68, 0.05));
-            border: 1px solid rgba(255, 68, 68, 0.4);
-            border-radius: 14px;
-            padding: 16px;
-            margin-top: 16px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            animation: riskPulse 2s ease-in-out infinite;
-        }
-        
-        .streak-risk-icon {
-            font-size: 28px;
-            flex-shrink: 0;
-        }
-        
-        .streak-risk-content {
-            flex: 1;
-        }
-        
-        .streak-risk-title {
-            color: #ff6b6b;
-            font-size: 14px;
-            font-weight: 700;
-        }
-        
-        .streak-risk-text {
-            color: #888;
-            font-size: 12px;
-            margin-top: 4px;
-        }
-        
-        .streak-risk-btn {
-            background: linear-gradient(135deg, #ff6b6b, #ff4444);
-            border: none;
-            border-radius: 10px;
-            padding: 10px 20px;
-            color: white;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-        
-        .streak-risk-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(255, 68, 68, 0.4);
-        }
-        
-        /* ==================== INSTRUCTIONS ==================== */
-        
-        .streak-instructions {
-            background: linear-gradient(135deg, rgba(123, 44, 191, 0.15), rgba(123, 44, 191, 0.05));
-            border: 1px solid rgba(123, 44, 191, 0.3);
-            border-radius: 14px;
-            padding: 16px;
-            margin-top: 16px;
-        }
-        
-        .streak-instructions-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #7b2cbf;
-            font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
-        
-        .streak-requirement {
-            background: rgba(255, 107, 53, 0.1);
-            border: 1px solid rgba(255, 107, 53, 0.3);
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .streak-requirement-number {
-            font-size: 24px;
-            font-weight: 800;
-            color: #ff6b35;
-        }
-        
-        .streak-requirement-text {
-            color: #888;
-            font-size: 12px;
-        }
-        
-        .streak-instructions-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        
-        .streak-instructions-list li {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            color: #aaa;
-            font-size: 12px;
-            line-height: 1.5;
-            margin-bottom: 8px;
-        }
-        
-        .streak-instructions-list li:last-child {
-            margin-bottom: 0;
-        }
-        
-        .streak-instructions-list .icon {
-            flex-shrink: 0;
-            width: 20px;
-            text-align: center;
-        }
-        
-        /* ==================== MILESTONE POPUP ==================== */
-        
-        .streak-milestone-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.92);
-            z-index: 999999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease;
-            padding: 20px;
-        }
-        
-        .streak-milestone-card {
-            text-align: center;
-            padding: 50px 40px;
-            max-width: 380px;
+
+        /* ==================== THIN BAR ==================== */
+        .streak-bar-container {
             width: 100%;
-            animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-        
-        .streak-milestone-badge-icon {
-            font-size: 90px;
-            margin-bottom: 20px;
-            filter: drop-shadow(0 0 30px currentColor);
-        }
-        
-        .streak-milestone-days {
-            font-size: 64px;
-            font-weight: 900;
-            line-height: 1;
-            margin-bottom: 8px;
-            text-shadow: 0 0 40px currentColor;
-        }
-        
-        .streak-milestone-subtitle {
-            color: #888;
-            font-size: 18px;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            margin-bottom: 30px;
-        }
-        
-        .streak-milestone-badge-box {
-            display: inline-block;
-            padding: 18px 35px;
-            border-radius: 25px;
-            margin-bottom: 35px;
-        }
-        
-        .streak-milestone-badge-name {
-            font-size: 20px;
-            font-weight: 700;
-        }
-        
-        .streak-milestone-close-btn {
-            padding: 16px 50px;
-            background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-            border: none;
-            border-radius: 30px;
-            color: white;
-            font-size: 17px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .streak-milestone-close-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 25px rgba(123, 44, 191, 0.5);
-        }
-        
-        /* ==================== FREEZE POPUP ==================== */
-        
-        .streak-freeze-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 99999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            animation: fadeIn 0.2s ease;
-        }
-        
-        .streak-freeze-card {
-            background: linear-gradient(145deg, #1a1a2e, #0f0f1f);
-            border: 1px solid rgba(0, 191, 255, 0.3);
-            border-radius: 24px;
-            padding: 30px;
-            max-width: 380px;
-            width: 100%;
-            animation: slideUp 0.3s ease;
-        }
-        
-        .streak-freeze-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-        
-        .streak-freeze-title {
-            color: #00bfff;
-            font-size: 20px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .streak-freeze-close {
-            background: none;
-            border: none;
-            color: #888;
-            font-size: 28px;
-            cursor: pointer;
-            padding: 0;
-            line-height: 1;
-            transition: color 0.2s;
-        }
-        
-        .streak-freeze-close:hover {
-            color: white;
-        }
-        
-        .streak-freeze-count-box {
-            text-align: center;
-            padding: 25px;
-            background: rgba(0, 191, 255, 0.1);
-            border-radius: 18px;
-            margin-bottom: 24px;
-        }
-        
-        .streak-freeze-count-number {
-            font-size: 56px;
-            font-weight: 800;
-            color: #00bfff;
-            line-height: 1;
-            text-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
-        }
-        
-        .streak-freeze-count-label {
-            color: #888;
-            font-size: 13px;
-            margin-top: 8px;
-        }
-        
-        .streak-freeze-info {
-            color: #bbb;
-            font-size: 14px;
-            line-height: 1.7;
-            margin-bottom: 24px;
-        }
-        
-        .streak-freeze-info strong {
-            color: white;
-        }
-        
-        .streak-freeze-info ul {
-            list-style: none;
-            padding: 0;
-            margin: 15px 0 0 0;
-        }
-        
-        .streak-freeze-info li {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding-left: 15px;
+            height: 2px; /* Ultra thin */
+            background: #222;
             position: relative;
         }
-        
-        .streak-freeze-info li::before {
-            content: '•';
-            color: #00bfff;
-            font-weight: bold;
-            position: absolute;
-            left: 0;
+
+        .streak-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: #555;
+            transition: width 0.5s ease;
+            position: relative;
         }
-        
-        .streak-freeze-buy-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #00bfff, #0088cc);
-            border: none;
-            border-radius: 14px;
-            color: white;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.2s ease;
-        }
-        
-        .streak-freeze-buy-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 191, 255, 0.4);
-        }
-        
-        /* ==================== DEBUG PANEL ==================== */
-        
-        .streak-debug-panel {
-            background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
-            border: 2px solid #333;
-            border-radius: 16px;
-            padding: 20px;
-            margin-top: 20px;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .streak-debug-title {
-            color: #ff6b6b;
-            font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .streak-debug-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .streak-debug-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
-            border-radius: 8px;
-        }
-        
-        .streak-debug-label {
-            color: #666;
-            font-size: 10px;
-            text-transform: uppercase;
-        }
-        
-        .streak-debug-value {
-            color: #00ff88;
-            font-size: 14px;
-            font-weight: 600;
+
+        .streak-widget.status-active .streak-bar-fill { background: #ff6b35; box-shadow: 0 0 5px #ff6b35; }
+        .streak-widget.status-done .streak-bar-fill { background: #00ff88; box-shadow: 0 0 5px #00ff88; }
+
+        /* Small text below bar */
+        .streak-meta {
+            font-size: 9px;
+            color: #555;
             margin-top: 4px;
-        }
-        
-        .streak-debug-actions {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        
-        .streak-debug-btn {
-            flex: 1;
-            min-width: 100px;
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: white;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .streak-debug-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        
-        .streak-debug-btn.danger {
-            background: rgba(255, 68, 68, 0.2);
-            border-color: rgba(255, 68, 68, 0.4);
-            color: #ff6b6b;
-        }
-        
-        .streak-debug-btn.success {
-            background: rgba(0, 255, 136, 0.2);
-            border-color: rgba(0, 255, 136, 0.4);
-            color: #00ff88;
-        }
-        
-        /* ==================== RESPONSIVE ==================== */
-        
-        @media (max-width: 400px) {
-            .streak-widget {
-                padding: 18px;
-            }
-            
-            .streak-header {
-                gap: 12px;
-            }
-            
-            .streak-fire-icon {
-                font-size: 40px;
-            }
-            
-            .streak-number {
-                font-size: 36px;
-            }
-            
-            .streak-status {
-                padding: 6px 12px;
-                font-size: 11px;
-            }
-            
-            .streak-stats {
-                gap: 8px;
-            }
-            
-            .streak-stat-value {
-                font-size: 18px;
-            }
-            
-            .streak-history-dot {
-                width: 12px;
-                height: 12px;
-            }
-            
-            .streak-milestone-days {
-                font-size: 48px;
-            }
-            
-            .streak-milestone-badge-icon {
-                font-size: 70px;
-            }
+            justify-content: space-between;
         }
     `;
-    
     document.head.appendChild(style);
-    console.log('✅ Streak CSS loaded');
 }
 // ==================== SMART STREAK SYSTEM (IST LOCKED) ====================
 
@@ -4966,69 +4255,73 @@ function renderStreakWidget(s) {
 
     const target = STREAK_CONFIG.ACTIVITY_THRESHOLD || 10;
     const progressPct = Math.min(100, (s.todayProgress / target) * 100);
-    
-    // Visual logic...
+
+    // --- LOGIC: DETERMINE STATUS & ICON ---
+    let statusClass = "status-zero";
+    let icon = "⭕"; // Default: Empty Circle / Target
+    let mainColor = "#666";
+    let statusText = "SYSTEM STANDBY";
+
+    if (s.isCompletedToday) {
+        // Daily Goal Done
+        statusClass = "status-done";
+        icon = "⚡"; // Power / Energy
+        mainColor = "#00ff88";
+        statusText = "POWER RESTORED";
+    } else if (s.currentStreak > 0) {
+        // Active Streak, Goal Pending
+        statusClass = "status-active";
+        icon = "🔥"; // Fire
+        mainColor = "#ff6b35";
+        statusText = "STREAK ACTIVE";
+    } else {
+        // 0 Streak, Goal Pending
+        statusClass = "status-zero";
+        icon = "📡"; // Searching signal or ⭕
+        mainColor = "#888";
+        statusText = "NO SIGNAL";
+    }
+
     const html = `
-        <div class="streak-widget ${s.isCompletedToday ? 'completed' : ''}" style="
-            background: linear-gradient(145deg, rgba(255,107,53,0.1), rgba(255,107,53,0.05));
-            border: 1px solid ${s.isCompletedToday ? '#00ff88' : '#ff6b35'};
-            border-radius: 16px;
-            padding: 15px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            position: relative;
-            overflow: hidden;
-        ">
-            <!-- Fire Icon -->
-            <div style="
-                font-size: 32px;
-                filter: drop-shadow(0 0 10px ${s.isCompletedToday ? '#00ff88' : '#ff6b35'});
-                animation: ${s.isCompletedToday ? 'none' : 'pulse 2s infinite'};
-            ">
-                ${s.isCompletedToday ? '⚡' : '🔥'}
+        <div class="streak-widget ${statusClass}">
+            <!-- 1. ICON BOX (Minimal) -->
+            <div class="streak-icon-box">
+                ${icon}
             </div>
 
-            <!-- Info -->
-            <div style="flex: 1;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-weight: 800; font-size: 20px; color: #fff;">
-                        ${s.currentStreak} <span style="font-size:12px; color:#aaa; font-weight:normal;">DAY STREAK</span>
+            <!-- 2. DATA AREA -->
+            <div class="streak-info">
+                
+                <!-- Top Row: Streak Count -->
+                <div class="streak-title-row">
+                    <div>
+                        <span class="streak-value" style="color:${mainColor}">${s.currentStreak}</span>
+                        <span class="streak-label">DAYS</span>
                     </div>
-                    <div style="font-size:12px; color:#00bfff;">
+                    <!-- Freeze Count (Ice Blue) -->
+                    <div class="streak-freeze" title="Streak Freezes">
                         🧊 ${s.freezes}
                     </div>
                 </div>
 
-                <!-- Progress Bar -->
-                <div style="margin-top: 8px;">
-                    <div style="display:flex; justify-content:space-between; font-size:10px; color:#ccc; margin-bottom:3px;">
-                        <span>${s.isCompletedToday ? 'Daily Goal Complete!' : 'Daily Goal (IST)'}</span>
-                        <span>${s.todayProgress}/${target}</span>
-                    </div>
-                    <div style="height:6px; background:rgba(0,0,0,0.3); border-radius:3px; overflow:hidden;">
-                        <div style="
-                            height:100%; 
-                            width:${progressPct}%; 
-                            background: ${s.isCompletedToday ? '#00ff88' : 'linear-gradient(90deg, #ff6b35, #ffd700)'};
-                            transition: width 0.5s ease;
-                        "></div>
-                    </div>
+                <!-- Progress Bar (Thin Line) -->
+                <div class="streak-bar-container">
+                    <div class="streak-bar-fill" style="width: ${progressPct}%;"></div>
+                </div>
+
+                <!-- Bottom Meta Data -->
+                <div class="streak-meta">
+                    <span style="color:${s.isCompletedToday ? '#00ff88' : '#666'}">
+                        ${s.isCompletedToday ? 'GOAL COMPLETE' : 'DAILY TARGET'}
+                    </span>
+                    <span>${s.todayProgress} / ${target}</span>
                 </div>
             </div>
         </div>
     `;
 
-    document.getElementById('streak-widget-container').innerHTML = html;
+    container.innerHTML = html;
 }
-
-// Reset tool
-window.resetStreak = function() {
-    localStorage.removeItem(STREAK_KEY + STATE.agentNo);
-    showToast('Streak Reset', 'info');
-    initStreakTracker();
-};
 // ==================== CLIENT-SIDE ROUTING ====================
 
 const ROUTES = {
