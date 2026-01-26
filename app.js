@@ -6462,7 +6462,7 @@ async function renderAlbum2x() {
                                 🚨 Need to Complete (${failedMembers.length})
                             </div>
                             <div style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;">
-                                ${failedMembers.slice(0, 50).map(m => `
+                                ${failedMembers.slice(0, 50).map(m => {
                                     let dName = m.name || 'Secret Agent';
                                     if(dName.toUpperCase().startsWith('AGENT')) dName = 'Secret Agent';
                                      return `
@@ -6470,7 +6470,8 @@ async function renderAlbum2x() {
                                         background:rgba(255,68,68,0.1);border-radius:6px;font-size:11px;color:#fff;">
                                         ❌ ${sanitize(m.name || m.agentNo)}
                                     </span>
-                                `).join('')}
+                                     `;
+                                }).join('')}
                                 ${failedMembers.length > 50 ? `<span style="color:#888;font-size:11px;padding:5px;">+${failedMembers.length - 50} more</span>` : ''}
                             </div>
                         </div>
