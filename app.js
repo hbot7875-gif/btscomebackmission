@@ -4966,7 +4966,6 @@ async function renderHome() {
     const weekEl = $('current-week');
     if (weekEl) weekEl.textContent = `Week: ${selectedWeek}`;
 
-    // Background load all weeks data if missing
     if (!STATE.allWeeksData) {
         api('getAllWeeksStats', { agentNo: STATE.agentNo })
             .then(res => STATE.allWeeksData = res)
@@ -4990,7 +4989,6 @@ async function renderHome() {
     `;
 
     try {
-        // 1. Fetch Data
         const [summary, rankings, goals] = await Promise.all([
             api('getWeeklySummary', { week: selectedWeek }), 
             api('getRankings', { week: selectedWeek, limit: 5 }), 
@@ -5009,7 +5007,6 @@ async function renderHome() {
         const daysLeft = getDaysRemaining(selectedWeek);
         const agentName = STATE.data?.profile?.name || 'Agent';
         
-        // 2. Render Quick Stats Section
         const quickStatsEl = document.querySelector('.quick-stats-section');
         
         if (quickStatsEl) {
@@ -5056,7 +5053,7 @@ async function renderHome() {
             }, 50);
         }
 
-        // 3. Render Mission Cards
+        // Mission Cards Logic
         const trackGoals = goals.trackGoals || {};
         const albumGoals = goals.albumGoals || {};
         const album2xStatus = STATE.data?.album2xStatus || {};
@@ -5127,7 +5124,7 @@ async function renderHome() {
             `;
         }
         
-        // 4. Render Top Agents (MEDAL STYLE)
+        // 4. Render Top Agents (MEDAL STYLE) - FIXED DISPLAY NAME
         const rankList = rankings.rankings || [];
         const topAgentsEl = document.getElementById('home-top-agents');
         if (topAgentsEl) {
@@ -5140,9 +5137,17 @@ async function renderHome() {
                 
                 const isMe = String(r.agentNo) === String(STATE.agentNo);
 
-                // --- 🔒 SECURITY FIX: Hide Agent Numbers ---
+                // --- 🔒 SMART NAME FIX ---
                 let displayName = r.name ? sanitize(r.name) : 'Secret Agent';
-                if (displayName.toUpperCase().startsWith('AGENT')) {
+                let displayTeam = r.team ? sanitize(r.team) : '';
+
+                // If Name is "AGENTxxx" and Team field looks like a Username (doesn't start with "Team")
+                if (displayName.toUpperCase().startsWith('AGENT') && displayTeam && !displayTeam.startsWith('Team')) {
+                    displayName = displayTeam; // Promote username to Name slot
+                    displayTeam = 'Top Agent'; // Placeholder since we lost the real team name
+                } 
+                // If Name is "AGENTxxx" but Team field IS a Team, just hide the ID
+                else if (displayName.toUpperCase().startsWith('AGENT')) {
                     displayName = 'Secret Agent';
                 }
 
@@ -5157,7 +5162,7 @@ async function renderHome() {
                             ${isMe ? '<span class="you-badge">YOU</span>' : ''}
                         </div>
                         <div class="rank-team" style="color:${teamColor(r.team)}">
-                            ${r.team ? r.team.replace('Team ', '') : 'Agent'}
+                            ${displayTeam || 'Agent'}
                         </div>
                     </div>
                     <div class="rank-xp">${fmt(r.totalXP)} XP</div>
@@ -7525,9 +7530,14 @@ async function renderSummary() {
                     <div class="card-header"><h3>🏆 Top Agents</h3></div>
                     <div class="card-body">
                         ${topAgents.slice(0, 5).map((agent, i) => {
-                            // --- 🔒 SECURITY FIX: Hide Agent Numbers ---
+                            // --- 🔒 SMART NAME FIX (Matched with renderHome) ---
                             let displayName = agent.name ? sanitize(agent.name) : 'Secret Agent';
-                            if (displayName.toUpperCase().startsWith('AGENT')) {
+                            let displayTeam = agent.team ? sanitize(agent.team) : '';
+
+                            if (displayName.toUpperCase().startsWith('AGENT') && displayTeam && !displayTeam.startsWith('Team')) {
+                                displayName = displayTeam;
+                                displayTeam = 'Top Agent';
+                            } else if (displayName.toUpperCase().startsWith('AGENT')) {
                                 displayName = 'Secret Agent';
                             }
 
@@ -7539,7 +7549,7 @@ async function renderSummary() {
                                         ${displayName}
                                         ${String(agent.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}
                                     </div>
-                                    <div class="rank-team" style="color:${teamColor(agent.team)}">${agent.team}</div>
+                                    <div class="rank-team" style="color:${teamColor(agent.team)}">${displayTeam || 'Agent'}</div>
                                 </div>
                                 <div class="rank-xp">${fmt(agent.totalXP)} XP</div>
                             </div>
@@ -7562,7 +7572,6 @@ async function renderSummary() {
         container.innerHTML = `<div class="card"><div class="card-body error-state"><h3>Failed to Load Summary</h3><p>${sanitize(e.message)}</p><button onclick="renderSummary()" class="btn-primary">Retry</button></div></div>`; 
     }
 }
-
 // ==================== SHARE FUNCTIONS ====================
 
 function shareStats() {
