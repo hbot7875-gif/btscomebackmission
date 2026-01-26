@@ -6562,8 +6562,6 @@ async function renderOverallRankings() {
         const rankingsHtml = data.rankings.map((r, i) => {
             const isMe = String(r.agentNo) === String(STATE.agentNo);
             const tColor = teamColor(r.team);
-            
-            // Determine Rank Class and Content
             let rankClass = '';
             let rankContent = i + 1;
             
@@ -6571,17 +6569,20 @@ async function renderOverallRankings() {
             else if (i === 1) { rankClass = 'rank-2'; rankContent = '🥈'; }
             else if (i === 2) { rankClass = 'rank-3'; rankContent = '🥉'; }
 
+            // 🔥 FIX: Display 'Secret Agent' if name is missing, never AgentNo
+            const displayName = r.name ? sanitize(r.name) : 'Secret Agent';
+
             return `
             <div class="rank-item ${isMe ? 'highlight' : ''}" style="border-left: 3px solid ${tColor};">
                 <div class="rank-num ${rankClass}">${rankContent}</div>
                 
                 <div class="rank-info">
                     <div class="rank-name">
-                        ${sanitize(r.name)}
+                        ${displayName}
                         ${isMe ? '<span class="you-badge">YOU</span>' : ''}
                     </div>
                     <div class="rank-team" style="color: ${tColor};">
-                        ${r.team ? r.team.replace('Team ', '') : 'Agent'}
+                        ${r.team ? r.team.replace('Team ', '') : 'Unknown'}
                     </div>
                 </div>
                 
@@ -6618,16 +6619,13 @@ async function renderMyTeamRankings() {
     }
     
     try {
-        // Fetch ALL rankings to ensure accurate positioning relative to global
         const data = await api('getRankings', { week: STATE.week, limit: 1000 });
         if (data.lastUpdated) STATE.lastUpdated = data.lastUpdated;
         
-        // Filter for my team
         const teamMembers = (data.rankings || []).filter(r => 
             r.team && r.team.trim() === myTeam.trim()
         );
         
-        // Sort by XP
         teamMembers.sort((a, b) => (b.totalXP || 0) - (a.totalXP || 0));
         
         if (teamMembers.length === 0) {
@@ -6638,8 +6636,6 @@ async function renderMyTeamRankings() {
         const rankingsHtml = teamMembers.map((r, i) => {
             const isMe = String(r.agentNo) === String(STATE.agentNo);
             const tColor = teamColor(myTeam);
-            
-            // Determine Rank Class and Content (Internal Team Rank)
             let rankClass = '';
             let rankContent = i + 1;
             
@@ -6647,13 +6643,16 @@ async function renderMyTeamRankings() {
             else if (i === 1) { rankClass = 'rank-2'; rankContent = '🥈'; }
             else if (i === 2) { rankClass = 'rank-3'; rankContent = '🥉'; }
 
+            // 🔥 FIX: Display 'Secret Agent' if name is missing
+            const displayName = r.name ? sanitize(r.name) : 'Secret Agent';
+
             return `
             <div class="rank-item ${isMe ? 'highlight' : ''}" style="border-left: 3px solid ${tColor};">
                 <div class="rank-num ${rankClass}">${rankContent}</div>
                 
                 <div class="rank-info">
                     <div class="rank-name">
-                        ${sanitize(r.name)}
+                        ${displayName}
                         ${isMe ? '<span class="you-badge">YOU</span>' : ''}
                     </div>
                     <div class="rank-team" style="color: #aaa;">
