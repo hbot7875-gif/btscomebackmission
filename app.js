@@ -9870,7 +9870,7 @@ async function renderGuidePage() {
             }
         </style>
         
-        <div class="guide-page">
+                <div class="guide-page">
             <div class="guide-header">
                 <h1>📚 Agent Training Manual</h1>
                 <p>Everything you need to know about BTS Comeback Mission</p>
@@ -9880,7 +9880,7 @@ async function renderGuidePage() {
                 <button class="guide-nav-btn active" data-section="what-is">Mission</button>
                 <button class="guide-nav-btn" data-section="teams">Teams</button>
                 <button class="guide-nav-btn" data-section="goals">Goals & XP</button>
-                <button class="guide-nav-btn" data-section="streaks">🔥 Streaks</button>
+                <button class="guide-nav-btn" data-section="streaks">⚡ Streaks</button>
                 <button class="guide-nav-btn" data-section="winning">How to Win</button>
                 <button class="guide-nav-btn" data-section="rules">Rules</button>
                 <button class="guide-nav-btn" data-section="attendance">Attendance</button>
@@ -9994,33 +9994,40 @@ async function renderGuidePage() {
                     </ul>
                 </div>
             </div>
-            <!-- Section 3.5: Daily Streaks (NEW) -->
+
+            <!-- Section 3.5: Daily Streaks -->
             <div class="guide-section" id="guide-streaks">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
-                    <span class="guide-section-icon">🔥</span>
-                    <span class="guide-section-title">Daily Streaks & Freezes</span>
+                    <span class="guide-section-icon">⚡</span>
+                    <span class="guide-section-title">System Uplink (Streaks)</span>
                     <span class="guide-section-toggle">▼</span>
                 </div>
                 <div class="guide-section-content">
                     <p class="guide-text">
-                        Consistency is power! Maintain a daily streak to earn exclusive badges and show your dedication.
+                        Maintain a stable connection with HQ. Daily activity is required to keep your signal active.
                     </p>
                     
                     <div class="guide-highlight">
-                        <div class="guide-highlight-title">🎯 Daily Requirement: 10 Streams</div>
+                        <div class="guide-highlight-title">🎯 Daily Protocol</div>
                         <div class="guide-highlight-content">
-                            You must record at least <strong>10 streams</strong> (Tracks or Albums) within 24 hours to keep your streak alive.<br>
-                            <span style="font-size:11px;opacity:0.8;">(Resets every night at Midnight)</span>
+                            Record <strong>10 streams</strong> (Tracks or Albums) within 24 hours.<br>
+                            <span style="color:#ffd700;">⏰ Resets daily at 12:00 AM IST (Indian Standard Time).</span>
                         </div>
                     </div>
 
-                    <div class="guide-section-subtitle">🧊 How Freezes Work</div>
-                    <p class="guide-text">Life happens! If you miss a day, a <strong>Streak Freeze</strong> automatically activates to save your streak.</p>
+                    <div class="guide-section-subtitle">📡 Status Indicators</div>
+                    <ul class="guide-list">
+                        <li><strong>📡 NO SIGNAL:</strong> 0 Day Streak. You are offline.</li>
+                        <li><strong>🔥 STREAK ACTIVE:</strong> You are online, but haven't hit today's goal yet.</li>
+                        <li><strong>⚡ POWER RESTORED:</strong> Daily goal complete! Streak saved.</li>
+                    </ul>
+
+                    <div class="guide-section-subtitle">🧊 Freeze Protocol</div>
+                    <p class="guide-text">If you miss a day, the system automatically uses a <strong>Freeze</strong> to save your streak.</p>
                     
                     <ul class="guide-list">
-                        <li>You get <strong>2 Freezes</strong> automatically on the 1st of every month.</li>
-                        <li>If you have 0 freezes and miss a day, your streak resets to 0. 💔</li>
-                        <li>Need more? You can buy a freeze for <strong>20 XP</strong> by clicking the 🧊 icon on the home dashboard.</li>
+                        <li>Agents receive <strong>2 Freezes</strong> on the 1st of every month.</li>
+                        <li>If Freezes = 0 and you miss a day, the signal is lost (Streak 0). 💔</li>
                     </ul>
 
                     <div class="guide-section-subtitle">🏆 Streak Milestones</div>
@@ -10044,6 +10051,7 @@ async function renderGuidePage() {
                     </div>
                 </div>
             </div>
+
             <!-- Section 4: How to Win the Week -->
             <div class="guide-section" id="guide-winning">
                 <div class="guide-section-header" onclick="toggleGuideSection(this)">
@@ -10311,7 +10319,7 @@ async function renderGuidePage() {
                 <span class="guide-quick-link-text">Check Streak</span>
             </div>
         </div>
-`;
+    `;
     
     // Initialize navigation
     initGuideNav();
