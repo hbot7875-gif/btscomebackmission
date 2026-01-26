@@ -1,5 +1,4 @@
-// 🛡️ DISABLE LOGS & DEBUGGING
-const DEBUG_MODE = false; // Set to true if YOU need to debug
+const DEBUG_MODE = false; 
 
 if (!DEBUG_MODE) {
     console.log = function() {};
