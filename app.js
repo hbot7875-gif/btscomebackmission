@@ -5013,19 +5013,10 @@ async function renderHome() {
         const quickStatsEl = document.querySelector('.quick-stats-section');
         
         if (quickStatsEl) {
-            // ✅ FIX: Do NOT call renderStreakWidget here. Just create the DIV.
-            
             quickStatsEl.innerHTML = `
-                <!-- 1. Countdown -->
                 ${btsCountdownHtml}
-                
-                <!-- 2. Refresh Notice -->
                 ${refreshNotice}
-                
-                <!-- 3. STREAK PLACEHOLDER (Fixed) -->
                 <div id="streak-widget-container"></div>
-                
-                <!-- 4. Welcome Card -->
                 <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
                     <div class="card-body">
                         <div class="quick-header">
@@ -5058,10 +5049,9 @@ async function renderHome() {
                 <div id="activity-widget-container"></div>
             `;
             
-            // ✅ FIX: NOW call the function, after the HTML exists in the DOM
             setTimeout(() => {
                 if (typeof startBTSCountdown === 'function') startBTSCountdown();
-                if (typeof renderStreakWidget === 'function') renderStreakWidget(); // <--- Calls it here correctly
+                if (typeof renderStreakWidget === 'function') renderStreakWidget();
                 if (typeof updateActivityFeedUI === 'function') updateActivityFeedUI();
             }, 50);
         }
@@ -5150,6 +5140,12 @@ async function renderHome() {
                 
                 const isMe = String(r.agentNo) === String(STATE.agentNo);
 
+                // --- 🔒 SECURITY FIX: Hide Agent Numbers ---
+                let displayName = r.name ? sanitize(r.name) : 'Secret Agent';
+                if (displayName.toUpperCase().startsWith('AGENT')) {
+                    displayName = 'Secret Agent';
+                }
+
                 return `
                 <div class="rank-item ${isMe ? 'highlight' : ''}" 
                      style="border-left: 3px solid ${teamColor(r.team)}; cursor:pointer;"
@@ -5157,7 +5153,7 @@ async function renderHome() {
                     <div class="rank-num ${rankClass}">${rankContent}</div>
                     <div class="rank-info">
                         <div class="rank-name">
-                            ${sanitize(r.name)}
+                            ${displayName}
                             ${isMe ? '<span class="you-badge">YOU</span>' : ''}
                         </div>
                         <div class="rank-team" style="color:${teamColor(r.team)}">
@@ -5170,7 +5166,7 @@ async function renderHome() {
             }).join('') : '<p class="empty-text">No data yet</p>';
         }
         
-        // 5. Render Battle Standings (YOUR PREFERRED STYLE)
+        // 5. Render Battle Standings
         const sortedTeams = Object.keys(summary.teams || {}).sort((a, b) => 
             (summary.teams[b].teamXP || 0) - (summary.teams[a].teamXP || 0)
         );
@@ -5212,13 +5208,10 @@ async function renderHome() {
         
     } catch (e) { 
         console.error('Error rendering home:', e); 
-        // Handle error states
         const topAgentsEl = document.getElementById('home-top-agents');
         if (topAgentsEl) topAgentsEl.innerHTML = '<p class="error-text" style="text-align:center;">Failed to load data. Tap to retry.</p><div style="text-align:center;"><button class="btn-sm btn-secondary" onclick="renderHome()">Retry</button></div>';
-        
         const standingsEl = document.getElementById('home-standings');
         if (standingsEl) standingsEl.innerHTML = '<p class="error-text" style="text-align:center;">Failed to load standings.</p>';
-        
         showToast('Failed to load home data', 'error'); 
     }
 }
@@ -7294,7 +7287,6 @@ async function renderSummary() {
     const selectedWeek = STATE.week;
     const isCompleted = isWeekCompleted(selectedWeek);
     
-    // If week not completed, show locked state
     if (!isCompleted) {
         const days = getDaysRemaining(selectedWeek);
         container.innerHTML = `
@@ -7332,14 +7324,12 @@ async function renderSummary() {
         
         const sorted = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
         
-        // Find winner: team with highest XP that completed ALL missions
         const teamsWithAllMissions = sorted.filter(([t, info]) => 
             info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed
         );
         const winner = teamsWithAllMissions.length > 0 ? teamsWithAllMissions[0][0] : null;
         const myTeam = STATE.data?.profile?.team;
         
-        // ===== CALCULATE STREAM TOTALS =====
         let totalTrackStreams = 0;
         let totalAlbumStreams = 0;
         let totalXP = sorted.reduce((sum, [, info]) => sum + (info.teamXP || 0), 0);
@@ -7376,14 +7366,12 @@ async function renderSummary() {
         const dateStr = endDate ? new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
         
         container.innerHTML = `
-            <!-- Week Header -->
             <div class="summary-week-header">
                 <span class="summary-week-badge">${selectedWeek}</span>
                 <h2>Final Results</h2>
                 <p class="results-subtitle">🏆 Battle Concluded ${dateStr ? '• ' + dateStr : ''}</p>
             </div>
             
-            <!-- ===== WINNER ANNOUNCEMENT ===== -->
             ${winner ? `
                 <div class="winner-announcement" style="--team-color: ${teamColor(winner)};">
                     <div class="winner-trophy">🏆</div>
@@ -7396,9 +7384,7 @@ async function renderSummary() {
                             <span class="xp-label">Total XP</span>
                         </div>
                     </div>
-                    ${winner === myTeam ? `
-                        <div class="winner-you-badge">🎉 YOUR TEAM WON!</div>
-                    ` : ''}
+                    ${winner === myTeam ? `<div class="winner-you-badge">🎉 YOUR TEAM WON!</div>` : ''}
                     <div class="winner-confetti">🎊</div>
                 </div>
             ` : `
@@ -7411,22 +7397,18 @@ async function renderSummary() {
                 </div>
             `}
             
-            <!-- ===== SHAREABLE STREAMS CARD ===== -->
             <div id="shareable-stats-card" class="card" style="margin-bottom:20px;border-color:var(--purple-glow);">
                 <div class="card-header" style="background:linear-gradient(135deg, var(--purple-glow), #5a1f99);text-align:center;padding:20px;">
                     <div style="font-size:20px;margin-bottom:5px;">💜 BTS COMEBACK MISSION 💜</div>
                     <div style="color:#fff;font-size:14px;">${selectedWeek} - Total Streams Pulled</div>
                 </div>
                 <div class="card-body">
-                    
-                    <!-- Track Streams Section -->
                     <div style="margin-bottom:20px;">
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">
                             <span style="font-size:18px;">🎵</span>
                             <span style="color:var(--success);font-weight:600;font-size:14px;">TRACK STREAMS</span>
                             <span style="margin-left:auto;color:var(--success);font-weight:bold;">${fmt(totalTrackStreams)}</span>
                         </div>
-                        
                         ${trackStats.map(track => `
                             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
                                 <span style="color:#fff;font-size:13px;">${sanitize(track.name)}</span>
@@ -7435,14 +7417,12 @@ async function renderSummary() {
                         `).join('')}
                     </div>
                     
-                    <!-- Album Streams Section -->
                     <div style="margin-bottom:20px;">
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">
                             <span style="font-size:18px;">💿</span>
                             <span style="color:var(--purple-glow);font-weight:600;font-size:14px;">ALBUM STREAMS</span>
                             <span style="margin-left:auto;color:var(--purple-glow);font-weight:bold;">${fmt(totalAlbumStreams)}</span>
                         </div>
-                        
                         ${albumStats.map(album => `
                             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
                                 <span style="color:#fff;font-size:13px;">${sanitize(album.name)}</span>
@@ -7451,7 +7431,6 @@ async function renderSummary() {
                         `).join('')}
                     </div>
                     
-                    <!-- Grand Total -->
                     <div style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:12px;padding:20px;text-align:center;">
                         <div style="color:#ffd700;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">
                             🔥 Total Streams This Week 🔥
@@ -7461,28 +7440,18 @@ async function renderSummary() {
                         </div>
                     </div>
                 </div>
-                
-                <!-- Hashtags Footer -->
                 <div style="background:rgba(0,0,0,0.2);padding:10px;text-align:center;border-top:1px solid var(--border-color);">
                     <span style="color:var(--text-dim);font-size:10px;">#BTSComeback #BTSARMY #StreamingMission</span>
                 </div>
             </div>
             
-            <!-- Share Buttons -->
             <div style="display:flex;gap:10px;margin-bottom:25px;">
-                <button onclick="shareStats()" class="btn-primary" style="flex:1;">
-                    📸 Screenshot Stats
-                </button>
-                <button onclick="copyShareText()" class="btn-secondary" style="flex:1;">
-                    📋 Copy Caption
-                </button>
+                <button onclick="shareStats()" class="btn-primary" style="flex:1;">📸 Screenshot Stats</button>
+                <button onclick="copyShareText()" class="btn-secondary" style="flex:1;">📋 Copy Caption</button>
             </div>
             
-            <!-- ===== TEAM STANDINGS ===== -->
             <div class="card standings-card">
-                <div class="card-header">
-                    <h3>📊 Final Standings</h3>
-                </div>
+                <div class="card-header"><h3>📊 Final Standings</h3></div>
                 <div class="card-body standings-list">
                     ${sorted.map(([t, info], i) => {
                         const hasAllMissions = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
@@ -7514,148 +7483,75 @@ async function renderSummary() {
                 </div>
             </div>
             
-            <!-- ===== TRACK DETAILS WITH TEAM BREAKDOWN ===== -->
             <div class="card" style="margin-top:20px;">
-                <div class="card-header">
-                    <h3>🎵 Track Streams by Team</h3>
-                </div>
+                <div class="card-header"><h3>🎵 Track Streams by Team</h3></div>
                 <div class="card-body">
                     ${trackStats.map((track, i) => `
                         <div class="goal-item" style="margin-bottom:15px;">
                             <div class="goal-header">
-                                <span class="goal-name">
-                                    ${i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}${sanitize(track.name)}
-                                </span>
+                                <span class="goal-name">${i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}${sanitize(track.name)}</span>
                                 <span class="goal-status complete">${fmt(track.total)} streams</span>
                             </div>
-                            
-                            <!-- Team contribution bar -->
                             <div class="progress-bar" style="height:12px;margin:8px 0;">
                                 ${Object.entries(track.teams).filter(([,s]) => s > 0).map(([team, streams]) => {
                                     const pct = track.total > 0 ? (streams / track.total) * 100 : 0;
                                     return `<div class="progress-fill" style="width:${pct}%;background:${teamColor(team)};display:inline-block;height:100%;" title="${team}: ${fmt(streams)}"></div>`;
                                 }).join('')}
                             </div>
-                            
-                            <!-- Team labels -->
                             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
                                 ${Object.entries(track.teams).filter(([,s]) => s > 0).sort((a,b) => b[1] - a[1]).map(([team, streams]) => `
-                                    <span style="font-size:10px;padding:3px 8px;background:${teamColor(team)}22;color:${teamColor(team)};border-radius:10px;">
-                                        ${team.replace('Team ', '')}: ${fmt(streams)}
-                                    </span>
+                                    <span style="font-size:10px;padding:3px 8px;background:${teamColor(team)}22;color:${teamColor(team)};border-radius:10px;">${team.replace('Team ', '')}: ${fmt(streams)}</span>
                                 `).join('')}
                             </div>
-                            
-                            ${track.goal > 0 ? `
-                                <div style="margin-top:8px;font-size:10px;color:${track.total >= track.goal ? 'var(--success)' : 'var(--text-dim)'};">
-                                    Goal: ${fmt(track.goal)} ${track.total >= track.goal ? '✅ Achieved!' : `(${Math.round((track.total/track.goal)*100)}%)`}
-                                </div>
-                            ` : ''}
                         </div>
                     `).join('')}
                 </div>
             </div>
             
-            <!-- ===== ALBUM DETAILS WITH TEAM BREAKDOWN ===== -->
-            <div class="card" style="margin-top:20px;">
-                <div class="card-header">
-                    <h3>💿 Album Streams by Team</h3>
-                </div>
-                <div class="card-body">
-                    ${albumStats.map((album, i) => `
-                        <div class="goal-item" style="margin-bottom:15px;">
-                            <div class="goal-header">
-                                <span class="goal-name">
-                                    ${i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}${sanitize(album.name)}
-                                </span>
-                                <span class="goal-status complete">${fmt(album.total)} streams</span>
-                            </div>
-                            
-                            <div class="progress-bar" style="height:12px;margin:8px 0;">
-                                ${Object.entries(album.teams).filter(([,s]) => s > 0).map(([team, streams]) => {
-                                    const pct = album.total > 0 ? (streams / album.total) * 100 : 0;
-                                    return `<div class="progress-fill" style="width:${pct}%;background:${teamColor(team)};display:inline-block;height:100%;"></div>`;
-                                }).join('')}
-                            </div>
-                            
-                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
-                                ${Object.entries(album.teams).filter(([,s]) => s > 0).sort((a,b) => b[1] - a[1]).map(([team, streams]) => `
-                                    <span style="font-size:10px;padding:3px 8px;background:${teamColor(team)}22;color:${teamColor(team)};border-radius:10px;">
-                                        ${team.replace('Team ', '')}: ${fmt(streams)}
-                                    </span>
-                                `).join('')}
-                            </div>
-                            
-                            ${album.goal > 0 ? `
-                                <div style="margin-top:8px;font-size:10px;color:${album.total >= album.goal ? 'var(--success)' : 'var(--text-dim)'};">
-                                    Goal: ${fmt(album.goal)} ${album.total >= album.goal ? '✅ Achieved!' : `(${Math.round((album.total/album.goal)*100)}%)`}
-                                </div>
-                            ` : ''}
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            
-            <!-- ===== BATTLE STATS ===== -->
             <div class="card stats-overview-card" style="margin-top:20px;">
-                <div class="card-header">
-                    <h3>📈 Battle Stats</h3>
-                </div>
+                <div class="card-header"><h3>📈 Battle Stats</h3></div>
                 <div class="card-body">
                     <div class="stats-grid">
-                        <div class="stat-box">
-                            <div class="stat-icon">🎵</div>
-                            <div class="stat-value">${fmt(totalTrackStreams)}</div>
-                            <div class="stat-label">Track Streams</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-icon">💿</div>
-                            <div class="stat-value">${fmt(totalAlbumStreams)}</div>
-                            <div class="stat-label">Album Streams</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-icon">⭐</div>
-                            <div class="stat-value">${fmt(totalXP)}</div>
-                            <div class="stat-label">Total XP</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-icon">⚔️</div>
-                            <div class="stat-value">${sorted.length}</div>
-                            <div class="stat-label">Teams</div>
-                        </div>
+                        <div class="stat-box"><div class="stat-icon">🎵</div><div class="stat-value">${fmt(totalTrackStreams)}</div><div class="stat-label">Track Streams</div></div>
+                        <div class="stat-box"><div class="stat-icon">💿</div><div class="stat-value">${fmt(totalAlbumStreams)}</div><div class="stat-label">Album Streams</div></div>
+                        <div class="stat-box"><div class="stat-icon">⭐</div><div class="stat-value">${fmt(totalXP)}</div><div class="stat-label">Total XP</div></div>
+                        <div class="stat-box"><div class="stat-icon">⚔️</div><div class="stat-value">${sorted.length}</div><div class="stat-label">Teams</div></div>
                     </div>
                 </div>
             </div>
             
-            <!-- ===== TOP AGENTS ===== -->
             ${topAgents.length > 0 ? `
                 <div class="card" style="margin-top:20px;">
-                    <div class="card-header">
-                        <h3>🏆 Top Agents</h3>
-                    </div>
+                    <div class="card-header"><h3>🏆 Top Agents</h3></div>
                     <div class="card-body">
-                        ${topAgents.slice(0, 5).map((agent, i) => `
+                        ${topAgents.slice(0, 5).map((agent, i) => {
+                            // --- 🔒 SECURITY FIX: Hide Agent Numbers ---
+                            let displayName = agent.name ? sanitize(agent.name) : 'Secret Agent';
+                            if (displayName.toUpperCase().startsWith('AGENT')) {
+                                displayName = 'Secret Agent';
+                            }
+
+                            return `
                             <div class="rank-item ${String(agent.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}">
                                 <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
                                 <div class="rank-info">
-                                    <div class="rank-name">${sanitize(agent.name)}${String(agent.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}</div>
+                                    <div class="rank-name">
+                                        ${displayName}
+                                        ${String(agent.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}
+                                    </div>
                                     <div class="rank-team" style="color:${teamColor(agent.team)}">${agent.team}</div>
                                 </div>
                                 <div class="rank-xp">${fmt(agent.totalXP)} XP</div>
                             </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             ` : ''}
             
-            <!-- Action Buttons -->
             <div class="summary-actions" style="margin-top:20px;">
-                <button onclick="loadPage('rankings')" class="btn-secondary">
-                    👥 View Full Rankings
-                </button>
-                <button onclick="loadPage('home')" class="btn-primary">
-                    🏠 Back to Home
-                </button>
+                <button onclick="loadPage('rankings')" class="btn-secondary">👥 View Full Rankings</button>
+                <button onclick="loadPage('home')" class="btn-primary">🏠 Back to Home</button>
             </div>
         `;
         
@@ -7663,16 +7559,7 @@ async function renderSummary() {
         
     } catch (e) { 
         console.error('Summary error:', e);
-        container.innerHTML = `
-            <div class="card">
-                <div class="card-body error-state">
-                    <div class="error-icon">😵</div>
-                    <h3>Failed to Load Summary</h3>
-                    <p>${sanitize(e.message)}</p>
-                    <button onclick="renderSummary()" class="btn-primary">Retry</button>
-                </div>
-            </div>
-        `; 
+        container.innerHTML = `<div class="card"><div class="card-body error-state"><h3>Failed to Load Summary</h3><p>${sanitize(e.message)}</p><button onclick="renderSummary()" class="btn-primary">Retry</button></div></div>`; 
     }
 }
 
