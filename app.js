@@ -4669,7 +4669,6 @@ async function handleFind() {
 
 let notificationInterval = null;
 
-// ==================== LOAD DASHBOARD ====================
 // ==================== LOAD DASHBOARD (LIVE ONLY) ====================
 async function loadDashboard() {
     console.log('🏠 Loading dashboard (Live Data)...');
@@ -6016,7 +6015,46 @@ async function renderProfile() {
             <span class="stat-label">2X Done</span>
         </div>
     `;
+    // Insert "Ghost Protocol" (Leave) Button
+    const leaveContainer = document.createElement('div');
+    leaveContainer.className = 'card';
+    leaveContainer.style.cssText = 'margin-top: 15px; border-color: rgba(255, 68, 68, 0.4); background: linear-gradient(145deg, rgba(255,68,68,0.05), #0a0a0f); position: relative; overflow: hidden;';
     
+    leaveContainer.innerHTML = `
+        <!-- decorative scanline -->
+        <div style="position:absolute; top:0; left:0; width:100%; height:2px; background:#ff4444; opacity:0.5; box-shadow:0 0 10px #ff4444;"></div>
+        
+        <div class="card-body" style="padding: 15px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+                <div style="color:#ff6b6b; font-weight:700; font-size:13px; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
+                    <span>🚫</span> GHOST PROTOCOL
+                </div>
+                <div style="color:#888; font-size:10px; margin-top:4px; max-width: 200px;">
+                    Exempts you from 2X Mission. <br>
+                    <span style="color:#ff4444;">WARNING: 0 XP earned this week.</span>
+                </div>
+            </div>
+            
+            <button onclick="applyForLeave()" style="
+                background: transparent;
+                border: 1px solid #ff6b6b;
+                color: #ff6b6b;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-family: 'Share Tech Mono', monospace;
+                font-size: 11px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 0 5px rgba(255, 107, 107, 0.2);
+            " onmouseover="this.style.background='rgba(255, 107, 107, 0.1)';this.style.boxShadow='0 0 15px rgba(255, 107, 107, 0.4)'"
+              onmouseout="this.style.background='transparent';this.style.boxShadow='0 0 5px rgba(255, 107, 107, 0.2)'">
+                ACTIVATE
+            </button>
+        </div>
+    `;
+    
+    // Insert after stats grid
+    container.parentNode.insertBefore(leaveContainer, container.nextSibling);
     // Track contributions
     const tracksContainer = $('profile-tracks');
     if (tracksContainer) {
@@ -6206,18 +6244,12 @@ async function renderAlbum2x() {
     const CHALLENGE_NAME = CONFIG.ALBUM_CHALLENGE.CHALLENGE_NAME;
     const BADGE_NAME = CONFIG.ALBUM_CHALLENGE.BADGE_NAME;
     
-    // Get correct tracks for this week
     const allTeamTracks = CONFIG.getTeamAlbumTracksForWeek(currentWeek);
     const teamTracks = allTeamTracks[team] || [];
     const albumName = CONFIG.TEAMS[team]?.album || team;
     const currentTeamColor = CONFIG.TEAMS[team]?.color || '#7b2cbf';
     
-    console.log('=== ALBUM 2X DEBUG ===');
-    console.log('Week:', currentWeek, '| Team:', team);
-    console.log('Required:', REQUIRED);
-    console.log('Team Tracks:', teamTracks);
-    
-    // Show loading
+    // Show loading state
     container.innerHTML = `
         <div style="text-align:center;padding:40px;">
             <div style="font-size:32px;margin-bottom:10px;">⏳</div>
@@ -6237,63 +6269,55 @@ async function renderAlbum2x() {
             agentNo: STATE.agentNo
         });
         
-        console.log('API Response:', album2xData);
-        
-        // Get user's track data
+        // Get user tracks (Backend should send 'Exempt' string if on leave)
         userTracks = album2xData.userTracks || {};
-        
-        // Fallback to STATE.data if needed
         if (Object.keys(userTracks).length === 0) {
             userTracks = STATE.data?.album2xStatus?.tracks || {};
         }
         
-        // Get team members (backend now calculates passed correctly!)
         const teamData = album2xData.teams?.[team] || {};
         const allMembers = teamData.members || [];
         
-        // ✅ Simple filter - backend already calculated correctly
         passedMembers = allMembers.filter(m => m.passed === true);
         failedMembers = allMembers.filter(m => m.passed !== true);
         totalMembers = allMembers.length;
-        
-        console.log('Passed:', passedMembers.length);
-        console.log('Failed:', failedMembers.length);
-        console.log('Total:', totalMembers);
         
     } catch (e) {
         console.error('API Error:', e);
         userTracks = STATE.data?.album2xStatus?.tracks || {};
     }
     
-    // Smart track matching
+    // Helper to get count, handling case-sensitivity
     function getTrackCount(trackName) {
         const track = String(trackName).trim();
+        if (userTracks[track] !== undefined) return userTracks[track];
         
-        // Exact match
-        if (userTracks[track] !== undefined) return Number(userTracks[track]) || 0;
-        
-        // Case-insensitive
         const trackLower = track.toLowerCase();
         for (const key in userTracks) {
-            if (key.toLowerCase() === trackLower) {
-                return Number(userTracks[key]) || 0;
-            }
+            if (key.toLowerCase() === trackLower) return userTracks[key];
         }
-        
-        // Partial match
+        // Partial match fallback
         for (const key in userTracks) {
-            if (key.toLowerCase().includes(trackLower) || trackLower.includes(key.toLowerCase())) {
-                return Number(userTracks[key]) || 0;
-            }
+            if (key.toLowerCase().includes(trackLower) || trackLower.includes(key.toLowerCase())) return userTracks[key];
         }
-        
         return 0;
     }
     
-    // Calculate YOUR progress
     let completedCount = 0;
+    let isUserExempt = false; // Flag to track if user is on Ghost Protocol
+
     const trackResults = teamTracks.map((track, i) => {
-        const count = getTrackCount(track);
+        const rawCount = getTrackCount(track);
+        const rawString = String(rawCount).toLowerCase();
+        
+        // 🔥 CHECK FOR EXEMPT STATUS
+        if (rawString === 'exempt' || rawString === 'leave') {
+            completedCount++;
+            isUserExempt = true; // User is exempt
+            return { name: track, count: 'Exempt', passed: true };
+        }
+
+        const count = Number(rawCount) || 0;
         const passed = count >= REQUIRED;
         if (passed) completedCount++;
         return { name: track, count, passed };
@@ -6303,7 +6327,37 @@ async function renderAlbum2x() {
     const pct = trackResults.length ? Math.round((completedCount / trackResults.length) * 100) : 0;
     const teamAllComplete = failedMembers.length === 0 && totalMembers > 0;
     
-    // ✅ RENDER
+    // === UI LOGIC FOR STATUS ===
+    let statusBadgeHTML = '';
+    let statusBorderColor = currentTeamColor;
+    let mainIcon = myPassed ? '🎉' : '⏳';
+    let progressBarColor = myPassed ? '#00ff88' : currentTeamColor;
+
+    if (isUserExempt) {
+        // 👻 EXEMPT UI
+        statusBadgeHTML = `<span style="padding:4px 12px;border-radius:12px;font-size:11px;
+            background:rgba(200, 200, 200, 0.15); color:#e0e0e0; border:1px solid #666;">
+            👻 Exempt
+        </span>`;
+        statusBorderColor = '#666'; 
+        mainIcon = '👻';
+        progressBarColor = '#888'; // Grey bar for ghost mode
+    } else if (myPassed) {
+        // ✅ COMPLETE UI
+        statusBadgeHTML = `<span style="padding:4px 12px;border-radius:12px;font-size:11px;
+            background:rgba(0,255,136,0.1); color:#00ff88;">
+            ✅ Complete
+        </span>`;
+        statusBorderColor = '#00ff88';
+    } else {
+        // ⏳ IN PROGRESS UI
+        statusBadgeHTML = `<span style="padding:4px 12px;border-radius:12px;font-size:11px;
+            background:rgba(255,165,0,0.1); color:#ffa500;">
+            ⏳ In Progress
+        </span>`;
+    }
+    
+    // Render
     container.innerHTML = `
         <!-- Header -->
         <div class="card" style="background:rgba(123,44,191,0.1);border-left:3px solid #7b2cbf;margin-bottom:20px;">
@@ -6320,25 +6374,27 @@ async function renderAlbum2x() {
         </div>
         
         <!-- Your Progress -->
-        <div class="card" style="border-color:${myPassed ? '#00ff88' : currentTeamColor}">
+        <div class="card" style="border-color:${statusBorderColor}">
             <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
                 <h3 style="margin:0;">📊 Your Progress</h3>
-                <span style="padding:4px 12px;border-radius:12px;font-size:11px;
-                    background:${myPassed ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};
-                    color:${myPassed ? '#00ff88' : '#ffa500'};">
-                    ${myPassed ? '✅ Complete' : '⏳ In Progress'}
-                </span>
+                ${statusBadgeHTML}
             </div>
             <div class="card-body" style="text-align:center;padding:25px;">
-                <div style="font-size:50px;margin-bottom:15px;">${myPassed ? '🎉' : '⏳'}</div>
-                <div style="font-size:42px;font-weight:700;color:${myPassed ? '#00ff88' : '#7b2cbf'}">
+                <div style="font-size:50px;margin-bottom:15px;">${mainIcon}</div>
+                <div style="font-size:42px;font-weight:700;color:${isUserExempt ? '#ccc' : (myPassed ? '#00ff88' : '#7b2cbf')}">
                     ${completedCount}/${trackResults.length}
                 </div>
                 <p style="color:#888;margin:5px 0 15px;">tracks completed</p>
                 <div style="background:#222;border-radius:10px;height:12px;max-width:280px;margin:0 auto;overflow:hidden;">
-                    <div style="height:100%;width:${pct}%;background:${myPassed ? '#00ff88' : currentTeamColor};transition:width 0.3s;"></div>
+                    <div style="height:100%;width:${pct}%;background:${progressBarColor};transition:width 0.3s;"></div>
                 </div>
-                ${myPassed ? `
+                
+                ${isUserExempt ? `
+                    <div style="margin-top:20px;padding:12px 20px;background:rgba(255,255,255,0.05);border:1px solid #444;border-radius:10px;display:inline-flex;align-items:center;gap:10px;">
+                        <span style="font-size:22px;">🛡️</span>
+                        <span style="color:#ccc;font-weight:600;font-size:12px;">Ghost Protocol Active (0 XP)</span>
+                    </div>
+                ` : myPassed ? `
                     <div style="margin-top:20px;padding:12px 20px;background:rgba(0,255,136,0.1);border-radius:10px;display:inline-flex;align-items:center;gap:10px;">
                         <span style="font-size:22px;">🎖️</span>
                         <span style="color:#00ff88;font-weight:600;">${BADGE_NAME} Earned!</span>
@@ -6355,20 +6411,20 @@ async function renderAlbum2x() {
                     <p style="text-align:center;color:#888;padding:20px;">No tracks configured for ${sanitize(team)}</p>
                 ` : trackResults.map((t, i) => `
                     <div style="display:flex;align-items:center;padding:10px 12px;margin-bottom:6px;
-                        background:${t.passed ? 'rgba(0,255,136,0.05)' : 'rgba(255,255,255,0.02)'};
-                        border-left:3px solid ${t.passed ? '#00ff88' : '#ff6b6b'};border-radius:6px;">
-                        <span style="width:22px;height:22px;background:${t.passed ? '#00ff88' : '#333'};
+                        background:${t.passed ? (isUserExempt ? 'rgba(100,100,100,0.1)' : 'rgba(0,255,136,0.05)') : 'rgba(255,255,255,0.02)'};
+                        border-left:3px solid ${t.passed ? (isUserExempt ? '#888' : '#00ff88') : '#ff6b6b'};border-radius:6px;">
+                        <span style="width:22px;height:22px;background:${t.passed ? (isUserExempt ? '#888' : '#00ff88') : '#333'};
                             color:${t.passed ? '#000' : '#666'};border-radius:50%;display:flex;
                             align-items:center;justify-content:center;font-size:10px;font-weight:bold;margin-right:10px;">
                             ${i + 1}
                         </span>
-                        <span style="flex:1;color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        <span style="flex:1;color:${isUserExempt ? '#aaa' : '#fff'};font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                             ${sanitize(t.name)}
                         </span>
                         <span style="padding:4px 10px;border-radius:10px;font-size:11px;font-weight:600;margin-left:8px;
-                            background:${t.passed ? 'rgba(0,255,136,0.15)' : 'rgba(255,68,68,0.15)'};
-                            color:${t.passed ? '#00ff88' : '#ff6b6b'};">
-                            ${t.count}/${REQUIRED} ${t.passed ? '✓' : ''}
+                            background:${t.passed ? (isUserExempt ? 'rgba(100,100,100,0.2)' : 'rgba(0,255,136,0.15)') : 'rgba(255,68,68,0.15)'};
+                            color:${t.passed ? (isUserExempt ? '#ccc' : '#00ff88') : '#ff6b6b'};">
+                            ${t.count === 'Exempt' ? 'Exempt' : `${t.count}/${REQUIRED}`} ${t.passed ? '✓' : ''}
                         </span>
                     </div>
                 `).join('')}
@@ -6387,10 +6443,7 @@ async function renderAlbum2x() {
             </div>
             <div class="card-body">
                 ${totalMembers === 0 ? `
-                    <p style="color:#888;text-align:center;padding:20px;">
-                        <span style="font-size:24px;">📊</span><br><br>
-                        Loading team data...
-                    </p>
+                    <p style="color:#888;text-align:center;padding:20px;">Loading team data...</p>
                 ` : `
                     <!-- Progress Bar -->
                     <div style="margin-bottom:15px;">
@@ -6413,39 +6466,12 @@ async function renderAlbum2x() {
                                     <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
                                         background:rgba(255,68,68,0.1);border-radius:6px;font-size:11px;color:#fff;">
                                         ❌ ${sanitize(m.name || m.agentNo)}
-                                        ${String(m.agentNo) === String(STATE.agentNo) ? 
-                                            '<span style="background:#ff6b6b;color:#000;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:bold;">YOU</span>' : ''}
                                     </span>
                                 `).join('')}
                                 ${failedMembers.length > 50 ? `<span style="color:#888;font-size:11px;padding:5px;">+${failedMembers.length - 50} more</span>` : ''}
                             </div>
                         </div>
                     ` : ''}
-                    
-                    ${passedMembers.length > 0 ? `
-                        <div style="background:rgba(0,255,136,0.05);border-radius:10px;padding:12px;">
-                            <div style="color:#00ff88;font-size:12px;font-weight:600;margin-bottom:8px;">
-                                🎉 Completed (${passedMembers.length})
-                            </div>
-                            <div style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;">
-                                ${passedMembers.slice(0, 50).map(m => `
-                                    <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
-                                        background:rgba(0,255,136,0.1);border-radius:6px;font-size:11px;color:#ccc;">
-                                        ✅ ${sanitize(m.name || m.agentNo)}
-                                        ${String(m.agentNo) === String(STATE.agentNo) ? 
-                                            '<span style="background:#00ff88;color:#000;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:bold;">YOU</span>' : ''}
-                                    </span>
-                                `).join('')}
-                                ${passedMembers.length > 50 ? `<span style="color:#888;font-size:11px;padding:5px;">+${passedMembers.length - 50} more</span>` : ''}
-                            </div>
-                        </div>
-                    ` : `
-                        <div style="text-align:center;padding:20px;color:#888;">
-                            <span style="font-size:32px;">🎯</span>
-                            <p style="margin:10px 0 0;">No team members have completed yet.</p>
-                            <p style="font-size:11px;color:#666;">Be the first!</p>
-                        </div>
-                    `}
                 `}
             </div>
         </div>
@@ -11004,6 +11030,56 @@ function showProtocolInfo() {
 }
 window.showProtocolInfo = showProtocolInfo;
 
+async function applyForLeave() {
+    // Spy-themed confirmation text with TIMING NOTE
+    const confirmMsg = 
+`⚠️ SYSTEM OVERRIDE: GHOST PROTOCOL
+
+You are about to initiate Inactive Status for this week.
+
+>> CONSEQUENCES:
+1. [EXEMPT] You will NOT fail the Team 2X Mission.
+2. [ZERO] Your streams will NOT count for goals.
+3. [NULL] You will earn 0 XP this week.
+
+>> NOTE:
+System synchronization takes up to 1 hour. 
+Your status might not change immediately.
+
+>> CONFIRMATION REQUIRED:
+Do you wish to proceed?`;
+
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+
+    loading(true);
+
+    try {
+        const result = await api('applyLeave', {
+            agentNo: STATE.agentNo,
+            week: STATE.week
+        });
+
+        if (result.success) {
+            // Updated Toast Message
+            showToast('✅ Ghost Protocol Activated. Status will update fully within 1 hour.', 'success');
+            
+            // Reload dashboard to reflect changes where possible
+            setTimeout(() => {
+                loadDashboard();
+            }, 1000);
+        } else {
+            showToast('❌ ' + (result.error || 'Failed to apply leave'), 'error');
+        }
+    } catch (e) {
+        showToast('❌ Network Error', 'error');
+        console.error(e);
+    } finally {
+        loading(false);
+    }
+}
+window.applyForLeave = applyForLeave;
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
