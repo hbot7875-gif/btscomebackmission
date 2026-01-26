@@ -5964,7 +5964,7 @@ async function renderDrawer() {
     STATE.lastChecked.album2xBadge = album2xStatus.passed || false;
     saveNotificationState();
 }
-// ==================== PROFILE (MOBILE FIXED) ====================
+// ==================== PROFILE (UPDATED: APPLY LEAVE) ====================
 async function renderProfile() {
     const container = $('profile-stats');
     if (!container) return;
@@ -5975,13 +5975,17 @@ async function renderProfile() {
     const albumContributions = STATE.data?.albumContributions || {};
     const currentWeekXP = parseInt(stats.totalXP) || 0;
     
-    // Get badges for CURRENT WEEK only
+    // Check if user is ALREADY on leave
+    const isExempt = STATE.data?.album2xStatus?.passed === true && 
+                     Object.values(STATE.data?.album2xStatus?.tracks || {}).some(v => v === 'Exempt');
+
+    // Get badges
     const xpBadges = getLevelBadges(STATE.agentNo, currentWeekXP, STATE.week);
     const specialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
     const currentWeekBadges = [...specialBadges, ...xpBadges];
     
-    // Stats Grid
-    container.innerHTML = `
+    // --- 1. STATS GRID ---
+    let html = `
         <div class="stat-box">
             <span class="stat-value">${fmt(stats.totalXP)}</span>
             <span class="stat-label">XP (${STATE.week})</span>
@@ -6007,47 +6011,49 @@ async function renderProfile() {
             <span class="stat-label">2X Done</span>
         </div>
     `;
-    // Insert "Ghost Protocol" (Leave) Button
-    const leaveContainer = document.createElement('div');
-    leaveContainer.className = 'card';
-    leaveContainer.style.cssText = 'margin-top: 15px; border-color: rgba(255, 68, 68, 0.4); background: linear-gradient(145deg, rgba(255,68,68,0.05), #0a0a0f); position: relative; overflow: hidden;';
-    
-    leaveContainer.innerHTML = `
-        <!-- decorative scanline -->
-        <div style="position:absolute; top:0; left:0; width:100%; height:2px; background:#ff4444; opacity:0.5; box-shadow:0 0 10px #ff4444;"></div>
-        
-        <div class="card-body" style="padding: 15px; display:flex; align-items:center; justify-content:space-between;">
-            <div>
-                <div style="color:#ff6b6b; font-weight:700; font-size:13px; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
-                    <span>🚫</span> GHOST PROTOCOL
+
+    // --- 2. LEAVE REQUEST CARD (Clear "Apply Leave" UI) ---
+    html += `
+        <div class="card" style="margin-top: 20px; border-color: ${isExempt ? '#888' : '#ffa500'}; background: linear-gradient(135deg, ${isExempt ? '#333' : '#ffa50015'}, #0a0a0f); position: relative; overflow: hidden;">
+            <div class="card-body" style="padding: 15px; display:flex; align-items:center; justify-content:space-between;">
+                <div>
+                    <div style="color: ${isExempt ? '#ccc' : '#ffa500'}; font-weight:700; font-size:13px; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
+                        <span>${isExempt ? '💤' : '📝'}</span> 
+                        ${isExempt ? 'STATUS: ON LEAVE' : 'APPLY FOR LEAVE'}
+                    </div>
+                    <div style="color:#aaa; font-size:11px; margin-top:4px; max-width: 220px; line-height:1.4;">
+                        ${isExempt 
+                            ? 'You are exempt from missions this week. No XP awarded.' 
+                            : 'Can\'t stream this week? Apply for leave to protect your team stats.'}
+                    </div>
                 </div>
-                <div style="color:#888; font-size:10px; margin-top:4px; max-width: 200px;">
-                    Exempts you from 2X Mission. <br>
-                    <span style="color:#ff4444;">WARNING: 0 XP earned this week.</span>
-                </div>
+                
+                ${!isExempt ? `
+                <button onclick="openLeaveModal()" style="
+                    background: rgba(255, 165, 0, 0.1);
+                    border: 1px solid #ffa500;
+                    color: #ffa500;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 11px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    white-space: nowrap;
+                ">
+                    APPLY
+                </button>
+                ` : `
+                <button disabled style="opacity:0.5; border:1px solid #555; background:transparent; color:#888; padding:8px 12px; border-radius:6px; font-size:11px;">
+                    APPROVED
+                </button>
+                `}
             </div>
-            
-            <button onclick="applyForLeave()" style="
-                background: transparent;
-                border: 1px solid #ff6b6b;
-                color: #ff6b6b;
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-family: 'Share Tech Mono', monospace;
-                font-size: 11px;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                box-shadow: 0 0 5px rgba(255, 107, 107, 0.2);
-            " onmouseover="this.style.background='rgba(255, 107, 107, 0.1)';this.style.boxShadow='0 0 15px rgba(255, 107, 107, 0.4)'"
-              onmouseout="this.style.background='transparent';this.style.boxShadow='0 0 5px rgba(255, 107, 107, 0.2)'">
-                ACTIVATE
-            </button>
         </div>
     `;
     
-    // Insert after stats grid
-    container.parentNode.insertBefore(leaveContainer, container.nextSibling);
-    // Track contributions
+    container.innerHTML = html;
+
+    // --- 3. CONTRIBUTIONS & BADGES (Existing Logic) ---
     const tracksContainer = $('profile-tracks');
     if (tracksContainer) {
         const trackEntries = Object.entries(trackContributions).sort((a, b) => b[1] - a[1]);
@@ -6059,7 +6065,6 @@ async function renderProfile() {
         `).join('') : '<p class="empty-text">No track data yet</p>';
     }
     
-    // Album contributions
     const albumsContainer = $('profile-albums');
     if (albumsContainer) {
         const albumEntries = Object.entries(albumContributions).sort((a, b) => b[1] - a[1]);
@@ -6071,11 +6076,9 @@ async function renderProfile() {
         `).join('') : '<p class="empty-text">No album data yet</p>';
     }
     
-    // Badges Section
     const badgesContainer = $('profile-badges');
     if (badgesContainer) {
         let badgesHtml = '';
-        
         if (currentWeekBadges.length > 0) {
             badgesHtml = `
                 <div style="margin-bottom:12px;">
@@ -6105,8 +6108,6 @@ async function renderProfile() {
                 </div>
             `;
         }
-
-        // ✅ ADDED BUTTON: Link to My Drawer (All-Time)
         badgesHtml += `
             <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
                 <button onclick="loadPage('drawer')" class="btn-secondary" style="width:100%; font-size:13px;">
@@ -6114,10 +6115,120 @@ async function renderProfile() {
                 </button>
             </div>
         `;
-
         badgesContainer.innerHTML = badgesHtml;
     }
 }
+// ==================== APPLY LEAVE MODAL ====================
+
+function openLeaveModal() {
+    // Remove any existing modals
+    document.querySelectorAll('.spy-modal-overlay').forEach(e => e.remove());
+
+    const modal = document.createElement('div');
+    modal.className = 'spy-modal-overlay';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.9); z-index: 100000;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(5px); animation: fadeIn 0.3s ease;
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            background: linear-gradient(145deg, #1a1a2e, #0a0a0f);
+            border: 1px solid #ffa500;
+            border-radius: 12px;
+            padding: 0;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 0 40px rgba(255, 165, 0, 0.15);
+            overflow: hidden;
+            font-family: sans-serif;
+        ">
+            <!-- Header -->
+            <div style="
+                background: rgba(255, 165, 0, 0.15);
+                padding: 15px;
+                border-bottom: 1px solid rgba(255, 165, 0, 0.3);
+                display: flex; align-items: center; gap: 10px;
+            ">
+                <span style="font-size: 20px;">📝</span>
+                <span style="color: #ffa500; font-weight: bold; font-size: 14px;">Confirm Leave Application</span>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 20px;">
+                <p style="color: #fff; font-size: 13px; margin-top: 0; line-height: 1.5;">
+                    You are applying for <strong>Leave</strong> for the current week.
+                </p>
+
+                <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; margin: 15px 0;">
+                    <div style="color: #aaa; font-size: 11px; margin-bottom: 5px; font-weight:bold;">WHAT THIS MEANS:</div>
+                    <ul style="margin: 0; padding-left: 20px; color: #ddd; font-size: 12px; line-height: 1.6;">
+                        <li>You become <strong>EXEMPT</strong> from Team 2X Mission.</li>
+                        <li>Your team will NOT fail because of you.</li>
+                        <li>You will earn <strong>0 XP</strong> this week.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="
+                padding: 15px;
+                border-top: 1px solid rgba(255,255,255,0.1);
+                display: flex;
+                gap: 10px;
+            ">
+                <button onclick="document.querySelector('.spy-modal-overlay').remove()" style="
+                    flex: 1; padding: 12px; background: transparent; 
+                    border: 1px solid #444; color: #aaa; 
+                    border-radius: 6px; cursor: pointer;
+                ">Cancel</button>
+                
+                <button onclick="confirmLeaveApplication()" style="
+                    flex: 1; padding: 12px; background: #ffa500; 
+                    border: none; color: #000; font-weight: bold; 
+                    border-radius: 6px; cursor: pointer;
+                ">Confirm Apply</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+// Separate function to handle the actual API call
+async function confirmLeaveApplication() {
+    // Close modal
+    document.querySelector('.spy-modal-overlay').remove();
+    
+    loading(true);
+    try {
+        const result = await api('applyLeave', {
+            agentNo: STATE.agentNo,
+            week: STATE.week
+        });
+
+        if (result.success) {
+            showToast('✅ Leave Approved. Status: Exempt', 'success');
+            // Reload dashboard to reflect changes
+            setTimeout(() => {
+                loadDashboard();
+            }, 1000);
+        } else {
+            showToast('❌ ' + (result.error || 'Failed to update status'), 'error');
+        }
+    } catch (e) {
+        showToast('❌ Network Error', 'error');
+        console.error(e);
+    } finally {
+        loading(false);
+    }
+}
+
+// Export for global access
+window.openLeaveModal = openLeaveModal;
+window.confirmLeaveApplication = confirmLeaveApplication;
 // ==================== GOALS (MOBILE FIXED) ====================
 async function renderGoals() {
     const container = $('goals-content');
