@@ -5965,6 +5965,7 @@ async function renderDrawer() {
     saveNotificationState();
 }
 // ==================== PROFILE (UPDATED: APPLY LEAVE) ====================
+// ==================== PROFILE (MOBILE OPTIMIZED) ====================
 async function renderProfile() {
     const container = $('profile-stats');
     if (!container) return;
@@ -6012,41 +6013,48 @@ async function renderProfile() {
         </div>
     `;
 
-    // --- 2. LEAVE REQUEST CARD (Clear "Apply Leave" UI) ---
+    // --- 2. LEAVE REQUEST CARD (Responsive Layout) ---
     html += `
         <div class="card" style="margin-top: 20px; border-color: ${isExempt ? '#888' : '#ffa500'}; background: linear-gradient(135deg, ${isExempt ? '#333' : '#ffa50015'}, #0a0a0f); position: relative; overflow: hidden;">
-            <div class="card-body" style="padding: 15px; display:flex; align-items:center; justify-content:space-between;">
-                <div>
+            <!-- Added flex-wrap and gap for mobile responsiveness -->
+            <div class="card-body" style="padding: 15px; display:flex; flex-wrap: wrap; gap: 15px; align-items:center; justify-content:space-between;">
+                
+                <!-- Text Container: flex:1 lets it grow on desktop, min-width prevents crushing on mobile -->
+                <div style="flex: 1; min-width: 200px;">
                     <div style="color: ${isExempt ? '#ccc' : '#ffa500'}; font-weight:700; font-size:13px; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
                         <span>${isExempt ? '💤' : '📝'}</span> 
                         ${isExempt ? 'STATUS: ON LEAVE' : 'APPLY FOR LEAVE'}
                     </div>
-                    <div style="color:#aaa; font-size:11px; margin-top:4px; max-width: 220px; line-height:1.4;">
+                    <div style="color:#aaa; font-size:11px; margin-top:4px; line-height:1.4;">
                         ${isExempt 
                             ? 'You are exempt from missions this week. No XP awarded.' 
                             : 'Can\'t stream this week? Apply for leave to protect your team stats.'}
                     </div>
                 </div>
                 
-                ${!isExempt ? `
-                <button onclick="openLeaveModal()" style="
-                    background: rgba(255, 165, 0, 0.1);
-                    border: 1px solid #ffa500;
-                    color: #ffa500;
-                    padding: 8px 12px;
-                    border-radius: 6px;
-                    font-size: 11px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    white-space: nowrap;
-                ">
-                    APPLY
-                </button>
-                ` : `
-                <button disabled style="opacity:0.5; border:1px solid #555; background:transparent; color:#888; padding:8px 12px; border-radius:6px; font-size:11px;">
-                    APPROVED
-                </button>
-                `}
+                <!-- Button Container: flex-shrink:0 ensures button stays fixed width -->
+                <div style="flex-shrink: 0;">
+                    ${!isExempt ? `
+                    <button onclick="openLeaveModal()" style="
+                        background: rgba(255, 165, 0, 0.1);
+                        border: 1px solid #ffa500;
+                        color: #ffa500;
+                        padding: 10px 16px;
+                        border-radius: 8px;
+                        font-size: 11px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        white-space: nowrap;
+                        transition: all 0.2s;
+                    ">
+                        APPLY
+                    </button>
+                    ` : `
+                    <button disabled style="opacity:0.5; border:1px solid #555; background:transparent; color:#888; padding:8px 12px; border-radius:6px; font-size:11px;">
+                        APPROVED
+                    </button>
+                    `}
+                </div>
             </div>
         </div>
     `;
@@ -6168,6 +6176,10 @@ function openLeaveModal() {
                         <li>You become <strong>EXEMPT</strong> from Team 2X Mission.</li>
                         <li>Your team will NOT fail because of you.</li>
                         <li>You will earn <strong>0 XP</strong> this week.</li>
+                        <!-- ADDED TIMING NOTE HERE -->
+                        <li style="margin-top: 8px; color: #ffa500; list-style-type: none; margin-left: -20px; font-style: italic;">
+                            ⚠️ <strong>Note:</strong> System updates hourly. Your status will reflect within 1 hour.
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -6197,7 +6209,6 @@ function openLeaveModal() {
     document.body.appendChild(modal);
 }
 
-// Separate function to handle the actual API call
 async function confirmLeaveApplication() {
     // Close modal
     document.querySelector('.spy-modal-overlay').remove();
@@ -6210,8 +6221,10 @@ async function confirmLeaveApplication() {
         });
 
         if (result.success) {
-            showToast('✅ Leave Approved. Status: Exempt', 'success');
-            // Reload dashboard to reflect changes
+            // ✅ Updated Message
+            showToast('✅ Application received! Status will update in ~1 hour.', 'success');
+            
+            // Reload dashboard to reflect changes (if backend updated immediately)
             setTimeout(() => {
                 loadDashboard();
             }, 1000);
