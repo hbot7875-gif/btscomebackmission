@@ -2355,6 +2355,7 @@ function showAdminPanel() {
             <button type="button" class="admin-tab active" data-tab="create">Create Mission</button>
             <button type="button" class="admin-tab" data-tab="active">Active</button>
             <button type="button" class="admin-tab" data-tab="confirm">📋 Confirm</button>
+            <button type="button" class="admin-tab" data-tab="leaves">🛑 On Leave</button> 
             <button type="button" class="admin-tab" data-tab="assets">Badge Preview</button>
             <button type="button" class="admin-tab" data-tab="history">History</button>
         </div>
@@ -2362,6 +2363,7 @@ function showAdminPanel() {
             <div id="admin-tab-create" class="admin-tab-content active"></div>
             <div id="admin-tab-active" class="admin-tab-content"></div>
             <div id="admin-tab-confirm" class="admin-tab-content"></div>
+            <div id="admin-tab-leaves" class="admin-tab-content"></div>
             <div id="admin-tab-assets" class="admin-tab-content"></div>
             <div id="admin-tab-history" class="admin-tab-content"></div>
         </div>
@@ -2434,6 +2436,9 @@ function switchAdminTab(tabName) {
             break;
         case 'confirm':                    
             renderWeekConfirmation();
+            break;
+        case 'leaves':
+            loadLeavesAdmin(); 
             break;
         case 'assets':
             renderAdminAssets();
@@ -2980,6 +2985,95 @@ function adminApproveMissionForTeam(missionId, teamName) {
     document.body.appendChild(modal);
 }
 window.adminApproveMissionForTeam = adminApproveMissionForTeam;
+async function loadLeavesAdmin() {
+    const container = document.getElementById('admin-tab-leaves');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-text">⏳ Loading leave records...</div>';
+    
+    try {
+        const res = await api('getAgentsOnLeave', { week: STATE.week });
+        const agents = res.agents || [];
+        
+        if (agents.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center;padding:40px;color:#888;">
+                    <div style="font-size:32px;margin-bottom:10px;">✅</div>
+                    <p>No agents on leave for ${STATE.week}</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = `
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+                <h4 style="color:#fff;margin:0;">🛑 Agents on Leave (${agents.length})</h4>
+                <span class="week-badge">${STATE.week}</span>
+            </div>
+            
+            <div class="leaves-list" style="display:flex; flex-direction:column; gap:8px;">
+                ${agents.map(a => `
+                    <div style="
+                        background: #1a1a2e;
+                        border: 1px solid ${teamColor(a.team)}44;
+                        border-left: 3px solid ${teamColor(a.team)};
+                        padding: 12px;
+                        border-radius: 8px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <div>
+                            <div style="color:#fff; font-weight:bold; font-size:13px;">${sanitize(a.name)}</div>
+                            <div style="color:#888; font-size:11px;">${sanitize(a.agentNo)} • ${sanitize(a.team)}</div>
+                            <div style="color:#666; font-size:10px; margin-top:2px;">
+                                Applied: ${new Date(a.timestamp).toLocaleDateString()}
+                            </div>
+                        </div>
+                        
+                        <button onclick="adminRevokeLeave('${a.agentNo}')" style="
+                            background: rgba(255,68,68,0.1);
+                            border: 1px solid #ff4444;
+                            color: #ff4444;
+                            padding: 6px 12px;
+                            border-radius: 6px;
+                            font-size: 11px;
+                            cursor: pointer;
+                        ">
+                            Revoke
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+    } catch (e) {
+        container.innerHTML = `<p class="error-text">Failed to load leaves: ${e.message}</p>`;
+    }
+}
+async function adminRevokeLeave(targetAgentNo) {
+    if (!confirm(`⚠️ Revoke leave for ${targetAgentNo}?\nThey will be required to complete missions.`)) return;
+    
+    loading(true);
+    try {
+        const result = await api('cancelLeave', {
+            agentNo: targetAgentNo,
+            week: STATE.week
+        });
+        
+        if (result.success) {
+            showToast('✅ Leave revoked successfully', 'success');
+            loadLeavesAdmin(); // Refresh list
+        } else {
+            showToast('❌ Failed: ' + result.error, 'error');
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        loading(false);
+    }
+}
+window.adminRevokeLeave = adminRevokeLeave;
 // ==================== NEW: EXECUTE FAILURE ====================
 
 async function executeTeamFailure(missionId, teamName) {
@@ -6249,6 +6343,31 @@ async function confirmLeaveApplication() {
 // Export for global access
 window.openLeaveModal = openLeaveModal;
 window.confirmLeaveApplication = confirmLeaveApplication;
+async function cancelLeaveRequest() {
+    if (!confirm("⚠️ REACTIVATE STATUS?\n\nAre you sure you want to cancel your leave?\nYou will be required to complete missions again.")) {
+        return;
+    }
+
+    loading(true);
+    try {
+        const result = await api('cancelLeave', {
+            agentNo: STATE.agentNo,
+            week: STATE.week
+        });
+
+        if (result.success) {
+            showToast('✅ Welcome back, Agent. Leave cancelled.', 'success');
+            setTimeout(() => { loadDashboard(); }, 1000);
+        } else {
+            showToast('❌ ' + (result.error || 'Failed to cancel'), 'error');
+        }
+    } catch (e) {
+        showToast('❌ Network Error', 'error');
+    } finally {
+        loading(false);
+    }
+}
+window.cancelLeaveRequest = cancelLeaveRequest;
 // ==================== GOALS (MOBILE FIXED) ====================
 async function renderGoals() {
     const container = $('goals-content');
