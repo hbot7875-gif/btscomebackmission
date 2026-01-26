@@ -4960,7 +4960,6 @@ if (btn) {
 document.addEventListener('DOMContentLoaded', initApp);
 // ==================== START APP ====================
 document.addEventListener('DOMContentLoaded', initApp);
-// ==================== HOME RENDERER (FIXED) ====================
 async function renderHome() {
     const selectedWeek = STATE.week;
     const weekEl = $('current-week');
@@ -5053,7 +5052,6 @@ async function renderHome() {
             }, 50);
         }
 
-        // Mission Cards Logic
         const trackGoals = goals.trackGoals || {};
         const albumGoals = goals.albumGoals || {};
         const album2xStatus = STATE.data?.album2xStatus || {};
@@ -5124,7 +5122,7 @@ async function renderHome() {
             `;
         }
         
-        // 4. Render Top Agents (MEDAL STYLE) - FIXED DISPLAY NAME
+        // 4. Render Top Agents
         const rankList = rankings.rankings || [];
         const topAgentsEl = document.getElementById('home-top-agents');
         if (topAgentsEl) {
@@ -5137,19 +5135,16 @@ async function renderHome() {
                 
                 const isMe = String(r.agentNo) === String(STATE.agentNo);
 
-                // --- 🔒 SMART NAME FIX ---
+                // --- 🔒 SECURITY FIX ---
                 let displayName = r.name ? sanitize(r.name) : 'Secret Agent';
-                let displayTeam = r.team ? sanitize(r.team) : '';
-
-                // If Name is "AGENTxxx" and Team field looks like a Username (doesn't start with "Team")
-                if (displayName.toUpperCase().startsWith('AGENT') && displayTeam && !displayTeam.startsWith('Team')) {
-                    displayName = displayTeam; // Promote username to Name slot
-                    displayTeam = 'Top Agent'; // Placeholder since we lost the real team name
-                } 
-                // If Name is "AGENTxxx" but Team field IS a Team, just hide the ID
-                else if (displayName.toUpperCase().startsWith('AGENT')) {
+                
+                // If the name is exactly the Agent ID (e.g. AGENT001), hide it
+                if (displayName.toUpperCase().startsWith('AGENT')) {
                     displayName = 'Secret Agent';
                 }
+
+                // Always use the Team Name provided by the API
+                let displayTeam = r.team ? sanitize(r.team) : 'Unknown';
 
                 return `
                 <div class="rank-item ${isMe ? 'highlight' : ''}" 
@@ -5162,7 +5157,7 @@ async function renderHome() {
                             ${isMe ? '<span class="you-badge">YOU</span>' : ''}
                         </div>
                         <div class="rank-team" style="color:${teamColor(r.team)}">
-                            ${displayTeam || 'Agent'}
+                            ${displayTeam}
                         </div>
                     </div>
                     <div class="rank-xp">${fmt(r.totalXP)} XP</div>
@@ -5171,7 +5166,6 @@ async function renderHome() {
             }).join('') : '<p class="empty-text">No data yet</p>';
         }
         
-        // 5. Render Battle Standings
         const sortedTeams = Object.keys(summary.teams || {}).sort((a, b) => 
             (summary.teams[b].teamXP || 0) - (summary.teams[a].teamXP || 0)
         );
@@ -7530,16 +7524,13 @@ async function renderSummary() {
                     <div class="card-header"><h3>🏆 Top Agents</h3></div>
                     <div class="card-body">
                         ${topAgents.slice(0, 5).map((agent, i) => {
-                            // --- 🔒 SMART NAME FIX (Matched with renderHome) ---
+                            // --- 🔒 SECURITY FIX: Hide Agent Numbers ---
                             let displayName = agent.name ? sanitize(agent.name) : 'Secret Agent';
-                            let displayTeam = agent.team ? sanitize(agent.team) : '';
-
-                            if (displayName.toUpperCase().startsWith('AGENT') && displayTeam && !displayTeam.startsWith('Team')) {
-                                displayName = displayTeam;
-                                displayTeam = 'Top Agent';
-                            } else if (displayName.toUpperCase().startsWith('AGENT')) {
+                            if (displayName.toUpperCase().startsWith('AGENT')) {
                                 displayName = 'Secret Agent';
                             }
+                            // Always use the real Team Name
+                            let displayTeam = agent.team ? sanitize(agent.team) : 'Unknown';
 
                             return `
                             <div class="rank-item ${String(agent.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}">
@@ -7549,7 +7540,7 @@ async function renderSummary() {
                                         ${displayName}
                                         ${String(agent.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}
                                     </div>
-                                    <div class="rank-team" style="color:${teamColor(agent.team)}">${displayTeam || 'Agent'}</div>
+                                    <div class="rank-team" style="color:${teamColor(agent.team)}">${displayTeam}</div>
                                 </div>
                                 <div class="rank-xp">${fmt(agent.totalXP)} XP</div>
                             </div>
