@@ -4549,16 +4549,28 @@ async function renderPageByRoute(pageName) {
     updateActiveNavLink(pageName);
     closeSidebar();
     
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    // Hide all pages first
+    document.querySelectorAll('.page').forEach(p => {
+        p.classList.remove('active');
+        p.style.display = 'none'; // Ensure hidden
+    });
     
-    const dynamicPages = ['chat', 'playlists', 'gc-links', 'helper-roles', 'song-of-day', 'sotd'];
+    // ✅ FIX: Added ALL potential pages to this list so they are created dynamically if missing
+    const dynamicPages = [
+        'chat', 'playlists', 'gc-links', 'helper-roles', 'song-of-day', 'sotd',
+        'secret-missions', 'announcements', 'drawer', 'goals', 'rankings', 
+        'team-level', 'summary', 'comparison', 'album2x', 'profile', 'namjoon', 
+        'streaming-tips', 'guide'
+    ];
+
     dynamicPages.forEach(pName => {
         if (pageName === pName && !$(`page-${pName}`)) {
-            const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main');
+            const mainContent = document.querySelector('.pages-wrapper') || document.querySelector('main') || document.body;
             if (mainContent) {
                 const newPage = document.createElement('section');
                 newPage.id = `page-${pName}`;
                 newPage.className = 'page';
+                // Automatically create the content container ID (e.g., 'secret-missions-content')
                 newPage.innerHTML = `<div id="${pName}-content"></div>`;
                 mainContent.appendChild(newPage);
             }
@@ -4566,7 +4578,10 @@ async function renderPageByRoute(pageName) {
     });
 
     const el = $('page-' + pageName);
-    if (el) el.classList.add('active');
+    if (el) {
+        el.classList.add('active');
+        el.style.display = 'block'; // Ensure visible
+    }
     
     window.scrollTo({ top: 0, behavior: 'instant' });
     
