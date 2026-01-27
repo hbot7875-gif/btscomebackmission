@@ -8437,7 +8437,6 @@ async function markMissionComplete(missionId) {
     }
 }
 window.markMissionComplete = markMissionComplete;
-// ==================== UPDATED SOTD RENDERER ====================
 async function renderSOTD() {
     const container = document.getElementById('sotd-content');
     if (!container) return;
@@ -8500,19 +8499,24 @@ async function renderSOTD() {
             const remaining = Math.max(0, maxAttempts - attempts);
             const canAnswer = !wasCorrect && attempts < maxAttempts;
 
-            html += `
-                <div class="card" style="margin-bottom:16px;">
-                    <div class="card-header"><h3>💡 Today's Hint</h3></div>
-                    <div class="card-body" style="text-align:center;padding:25px;">
-                        <div style="font-size:18px;color:#ffd700;font-style:italic;padding:18px;background:rgba(255,215,0,0.08);border:1px dashed rgba(255,215,0,0.3);border-radius:12px;line-height:1.6;">
-                            "${sanitize(song.hint || 'Listen carefully...')}"
-                        </div>
-                        <div style="margin-top:15px;padding:10px 20px;background:rgba(0,255,136,0.1);border-radius:20px;display:inline-block;">
-                            <span style="color:#00ff88;font-size:14px;font-weight:600;">🎁 +${song.xpReward || 1} XP</span>
+            // Only show hint if they haven't answered yet
+            if (canAnswer) {
+                html += `
+                    <div class="card" style="margin-bottom:16px;">
+                        <div class="card-header"><h3>💡 Today's Hint</h3></div>
+                        <div class="card-body" style="text-align:center;padding:25px;">
+                            <div style="font-size:18px;color:#ffd700;font-style:italic;padding:18px;background:rgba(255,215,0,0.08);border:1px dashed rgba(255,215,0,0.3);border-radius:12px;line-height:1.6;">
+                                "${sanitize(song.hint || 'Listen carefully...')}"
+                            </div>
+                            <div style="margin-top:15px;padding:10px 20px;background:rgba(0,255,136,0.1);border-radius:20px;display:inline-block;">
+                                <span style="color:#00ff88;font-size:14px;font-weight:600;">🎁 +${song.xpReward || 1} XP</span>
+                            </div>
                         </div>
                     </div>
-                </div>
+                `;
+            }
 
+            html += `
                 <div class="card" style="border-color:${!canAnswer ? (wasCorrect ? '#00ff88' : '#ff4444') : '#7b2cbf'}; margin-bottom: 25px;">
                     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
                         <h3 style="margin:0;">${canAnswer ? '🔗 Submit Answer' : '📋 Result'}</h3>
@@ -8529,6 +8533,24 @@ async function renderSOTD() {
                                 <div style="margin-top:10px;padding:12px;background:rgba(255,255,255,0.05);border-radius:10px;">
                                     <div style="color:#fff;font-weight:bold;">${sanitize(song.title)}</div>
                                 </div>
+
+                                <!-- 🔴 YOUTUBE STREAM BOX -->
+                                ${song.youtubeId ? `
+                                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                        <p style="color:#aaa; font-size:12px; margin-bottom:12px;">Now go give it a stream! 💜</p>
+                                        <a href="https://www.youtube.com/watch?v=${song.youtubeId}" target="_blank" style="
+                                            display: flex; align-items: center; justify-content: center; gap: 10px;
+                                            width: 100%; padding: 14px;
+                                            background: linear-gradient(135deg, #ff0000, #cc0000);
+                                            color: #fff; border-radius: 10px;
+                                            text-decoration: none; font-weight: bold; font-size: 14px;
+                                            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);
+                                            transition: transform 0.2s;
+                                        " onactive="this.style.transform='scale(0.98)'">
+                                            <span style="font-size:18px;">▶️</span> Watch on YouTube
+                                        </a>
+                                    </div>
+                                ` : ''}
                             </div>
                         `}
                     </div>
@@ -8536,7 +8558,7 @@ async function renderSOTD() {
             `;
         }
 
-        // --- NEW: Previous Results Section ---
+        // --- Previous Results Section ---
         if (resultsData?.success && resultsData?.result) {
             const res = resultsData.result;
             const resDate = new Date(res.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
