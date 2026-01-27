@@ -9036,17 +9036,14 @@ async function submitJournalistNews() {
     const linkText = document.getElementById('news-link-text').value.trim();
     const password = document.getElementById('news-password').value.trim();
     
-    // 1. Validation
     if (!title || !message || !password) {
         showToast('❌ Please fill Title, Message, and Password', 'error');
         return;
     }
 
-    // 2. Loading State
     loading(true);
 
     try {
-        // 3. Send POST Request
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
             body: JSON.stringify({
@@ -9057,7 +9054,7 @@ async function submitJournalistNews() {
                 message: message,
                 link: link,
                 linkText: linkText,
-                week: 'all', // Show for every week
+                week: 'all', // Important: 'all' ensures it shows for everyone
                 agentNo: STATE.agentNo || 'Unknown'
             })
         });
@@ -9071,16 +9068,20 @@ async function submitJournalistNews() {
             document.getElementById('news-title').value = '';
             document.getElementById('news-message').value = '';
             document.getElementById('news-link').value = '';
-            document.getElementById('news-link-text').value = '';
             document.getElementById('news-password').value = '';
             
             // Hide Form
             document.getElementById('journalist-form').style.display = 'none';
             
-            // Refresh Page
-            setTimeout(() => {
-                renderAnnouncements();
-            }, 1000);
+            // 🔥 FORCE IMMEDIATE REFRESH & NOTIFICATION CHECK 🔥
+            setTimeout(async () => {
+                // 1. Reload the visual list
+                await renderAnnouncements(); 
+                
+                // 2. Force the popup to appear (Bypass polling timer)
+                checkNotifications(); 
+            }, 1500); // Wait 1.5s for Google Sheets to update
+            
         } else {
             showToast('❌ ' + (result.error || 'Failed to publish'), 'error');
         }
@@ -9092,7 +9093,6 @@ async function submitJournalistNews() {
         loading(false);
     }
 }
-
 // Make it accessible to the HTML button
 window.submitJournalistNews = submitJournalistNews;
 // ==================== PLAYLISTS PAGE ====================
