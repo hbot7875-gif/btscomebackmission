@@ -6710,6 +6710,7 @@ async function renderAlbum2x() {
                         </div>
                     </div>
                     
+                    <!-- FAILED MEMBERS (RED BOX) -->
                     ${failedMembers.length > 0 ? `
                         <div style="background:rgba(255,68,68,0.08);border-radius:10px;padding:12px;margin-bottom:12px;">
                             <div style="color:#ff6b6b;font-size:12px;font-weight:600;margin-bottom:8px;">
@@ -6722,11 +6723,33 @@ async function renderAlbum2x() {
                                      return `
                                     <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
                                         background:rgba(255,68,68,0.1);border-radius:6px;font-size:11px;color:#fff;">
-                                        ❌ ${sanitize(m.name || m.agentNo)}
+                                        ❌ ${sanitize(dName)}
                                     </span>
                                      `;
                                 }).join('')}
                                 ${failedMembers.length > 50 ? `<span style="color:#888;font-size:11px;padding:5px;">+${failedMembers.length - 50} more</span>` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- COMPLETED MEMBERS (GREEN BOX - RESTORED) -->
+                    ${passedMembers.length > 0 ? `
+                        <div style="background:rgba(0, 255, 136, 0.08); border-radius:10px; padding:12px; margin-top:12px;">
+                            <div style="color:#00ff88; font-size:12px; font-weight:600; margin-bottom:8px;">
+                                ✅ Completed Agents (${passedMembers.length})
+                            </div>
+                            <div style="display:flex; flex-wrap:wrap; gap:6px; max-height:200px; overflow-y:auto;">
+                                ${passedMembers.slice(0, 50).map(m => {
+                                    let dName = m.name || 'Secret Agent';
+                                    if(dName.toUpperCase().startsWith('AGENT')) dName = 'Secret Agent';
+                                    return `
+                                    <span style="display:inline-flex; align-items:center; gap:5px; padding:5px 10px;
+                                        background:rgba(0, 255, 136, 0.1); border-radius:6px; font-size:11px; color:#fff;">
+                                        ✨ ${sanitize(dName)}
+                                    </span>
+                                    `;
+                                }).join('')}
+                                ${passedMembers.length > 50 ? `<span style="color:#888;font-size:11px;padding:5px;">+${passedMembers.length - 50} more</span>` : ''}
                             </div>
                         </div>
                     ` : ''}
