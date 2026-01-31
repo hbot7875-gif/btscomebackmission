@@ -4192,6 +4192,99 @@ function ensureStreakCSS() {
     `;
     document.head.appendChild(style);
 }
+function ensureActivityCSS() {
+    if (document.getElementById('activity-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'activity-styles';
+    style.innerHTML = `
+        /* Container for the whole widget */
+        .activity-ticker-widget {
+            margin-top: 15px;
+            background: linear-gradient(90deg, #0f0f1f, #1a1a2e);
+            border: 1px solid rgba(123, 44, 191, 0.3);
+            border-radius: 12px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* The "LIVE" badge on the left */
+        .activity-label {
+            background: rgba(123, 44, 191, 0.15);
+            color: #00ff88;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 0 12px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-right: 1px solid rgba(123, 44, 191, 0.3);
+            z-index: 2;
+            white-space: nowrap;
+        }
+
+        .live-dot {
+            width: 6px; height: 6px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: blinkLive 2s infinite;
+        }
+
+        /* The scrolling track */
+        .activity-track-wrapper {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            height: 100%;
+            mask-image: linear-gradient(to right, transparent, black 20px, black 95%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 20px, black 95%, transparent);
+        }
+
+        .activity-track {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            position: absolute;
+            white-space: nowrap;
+            height: 100%;
+            animation: scrollTicker 30s linear infinite;
+            padding-left: 20px; /* Start slightly in */
+        }
+
+        /* Individual Items */
+        .activity-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .activity-highlight { color: #fff; font-weight: 600; }
+        .activity-icon { font-size: 14px; }
+
+        /* Animations */
+        @keyframes scrollTicker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        @keyframes blinkLive {
+            0%, 100% { opacity: 1; box-shadow: 0 0 5px #00ff88; }
+            50% { opacity: 0.4; box-shadow: none; }
+        }
+
+        /* Pause on Hover */
+        .activity-ticker-widget:hover .activity-track {
+            animation-play-state: paused;
+        }
+    `;
+    document.head.appendChild(style);
+}
 // ==================== SMART STREAK SYSTEM (IST LOCKED) ====================
 
 const STREAK_KEY = 'bts_streak_state_v2_';
@@ -4410,6 +4503,152 @@ function renderStreakWidget(s) {
 
     container.innerHTML = html;
 }
+async function updateActivityFeedUI() {
+    const container = document.getElementById('activity-widget-container');
+    if (!container) return;
+
+    ensureActivityCSS(); // Load CSS
+
+    try {
+        // 1. Fetch Activity Feed
+        const response = await api('getActivityFeed', { limit: 15 });
+        let activities = response.activities || [];
+
+        // 2. Fetch Urgent Announcements (Move this OUTSIDE the map loop)
+        try {
+            const announcementsData = await api('getAnnouncements', { week: STATE.week });
+            const urgentNews = announcementsData.announcements.find(a => a.priority === 'high');
+
+            if (urgentNews) {
+                // Add to the START of the activities array
+                activities.unshift({
+                    type: 'priority_alert',
+                    data: { title: urgentNews.title, link: urgentNews.link }
+                });
+            }
+        } catch (annError) {
+            console.warn("Announcement fetch failed for ticker", annError);
+        }
+
+        // Check if empty after checking announcements
+        if (activities.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        // 3. Filter and Format Items
+        const itemsHtml = activities.map(act => {
+            const data = act.data || {};
+            let icon = '⚡';
+            let text = '';
+            let tColor = '#7b2cbf';
+
+            switch (act.type) {
+                // --- 🚨 PRIORITY ALERTS ---
+                case 'priority_alert':
+                    icon = '🗳️';
+                    text = `<span style="color:#00d4ff; font-weight:800; text-shadow:0 0 10px #00d4ff;">PRIORITY:</span> ${sanitize(data.title)}`;
+                    break;
+
+                // --- 🎯 TEAM GOALS ---
+                case 'goal_completed':
+                    tColor = teamColor(data.team);
+                    icon = data.type === 'album2x' ? '✨' : (data.type === 'album' ? '💿' : '🎵');
+                    text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> completed <span class="activity-highlight">${sanitize(data.goal)}</span>!`;
+                    break;
+
+                case 'goal_almost':
+                    icon = '🚨';
+                    text = `<strong style="color:${teamColor(data.team)}">${sanitize(data.team)}</strong> is at <span style="color:#ff4444; font-weight:bold;">${data.percent}%</span> on ${sanitize(data.goal)}! Push!`;
+                    break;
+
+                // --- 👑 WINNERS & LEADERS ---
+                case 'sotd_winner':
+                    tColor = teamColor(data.team);
+                    icon = '🧠';
+                    text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> cracked the code for <span class="activity-highlight">${sanitize(data.song)}</span>!`;
+                    break;
+
+                case 'leader_update':
+                    tColor = teamColor(data.team);
+                    icon = '👑';
+                    text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> is currently leading the battle with ${fmt(data.xp)} XP!`;
+                    break;
+
+                // --- 🎖️ BADGES ---
+                case 'xp_milestone':
+                    icon = '🎖️';
+                    text = `<span class="activity-highlight">${sanitize(data.name)}</span> earned <span style="color:#ffd700;">${fmt(data.xp)} XP Badge</span>`;
+                    break;
+
+                case 'badge_earned': // Fallback for older events
+                    icon = '🎖️';
+                    text = `<span class="activity-highlight">${sanitize(data.name)}</span> earned <span style="color:#ffd700;">${sanitize(data.badge)}</span>`;
+                    break;
+
+                // --- 🕵️ SECRET MISSIONS ---
+                case 'secret_mission':
+                    tColor = teamColor(data.team);
+                    const isFail = (data.title || '').includes('(Failed)');
+                    icon = isFail ? '💀' : '🕵️';
+                    text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> ${isFail ? 'failed' : 'completed'}: <span class="activity-highlight">${sanitize(data.title)}</span>`;
+                    break;
+
+                // --- 🔥 STREAKS ---
+                case 'streak_update':
+                    if (data.streak < 7) return ''; // Only show 1 week+
+                    icon = '🔥';
+                    text = `<span class="activity-highlight">${sanitize(data.name)}</span> hit a <span style="color:#ff6b35; font-weight:bold;">${data.streak}-day</span> streak!`;
+                    break;
+                
+                // --- 🚀 SURGES ---
+                case 'team_surge':
+                    tColor = teamColor(data.team);
+                    icon = '🚀';
+                    text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> is surging! <span class="activity-highlight">${fmt(data.streams)} streams/hr</span>`;
+                    break;
+
+                default: return '';
+            }
+
+            if (!text) return '';
+
+            return `
+                <div class="activity-item">
+                    <span class="activity-icon">${icon}</span>
+                    <span>${text}</span>
+                </div>
+            `;
+        }).join('<span style="margin:0 15px; color:#333;">|</span>'); // Separator
+
+        if (!itemsHtml) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="activity-ticker-widget" onclick="loadPage('announcements')">
+                <div class="activity-label">
+                    <div class="live-dot"></div>
+                    <span>LIVE FEED</span>
+                </div>
+                <div class="activity-track-wrapper">
+                    <div class="activity-track">
+                        ${itemsHtml}
+                        <!-- Duplicate for seamless scrolling -->
+                        <span style="margin:0 15px; color:#333;">|</span>
+                        ${itemsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+
+    } catch (e) {
+        console.error("Activity Feed Error:", e);
+    }
+}
+// Export to window
+window.updateActivityFeedUI = updateActivityFeedUI;
 // ==================== CLIENT-SIDE ROUTING ====================
 
 const ROUTES = {
@@ -4828,14 +5067,15 @@ async function loadDashboard() {
         // 5. Trigger background checks
         setTimeout(() => {
             if (typeof initStreakTracker === 'function') initStreakTracker();
-            if (typeof initActivityFeed === 'function') initActivityFeed();
+            if (typeof updateActivityFeedUI === 'function') {
+               updateActivityFeedUI(); // Run once immediately
+               if (window.activityInterval) clearInterval(window.activityInterval);
+               window.activityInterval = setInterval(updateActivityFeedUI, 60000);
+            }
             if (typeof setupNotificationChecks === 'function') setupNotificationChecks();
             
             loadAllWeeksData();
-            checkNotifications();
-
-            
-            
+            checkNotifications();     
         }, 1000);
         
     } catch (e) {
@@ -4986,10 +5226,9 @@ function cleanupStreakAndActivity() {
         clearInterval(window.streakInterval);
         window.streakInterval = null;
     }
-    // Stop activity feed updates if applicable
-    if (typeof ACTIVITY_STATE !== 'undefined' && ACTIVITY_STATE.autoRefreshInterval) {
-        clearInterval(ACTIVITY_STATE.autoRefreshInterval);
-        ACTIVITY_STATE.autoRefreshInterval = null;
+    if (window.activityInterval) {
+       clearInterval(window.activityInterval);
+       window.activityInterval = null;
     }
     console.log('🧹 Streak and activity timers cleaned up');
 }
@@ -11386,6 +11625,8 @@ Do you wish to proceed?`;
     }
 }
 window.applyForLeave = applyForLeave;
+
+
 
 // 🛡️ UI PROTECTION
 document.addEventListener('contextmenu', event => event.preventDefault()); // Block Right Click
