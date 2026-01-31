@@ -4509,6 +4509,14 @@ async function updateActivityFeedUI() {
     const container = document.getElementById('activity-widget-container');
     if (!container) return;
 
+    const activities = [
+        { type: 'goal_completed', data: { team: 'Team Indigo', goal: '1,000 Streams' } },
+        { type: 'streak_update', data: { name: 'Agent Purple', streak: 12 } },
+        { type: 'secret_mission', data: { team: 'Team Agust D', title: 'Operation Daechwita' } },
+        { type: 'xp_milestone', data: { name: 'Agent Hope', xp: 500 } },
+        { type: 'team_surge', data: { team: 'Team Echo', streams: 150 } },
+        { type: 'goal_completed', data: { team: 'Team JITB', goal: 'Album 2X' } }
+    ];
     ensureActivityCSS(); // Load CSS
 
     try {
