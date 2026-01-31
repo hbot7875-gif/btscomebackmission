@@ -4203,7 +4203,7 @@ function ensureActivityCSS() {
             background: linear-gradient(90deg, #0f0f1f, #1a1a2e);
             border: 1px solid rgba(123, 44, 191, 0.3);
             border-radius: 12px;
-            height: 44px;
+            height: 48px;
             display: flex;
             align-items: center;
             overflow: hidden;
@@ -4247,11 +4247,11 @@ function ensureActivityCSS() {
         .activity-track {
             display: flex;
             align-items: center;
-            gap: 40px;
+            gap: 60px;
             position: absolute;
             white-space: nowrap;
             height: 100%;
-            animation: scrollTicker 500s linear infinite; 
+            animation: scrollTicker 300s linear infinite; 
             will-change: transform;
             transform: translate3d(0, 0, 0); 
         }
