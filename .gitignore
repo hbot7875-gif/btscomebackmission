@@ -4627,7 +4627,7 @@ async function updateActivityFeedUI() {
         }
 
         container.innerHTML = `
-            <div class="activity-ticker-widget" onclick="loadPage('announcements')">
+            <div class="activity-ticker-widget" onclick="STATE._activeAnnouncementsTab='log'; loadPage('announcements');">
                 <div class="activity-label">
                     <div class="live-dot"></div>
                     <span>LIVE FEED</span>
@@ -9222,96 +9222,148 @@ function extractYouTubeId(url) {
     
     return null;
 }
-// ==================== ANNOUNCEMENTS ====================
+// ==================== ANNOUNCEMENTS (TABBED VERSION) ====================
 async function renderAnnouncements() {
     const container = $('announcements-content');
     if (!container) return;
-    
-    // --- JOURNALIST PANEL UI ---
+
+    // Default tab
+    if (!STATE._activeAnnouncementsTab) STATE._activeAnnouncementsTab = 'hq';
+
+    container.innerHTML = `
+        ${renderGuide('announcements')}
+        <div class="guide-nav" style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <button class="guide-nav-btn ${STATE._activeAnnouncementsTab === 'hq' ? 'active' : ''}" 
+                    style="flex:1"
+                    onclick="STATE._activeAnnouncementsTab='hq'; renderAnnouncements();">📢 HQ News</button>
+            <button class="guide-nav-btn ${STATE._activeAnnouncementsTab === 'log' ? 'active' : ''}" 
+                    style="flex:1"
+                    onclick="STATE._activeAnnouncementsTab='log'; renderAnnouncements();">📜 Mission Log</button>
+        </div>
+        <div id="announcements-display-area"></div>
+    `;
+
+    const displayArea = $('announcements-display-area');
+
+    if (STATE._activeAnnouncementsTab === 'hq') {
+        renderHQNews(displayArea);
+    } else {
+        renderActivityLog(displayArea);
+    }
+}
+
+// Tab 1: HQ News (Official announcements + Admin Panel)
+async function renderHQNews(displayArea) {
+    // 1. Admin/Journalist Panel UI
     const journalistPanelHTML = `
-        <div class="card" style="border: 1px solid #00d4ff; background: linear-gradient(135deg, rgba(0, 212, 255, 0.05), rgba(0,0,0,0.2)); margin-bottom: 25px;">
-            <div class="card-header" style="cursor: pointer; display:flex; justify-content:space-between; align-items:center;" onclick="document.getElementById('journalist-form').style.display = document.getElementById('journalist-form').style.display === 'none' ? 'block' : 'none'">
-                <div>
-                    <h3 style="color: #00d4ff; margin:0;">📰 Journalist & Voting Panel</h3>
-                    <span style="font-size: 10px; color: #888;">(Click to Expand)</span>
-                </div>
-                <span style="color:#00d4ff;">▼</span>
+        <div class="card" style="border: 1px solid #00d4ff; background: rgba(0, 212, 255, 0.05); margin-bottom: 20px;">
+            <div class="card-header" style="cursor: pointer; display:flex; justify-content:space-between; align-items:center;" 
+                 onclick="const f = document.getElementById('journalist-form'); f.style.display = f.style.display === 'none' ? 'block' : 'none'">
+                <h3 style="color: #00d4ff; margin:0; font-size:14px;">📰 Journalist & Voting Panel</h3>
+                <span style="color:#00d4ff;">[Click to Expand/Hide]</span>
             </div>
-            
             <div id="journalist-form" class="card-body" style="display: none; padding-top: 15px;">
-                <div style="display: grid; gap: 10px;">
-                    <!-- Type Selection -->
-                    <select id="news-type" style="padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
-                        <option value="News">📰 News / Update</option>
-                        <option value="Voting">🗳️ Voting Alert (High Priority)</option>
-                    </select>
-
-                    <input type="text" id="news-title" placeholder="Headline (e.g., MAMA Voting Started!)" class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
-                    
-                    <textarea id="news-message" placeholder="Details / Instructions..." class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px; min-height: 80px; resize: vertical;"></textarea>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <input type="text" id="news-link" placeholder="Link URL (Optional)" class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
-                        <input type="text" id="news-link-text" placeholder="Button Text (e.g. Vote Now)" class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
-                    </div>
-
-                    <input type="password" id="news-password" placeholder="🔒 Enter Journalist Password" class="form-input" style="width: 100%; padding: 12px; background: #051a1a; border: 1px solid #00d4ff; color: white; border-radius: 8px;">
-                    
-                    <button onclick="submitJournalistNews()" class="btn-primary" style="width: 100%; background: #00d4ff; color: #000; font-weight: bold; padding: 12px; border:none; border-radius:8px; cursor:pointer;">
-                        📡 Broadcast Update
-                    </button>
+                <select id="news-type" class="form-input" style="width:100%; margin-bottom:10px;">
+                    <option value="News">📰 News Update</option>
+                    <option value="Voting">🗳️ Voting Alert</option>
+                </select>
+                <input type="text" id="news-title" placeholder="Headline" class="form-input" style="width:100%; margin-bottom:10px;">
+                <textarea id="news-message" placeholder="Details/Instructions..." class="form-input" style="width:100%; min-height:80px; margin-bottom:10px;"></textarea>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <input type="text" id="news-link" placeholder="Link URL" class="form-input">
+                    <input type="text" id="news-link-text" placeholder="Button Text" class="form-input">
                 </div>
+                <input type="password" id="news-password" placeholder="🔒 Journalist Password" class="form-input" style="width:100%; margin-bottom:10px; border:1px solid #00d4ff;">
+                <button onclick="submitJournalistNews()" class="btn-primary" style="width: 100%; background: #00d4ff; color: #000; font-weight:bold;">📡 Broadcast Update</button>
             </div>
         </div>
     `;
 
-    container.innerHTML = renderGuide('announcements') + journalistPanelHTML;
-    
+    displayArea.innerHTML = journalistPanelHTML + '<div class="loading-text" style="text-align:center; padding:20px;">📡 Accessing HQ Archives...</div>';
+
     try {
         const data = await api('getAnnouncements', { week: STATE.week });
         const list = data.announcements || [];
         
-        // Sort by priority and date
+        // Sort: High priority first, then newest
         const priorityOrder = { high: 1, medium: 2, low: 3 };
         list.sort((a, b) => {
             const pDiff = (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
             if (pDiff !== 0) return pDiff;
             return new Date(b.created || 0) - new Date(a.created || 0);
         });
-        
-        container.innerHTML += list.length ? list.map(a => `
-            <div class="card announcement ${getPriorityClass(a.priority)}">
-                <div class="card-body">
-                    <div class="announcement-header">
-                        <span class="announcement-date">${a.created ? new Date(a.created).toLocaleDateString() : ''}</span>
-                        ${getPriorityBadge(a.priority)}
+
+        if (list.length) {
+            const listHTML = list.map(a => `
+                <div class="card announcement ${getPriorityClass(a.priority)}">
+                    <div class="card-body">
+                        <div class="announcement-header">
+                            <span class="announcement-date">${a.created ? new Date(a.created).toLocaleDateString() : ''}</span>
+                            ${getPriorityBadge(a.priority)}
+                        </div>
+                        <h3>${sanitize(a.title)}</h3>
+                        <p style="white-space:pre-line;">${sanitize(a.message || a.content || '')}</p>
+                        ${a.link ? `<a href="${sanitize(a.link)}" target="_blank" class="announcement-link-btn" style="display:inline-block; margin-top:10px;">${sanitize(a.linkText) || '🔗 Open Link'}</a>` : ''}
                     </div>
-                    <h3>${sanitize(a.title)}</h3>
-                    <p style="white-space:pre-line;">${sanitize(a.message || a.content || '')}</p>
-                    ${a.link ? `
-                        <a href="${sanitize(a.link)}" target="_blank" class="announcement-link-btn">
-                            ${sanitize(a.linkText) || '🔗 Open Link'}
-                        </a>
-                    ` : ''}
                 </div>
-            </div>
-        `).join('') : `
-            <div class="card">
-                <div class="card-body" style="text-align:center;padding:40px;">
-                    <div style="font-size:48px;margin-bottom:16px;">📢</div>
-                    <p style="color:var(--text-dim);">No announcements at this time</p>
-                </div>
-            </div>
-        `;
-        
+            `).join('');
+            displayArea.innerHTML = journalistPanelHTML + listHTML;
+        } else {
+            displayArea.innerHTML = journalistPanelHTML + '<div class="card"><div class="card-body" style="text-align:center; color:#888;">No announcements from HQ yet.</div></div>';
+        }
+
+        // Update notification state as read
         STATE.lastChecked.announcements = Date.now();
         saveNotificationState();
-        
+
     } catch (e) {
-        console.error('Announcements error:', e);
-        container.innerHTML += '<div class="card"><div class="card-body"><p class="error-text">Failed to load announcements</p><button onclick="renderAnnouncements()" class="btn-secondary">Retry</button></div></div>';
+        displayArea.innerHTML = journalistPanelHTML + '<p class="error-text">Failed to load news archives.</p>';
     }
 }
+
+// Tab 2: Mission Log (Real-time activity log)
+async function renderActivityLog(displayArea) {
+    displayArea.innerHTML = '<div class="loading-text" style="text-align:center; padding:20px;">📂 Decrypting Mission Logs...</div>';
+    try {
+        const response = await api('getActivityFeed', { limit: 50 });
+        const activities = response.activities || [];
+        
+        if (activities.length === 0) {
+            displayArea.innerHTML = '<div class="card"><div class="card-body" style="text-align:center; color:#888;">No recent activity recorded in logs.</div></div>';
+            return;
+        }
+
+        let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+        activities.forEach(act => {
+            const data = act.data || {};
+            let text = '';
+            let icon = '⚡';
+
+            if(act.type === 'goal_completed') { text = `<strong>${data.team}</strong> completed goal: <strong>${data.goal}</strong>!`; icon = '🎯'; }
+            else if(act.type === 'streak_update') { text = `<strong>${data.name}</strong> reached a <strong style="color:#ff6b35;">${data.streak}-day</strong> streak!`; icon = '🔥'; }
+            else if(act.type === 'secret_mission') { text = `<strong>${data.team}</strong> finished classified task: ${data.title}`; icon = '🕵️'; }
+            else if(act.type === 'xp_milestone') { text = `<strong>${data.name}</strong> reached <strong>${data.xp} XP</strong> milestone!`; icon = '⭐'; }
+            else if(act.type === 'sotd_winner') { text = `<strong>${data.team}</strong> solved the Song of the Day!`; icon = '🧠'; }
+            else if(act.type === 'team_surge') { text = `<strong>${data.team}</strong> is on fire! ${data.streams} streams in the last hour!`; icon = '🚀'; }
+            else return;
+
+            html += `
+                <div class="card" style="padding:15px; margin:0; border-left:3px solid #7b2cbf; background: rgba(255,255,255,0.02);">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span style="font-size:20px;">${icon}</span>
+                        <div style="font-size:13px; color:#ccc; line-height:1.4;">${text}</div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        displayArea.innerHTML = html;
+    } catch (e) {
+        displayArea.innerHTML = '<p class="error-text">Failed to load mission logs.</p>';
+    }
+}
+
+// ==================== JOURNALIST ACTION ====================
 async function submitJournalistNews() {
     const type = document.getElementById('news-type').value;
     const title = document.getElementById('news-title').value.trim();
@@ -9321,12 +9373,11 @@ async function submitJournalistNews() {
     const password = document.getElementById('news-password').value.trim();
     
     if (!title || !message || !password) {
-        showToast('❌ Please fill Title, Message, and Password', 'error');
+        showToast('❌ Fill Title, Message, and Password', 'error');
         return;
     }
 
     loading(true);
-
     try {
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
@@ -9338,46 +9389,27 @@ async function submitJournalistNews() {
                 message: message,
                 link: link,
                 linkText: linkText,
-                week: 'all', // Important: 'all' ensures it shows for everyone
+                week: 'all',
                 agentNo: STATE.agentNo || 'Unknown'
             })
         });
 
         const result = await response.json();
-
         if (result.success) {
-            showToast('✅ Announcement Published!', 'success');
-            
-            // Clear Form
-            document.getElementById('news-title').value = '';
-            document.getElementById('news-message').value = '';
-            document.getElementById('news-link').value = '';
-            document.getElementById('news-password').value = '';
-            
-            // Hide Form
-            document.getElementById('journalist-form').style.display = 'none';
-            
-            // 🔥 FORCE IMMEDIATE REFRESH & NOTIFICATION CHECK 🔥
-            setTimeout(async () => {
-                // 1. Reload the visual list
-                await renderAnnouncements(); 
-                
-                // 2. Force the popup to appear (Bypass polling timer)
-                checkNotifications(); 
-            }, 1500); // Wait 1.5s for Google Sheets to update
-            
+            showToast('✅ Broadcast Successful!', 'success');
+            renderAnnouncements(); 
         } else {
             showToast('❌ ' + (result.error || 'Failed to publish'), 'error');
         }
-
     } catch (e) {
-        console.error(e);
         showToast('❌ Network Error', 'error');
     } finally {
         loading(false);
     }
 }
-// Make it accessible to the HTML button
+
+// Make sure these are exported at the bottom of your JS file
+window.renderAnnouncements = renderAnnouncements;
 window.submitJournalistNews = submitJournalistNews;
 // ==================== PLAYLISTS PAGE ====================
 
