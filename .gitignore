@@ -4251,7 +4251,7 @@ function ensureActivityCSS() {
             position: absolute;
             white-space: nowrap;
             height: 100%;
-            animation: scrollTicker 90s linear infinite;
+            animation: scrollTicker 140s linear infinite;
             padding-left: 20px; /* Start slightly in */
         }
 
