@@ -4240,8 +4240,8 @@ function ensureActivityCSS() {
             overflow: hidden;
             position: relative;
             height: 100%;
-            mask-image: linear-gradient(to right, transparent, black 20px, black 95%, transparent);
-            -webkit-mask-image: linear-gradient(to right, transparent, black 20px, black 95%, transparent);
+            mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
         }
 
         .activity-track {
@@ -4251,8 +4251,9 @@ function ensureActivityCSS() {
             position: absolute;
             white-space: nowrap;
             height: 100%;
-            animation: scrollTicker 140s linear infinite;
-            padding-left: 20px; /* Start slightly in */
+            animation: scrollTicker 500s linear infinite; 
+            will-change: transform;
+            transform: translate3d(0, 0, 0); 
         }
 
         /* Individual Items */
@@ -4260,8 +4261,9 @@ function ensureActivityCSS() {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            font-size: 12px;
+            font-size: 13px;
             color: #ccc;
+            text-shadow: 0 0 2px rgba(255,255,255,0.1);
         }
 
         .activity-highlight { color: #fff; font-weight: 600; }
