@@ -997,7 +997,7 @@ async function checkNotifications() {
             checkNewPlaylists(),
             checkNewMissions(),
             checkNewSongOfDay(),
-            checkNewSOTDResults()
+            checkNewSOTDResults(),
             checkNewResultsRelease()
         ]);
         
