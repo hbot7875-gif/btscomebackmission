@@ -4560,140 +4560,148 @@ async function updateActivityFeedUI() {
     const container = document.getElementById('activity-widget-container');
     if (!container) return;
 
-    ensureActivityCSS(); // Load CSS
+    // 1. Force Styles (Slower Animation - 120s)
+    // We add this style block dynamically to override the default CSS
+    const styleId = 'activity-styles-fixed';
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.innerHTML = `
+            .activity-ticker-widget {
+                margin-top: 15px;
+                background: linear-gradient(90deg, #0f0f1f, #1a1a2e);
+                border: 1px solid rgba(123, 44, 191, 0.3);
+                border-radius: 12px;
+                height: 48px;
+                display: flex;
+                align-items: center;
+                overflow: hidden;
+                position: relative;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }
+            .activity-label {
+                background: rgba(123, 44, 191, 0.15);
+                color: #00ff88;
+                font-size: 10px;
+                font-weight: 800;
+                padding: 0 12px;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                border-right: 1px solid rgba(123, 44, 191, 0.3);
+                z-index: 10;
+                position: relative;
+                white-space: nowrap;
+            }
+            .live-dot { width: 6px; height: 6px; background: #00ff88; border-radius: 50%; animation: blinkLive 2s infinite; }
+            .activity-track-wrapper {
+                flex: 1;
+                overflow: hidden;
+                position: relative;
+                height: 100%;
+                mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+                -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+            }
+            .activity-track {
+                display: flex;
+                align-items: center;
+                gap: 40px;
+                position: absolute;
+                white-space: nowrap;
+                height: 100%;
+                /* ✅ 120s = Slow News Ticker Speed */
+                animation: scrollTicker 120s linear infinite; 
+                will-change: transform;
+            }
+            /* Pause on Hover (Laptop) or Touch (Mobile) */
+            .activity-ticker-widget:hover .activity-track,
+            .activity-ticker-widget:active .activity-track {
+                animation-play-state: paused;
+            }
+            .activity-item { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #ccc; }
+            .activity-highlight { color: #fff; font-weight: 600; }
+            .activity-icon { font-size: 14px; }
+            @keyframes scrollTicker {
+                0% { transform: translateX(100%); }
+                100% { transform: translateX(-100%); }
+            }
+            @keyframes blinkLive { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        `;
+        document.head.appendChild(style);
+    }
 
-     try {
-        // 1. Fetch Activity Feed
-        const response = await api('getActivityFeed', { limit: 15 });
+    try {
+        // 2. Fetch Data
+        const response = await api('getActivityFeed', { limit: 20 });
         let activities = response.activities || [];
 
-        // 2. Fetch Urgent Announcements
+        // 3. Add Urgent Announcements
         try {
             const announcementsData = await api('getAnnouncements', { week: STATE.week });
             const urgentNews = announcementsData.announcements.find(a => a.priority === 'high');
-
             if (urgentNews) {
                 activities.unshift({
                     type: 'priority_alert',
                     data: { title: urgentNews.title, link: urgentNews.link }
                 });
             }
-        } catch (annError) {
-            console.warn("Announcement fetch failed", annError);
-        }
+        } catch (e) {}
 
-        // --- 🔥 FIX START: Handle Empty State ---
+        // 4. 🔥 Fallback if Empty (Prevents black bar)
         if (activities.length === 0) {
-            // Instead of hiding, show a placeholder
-            activities.push({
-                type: 'system_msg',
-                data: { text: 'Waiting for live updates...' } 
-            });
+            activities.push({ type: 'system_msg', data: { text: 'System Online. Waiting for live updates...' } });
         }
-        // --- 🔥 FIX END ---
 
-        // 3. Filter and Format Items
+        // 5. Generate HTML
         const itemsHtml = activities.map(act => {
             const data = act.data || {};
             let icon = '⚡';
             let text = '';
-            let tColor = '#7b2cbf';
 
             switch (act.type) {
-                // --- 🚨 PRIORITY ALERTS ---
                 case 'priority_alert':
-                    icon = '🗳️';
-                    text = `<span style="color:#00d4ff; font-weight:800; text-shadow:0 0 10px #00d4ff;">PRIORITY:</span> ${sanitize(data.title)}`;
+                    icon = '🚨'; text = `<span style="color:#ff4444;font-weight:bold;">ALERT:</span> ${sanitize(data.title)}`;
                     break;
-
-                // --- 🎯 TEAM GOALS ---
                 case 'goal_completed':
-                    tColor = teamColor(data.team);
-                    icon = data.type === 'album2x' ? '✨' : (data.type === 'album' ? '💿' : '🎵');
-                    text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> completed <span class="activity-highlight">${sanitize(data.goal)}</span>!`;
+                    icon = '🎯'; text = `<strong style="color:${teamColor(data.team)}">${sanitize(data.team)}</strong> completed <span class="activity-highlight">${sanitize(data.goal)}</span>!`;
                     break;
-
-                case 'goal_almost':
-                    icon = '🚨';
-                    text = `<strong style="color:${teamColor(data.team)}">${sanitize(data.team)}</strong> is at <span style="color:#ff4444; font-weight:bold;">${data.percent}%</span> on ${sanitize(data.goal)}! Push!`;
+                case 'streak_update':
+                    // 🔥 REMOVED THE FILTER: All streaks show now
+                    icon = '🔥'; text = `<span class="activity-highlight">${sanitize(data.name)}</span> hit a <span style="color:#ff6b35;font-weight:bold;">${data.streak}-day</span> streak!`;
                     break;
-
-                // --- 👑 WINNERS & LEADERS ---
-                case 'sotd_winner':
-                    tColor = teamColor(data.team);
-                    icon = '🧠';
-                    text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> cracked the code for <span class="activity-highlight">${sanitize(data.song)}</span>!`;
-                    break;
-
-                case 'leader_update':
-                    tColor = teamColor(data.team);
-                    icon = '👑';
-                    text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> is currently leading the battle with ${fmt(data.xp)} XP!`;
-                    break;
-
-                // --- 🎖️ BADGES ---
-                case 'xp_milestone':
-                    icon = '🎖️';
-                    text = `<span class="activity-highlight">${sanitize(data.name)}</span> earned <span style="color:#ffd700;">${fmt(data.xp)} XP Badge</span>`;
-                    break;
-
-                case 'badge_earned': // Fallback for older events
-                    icon = '🎖️';
-                    text = `<span class="activity-highlight">${sanitize(data.name)}</span> earned <span style="color:#ffd700;">${sanitize(data.badge)}</span>`;
-                    break;
-
-                // --- 🕵️ SECRET MISSIONS ---
                 case 'secret_mission':
-                    tColor = teamColor(data.team);
                     const isFail = (data.title || '').includes('(Failed)');
                     icon = isFail ? '💀' : '🕵️';
-                    text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> ${isFail ? 'failed' : 'completed'}: <span class="activity-highlight">${sanitize(data.title)}</span>`;
+                    text = `<strong style="color:${teamColor(data.team)}">${sanitize(data.team)}</strong> ${isFail?'failed':'completed'}: <span class="activity-highlight">${sanitize(data.title)}</span>`;
                     break;
-
-                // --- 🔥 STREAKS ---
-                case 'streak_update':
-                    if (data.streak < 7) return ''; // Only show 1 week+
-                    icon = '🔥';
-                    text = `<span class="activity-highlight">${sanitize(data.name)}</span> hit a <span style="color:#ff6b35; font-weight:bold;">${data.streak}-day</span> streak!`;
+                case 'system_msg':
+                    icon = '📡'; text = data.text;
                     break;
-                
-                // --- 🚀 SURGES ---
-                case 'team_surge':
-                    tColor = teamColor(data.team);
-                    icon = '🚀';
-                    text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> is surging! <span class="activity-highlight">${fmt(data.streams)} streams/hr</span>`;
+                case 'xp_milestone':
+                    icon = '⭐'; text = `<span class="activity-highlight">${sanitize(data.name)}</span> reached ${data.xp} XP!`;
                     break;
-
-                default: return '';
+                default:
+                    // Fallback for new types like 'verification' or 'results_release'
+                    if (data.title || data.message || data.goal) {
+                        text = sanitize(data.title || data.message || data.goal);
+                    }
             }
 
-            if (!text) return '';
+            if (!text) return null; // Return null instead of empty string
 
-            return `
-                <div class="activity-item">
-                    <span class="activity-icon">${icon}</span>
-                    <span>${text}</span>
-                </div>
-            `;
-        }).join('<span style="margin:0 15px; color:#333;">|</span>'); // Separator
+            return `<div class="activity-item"><span class="activity-icon">${icon}</span><span>${text}</span></div>`;
+        }).filter(Boolean).join('<span style="margin:0 15px; color:#333;">|</span>'); // Only join valid items
 
-        if (!itemsHtml) {
-            container.innerHTML = '';
-            return;
-        }
-
+        // 6. Render Widget
         container.innerHTML = `
             <div class="activity-ticker-widget" onclick="STATE._activeAnnouncementsTab='log'; loadPage('announcements');">
-                <div class="activity-label">
-                    <div class="live-dot"></div>
-                    <span>LIVE FEED</span>
-                </div>
+                <div class="activity-label"><div class="live-dot"></div><span>LIVE FEED</span></div>
                 <div class="activity-track-wrapper">
                     <div class="activity-track">
                         ${itemsHtml}
-                        <!-- Duplicate for seamless scrolling -->
                         <span style="margin:0 15px; color:#333;">|</span>
-                        ${itemsHtml}
+                        ${itemsHtml} <!-- Duplicated for seamless loop -->
                     </div>
                 </div>
             </div>
