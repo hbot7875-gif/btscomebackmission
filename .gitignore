@@ -998,6 +998,7 @@ async function checkNotifications() {
             checkNewMissions(),
             checkNewSongOfDay(),
             checkNewSOTDResults()
+            checkNewResultsRelease()
         ]);
         
         const notifications = [];
@@ -1334,6 +1335,56 @@ async function checkNewMissions() {
         
     } catch (e) {
         console.error('❌ Mission check error:', e);
+        return null;
+    }
+}
+// ======================================================
+// ADD THIS NEW FUNCTION TO FRONTEND JS
+// ======================================================
+
+async function checkNewResultsRelease() {
+    try {
+        // 1. Calculate which week to check (The previous week relative to today)
+        // If today is in Week 9 dates, we check Week 8.
+        if (!STATE.weeks || STATE.weeks.length === 0) return null;
+        
+        // Find current active week index based on Date (using your existing logic)
+        // Or simply use the week preceding the current date-based week
+        // Simple Fallback: Check the week currently selected in the UI
+        const targetWeek = STATE.week; 
+
+        // 2. Check if we already showed this notification
+        const seenKey = `results_seen_v2_${targetWeek}`;
+        if (localStorage.getItem(seenKey)) return null;
+
+        // 3. Ask Server: "Is this week released?"
+        const data = await api('getWeeklySummary', { week: targetWeek });
+        
+        // 4. If Released AND Week is actually over
+        if (data.resultsReleased === true && isWeekCompleted(targetWeek)) {
+            
+            // Mark as seen so it doesn't pop up every 3 minutes
+            localStorage.setItem(seenKey, 'true');
+
+            // 5. Return the Notification Object
+            return {
+                type: 'results',
+                icon: '🏆',
+                title: 'Results Published!',
+                message: `The final results for ${targetWeek} are now live. See who won!`,
+                priority: 'high', // ⚠️ Forces the Popup
+                action: () => {
+                    STATE.week = targetWeek;
+                    loadPage('summary');
+                },
+                actionText: 'View Winner',
+                id: `release_${targetWeek}`
+            };
+        }
+        return null;
+
+    } catch (e) {
+        console.error('Results check failed', e);
         return null;
     }
 }
@@ -4511,32 +4562,35 @@ async function updateActivityFeedUI() {
 
     ensureActivityCSS(); // Load CSS
 
-    try {
+     try {
         // 1. Fetch Activity Feed
         const response = await api('getActivityFeed', { limit: 15 });
         let activities = response.activities || [];
 
-        // 2. Fetch Urgent Announcements (Move this OUTSIDE the map loop)
+        // 2. Fetch Urgent Announcements
         try {
             const announcementsData = await api('getAnnouncements', { week: STATE.week });
             const urgentNews = announcementsData.announcements.find(a => a.priority === 'high');
 
             if (urgentNews) {
-                // Add to the START of the activities array
                 activities.unshift({
                     type: 'priority_alert',
                     data: { title: urgentNews.title, link: urgentNews.link }
                 });
             }
         } catch (annError) {
-            console.warn("Announcement fetch failed for ticker", annError);
+            console.warn("Announcement fetch failed", annError);
         }
 
-        // Check if empty after checking announcements
+        // --- 🔥 FIX START: Handle Empty State ---
         if (activities.length === 0) {
-            container.innerHTML = '';
-            return;
+            // Instead of hiding, show a placeholder
+            activities.push({
+                type: 'system_msg',
+                data: { text: 'Waiting for live updates...' } 
+            });
         }
+        // --- 🔥 FIX END ---
 
         // 3. Filter and Format Items
         const itemsHtml = activities.map(act => {
