@@ -4322,7 +4322,7 @@ function ensureActivityCSS() {
 
         /* Animations */
         @keyframes scrollTicker {
-            0% { transform: translateX(100%); }
+            translateX(containerWidth) { transform: translateX(0); }
             100% { transform: translateX(-100%); }
         }
 
