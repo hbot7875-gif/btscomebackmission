@@ -4302,7 +4302,7 @@ function ensureActivityCSS() {
             position: absolute;
             white-space: nowrap;
             height: 100%;
-            animation: scrollTicker 300s linear infinite; 
+            animation: scrollTicker 120s linear infinite; 
             will-change: transform;
             transform: translate3d(0, 0, 0); 
         }
