@@ -8162,63 +8162,126 @@ async function renderSummary() {
         `; 
     }
 }
-// ==================== SHARE FUNCTIONS ====================
-
-function shareStats() {
+// ==================== SAVE POSTER TO GALLERY ====================
+async function shareStats() {
     const card = document.getElementById('shareable-stats-card');
     if (!card) {
-        showToast('Stats card not found', 'error');
+        showToast('Poster not found', 'error');
         return;
     }
-    
-    // Scroll to card
-    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    
-    // Add highlight effect
-    card.style.transition = 'all 0.3s ease';
-    card.style.boxShadow = '0 0 30px rgba(123, 44, 191, 0.6), 0 0 60px rgba(123, 44, 191, 0.3)';
-    card.style.transform = 'scale(1.01)';
-    
-    showToast('📸 Screenshot the highlighted card!', 'success');
-    
-    // Remove highlight after 6 seconds
-    setTimeout(() => {
-        card.style.boxShadow = '';
-        card.style.transform = '';
-    }, 6000);
+
+    // Show loading state
+    const btn = event?.target?.closest('button');
+    const originalText = btn?.innerHTML;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Generating...';
+    }
+
+    try {
+        // Capture the card as canvas
+        const canvas = await html2canvas(card, {
+            backgroundColor: '#0a0a0f',
+            scale: 2, // Higher quality
+            useCORS: true,
+            allowTaint: true,
+            logging: false
+        });
+
+        // Convert to blob
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+        
+        // Try Web Share API first (works best on mobile)
+        if (navigator.canShare && navigator.canShare({ files: [new File([blob], 'hopetracker-stats.png', { type: 'image/png' })] })) {
+            const file = new File([blob], 'hopetracker-stats.png', { type: 'image/png' });
+            await navigator.share({
+                files: [file],
+                title: 'HopeTracker Stats',
+                text: 'Check out our streaming stats! 💜'
+            });
+            showToast('Share menu opened!', 'success');
+        } else {
+            // Fallback: Download the image
+            downloadImage(canvas);
+        }
+
+    } catch (e) {
+        console.error('Share error:', e);
+        
+        // Final fallback: open in new tab
+        try {
+            const canvas = await html2canvas(card, { backgroundColor: '#0a0a0f', scale: 2 });
+            openImageInNewTab(canvas);
+        } catch (e2) {
+            showToast('Could not generate image', 'error');
+        }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
 }
 
-function copyShareText() {
-    const week = STATE.week || 'This Week';
-    
-    const shareText = `💜 BTS COMEBACK MISSION 💜
-
-${week} Results are in! 🔥
-
-Our ARMY agents came together and pulled amazing streaming numbers! 
-
-Every stream counts. Join us in supporting BTS! 🎵
-
-#BTSComeback #BTS #BTSARMY #StreamingMission
-
-💜 Fighting! 보라해! 💜`;
-    
-    navigator.clipboard.writeText(shareText).then(() => {
-        showToast('✅ Caption copied to clipboard!', 'success');
-    }).catch(() => {
-        // Fallback for older browsers
-        const textarea = document.createElement('textarea');
-        textarea.value = shareText;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        showToast('✅ Caption copied!', 'success');
-    });
+// ==================== DOWNLOAD IMAGE ====================
+function downloadImage(canvas) {
+    const link = document.createElement('a');
+    link.download = `hopetracker-${STATE.week || 'stats'}.png`;
+    link.href = canvas.toDataURL('image/png', 1.0);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('📥 Image downloaded!', 'success');
 }
 
+// ==================== OPEN IN NEW TAB (Long-press to save) ====================
+function openImageInNewTab(canvas) {
+    const imageData = canvas.toDataURL('image/png');
+    const newTab = window.open();
+    if (newTab) {
+        newTab.document.write(`
+            <html>
+            <head>
+                <title>HopeTracker Stats</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    body { 
+                        margin: 0; 
+                        background: #000; 
+                        display: flex; 
+                        flex-direction: column;
+                        align-items: center; 
+                        justify-content: center; 
+                        min-height: 100vh;
+                        padding: 20px;
+                        box-sizing: border-box;
+                    }
+                    img { 
+                        max-width: 100%; 
+                        height: auto; 
+                        border-radius: 12px;
+                    }
+                    p {
+                        color: #888;
+                        font-family: -apple-system, sans-serif;
+                        font-size: 14px;
+                        margin-top: 20px;
+                        text-align: center;
+                    }
+                </style>
+            </head>
+            <body>
+                <img src="${imageData}" alt="HopeTracker Stats">
+                <p>📱 Long-press image to save to gallery</p>
+            </body>
+            </html>
+        `);
+        showToast('Long-press to save image', 'info');
+    } else {
+        // If popup blocked, download instead
+        downloadImage(canvas);
+    }
+}
 // Add to window exports
 window.shareStats = shareStats;
 window.copyShareText = copyShareText;
