@@ -5286,7 +5286,7 @@ function setupDashboard() {
             }
         };
     });
-    
+}
     if (isAdminAgent()) addAdminIndicator();
     
     const menuBtn = $('menu-btn');
