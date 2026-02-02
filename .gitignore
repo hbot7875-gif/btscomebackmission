@@ -2187,12 +2187,24 @@ function getAllBadges(agentNo, totalXP, week = STATE.week) {
     return [...specialBadges, ...xpBadges];
 }
 function isTeamEligibleForWin(teamInfo) {
+    if (!teamInfo) return false;
+    
+    // Loose helper to handle "TRUE", "Yes", or true
+    const is = (val) => {
+        if (val === true || val === 1) return true;
+        if (typeof val === 'string') {
+            const s = val.toUpperCase();
+            return s === 'TRUE' || s === 'YES';
+        }
+        return false;
+    };
+
     return (
-        teamInfo.trackGoalPassed === true &&
-        teamInfo.albumGoalPassed === true &&
-        teamInfo.album2xPassed === true &&
-        teamInfo.attendanceConfirmed === true &&
-        teamInfo.policeConfirmed === true
+        is(teamInfo.trackGoalPassed) &&
+        is(teamInfo.albumGoalPassed) &&
+        is(teamInfo.album2xPassed) &&
+        is(teamInfo.attendanceConfirmed) &&
+        is(teamInfo.policeConfirmed)
     );
 }
 
