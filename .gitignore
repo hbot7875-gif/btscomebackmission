@@ -7870,14 +7870,16 @@ async function renderComparison() {
         container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; 
     }
 }
-// ==================== SUMMARY (FIXED - MATCHES ORIGINAL THEME) ====================
+// ==================== SUMMARY (UPDATED WITH SPECIFIC FAIL REASONS) ====================
 async function renderSummary() {
-    const container = $('summary-content');
+    const container = document.getElementById('summary-content'); // Fixed selector
     if (!container) return;
     
     const selectedWeek = STATE.week;
     const isCompleted = isWeekCompleted(selectedWeek);
     
+    // --- 1. LOCKED VIEW ---
+    // If week isn't over yet
     if (!isCompleted) {
         const days = getDaysRemaining(selectedWeek);
         container.innerHTML = `
@@ -7898,7 +7900,35 @@ async function renderSummary() {
         `;
         return;
     }
+
+    // --- 2. ADMIN LOCK CHECK ---
+    // If week is over, but Admin hasn't released results yet
+    const isReleased = STATE.data?.resultsReleased === true || STATE.data?.teamInfo?.resultsReleased === true;
+
+    if (!isReleased) {
+        container.innerHTML = `
+            <div class="card" style="border: 1px solid #ffa500; background: rgba(255,165,0,0.05);">
+                <div class="card-body" style="text-align: center; padding: 40px;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🔒</div>
+                    <h3 style="color: #fff; margin: 0 0 10px;">Results Pending Verification</h3>
+                    <p style="color: #aaa; font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
+                        The battle has ended, but HQ is currently verifying:<br>
+                        <span style="color:#fff">📋 Attendance Reports</span> & <span style="color:#fff">👮 Police Checks</span>
+                    </p>
+                    <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; display:inline-block;">
+                        <p style="color: #ffa500; font-size: 11px; margin:0;">
+                            Results will be published by Admin shortly.
+                        </p>
+                    </div>
+                    <br>
+                    <button onclick="loadPage('home')" class="btn-secondary" style="margin-top:25px;">🏠 Return to Dashboard</button>
+                </div>
+            </div>
+        `;
+        return; 
+    }
     
+    // --- 3. LIVE RESULTS VIEW ---
     container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
     
     try {
@@ -7912,15 +7942,16 @@ async function renderSummary() {
         const trackGoals = goals.trackGoals || {};
         const albumGoals = goals.albumGoals || {};
         const topAgents = rankings.rankings || [];
-        
-        const sorted = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
-        
-        const teamsWithAllMissions = sorted.filter(([t, info]) => 
-            info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed
-        );
-        const winner = teamsWithAllMissions.length > 0 ? teamsWithAllMissions[0][0] : null;
         const myTeam = STATE.data?.profile?.team;
         
+        // Sort teams by XP
+        const sorted = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
+        
+        // Find winner based on Backend Flag (isWinner = true)
+        const winnerEntry = sorted.find(([t, info]) => info.isWinner === true);
+        const winner = winnerEntry ? winnerEntry[0] : null;
+        
+        // Calculate Totals for Stats Card
         let totalTrackStreams = 0;
         let totalAlbumStreams = 0;
         let totalXP = sorted.reduce((sum, [, info]) => sum + (info.teamXP || 0), 0);
@@ -7982,12 +8013,13 @@ async function renderSummary() {
                 <div class="card" style="margin-bottom:20px;">
                     <div class="card-body" style="text-align:center;padding:30px;">
                         <div style="font-size:48px;margin-bottom:10px;">😔</div>
-                        <h3 style="color:var(--danger);margin:0;">No Winner This Week</h3>
-                        <p style="color:var(--text-dim);margin-top:10px;">No team completed all 3 missions.</p>
+                        <h3 style="color:#ff6b6b;margin:0;">No Winner This Week</h3>
+                        <p style="color:#888;margin-top:10px;">No team met all 3 requirements (Tracks + Albums + 2X).</p>
                     </div>
                 </div>
             `}
             
+            <!-- SHAREABLE STATS CARD -->
             <div id="shareable-stats-card" class="card" style="margin-bottom:20px;border-color:var(--purple-glow);">
                 <div class="card-header" style="background:linear-gradient(135deg, var(--purple-glow), #5a1f99);text-align:center;padding:20px;">
                     <div style="font-size:20px;margin-bottom:5px;">💜 BTS COMEBACK MISSION 💜</div>
@@ -7997,13 +8029,13 @@ async function renderSummary() {
                     <div style="margin-bottom:20px;">
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">
                             <span style="font-size:18px;">🎵</span>
-                            <span style="color:var(--success);font-weight:600;font-size:14px;">TRACK STREAMS</span>
-                            <span style="margin-left:auto;color:var(--success);font-weight:bold;">${fmt(totalTrackStreams)}</span>
+                            <span style="color:#00ff88;font-weight:600;font-size:14px;">TRACK STREAMS</span>
+                            <span style="margin-left:auto;color:#00ff88;font-weight:bold;">${fmt(totalTrackStreams)}</span>
                         </div>
                         ${trackStats.map(track => `
                             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
                                 <span style="color:#fff;font-size:13px;">${sanitize(track.name)}</span>
-                                <span style="color:var(--success);font-weight:600;font-size:14px;">${fmt(track.total)}</span>
+                                <span style="color:#00ff88;font-weight:600;font-size:14px;">${fmt(track.total)}</span>
                             </div>
                         `).join('')}
                     </div>
@@ -8011,13 +8043,13 @@ async function renderSummary() {
                     <div style="margin-bottom:20px;">
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">
                             <span style="font-size:18px;">💿</span>
-                            <span style="color:var(--purple-glow);font-weight:600;font-size:14px;">ALBUM STREAMS</span>
-                            <span style="margin-left:auto;color:var(--purple-glow);font-weight:bold;">${fmt(totalAlbumStreams)}</span>
+                            <span style="color:#7b2cbf;font-weight:600;font-size:14px;">ALBUM STREAMS</span>
+                            <span style="margin-left:auto;color:#7b2cbf;font-weight:bold;">${fmt(totalAlbumStreams)}</span>
                         </div>
                         ${albumStats.map(album => `
                             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
                                 <span style="color:#fff;font-size:13px;">${sanitize(album.name)}</span>
-                                <span style="color:var(--purple-glow);font-weight:600;font-size:14px;">${fmt(album.total)}</span>
+                                <span style="color:#7b2cbf;font-weight:600;font-size:14px;">${fmt(album.total)}</span>
                             </div>
                         `).join('')}
                     </div>
@@ -8032,7 +8064,7 @@ async function renderSummary() {
                     </div>
                 </div>
                 <div style="background:rgba(0,0,0,0.2);padding:10px;text-align:center;border-top:1px solid var(--border-color);">
-                    <span style="color:var(--text-dim);font-size:10px;">#BTSComeback #BTSARMY #StreamingMission</span>
+                    <span style="color:#888;font-size:10px;">#BTSComeback #BTSARMY #StreamingMission</span>
                 </div>
             </div>
             
@@ -8041,26 +8073,45 @@ async function renderSummary() {
                 <button onclick="copyShareText()" class="btn-secondary" style="flex:1;">📋 Copy Caption</button>
             </div>
             
+            <!-- FINAL STANDINGS LIST -->
             <div class="card standings-card">
                 <div class="card-header"><h3>📊 Final Standings</h3></div>
                 <div class="card-body standings-list">
                     ${sorted.map(([t, info], i) => {
                         const hasAllMissions = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
                         const isWinner = t === winner;
+                        
+                        // --- 🔥 INTELLIGENT STATUS LABEL LOGIC ---
+                        let statusHTML = '';
+                        
+                        if (isWinner) {
+                            statusHTML = '<span style="color:#ffd700; font-weight:bold;">👑 Winner</span>';
+                        } else if (hasAllMissions) {
+                            // Missions Passed, check Admin Verification
+                            if (!info.attendanceConfirmed) {
+                                statusHTML = '<span style="color:#ff6b6b;">❌ Attendance Failed</span>';
+                            } else if (!info.policeConfirmed) {
+                                statusHTML = '<span style="color:#ff6b6b;">❌ Police Failed</span>';
+                            } else {
+                                // Technically eligible but didn't win (lower XP)
+                                statusHTML = '<span style="color:#00ff88;">✅ Qualified (Runner-up)</span>';
+                            }
+                        } else {
+                            statusHTML = '<span style="color:#ff6b6b;">❌ Missions Incomplete</span>';
+                        }
+                        // ------------------------------------------
+
                         return `
                             <div class="standing-item ${isWinner ? 'is-winner' : ''} ${t === myTeam ? 'my-team' : ''}" style="--team-color: ${teamColor(t)};">
                                 <div class="standing-rank">
-                                    ${isWinner ? '👑' : i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span class="rank-num">${i + 1}</span>`}
+                                    ${isWinner ? '👑' : `<span class="rank-num">${i + 1}</span>`}
                                 </div>
                                 <div class="standing-team">
                                     ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-avatar" alt="${t}">` : `<div class="standing-avatar-placeholder">${t[0]}</div>`}
                                     <div class="standing-info">
                                         <div class="standing-name">${t} ${t === myTeam ? '(You)' : ''}</div>
-                                        <div class="standing-goals">
-                                            <span class="goal-badge ${info.trackGoalPassed ? 'passed' : 'failed'}">🎵 ${info.trackGoalPassed ? '✓' : '✗'}</span>
-                                            <span class="goal-badge ${info.albumGoalPassed ? 'passed' : 'failed'}">💿 ${info.albumGoalPassed ? '✓' : '✗'}</span>
-                                            <span class="goal-badge ${info.album2xPassed ? 'passed' : 'failed'}">✨ ${info.album2xPassed ? '✓' : '✗'}</span>
-                                            ${hasAllMissions ? '<span style="color:var(--success);font-size:9px;margin-left:5px;">All Complete!</span>' : ''}
+                                        <div class="standing-goals" style="font-size:11px;">
+                                            ${statusHTML}
                                         </div>
                                     </div>
                                 </div>
@@ -8074,6 +8125,7 @@ async function renderSummary() {
                 </div>
             </div>
             
+            <!-- TRACK BREAKDOWN BY TEAM -->
             <div class="card" style="margin-top:20px;">
                 <div class="card-header"><h3>🎵 Track Streams by Team</h3></div>
                 <div class="card-body">
@@ -8099,6 +8151,7 @@ async function renderSummary() {
                 </div>
             </div>
             
+            <!-- BATTLE STATS -->
             <div class="card stats-overview-card" style="margin-top:20px;">
                 <div class="card-header"><h3>📈 Battle Stats</h3></div>
                 <div class="card-body">
@@ -8111,17 +8164,14 @@ async function renderSummary() {
                 </div>
             </div>
             
+            <!-- TOP AGENTS -->
             ${topAgents.length > 0 ? `
                 <div class="card" style="margin-top:20px;">
                     <div class="card-header"><h3>🏆 Top Agents</h3></div>
                     <div class="card-body">
                         ${topAgents.slice(0, 5).map((agent, i) => {
-                            // --- 🔒 SECURITY FIX: Hide Agent Numbers ---
                             let displayName = agent.name ? sanitize(agent.name) : 'Secret Agent';
-                            if (displayName.toUpperCase().startsWith('AGENT')) {
-                                displayName = 'Secret Agent';
-                            }
-                            // Always use the real Team Name
+                            if (displayName.toUpperCase().startsWith('AGENT')) displayName = 'Secret Agent';
                             let displayTeam = agent.team ? sanitize(agent.team) : 'Unknown';
 
                             return `
