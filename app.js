@@ -7945,7 +7945,7 @@ async function renderSummary() {
     }
     
     // --- 3. LIVE RESULTS VIEW ---
-    content.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
+    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
     
     try {
         const [summary, goals, rankings] = await Promise.all([
