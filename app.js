@@ -5250,16 +5250,29 @@ function setupDashboard() {
         select.onchange = async () => {
             loading(true);
             try {
-                STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: select.value });
+                // 1. Create the 'newData' variable here
+                const newData = await api('getAgentData', { agentNo: STATE.agentNo, week: select.value });
+                
+                // 2. Assign it to the global STATE
                 STATE.data = newData;
-                STATE.data.resultsReleased = newData.resultsReleased;
+                
+                // 3. Set the week
                 STATE.week = select.value;
-                if (STATE.data?.lastUpdated) { STATE.lastUpdated = STATE.data.lastUpdated; updateTime(); }
+                
+                // 4. Update the timestamps
+                if (STATE.data?.lastUpdated) { 
+                    STATE.lastUpdated = STATE.data.lastUpdated; 
+                    updateTime(); 
+                }
+                
+                // 5. Refresh the page view
                 await loadPage(STATE.page);
-            } catch (e) { showToast('Failed to load week', 'error'); } 
+            } catch (e) { 
+                console.error("Week load error:", e);
+                showToast('Failed to load week', 'error'); 
+            } 
             finally { loading(false); }
         };
-    }
     
     document.querySelectorAll('.nav-link').forEach(link => {
         link.onclick = null;
