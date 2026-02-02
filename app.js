@@ -8061,7 +8061,7 @@ async function renderSummary() {
 
             <!-- Action Buttons -->
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:35px;">
-                <button onclick="shareStats()" style="height:50px; border-radius:12px; font-size:12px; font-weight:700; background:linear-gradient(135deg, #7b2cbf, #5a1f99); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <button onclick="shareStats()" id="share-btn" style="height:50px; border-radius:12px; font-size:12px; font-weight:700; background:linear-gradient(135deg, #7b2cbf, #5a1f99); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
                     📸 Save Poster
                 </button>
                 <button onclick="copyShareText()" style="height:50px; border-radius:12px; font-size:12px; font-weight:700; background:#1a1a2e; border:1px solid #333; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
@@ -8162,7 +8162,7 @@ async function renderSummary() {
         `; 
     }
 }
-// ==================== SAVE POSTER TO GALLERY ====================
+// ==================== SAVE POSTER TO GALLERY (FIXED) ====================
 async function shareStats() {
     const card = document.getElementById('shareable-stats-card');
     if (!card) {
@@ -8170,51 +8170,87 @@ async function shareStats() {
         return;
     }
 
-    // Show loading state
+    // Get button reference
     const btn = event?.target?.closest('button');
-    const originalText = btn?.innerHTML;
+    const originalText = btn?.innerHTML || '';
+    
+    // Show loading
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '⏳ Generating...';
     }
 
     try {
-        // Capture the card as canvas
-        const canvas = await html2canvas(card, {
+        // Check if html2canvas is loaded
+        if (typeof html2canvas === 'undefined') {
+            throw new Error('html2canvas not loaded');
+        }
+
+        // Clone the card to avoid styling issues
+        const clone = card.cloneNode(true);
+        clone.style.position = 'absolute';
+        clone.style.left = '-9999px';
+        clone.style.top = '0';
+        clone.style.width = card.offsetWidth + 'px';
+        document.body.appendChild(clone);
+
+        // Generate canvas with fixed settings
+        const canvas = await html2canvas(clone, {
             backgroundColor: '#0a0a0f',
-            scale: 2, // Higher quality
+            scale: 2,
             useCORS: true,
             allowTaint: true,
-            logging: false
+            logging: false,
+            width: card.offsetWidth,
+            height: card.offsetHeight,
+            onclone: function(clonedDoc) {
+                // Ensure styles are applied
+                const clonedCard = clonedDoc.getElementById('shareable-stats-card');
+                if (clonedCard) {
+                    clonedCard.style.transform = 'none';
+                    clonedCard.style.boxShadow = 'none';
+                }
+            }
         });
 
+        // Remove clone
+        document.body.removeChild(clone);
+
         // Convert to blob
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-        
-        // Try Web Share API first (works best on mobile)
-        if (navigator.canShare && navigator.canShare({ files: [new File([blob], 'hopetracker-stats.png', { type: 'image/png' })] })) {
-            const file = new File([blob], 'hopetracker-stats.png', { type: 'image/png' });
-            await navigator.share({
-                files: [file],
-                title: 'HopeTracker Stats',
-                text: 'Check out our streaming stats! 💜'
-            });
-            showToast('Share menu opened!', 'success');
-        } else {
-            // Fallback: Download the image
-            downloadImage(canvas);
-        }
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                showToast('Failed to generate image', 'error');
+                return;
+            }
+
+            const file = new File([blob], `hopetracker-${STATE.week || 'stats'}.png`, { type: 'image/png' });
+
+            // Try Web Share API (mobile)
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: 'HopeTracker Stats',
+                        text: 'BTS Streaming Stats 💜'
+                    });
+                    showToast('Shared successfully!', 'success');
+                } catch (shareError) {
+                    if (shareError.name !== 'AbortError') {
+                        downloadFromCanvas(canvas);
+                    }
+                }
+            } else {
+                // Fallback: Download
+                downloadFromCanvas(canvas);
+            }
+        }, 'image/png', 1.0);
 
     } catch (e) {
-        console.error('Share error:', e);
+        console.error('Image generation error:', e);
         
-        // Final fallback: open in new tab
-        try {
-            const canvas = await html2canvas(card, { backgroundColor: '#0a0a0f', scale: 2 });
-            openImageInNewTab(canvas);
-        } catch (e2) {
-            showToast('Could not generate image', 'error');
-        }
+        // Fallback: Open simple version
+        openSimpleImage();
+        
     } finally {
         if (btn) {
             btn.disabled = false;
@@ -8223,64 +8259,110 @@ async function shareStats() {
     }
 }
 
-// ==================== DOWNLOAD IMAGE ====================
-function downloadImage(canvas) {
-    const link = document.createElement('a');
-    link.download = `hopetracker-${STATE.week || 'stats'}.png`;
-    link.href = canvas.toDataURL('image/png', 1.0);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('📥 Image downloaded!', 'success');
+// ==================== DOWNLOAD HELPER ====================
+function downloadFromCanvas(canvas) {
+    try {
+        const link = document.createElement('a');
+        link.download = `hopetracker-${STATE.week || 'stats'}.png`;
+        link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('📥 Image saved!', 'success');
+    } catch (e) {
+        console.error('Download error:', e);
+        openImageInNewTab(canvas);
+    }
 }
 
-// ==================== OPEN IN NEW TAB (Long-press to save) ====================
+// ==================== OPEN IN NEW TAB ====================
 function openImageInNewTab(canvas) {
-    const imageData = canvas.toDataURL('image/png');
-    const newTab = window.open();
-    if (newTab) {
-        newTab.document.write(`
-            <html>
-            <head>
-                <title>HopeTracker Stats</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <style>
-                    body { 
-                        margin: 0; 
-                        background: #000; 
-                        display: flex; 
-                        flex-direction: column;
-                        align-items: center; 
-                        justify-content: center; 
-                        min-height: 100vh;
-                        padding: 20px;
-                        box-sizing: border-box;
-                    }
-                    img { 
-                        max-width: 100%; 
-                        height: auto; 
-                        border-radius: 12px;
-                    }
-                    p {
-                        color: #888;
-                        font-family: -apple-system, sans-serif;
-                        font-size: 14px;
-                        margin-top: 20px;
-                        text-align: center;
-                    }
-                </style>
-            </head>
-            <body>
-                <img src="${imageData}" alt="HopeTracker Stats">
-                <p>📱 Long-press image to save to gallery</p>
-            </body>
-            </html>
-        `);
-        showToast('Long-press to save image', 'info');
-    } else {
-        // If popup blocked, download instead
-        downloadImage(canvas);
+    try {
+        const imageData = canvas.toDataURL('image/png');
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+            newWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>HopeTracker Stats</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { 
+                            background: #000; 
+                            min-height: 100vh; 
+                            display: flex; 
+                            flex-direction: column;
+                            align-items: center; 
+                            justify-content: center; 
+                            padding: 20px;
+                            font-family: -apple-system, sans-serif;
+                        }
+                        img { 
+                            max-width: 100%; 
+                            height: auto; 
+                            border-radius: 16px;
+                            box-shadow: 0 10px 40px rgba(123,44,191,0.3);
+                        }
+                        p { 
+                            color: #888; 
+                            font-size: 14px; 
+                            margin-top: 20px; 
+                            text-align: center;
+                        }
+                        .emoji { font-size: 24px; margin-bottom: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <img src="${imageData}" alt="HopeTracker Stats">
+                    <p><span class="emoji">📱</span><br>Long-press image to save to gallery</p>
+                </body>
+                </html>
+            `);
+            newWindow.document.close();
+            showToast('Long-press to save', 'info');
+        } else {
+            showToast('Popup blocked - check browser settings', 'error');
+        }
+    } catch (e) {
+        console.error('New tab error:', e);
+        showToast('Could not open image', 'error');
     }
+}
+
+// ==================== SIMPLE FALLBACK ====================
+function openSimpleImage() {
+    showToast('Opening save option...', 'info');
+    
+    // Take screenshot instructions
+    const modal = document.getElementById('modal-container');
+    const modalBody = document.getElementById('modal-body');
+    
+    if (modal && modalBody) {
+        modalBody.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+                <div style="font-size: 48px; margin-bottom: 15px;">📸</div>
+                <h3 style="color: #fff; margin-bottom: 15px;">Save Your Stats</h3>
+                <p style="color: #aaa; font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
+                    Take a screenshot of the stats card above!
+                </p>
+                <div style="background: #1a1a2e; border-radius: 12px; padding: 15px; text-align: left;">
+                    <p style="color: #00ff88; font-size: 12px; margin-bottom: 8px;"><strong>📱 iPhone:</strong> Side + Volume Up</p>
+                    <p style="color: #00d4ff; font-size: 12px; margin-bottom: 8px;"><strong>📱 Android:</strong> Power + Volume Down</p>
+                    <p style="color: #ffd700; font-size: 12px;"><strong>💻 Desktop:</strong> Scroll to card, use Snipping Tool</p>
+                </div>
+                <button onclick="closeModal()" class="btn-primary" style="margin-top: 20px; width: 100%;">Got it!</button>
+            </div>
+        `;
+        modal.hidden = false;
+    }
+}
+
+// ==================== CLOSE MODAL HELPER ====================
+function closeModal() {
+    const modal = document.getElementById('modal-container');
+    if (modal) modal.hidden = true;
 }
 // Add to window exports
 window.shareStats = shareStats;
