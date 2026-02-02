@@ -7886,41 +7886,35 @@ async function renderComparison() {
         container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; 
     }
 }
-// ==================== SUMMARY (UPDATED WITH SPECIFIC FAIL REASONS) ====================
+// ==================== SUMMARY (ULTIMATE VERSION - ALL STATS) ====================
 async function renderSummary() {
-    const container = document.getElementById('summary-content'); // Fixed selector
+    const container = document.getElementById('summary-content'); 
     if (!container) return;
     
     const selectedWeek = STATE.week;
     const isCompleted = isWeekCompleted(selectedWeek);
     
-    // --- 1. LOCKED VIEW ---
-    // If week isn't over yet
+    // --- 1. LOCKED VIEW (If week is still active) ---
     if (!isCompleted) {
         const days = getDaysRemaining(selectedWeek);
         container.innerHTML = `
             <div class="card">
-                <div class="card-body summary-locked">
-                    <div class="locked-icon">🔒</div>
+                <div class="card-body summary-locked" style="text-align:center; padding:40px;">
+                    <div class="locked-icon" style="font-size:48px; margin-bottom:15px;">🔒</div>
                     <h2>Summary Locked</h2>
                     <p>Results for <strong>${selectedWeek}</strong> are not yet final.</p>
-                    <div class="countdown-box">
-                        <div class="countdown-value">${days}</div>
-                        <div class="countdown-label">day${days !== 1 ? 's' : ''} until results</div>
-                    </div>
-                    <button onclick="loadPage('home')" class="btn-primary">
-                        View Live Progress →
-                    </button>
+                    <div style="margin:20px 0; background:rgba(123,44,191,0.1); padding:15px; border-radius:12px; display:inline-block;">
+                        <div style="font-size:32px; font-weight:bold; color:#7b2cbf;">${days}</div>
+                        <div style="font-size:10px; color:#888; text-transform:uppercase;">days until results</div>
+                    </div><br>
+                    <button onclick="loadPage('home')" class="btn-primary">View Live Progress →</button>
                 </div>
-            </div>
-        `;
+            </div>`;
         return;
     }
 
-    // --- 2. ADMIN LOCK CHECK ---
-    // If week is over, but Admin hasn't released results yet
+    // --- 2. ADMIN RELEASE CHECK (If week ended but admin hasn't clicked Release) ---
     const isReleased = STATE.data?.resultsReleased === true || STATE.data?.teamInfo?.resultsReleased === true;
-
     if (!isReleased) {
         container.innerHTML = `
             <div class="card" style="border: 1px solid #ffa500; background: rgba(255,165,0,0.05);">
@@ -7932,20 +7926,16 @@ async function renderSummary() {
                         <span style="color:#fff">📋 Attendance Reports</span> & <span style="color:#fff">👮 Police Checks</span>
                     </p>
                     <div style="padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; display:inline-block;">
-                        <p style="color: #ffa500; font-size: 11px; margin:0;">
-                            Results will be published by Admin shortly.
-                        </p>
-                    </div>
-                    <br>
+                        <p style="color: #ffa500; font-size: 11px; margin:0;">Results will be published by Admin shortly.</p>
+                    </div><br>
                     <button onclick="loadPage('home')" class="btn-secondary" style="margin-top:25px;">🏠 Return to Dashboard</button>
                 </div>
-            </div>
-        `;
+            </div>`;
         return; 
     }
     
-    // --- 3. LIVE RESULTS VIEW ---
-    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
+    // --- 3. LIVE RESULTS VIEW (Data Fetching) ---
+    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>';
     
     try {
         const [summary, goals, rankings] = await Promise.all([
@@ -7959,267 +7949,209 @@ async function renderSummary() {
         const albumGoals = goals.albumGoals || {};
         const topAgents = rankings.rankings || [];
         const myTeam = STATE.data?.profile?.team;
+        const teamNames = Object.keys(CONFIG.TEAMS);
         
-        // Sort teams by XP
-        const sorted = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
+        const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
         
-        // Find winner based on Backend Flag (isWinner = true)
-        const winnerEntry = sorted.find(([t, info]) => info.isWinner === true);
+        // Find winner (Must pass all 5: Tracks, Albums, 2X, Attendance, Police)
+        const winnerEntry = sortedTeams.find(([t, info]) => {
+            return info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed && 
+                   info.attendanceConfirmed && info.policeConfirmed;
+        });
         const winner = winnerEntry ? winnerEntry[0] : null;
         
-        // Calculate Totals for Stats Card
+        // Stats Calculation
         let totalTrackStreams = 0;
         let totalAlbumStreams = 0;
-        let totalXP = sorted.reduce((sum, [, info]) => sum + (info.teamXP || 0), 0);
-        
         const trackStats = [];
         for (const [trackName, info] of Object.entries(trackGoals)) {
             let total = 0;
-            const teamData = {};
-            for (const teamName of Object.keys(CONFIG.TEAMS)) {
-                const streams = info.teams?.[teamName]?.current || 0;
-                total += streams;
-                teamData[teamName] = streams;
-            }
+            const teamBreakdown = {};
+            teamNames.forEach(tn => {
+                const s = info.teams?.[tn]?.current || 0;
+                total += s;
+                teamBreakdown[tn] = s;
+            });
             totalTrackStreams += total;
-            trackStats.push({ name: trackName, total, goal: info.goal || 0, teams: teamData });
+            trackStats.push({ name: trackName, total, teams: teamBreakdown });
         }
-        trackStats.sort((a, b) => b.total - a.total);
-        
         const albumStats = [];
         for (const [albumName, info] of Object.entries(albumGoals)) {
             let total = 0;
-            const teamData = {};
-            for (const teamName of Object.keys(CONFIG.TEAMS)) {
-                const streams = info.teams?.[teamName]?.current || 0;
-                total += streams;
-                teamData[teamName] = streams;
-            }
+            teamNames.forEach(tn => { total += (info.teams?.[tn]?.current || 0); });
             totalAlbumStreams += total;
-            albumStats.push({ name: albumName, total, goal: info.goal || 0, teams: teamData });
+            albumStats.push({ name: albumName, total });
         }
-        albumStats.sort((a, b) => b.total - a.total);
         
+        const totalXP = sortedTeams.reduce((sum, [, info]) => sum + (info.teamXP || 0), 0);
         const endDate = CONFIG.WEEK_DATES[selectedWeek];
         const dateStr = endDate ? new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
         
+        // --- 4. RENDER HTML ---
         container.innerHTML = `
             <div class="summary-week-header">
                 <span class="summary-week-badge">${selectedWeek}</span>
                 <h2>Final Results</h2>
-                <p class="results-subtitle">🏆 Battle Concluded ${dateStr ? '• ' + dateStr : ''}</p>
+                <p class="results-subtitle">🏆 Battle Concluded • ${dateStr}</p>
             </div>
             
             ${winner ? `
                 <div class="winner-announcement" style="--team-color: ${teamColor(winner)};">
                     <div class="winner-trophy">🏆</div>
                     <div class="winner-content">
-                        ${teamPfp(winner) ? `<img src="${teamPfp(winner)}" class="winner-avatar" alt="${winner}">` : ''}
+                        ${teamPfp(winner) ? `<img src="${teamPfp(winner)}" class="winner-avatar">` : ''}
                         <h2 class="winner-title">${winner}</h2>
                         <p class="winner-subtitle">WEEK CHAMPIONS!</p>
-                        <div class="winner-xp">
-                            <span class="xp-value">${fmt(teams[winner]?.teamXP)}</span>
-                            <span class="xp-label">Total XP</span>
-                        </div>
+                        <div class="winner-xp"><span class="xp-value">${fmt(teams[winner]?.teamXP)}</span><span class="xp-label">Total XP</span></div>
                     </div>
                     ${winner === myTeam ? `<div class="winner-you-badge">🎉 YOUR TEAM WON!</div>` : ''}
-                    <div class="winner-confetti">🎊</div>
-                </div>
-            ` : `
-                <div class="card" style="margin-bottom:20px;">
+                </div>` : `
+                <div class="card" style="margin-bottom:20px; border: 1px solid #ff4444;">
                     <div class="card-body" style="text-align:center;padding:30px;">
                         <div style="font-size:48px;margin-bottom:10px;">😔</div>
-                        <h3 style="color:#ff6b6b;margin:0;">No Winner This Week</h3>
-                        <p style="color:#888;margin-top:10px;font-size:13px;">No team met all 5 requirements:<br>
+                        <h3 style="color:#ff6b6b;margin:0;">No Winner Declared</h3>
+                        <p style="color:#888;margin-top:10px;font-size:12px;">No team met all 5 requirements:<br>
                         (Tracks + Albums + 2X + 100% Attendance + Police Check)</p>
                     </div>
-                </div>
-            `}
+                </div>`}
             
             <!-- SHAREABLE STATS CARD -->
-            <div id="shareable-stats-card" class="card" style="margin-bottom:20px;border-color:var(--purple-glow);">
+            <div id="shareable-stats-card" class="card" style="margin-bottom:20px; border-color:var(--purple-glow);">
                 <div class="card-header" style="background:linear-gradient(135deg, var(--purple-glow), #5a1f99);text-align:center;padding:20px;">
-                    <div style="font-size:20px;margin-bottom:5px;">💜 BTS COMEBACK MISSION 💜</div>
-                    <div style="color:#fff;font-size:14px;">${selectedWeek} - Total Streams Pulled</div>
+                    <div style="font-size:18px;margin-bottom:5px;">💜 BTS COMEBACK MISSION 💜</div>
+                    <div style="color:#fff;font-size:13px;">${selectedWeek} - Total Streams Pulled</div>
                 </div>
                 <div class="card-body">
-                    <div style="margin-bottom:20px;">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">
-                            <span style="font-size:18px;">🎵</span>
-                            <span style="color:#00ff88;font-weight:600;font-size:14px;">TRACK STREAMS</span>
-                            <span style="margin-left:auto;color:#00ff88;font-weight:bold;">${fmt(totalTrackStreams)}</span>
-                        </div>
-                        ${trackStats.map(track => `
-                            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
-                                <span style="color:#fff;font-size:13px;">${sanitize(track.name)}</span>
-                                <span style="color:#00ff88;font-weight:600;font-size:14px;">${fmt(track.total)}</span>
-                            </div>
-                        `).join('')}
+                    <div style="margin-bottom:15px;">
+                        <div style="color:#00ff88; font-weight:bold; font-size:12px; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px;">🎵 TRACK STREAMS: ${fmt(totalTrackStreams)}</div>
+                        ${trackStats.slice(0, 7).map(t => `<div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;"><span style="color:#ccc;">${sanitize(t.name)}</span><span style="color:#fff;">${fmt(t.total)}</span></div>`).join('')}
                     </div>
-                    
-                    <div style="margin-bottom:20px;">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">
-                            <span style="font-size:18px;">💿</span>
-                            <span style="color:#7b2cbf;font-weight:600;font-size:14px;">ALBUM STREAMS</span>
-                            <span style="margin-left:auto;color:#7b2cbf;font-weight:bold;">${fmt(totalAlbumStreams)}</span>
-                        </div>
-                        ${albumStats.map(album => `
-                            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
-                                <span style="color:#fff;font-size:13px;">${sanitize(album.name)}</span>
-                                <span style="color:#7b2cbf;font-weight:600;font-size:14px;">${fmt(album.total)}</span>
-                            </div>
-                        `).join('')}
+                    <div style="margin-bottom:15px;">
+                        <div style="color:#7b2cbf; font-weight:bold; font-size:12px; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px;">💿 ALBUM STREAMS: ${fmt(totalAlbumStreams)}</div>
+                        ${albumStats.slice(0, 7).map(a => `<div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;"><span style="color:#ccc;">${sanitize(a.name)}</span><span style="color:#fff;">${fmt(a.total)}</span></div>`).join('')}
                     </div>
-                    
-                    <div style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:12px;padding:20px;text-align:center;">
-                        <div style="color:#ffd700;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">
-                            🔥 Total Streams This Week 🔥
-                        </div>
-                        <div style="font-size:36px;font-weight:bold;color:#ffd700;">
-                            ${fmt(totalTrackStreams + totalAlbumStreams)}
-                        </div>
+                    <div style="background:rgba(255,215,0,0.1); padding:15px; border-radius:10px; text-align:center; border: 1px solid rgba(255,215,0,0.3);">
+                        <div style="color:#888; font-size:10px; text-transform:uppercase; letter-spacing:1px;">🔥 Total Streams This Week 🔥</div>
+                        <div style="color:#ffd700; font-size:28px; font-weight:bold;">${fmt(totalTrackStreams + totalAlbumStreams)}</div>
                     </div>
                 </div>
-                <div style="background:rgba(0,0,0,0.2);padding:10px;text-align:center;border-top:1px solid var(--border-color);">
-                    <span style="color:#888;font-size:10px;">#BTSComeback #BTSARMY #StreamingMission</span>
-                </div>
+                <div style="background:rgba(0,0,0,0.2); padding:10px; text-align:center; font-size:10px; color:#666;">#BTSComeback #BTSARMY #StreamingMission</div>
             </div>
-            
-            <div style="display:flex;gap:10px;margin-bottom:25px;">
+
+            <div style="display:flex; gap:10px; margin-bottom:25px;">
                 <button onclick="shareStats()" class="btn-primary" style="flex:1;">📸 Screenshot Stats</button>
                 <button onclick="copyShareText()" class="btn-secondary" style="flex:1;">📋 Copy Caption</button>
             </div>
-            
+
             <!-- FINAL STANDINGS LIST -->
-            <div class="card standings-card">
+            <div class="card">
                 <div class="card-header"><h3>📊 Final Standings</h3></div>
                 <div class="card-body standings-list">
-                    ${sorted.map(([t, info], i) => {
-                        const hasAllMissions = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
-                        const isWinner = t === winner;
+                    ${sortedTeams.map(([t, info], i) => {
+                        const isTeamWinner = t === winner;
+                        const missionsPassed = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
                         
-                        // --- 🔥 INTELLIGENT STATUS LABEL LOGIC ---
+                        let failures = [];
+                        if (!missionsPassed) failures.push("Missions");
+                        if (!info.attendanceConfirmed) failures.push("Attendance");
+                        if (!info.policeConfirmed) failures.push("Police");
+
                         let statusHTML = '';
-                        
-                        if (isWinner) {
-                            statusHTML = '<span style="color:#ffd700; font-weight:bold;">👑 Winner</span>';
-                        } else if (hasAllMissions) {
-                            // Missions Passed, check Admin Verification
-                            if (!info.attendanceConfirmed) {
-                                statusHTML = '<span style="color:#ff6b6b;">❌ Attendance Failed</span>';
-                            } else if (!info.policeConfirmed) {
-                                statusHTML = '<span style="color:#ff6b6b;">❌ Police Failed</span>';
-                            } else {
-                                // Technically eligible but didn't win (lower XP)
-                                statusHTML = '<span style="color:#00ff88;">✅ Qualified (Runner-up)</span>';
-                            }
-                        } else {
-                            statusHTML = '<span style="color:#ff6b6b;">❌ Missions Incomplete</span>';
-                        }
-                        // ------------------------------------------
+                        if (isTeamWinner) statusHTML = '<span style="color:#ffd700; font-weight:bold;">👑 Winner</span>';
+                        else if (failures.length === 0) statusHTML = '<span style="color:#00ff88;">✅ Qualified (Runner-up)</span>';
+                        else statusHTML = `<span style="color:#ff6b6b; font-weight:bold;">❌ ${failures.join(' & ')} Failed</span>`;
 
                         return `
-                            <div class="standing-item ${isWinner ? 'is-winner' : ''} ${t === myTeam ? 'my-team' : ''}" style="--team-color: ${teamColor(t)};">
-                                <div class="standing-rank">
-                                    ${isWinner ? '👑' : `<span class="rank-num">${i + 1}</span>`}
-                                </div>
+                            <div class="standing-item ${isTeamWinner ? 'is-winner' : ''} ${t === myTeam ? 'my-team' : ''}" style="--team-color: ${teamColor(t)};">
+                                <div class="standing-rank">${isTeamWinner ? '👑' : `<span class="rank-num">${i + 1}</span>`}</div>
                                 <div class="standing-team">
-                                    ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-avatar" alt="${t}">` : `<div class="standing-avatar-placeholder">${t[0]}</div>`}
                                     <div class="standing-info">
                                         <div class="standing-name">${t} ${t === myTeam ? '(You)' : ''}</div>
-                                        <div class="standing-goals" style="font-size:11px;">
-                                            ${statusHTML}
-                                        </div>
+                                        <div class="standing-goals" style="font-size:11px;">${statusHTML}</div>
                                     </div>
                                 </div>
-                                <div class="standing-xp">
-                                    <span class="standing-xp-value">${fmt(info.teamXP)}</span>
-                                    <span class="standing-xp-label">XP</span>
-                                </div>
-                            </div>
-                        `;
+                                <div class="standing-xp"><span class="standing-xp-value">${fmt(info.teamXP)}</span><span class="standing-xp-label">XP</span></div>
+                            </div>`;
                     }).join('')}
                 </div>
             </div>
-            
-            <!-- TRACK BREAKDOWN BY TEAM -->
+
+            <!-- TRACK STREAMS BY TEAM -->
             <div class="card" style="margin-top:20px;">
                 <div class="card-header"><h3>🎵 Track Streams by Team</h3></div>
                 <div class="card-body">
-                    ${trackStats.map((track, i) => `
+                    ${trackStats.slice(0, 7).map((track, i) => `
                         <div class="goal-item" style="margin-bottom:15px;">
-                            <div class="goal-header">
-                                <span class="goal-name">${i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}${sanitize(track.name)}</span>
-                                <span class="goal-status complete">${fmt(track.total)} streams</span>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                <span style="color:#fff; font-size:13px; font-weight:600;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':''} ${sanitize(track.name)}</span>
+                                <span style="color:#888; font-size:12px;">${fmt(track.total)} streams</span>
                             </div>
-                            <div class="progress-bar" style="height:12px;margin:8px 0;">
-                                ${Object.entries(track.teams).filter(([,s]) => s > 0).map(([team, streams]) => {
+                            <div class="progress-bar" style="height:8px; display:flex; overflow:hidden; background:#222; border-radius:4px;">
+                                ${Object.entries(track.teams).map(([team, streams]) => {
                                     const pct = track.total > 0 ? (streams / track.total) * 100 : 0;
-                                    return `<div class="progress-fill" style="width:${pct}%;background:${teamColor(team)};display:inline-block;height:100%;" title="${team}: ${fmt(streams)}"></div>`;
+                                    return `<div style="width:${pct}%; background:${teamColor(team)}; height:100%;"></div>`;
                                 }).join('')}
                             </div>
-                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
-                                ${Object.entries(track.teams).filter(([,s]) => s > 0).sort((a,b) => b[1] - a[1]).map(([team, streams]) => `
-                                    <span style="font-size:10px;padding:3px 8px;background:${teamColor(team)}22;color:${teamColor(team)};border-radius:10px;">${team.replace('Team ', '')}: ${fmt(streams)}</span>
+                            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;">
+                                ${Object.entries(track.teams).sort((a,b)=>b[1]-a[1]).map(([team, streams]) => `
+                                    <span style="font-size:9px; color:${teamColor(team)}; background:${teamColor(team)}22; padding:2px 6px; border-radius:4px;">${team.replace('Team ','')}: ${fmt(streams)}</span>
                                 `).join('')}
                             </div>
                         </div>
                     `).join('')}
                 </div>
             </div>
-            
-            <!-- BATTLE STATS -->
-            <div class="card stats-overview-card" style="margin-top:20px;">
+
+            <!-- BATTLE STATS GRID -->
+            <div class="card" style="margin-top:20px;">
                 <div class="card-header"><h3>📈 Battle Stats</h3></div>
                 <div class="card-body">
-                    <div class="stats-grid">
-                        <div class="stat-box"><div class="stat-icon">🎵</div><div class="stat-value">${fmt(totalTrackStreams)}</div><div class="stat-label">Track Streams</div></div>
-                        <div class="stat-box"><div class="stat-icon">💿</div><div class="stat-value">${fmt(totalAlbumStreams)}</div><div class="stat-label">Album Streams</div></div>
-                        <div class="stat-box"><div class="stat-icon">⭐</div><div class="stat-value">${fmt(totalXP)}</div><div class="stat-label">Total XP</div></div>
-                        <div class="stat-box"><div class="stat-icon">⚔️</div><div class="stat-value">${sorted.length}</div><div class="stat-label">Teams</div></div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;">
+                            <div style="font-size:18px;">🎵</div><div style="color:#fff; font-weight:bold; font-size:18px;">${fmt(totalTrackStreams)}</div><div style="color:#666; font-size:10px;">Track Streams</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;">
+                            <div style="font-size:18px;">💿</div><div style="color:#fff; font-weight:bold; font-size:18px;">${fmt(totalAlbumStreams)}</div><div style="color:#666; font-size:10px;">Album Streams</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;">
+                            <div style="font-size:18px;">⭐</div><div style="color:#fff; font-weight:bold; font-size:18px;">${fmt(totalXP)}</div><div style="color:#666; font-size:10px;">Total XP</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;">
+                            <div style="font-size:18px;">⚔️</div><div style="color:#fff; font-weight:bold; font-size:18px;">4</div><div style="color:#666; font-size:10px;">Teams</div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- TOP AGENTS -->
-            ${topAgents.length > 0 ? `
-                <div class="card" style="margin-top:20px;">
-                    <div class="card-header"><h3>🏆 Top Agents</h3></div>
-                    <div class="card-body">
-                        ${topAgents.slice(0, 5).map((agent, i) => {
-                            let displayName = agent.name ? sanitize(agent.name) : 'Secret Agent';
-                            if (displayName.toUpperCase().startsWith('AGENT')) displayName = 'Secret Agent';
-                            let displayTeam = agent.team ? sanitize(agent.team) : 'Unknown';
 
-                            return `
-                            <div class="rank-item ${String(agent.agentNo) === String(STATE.agentNo) ? 'highlight' : ''}">
-                                <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
-                                <div class="rank-info">
-                                    <div class="rank-name">
-                                        ${displayName}
-                                        ${String(agent.agentNo) === String(STATE.agentNo) ? ' (You)' : ''}
-                                    </div>
-                                    <div class="rank-team" style="color:${teamColor(agent.team)}">${displayTeam}</div>
-                                </div>
-                                <div class="rank-xp">${fmt(agent.totalXP)} XP</div>
+            <!-- TOP AGENTS -->
+            <div class="card" style="margin-top:20px;">
+                <div class="card-header"><h3>🏆 Top Agents</h3></div>
+                <div class="card-body">
+                    ${topAgents.slice(0, 5).map((agent, i) => `
+                        <div class="rank-item" style="border-left:3px solid ${teamColor(agent.team)};">
+                            <div class="rank-num">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+                            <div class="rank-info">
+                                <div class="rank-name">${sanitize(agent.name || 'Secret Agent')}</div>
+                                <div class="rank-team" style="color:${teamColor(agent.team)}; font-size:11px;">${agent.team}</div>
                             </div>
-                            `;
-                        }).join('')}
-                    </div>
+                            <div class="rank-xp">${fmt(agent.totalXP)} XP</div>
+                        </div>
+                    `).join('')}
                 </div>
-            ` : ''}
+            </div>
             
-            <div class="summary-actions" style="margin-top:20px;">
-                <button onclick="loadPage('rankings')" class="btn-secondary">👥 View Full Rankings</button>
-                <button onclick="loadPage('home')" class="btn-primary">🏠 Back to Home</button>
+            <div class="summary-actions" style="margin-top:20px; display:flex; gap:10px;">
+                <button onclick="loadPage('rankings')" class="btn-secondary" style="flex:1;">👥 Full Rankings</button>
+                <button onclick="loadPage('home')" class="btn-primary" style="flex:1;">🏠 Return Home</button>
             </div>
         `;
         
         markResultsSeen(selectedWeek);
-        
+        if (winner && typeof confetti === 'function') confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
     } catch (e) { 
         console.error('Summary error:', e);
-        container.innerHTML = `<div class="card"><div class="card-body error-state"><h3>Failed to Load Summary</h3><p>${sanitize(e.message)}</p><button onclick="renderSummary()" class="btn-primary">Retry</button></div></div>`; 
+        container.innerHTML = `<div class="card"><div class="card-body error-state"><h3>Failed to Load Summary</h3><button onclick="renderSummary()" class="btn-primary">Retry</button></div></div>`; 
     }
 }
 // ==================== SHARE FUNCTIONS ====================
