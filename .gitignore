@@ -5117,6 +5117,7 @@ async function loadDashboard() {
                 albumGoalPassed: dashboardData.team.missions?.albumsPassed,
                 album2xPassed: dashboardData.team.missions?.album2xPassed
             },
+            resultsReleased: dashboardData.resultsReleased,
             lastUpdated: dashboardData.lastUpdated
         };
 
