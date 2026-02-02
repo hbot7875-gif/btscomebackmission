@@ -11927,7 +11927,7 @@ async function renderSummary() {
 
     // IF RELEASED: Run standard render
     // We need fresh summary data to get the winner
-    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
+    content.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
     
     try {
         const summary = await api('getWeeklySummary', { week: STATE.week });
