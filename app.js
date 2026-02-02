@@ -7972,7 +7972,7 @@ async function renderSummary() {
                     <div style="text-align:center; margin-bottom:35px;">
                         <div style="color:#888; font-size:11px; font-weight:bold; letter-spacing:2px; margin-bottom:5px;">GLOBAL STREAMING IMPACT</div>
                         <div style="color:#ffd700; font-size:56px; font-weight:900; line-height:1; text-shadow:0 0 20px rgba(255,215,0,0.3);">${fmt(totalTrackStreams + totalAlbumStreams)}</div>
-                        <div style="color:#ffd700; font-size:12px; font-weight:bold; margin-top:10px;">TOTAL STREAMS RECORDED</div>
+                        <div style="color:#ffd700; font-size:12px; font-weight:bold; margin-top:10px;">🔥TOTAL STREAMS RECORDED🔥</div>
                     </div>
 
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px; border-top:1px solid #222; padding-top:25px;">
@@ -7981,17 +7981,17 @@ async function renderSummary() {
                             <div style="color:#00ff88; font-size:10px; font-weight:900; letter-spacing:1px; margin-bottom:15px; border-left:3px solid #00ff88; padding-left:8px;">TRACKS: ${fmt(totalTrackStreams)}</div>
                             ${trackStats.slice(0, 7).map(s => `
                                 <div style="margin-bottom:10px;">
-                                    <div style="color:#888; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
+                                    <div style="color:#ccc; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
                                     <div style="color:#fff; font-size:12px; font-weight:bold; font-family:monospace;">${fmt(s.total)}</div>
                                 </div>
                             `).join('')}
                         </div>
                         <!-- Albums -->
                         <div>
-                            <div style="color:#7b2cbf; font-size:10px; font-weight:900; letter-spacing:1px; margin-bottom:15px; border-left:3px solid #7b2cbf; padding-left:8px;">ALBUMS: ${fmt(totalAlbumStreams)}</div>
+                            <div style="color:#00d4ff; font-size:10px; font-weight:900; letter-spacing:1px; margin-bottom:15px; border-left:3px solid #00d4ff; padding-left:8px;">ALBUMS: ${fmt(totalAlbumStreams)}</div>
                             ${albumStats.slice(0, 7).map(s => `
                                 <div style="margin-bottom:10px;">
-                                    <div style="color:#888; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
+                                    <div style="color:#ccc; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
                                     <div style="color:#fff; font-size:12px; font-weight:bold; font-family:monospace;">${fmt(s.total)}</div>
                                 </div>
                             `).join('')}
