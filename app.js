@@ -7297,7 +7297,7 @@ async function renderTeamLevel() {
     const container = $('team-level-content');
     if (!container) return;
     
-    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
+    content.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
     
     try {
         const summary = await api('getWeeklySummary', { week: STATE.week });
