@@ -7886,10 +7886,14 @@ async function renderComparison() {
         container.innerHTML = '<div class="card"><div class="card-body"><p class="error-text">Failed to load comparison</p></div></div>'; 
     }
 }
-// ==================== SUMMARY (INSTAGRAM PRO VERSION) ====================
+// ==================== ULTIMATE SUMMARY (MOBILE-FIXED & IG-READY) ====================
 async function renderSummary() {
     const container = document.getElementById('summary-content'); 
     if (!container) return;
+    
+    // KILL HORIZONTAL SCROLL
+    container.style.overflowX = 'hidden';
+    container.style.width = '100%';
     
     const selectedWeek = STATE.week;
     const isCompleted = isWeekCompleted(selectedWeek);
@@ -7903,7 +7907,7 @@ async function renderSummary() {
     // --- 2. ADMIN RELEASE CHECK ---
     const isReleased = STATE.data?.resultsReleased === true || STATE.data?.teamInfo?.resultsReleased === true;
     if (!isReleased) {
-        container.innerHTML = `<div class="card" style="border: 1px solid #ffa500; background: rgba(255,165,0,0.05);"><div class="card-body" style="text-align: center; padding: 40px;"><div style="font-size: 48px; margin-bottom: 20px;">🔒</div><h3 style="color: #fff; margin: 0 0 10px;">Verification in Progress</h3><p style="color: #aaa; font-size: 13px;">The battle has ended. HQ is currently verifying Attendance & Police Reports.</p><button onclick="loadPage('home')" class="btn-secondary" style="margin-top:25px;">🏠 Return to Dashboard</button></div></div>`;
+        container.innerHTML = `<div class="card" style="border: 1px solid #ffa500; background: rgba(255,165,0,0.05);"><div class="card-body" style="text-align: center; padding: 40px;"><div style="font-size: 48px; margin-bottom: 20px;">🔒</div><h3 style="color: #fff; margin: 0 0 10px;">Verification in Progress</h3><p style="color: #aaa; font-size: 13px;">The battle has ended. HQ is currently verifying Attendance & Police Reports.</p></div></div>`;
         return; 
     }
     
@@ -7944,79 +7948,87 @@ async function renderSummary() {
 
         // --- RENDER HTML ---
         container.innerHTML = `
-            <div style="text-align:center; margin-bottom:30px;">
-                <h1 style="color:#fff; font-size:28px; font-weight:900; letter-spacing:-1px; margin:0;">WEEKLY SUMMARY</h1>
-                <div style="display:inline-block; padding:4px 12px; background:#7b2cbf; color:#fff; border-radius:4px; font-size:11px; font-weight:bold; margin-top:8px;">${selectedWeek} REPORT</div>
+            <!-- Header Section -->
+            <div style="text-align:center; padding: 20px 0;">
+                <div style="color:#7b2cbf; font-size:11px; font-weight:900; letter-spacing:3px; text-transform:uppercase;">Operation Post-Action Report</div>
+                <h1 style="color:#fff; font-size:32px; font-weight:900; margin:5px 0;">${selectedWeek} RESULTS</h1>
+                <div style="height:2px; width:40px; background:#7b2cbf; margin:10px auto;"></div>
             </div>
 
-            <!-- 🚩 NO WINNER ALERT -->
+            <!-- GHOST PROTOCOL / NO WINNER -->
             ${!winner ? `
-                <div style="background:rgba(255,68,68,0.1); border:1px solid #ff4444; border-radius:12px; padding:20px; text-align:center; margin-bottom:30px;">
-                    <div style="font-size:24px; margin-bottom:5px;">⚠️</div>
-                    <div style="color:#ff4444; font-weight:900; font-size:16px; letter-spacing:1px;">GHOST PROTOCOL ACTIVATED</div>
-                    <div style="color:#aaa; font-size:12px; margin-top:5px;">No team met all 5 HQ protocols this week. No winner declared.</div>
+                <div style="background:rgba(255,0,0,0.1); border:1px solid #ff4444; border-radius:12px; padding:20px; text-align:center; margin-bottom:30px; border-left: 5px solid #ff4444;">
+                    <div style="color:#ff4444; font-weight:900; font-size:18px; letter-spacing:1px;">🛡️ GHOST PROTOCOL ACTIVE</div>
+                    <div style="color:#ccc; font-size:12px; margin-top:5px; line-height:1.4;">Zero teams cleared all 5 Admin Protocols.<br><strong style="color:#fff;">The Trophy remains at HQ.</strong></div>
                 </div>
             ` : ''}
 
             <!-- 📸 THE INSTAGRAM POSTER CARD -->
-            <div id="shareable-stats-card" style="background:#0a0a0f; border:2px solid #7b2cbf; border-radius:24px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.5); max-width:500px; margin:0 auto 30px;">
-                <!-- Header -->
-                <div style="background:#7b2cbf; padding:30px 20px; text-align:center;">
-                    <div style="color:rgba(255,255,255,0.7); font-size:10px; font-weight:bold; letter-spacing:3px; margin-bottom:8px;">MISSION INTELLIGENCE REPORT</div>
-                    <div style="color:#fff; font-size:20px; font-weight:900; letter-spacing:-0.5px;">💜 BTS COMEBACK MISSION 💜</div>
-                    <div style="color:rgba(255,255,255,0.9); font-size:13px; margin-top:5px;">${dateStr}</div>
-                </div>
-
-                <!-- Main Numbers -->
-                <div style="padding:30px 25px;">
-                    <div style="text-align:center; margin-bottom:35px;">
-                        <div style="color:#888; font-size:11px; font-weight:bold; letter-spacing:2px; margin-bottom:5px;">GLOBAL STREAMING IMPACT</div>
-                        <div style="color:#ffd700; font-size:56px; font-weight:900; line-height:1; text-shadow:0 0 20px rgba(255,215,0,0.3);">${fmt(totalTrackStreams + totalAlbumStreams)}</div>
-                        <div style="color:#ffd700; font-size:12px; font-weight:bold; margin-top:10px;">🔥TOTAL STREAMS RECORDED🔥</div>
+            <div id="shareable-stats-card" style="background:#0a0a0f; border:2px solid #7b2cbf; border-radius:24px; overflow:hidden; box-shadow:0 0 40px rgba(123, 44, 191, 0.2); width:100%; max-width:100%; margin:0 auto 30px; box-sizing: border-box;">
+                
+                <!-- Poster Header (PRO GRADIENT) -->
+                <div style="background: linear-gradient(135deg, #5a1f99 0%, #7b2cbf 100%); padding: 35px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <div style="color: rgba(255,255,255,0.7); font-size: 10px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 10px;">
+                        MISSION INTELLIGENCE REPORT
                     </div>
-
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px; border-top:1px solid #222; padding-top:25px;">
-                        <!-- Tracks -->
-                        <div>
-                            <div style="color:#00ff88; font-size:10px; font-weight:900; letter-spacing:1px; margin-bottom:15px; border-left:3px solid #00ff88; padding-left:8px;">TRACKS: ${fmt(totalTrackStreams)}</div>
-                            ${trackStats.slice(0, 7).map(s => `
-                                <div style="margin-bottom:10px;">
-                                    <div style="color:#ccc; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
-                                    <div style="color:#fff; font-size:12px; font-weight:bold; font-family:monospace;">${fmt(s.total)}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <!-- Albums -->
-                        <div>
-                            <div style="color:#00d4ff; font-size:10px; font-weight:900; letter-spacing:1px; margin-bottom:15px; border-left:3px solid #00d4ff; padding-left:8px;">ALBUMS: ${fmt(totalAlbumStreams)}</div>
-                            ${albumStats.slice(0, 7).map(s => `
-                                <div style="margin-bottom:10px;">
-                                    <div style="color:#ccc; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
-                                    <div style="color:#fff; font-size:12px; font-weight:bold; font-family:monospace;">${fmt(s.total)}</div>
-                                </div>
-                            `).join('')}
-                        </div>
+                    <div style="color: #fff; font-size: 22px; font-weight: 900; letter-spacing: -0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+                        💜 BTS COMEBACK MISSION 💜
+                    </div>
+                    <div style="display: inline-block; margin-top: 15px; padding: 5px 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 12px; font-weight: 600; font-family: monospace;">
+                        ${dateStr}
                     </div>
                 </div>
 
-                <!-- Footer -->
-                <div style="background:#111; padding:15px; text-align:center; border-top:1px solid #222;">
-                    <div style="color:#555; font-size:9px; font-weight:bold; letter-spacing:1px;">#BTSCOMEBACK #BTSARMY #STREAMINGMISSION #hopetracker</div>
+                <!-- Grand Total Section -->
+                <div style="padding:40px 20px; text-align:center; border-bottom:1px solid #1a1a2e;">
+                    <div style="color:#888; font-size:11px; font-weight:bold; letter-spacing:2px; margin-bottom:8px;">COMBINED ARMY STRENGTH</div>
+                    <div style="color:#ffd700; font-size:62px; font-weight:900; line-height:0.9; text-shadow:0 0 25px rgba(255,215,0,0.4);">${fmt(totalTrackStreams + totalAlbumStreams)}</div>
+                    <div style="color:#ffd700; font-size:12px; font-weight:800; margin-top:12px; letter-spacing:1px;">TOTAL STREAMS RECORDED</div>
+                </div>
+
+                <!-- Two Column Grid -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:25px; padding:30px 25px; background:rgba(255,255,255,0.01);">
+                    
+                    <!-- Track Column (NEON GREEN) -->
+                    <div style="min-width:0;">
+                        <div style="color:#00ff88; font-size:11px; font-weight:900; letter-spacing:1px; margin-bottom:18px; border-left:3px solid #00ff88; padding-left:10px;">🎵 TRACKS: ${fmt(totalTrackStreams)}</div>
+                        ${trackStats.slice(0, 7).map(s => `
+                            <div style="margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.03);">
+                                <div style="color:#ccc; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
+                                <div style="color:#fff; font-size:14px; font-weight:bold; font-family:monospace; margin-top:2px;">${fmt(s.total)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- Album Column (NEON CYAN) -->
+                    <div style="min-width:0;">
+                        <div style="color:#00d4ff; font-size:11px; font-weight:900; letter-spacing:1px; margin-bottom:18px; border-left:3px solid #00d4ff; padding-left:10px;">💿 ALBUMS: ${fmt(totalAlbumStreams)}</div>
+                        ${albumStats.slice(0, 7).map(s => `
+                            <div style="margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.03);">
+                                <div style="color:#ccc; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
+                                <div style="color:#fff; font-size:14px; font-weight:bold; font-family:monospace; margin-top:2px;">${fmt(s.total)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="background:#111; padding:20px; text-align:center; border-top:1px solid #222;">
+                    <div style="color:#555; font-size:10px; font-weight:bold; letter-spacing:2px;">OFFICIAL MISSION VERIFIED BY HQ</div>
                 </div>
             </div>
 
-            <!-- 🛠️ ACTIONS -->
+            <!-- Interative Actions -->
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:40px;">
-                <button onclick="shareStats()" class="btn-primary" style="height:50px;">📸 Screenshot Poster</button>
-                <button onclick="copyShareText()" class="btn-secondary" style="height:50px;">📋 Copy Caption</button>
+                <button onclick="shareStats()" class="btn-primary" style="height:55px; border-radius:12px; font-size:13px;">📸 SAVE POSTER</button>
+                <button onclick="copyShareText()" class="btn-secondary" style="height:55px; border-radius:12px; font-size:13px;">📋 COPY CAPTION</button>
             </div>
 
-            <!-- 📊 TEAM STANDINGS -->
-            <h3 style="color:#fff; font-size:16px; margin-bottom:15px; display:flex; align-items:center; gap:10px;">
-                <span style="background:#7b2cbf; width:4px; height:18px; border-radius:2px;"></span>
-                TEAM DISPATCH STANDINGS
+            <!-- 📊 TEAM STANDINGS (MODERN) -->
+            <h3 style="color:#fff; font-size:16px; margin-bottom:15px; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:10px;">
+                <span style="background:#00d4ff; width:4px; height:18px; border-radius:2px;"></span>
+                Field Dispatch Standings
             </h3>
-            <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:40px;">
+            <div style="display:flex; flex-direction:column; gap:15px; margin-bottom:40px;">
                 ${sortedTeams.map(([t, info], i) => {
                     const missionsPassed = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
                     let failures = [];
@@ -8024,46 +8036,55 @@ async function renderSummary() {
                     if (!info.attendanceConfirmed) failures.push("Attendance");
                     if (!info.policeConfirmed) failures.push("Police");
 
-                    const statusColor = failures.length === 0 ? '#00ff88' : '#ff4444';
+                    const isQualified = failures.length === 0;
 
                     return `
-                        <div style="background:#161625; border-radius:16px; padding:15px; display:flex; align-items:center; justify-content:space-between; border-left:4px solid ${teamColor(t)};">
-                            <div>
-                                <div style="color:#fff; font-weight:bold; font-size:14px;">${t} ${t===myTeam?'(YOU)':''}</div>
-                                <div style="color:${statusColor}; font-size:11px; font-weight:bold; margin-top:4px;">
-                                    ${failures.length === 0 ? '✅ QUALIFIED' : '❌ FAILED: ' + failures.join(' & ')}
+                        <div style="background:#161625; border-radius:16px; padding:18px; display:flex; align-items:center; justify-content:space-between; border: 1px solid ${isQualified ? 'rgba(0,255,136,0.2)' : 'rgba(255,68,68,0.2)'};">
+                            <div style="flex:1;">
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <span style="color:#888; font-weight:900; font-size:16px;">${i+1}</span>
+                                    <div style="color:#fff; font-weight:bold; font-size:15px; color:${teamColor(t)}">${t}</div>
+                                </div>
+                                <div style="margin-top:5px; display:flex; gap:8px;">
+                                    ${isQualified ? 
+                                        `<span style="color:#00ff88; font-size:10px; font-weight:bold; padding:2px 8px; background:rgba(0,255,136,0.1); border-radius:4px;">✅ QUALIFIED</span>` : 
+                                        `<span style="color:#ff4444; font-size:10px; font-weight:bold; padding:2px 8px; background:rgba(255,68,68,0.1); border-radius:4px;">❌ FAILED: ${failures.join(' & ')}</span>`
+                                    }
                                 </div>
                             </div>
                             <div style="text-align:right;">
-                                <div style="color:#fff; font-size:16px; font-weight:900;">${fmt(info.teamXP)}</div>
-                                <div style="color:#555; font-size:9px; font-weight:bold;">XP EARNED</div>
+                                <div style="color:#fff; font-size:18px; font-weight:900;">${fmt(info.teamXP)}</div>
+                                <div style="color:#555; font-size:9px; font-weight:bold; text-transform:uppercase;">Team XP</div>
                             </div>
                         </div>
                     `;
                 }).join('')}
             </div>
 
-            <!-- 🏆 TOP AGENTS -->
-            <h3 style="color:#fff; font-size:16px; margin-bottom:15px; display:flex; align-items:center; gap:10px;">
+            <!-- 🏆 TOP AGENTS (CLEAN) -->
+            <h3 style="color:#fff; font-size:16px; margin-bottom:15px; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:10px;">
                 <span style="background:#ffd700; width:4px; height:18px; border-radius:2px;"></span>
-                TOP OPERATIVES
+                Elite Operatives
             </h3>
-            <div class="card" style="margin-bottom:30px;">
-                <div class="card-body" style="padding:10px;">
+            <div class="card" style="margin-bottom:30px; border-radius:20px; overflow:hidden;">
+                <div class="card-body" style="padding:5px;">
                     ${topAgents.slice(0, 5).map((agent, i) => `
-                        <div style="display:flex; align-items:center; gap:15px; padding:12px; border-bottom:1px solid rgba(255,255,255,0.05);">
-                            <div style="font-size:18px; width:25px; text-align:center;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+                        <div style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:1px solid rgba(255,255,255,0.03);">
+                            <div style="font-size:20px; width:30px; text-align:center;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
                             <div style="flex:1;">
-                                <div style="color:#fff; font-weight:bold; font-size:13px;">${sanitize(agent.name || 'Secret Agent')}</div>
-                                <div style="color:${teamColor(agent.team)}; font-size:10px; font-weight:bold;">${agent.team}</div>
+                                <div style="color:#fff; font-weight:bold; font-size:14px;">${sanitize(agent.name || 'Secret Agent')}</div>
+                                <div style="color:${teamColor(agent.team)}; font-size:11px; font-weight:bold;">${agent.team}</div>
                             </div>
-                            <div style="color:#fff; font-weight:bold;">${fmt(agent.totalXP)} XP</div>
+                            <div style="text-align:right;">
+                                <div style="color:#fff; font-weight:bold; font-size:14px;">${fmt(agent.totalXP)}</div>
+                                <div style="color:#444; font-size:9px; font-weight:bold;">XP</div>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
             </div>
 
-            <button onclick="loadPage('home')" class="btn-secondary" style="width:100%; height:55px; border-radius:12px; font-weight:bold;">🏠 RETURN TO HQ</button>
+            <button onclick="loadPage('home')" class="btn-secondary" style="width:100%; height:60px; border-radius:15px; font-weight:900; font-size:14px; letter-spacing:1px; background:#1a1a2e; border:1px solid #333;">🏠 BACK TO COMMAND CENTER</button>
         `;
         
         markResultsSeen(selectedWeek);
@@ -8071,7 +8092,7 @@ async function renderSummary() {
 
     } catch (e) { 
         console.error('Summary error:', e);
-        container.innerHTML = `<div class="card"><div class="card-body error-state"><h3>Failed to Load Summary</h3><button onclick="renderSummary()" class="btn-primary">Retry</button></div></div>`; 
+        container.innerHTML = `<div class="card"><div class="card-body error-state"><h3>Data Decryption Failed</h3><button onclick="renderSummary()" class="btn-primary">Retry</button></div></div>`; 
     }
 }
 // ==================== SHARE FUNCTIONS ====================
