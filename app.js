@@ -8030,7 +8030,8 @@ async function renderSummary() {
                     <div class="card-body" style="text-align:center;padding:30px;">
                         <div style="font-size:48px;margin-bottom:10px;">😔</div>
                         <h3 style="color:#ff6b6b;margin:0;">No Winner This Week</h3>
-                        <p style="color:#888;margin-top:10px;">No team met all 3 requirements (Tracks + Albums + 2X).</p>
+                        <p style="color:#888;margin-top:10px;font-size:13px;">No team met all 5 requirements:<br>
+                        (Tracks + Albums + 2X + 100% Attendance + Police Check)</p>
                     </div>
                 </div>
             `}
