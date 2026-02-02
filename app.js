@@ -7297,7 +7297,7 @@ async function renderTeamLevel() {
     const container = $('team-level-content');
     if (!container) return;
     
-    content.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
+    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
     
     try {
         const summary = await api('getWeeklySummary', { week: STATE.week });
@@ -7944,7 +7944,7 @@ async function renderSummary() {
     }
     
     // --- 3. LIVE RESULTS VIEW ---
-    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
+    content.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
     
     try {
         const [summary, goals, rankings] = await Promise.all([
