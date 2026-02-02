@@ -5251,6 +5251,8 @@ function setupDashboard() {
             loading(true);
             try {
                 STATE.data = await api('getAgentData', { agentNo: STATE.agentNo, week: select.value });
+                STATE.data = newData;
+                STATE.data.resultsReleased = newData.resultsReleased;
                 STATE.week = select.value;
                 if (STATE.data?.lastUpdated) { STATE.lastUpdated = STATE.data.lastUpdated; updateTime(); }
                 await loadPage(STATE.page);
