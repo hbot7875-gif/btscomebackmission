@@ -8001,7 +8001,7 @@ async function renderSummary() {
 
                 <!-- Footer -->
                 <div style="background:#111; padding:15px; text-align:center; border-top:1px solid #222;">
-                    <div style="color:#555; font-size:9px; font-weight:bold; letter-spacing:1px;">#BTSCOMEBACK #BTSARMY #STREAMINGMISSION</div>
+                    <div style="color:#555; font-size:9px; font-weight:bold; letter-spacing:1px;">#BTSCOMEBACK #BTSARMY #STREAMINGMISSION #hopetracker</div>
                 </div>
             </div>
 
