@@ -7971,8 +7971,8 @@ async function renderSummary() {
                     <div style="color: rgba(255,255,255,0.7); font-size: 10px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 10px;">
                         MISSION INTELLIGENCE REPORT
                     </div>
-                    <div style="color: #fff; font-size: 22px; font-weight: 900; letter-spacing: -0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-                        💜 BTS COMEBACK MISSION 💜
+                    <div style="color: #fff; font-size: 22px; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); text-transform: uppercase;">
+                        [ BTS COMEBACK MISSION ]
                     </div>
                     <div style="display: inline-block; margin-top: 15px; padding: 5px 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 12px; font-weight: 600; font-family: monospace;">
                         ${dateStr}
@@ -8013,7 +8013,7 @@ async function renderSummary() {
                 </div>
 
                 <div style="background:#111; padding:20px; text-align:center; border-top:1px solid #222;">
-                    <div style="color:#555; font-size:10px; font-weight:bold; letter-spacing:2px;">OFFICIAL MISSION VERIFIED BY HQ</div>
+                    <div style="color:#555; font-size:10px; font-weight:bold; letter-spacing:2px;">HOPETRACKER</div>
                 </div>
             </div>
 
@@ -8026,7 +8026,7 @@ async function renderSummary() {
             <!-- 📊 TEAM STANDINGS (MODERN) -->
             <h3 style="color:#fff; font-size:16px; margin-bottom:15px; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:10px;">
                 <span style="background:#00d4ff; width:4px; height:18px; border-radius:2px;"></span>
-                Field Dispatch Standings
+                Team Standings
             </h3>
             <div style="display:flex; flex-direction:column; gap:15px; margin-bottom:40px;">
                 ${sortedTeams.map(([t, info], i) => {
@@ -8064,7 +8064,7 @@ async function renderSummary() {
             <!-- 🏆 TOP AGENTS (CLEAN) -->
             <h3 style="color:#fff; font-size:16px; margin-bottom:15px; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:10px;">
                 <span style="background:#ffd700; width:4px; height:18px; border-radius:2px;"></span>
-                Elite Operatives
+                Elite Agents
             </h3>
             <div class="card" style="margin-bottom:30px; border-radius:20px; overflow:hidden;">
                 <div class="card-body" style="padding:5px;">
