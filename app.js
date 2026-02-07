@@ -6401,7 +6401,7 @@ async function renderDrawer() {
     STATE.lastChecked.album2xBadge = album2xStatus.passed || false;
     saveNotificationState();
 }
-// ==================== PROFILE (UPDATED: APPLY LEAVE) ====================
+// ==================== PROFILE (UPDATED: APPLY LEAVE + DELETE ACCOUNT) ====================
 async function renderProfile() {
     const container = $('profile-stats');
     if (!container) return;
@@ -6449,13 +6449,10 @@ async function renderProfile() {
         </div>
     `;
 
-    // --- 2. LEAVE REQUEST CARD (Responsive Layout) ---
+    // --- 2. LEAVE REQUEST CARD ---
     html += `
         <div class="card" style="margin-top: 20px; border-color: ${isExempt ? '#888' : '#ffa500'}; background: linear-gradient(135deg, ${isExempt ? '#333' : '#ffa50015'}, #0a0a0f); position: relative; overflow: hidden;">
-            <!-- Added flex-wrap and gap for mobile responsiveness -->
             <div class="card-body" style="padding: 15px; display:flex; flex-wrap: wrap; gap: 15px; align-items:center; justify-content:space-between;">
-                
-                <!-- Text Container -->
                 <div style="flex: 1; min-width: 200px;">
                     <div style="color: ${isExempt ? '#ccc' : '#ffa500'}; font-weight:700; font-size:13px; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
                         <span>${isExempt ? '💤' : '📝'}</span> 
@@ -6467,8 +6464,6 @@ async function renderProfile() {
                             : 'Can\'t stream this week? Apply for leave to protect your team stats.'}
                     </div>
                 </div>
-                
-                <!-- Button Container -->
                 <div style="flex-shrink: 0;">
                     ${!isExempt ? `
                     <button onclick="openLeaveModal()" style="
@@ -6504,11 +6499,32 @@ async function renderProfile() {
                 </div>
             </div>
         </div>
-    `; // <--- THIS WAS MISSING
+    `;
+
+    // --- 3. DELETE ACCOUNT BUTTON ---
+    html += `
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px dashed rgba(255, 68, 68, 0.3); text-align: center;">
+            <button onclick="promptDeleteAccount()" style="
+                background: transparent; 
+                border: 1px solid #ff4444; 
+                color: #ff4444; 
+                padding: 10px 20px; 
+                border-radius: 8px; 
+                font-size: 11px; 
+                font-weight: bold; 
+                cursor: pointer; 
+                opacity: 0.6; 
+                transition: all 0.3s;
+            " onmouseover="this.style.opacity='1'; this.style.background='rgba(255,68,68,0.1)'" 
+               onmouseout="this.style.opacity='0.6'; this.style.background='transparent'">
+                ⚠️ RETIRE FROM MISSION (DELETE ACCOUNT)
+            </button>
+        </div>
+    `;
 
     container.innerHTML = html;
 
-    // --- 3. CONTRIBUTIONS & BADGES (Existing Logic) ---
+    // --- 4. CONTRIBUTIONS ---
     const tracksContainer = $('profile-tracks');
     if (tracksContainer) {
         const trackEntries = Object.entries(trackContributions).sort((a, b) => b[1] - a[1]);
@@ -6531,6 +6547,7 @@ async function renderProfile() {
         `).join('') : '<p class="empty-text">No album data yet</p>';
     }
     
+    // --- 5. BADGES ---
     const badgesContainer = $('profile-badges');
     if (badgesContainer) {
         let badgesHtml = '';
@@ -6573,9 +6590,8 @@ async function renderProfile() {
         badgesContainer.innerHTML = badgesHtml;
     }
 }
-// ==================== APPLY LEAVE MODAL ====================
-
-function openLeaveModal() {
+// ==================== DELETE ACCOUNT ====================
+function promptDeleteAccount() {
     // Remove any existing modals
     document.querySelectorAll('.spy-modal-overlay').forEach(e => e.remove());
 
@@ -6583,51 +6599,64 @@ function openLeaveModal() {
     modal.className = 'spy-modal-overlay';
     modal.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.9); z-index: 100000;
+        background: rgba(0,0,0,0.95); z-index: 100000;
         display: flex; align-items: center; justify-content: center;
-        backdrop-filter: blur(5px); animation: fadeIn 0.3s ease;
+        backdrop-filter: blur(8px); animation: fadeIn 0.3s ease;
     `;
 
     modal.innerHTML = `
         <div style="
-            background: linear-gradient(145deg, #1a1a2e, #0a0a0f);
-            border: 1px solid #ffa500;
+            background: linear-gradient(145deg, #2a1a1a, #0a0a0f);
+            border: 2px solid #ff4444;
             border-radius: 12px;
             padding: 0;
             width: 90%;
-            max-width: 350px;
-            box-shadow: 0 0 40px rgba(255, 165, 0, 0.15);
+            max-width: 380px;
+            box-shadow: 0 0 60px rgba(255, 68, 68, 0.3);
             overflow: hidden;
             font-family: sans-serif;
         ">
             <!-- Header -->
             <div style="
-                background: rgba(255, 165, 0, 0.15);
-                padding: 15px;
-                border-bottom: 1px solid rgba(255, 165, 0, 0.3);
-                display: flex; align-items: center; gap: 10px;
+                background: rgba(255, 68, 68, 0.2);
+                padding: 18px;
+                border-bottom: 1px solid rgba(255, 68, 68, 0.4);
+                text-align: center;
             ">
-                <span style="font-size: 20px;">📝</span>
-                <span style="color: #ffa500; font-weight: bold; font-size: 14px;">Confirm Leave Application</span>
+                <div style="font-size: 40px; margin-bottom: 8px;">⚠️</div>
+                <div style="color: #ff4444; font-weight: bold; font-size: 16px;">RETIRE FROM MISSION?</div>
             </div>
 
             <!-- Body -->
             <div style="padding: 20px;">
-                <p style="color: #fff; font-size: 13px; margin-top: 0; line-height: 1.5;">
-                    You are applying for <strong>Leave</strong> for the current week.
+                <p style="color: #fff; font-size: 13px; margin: 0 0 15px 0; line-height: 1.6; text-align: center;">
+                    This action will <strong style="color:#ff4444;">permanently delete</strong> your account and all associated data.
                 </p>
 
-                <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; margin: 15px 0;">
-                    <div style="color: #aaa; font-size: 11px; margin-bottom: 5px; font-weight:bold;">WHAT THIS MEANS:</div>
-                    <ul style="margin: 0; padding-left: 20px; color: #ddd; font-size: 12px; line-height: 1.6;">
-                        <li>You become <strong>EXEMPT</strong> from Team 2X Mission.</li>
-                        <li>Your team will NOT fail because of you.</li>
-                        <li>You will earn <strong>0 XP</strong> this week.</li>
-                        <!-- ADDED TIMING NOTE HERE -->
-                        <li style="margin-top: 8px; color: #ffa500; list-style-type: none; margin-left: -20px; font-style: italic;">
-                            ⚠️ <strong>Note:</strong> System updates hourly. Your status will reflect within 1 hour.
-                        </li>
+                <div style="background: rgba(255,68,68,0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,68,68,0.3);">
+                    <div style="color: #ff6666; font-size: 11px; margin-bottom: 8px; font-weight: bold;">⚠️ THIS WILL DELETE:</div>
+                    <ul style="margin: 0; padding-left: 18px; color: #ccc; font-size: 12px; line-height: 1.7;">
+                        <li>All your streaming stats & XP</li>
+                        <li>Your badges and achievements</li>
+                        <li>Your streak history</li>
+                        <li>Team contributions data</li>
+                        <li>Your Agent profile</li>
                     </ul>
+                </div>
+
+                <div style="margin-top: 15px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; text-align: center;">
+                    <div style="color: #888; font-size: 11px; margin-bottom: 8px;">Type your Agent No to confirm:</div>
+                    <input type="text" id="deleteConfirmInput" placeholder="${STATE.agentNo}" style="
+                        width: 100%;
+                        padding: 10px;
+                        border: 1px solid #444;
+                        border-radius: 6px;
+                        background: #1a1a1a;
+                        color: #fff;
+                        text-align: center;
+                        font-size: 14px;
+                        font-weight: bold;
+                    ">
                 </div>
             </div>
 
@@ -6639,44 +6668,64 @@ function openLeaveModal() {
                 gap: 10px;
             ">
                 <button onclick="document.querySelector('.spy-modal-overlay').remove()" style="
-                    flex: 1; padding: 12px; background: transparent; 
-                    border: 1px solid #444; color: #aaa; 
-                    border-radius: 6px; cursor: pointer;
+                    flex: 1; padding: 14px; background: #333; 
+                    border: none; color: #fff; 
+                    border-radius: 8px; cursor: pointer; font-weight: bold;
                 ">Cancel</button>
                 
-                <button onclick="confirmLeaveApplication()" style="
-                    flex: 1; padding: 12px; background: #ffa500; 
-                    border: none; color: #000; font-weight: bold; 
-                    border-radius: 6px; cursor: pointer;
-                ">Confirm Apply</button>
+                <button onclick="confirmDeleteAccount()" style="
+                    flex: 1; padding: 14px; background: #ff4444; 
+                    border: none; color: #fff; font-weight: bold; 
+                    border-radius: 8px; cursor: pointer;
+                ">DELETE FOREVER</button>
             </div>
         </div>
     `;
 
     document.body.appendChild(modal);
+    
+    // Focus the input
+    setTimeout(() => {
+        document.getElementById('deleteConfirmInput')?.focus();
+    }, 100);
 }
 
-async function confirmLeaveApplication() {
+async function confirmDeleteAccount() {
+    const input = document.getElementById('deleteConfirmInput');
+    const enteredValue = input?.value?.trim();
+    
+    // Verify agent number matches
+    if (enteredValue !== STATE.agentNo) {
+        showToast('❌ Agent number does not match!', 'error');
+        input.style.borderColor = '#ff4444';
+        input.focus();
+        return;
+    }
+
     // Close modal
-    document.querySelector('.spy-modal-overlay').remove();
+    document.querySelector('.spy-modal-overlay')?.remove();
     
     loading(true);
     try {
-        const result = await api('applyLeave', {
+        const result = await api('deleteAgent', {
             agentNo: STATE.agentNo,
-            week: STATE.week
+            confirmCode: enteredValue
         });
 
         if (result.success) {
-            // ✅ Updated Message
-            showToast('✅ Application received! Status will update in ~1 hour.', 'success');
+            showToast('👋 Account deleted. Thank you for your service, Agent.', 'success');
             
-            // Reload dashboard to reflect changes (if backend updated immediately)
+            // Clear local storage
+            localStorage.removeItem('agentNo');
+            localStorage.removeItem('agentTeam');
+            localStorage.removeItem('agentName');
+            
+            // Redirect to login after delay
             setTimeout(() => {
-                loadDashboard();
-            }, 1000);
+                window.location.href = 'index.html';
+            }, 2000);
         } else {
-            showToast('❌ ' + (result.error || 'Failed to update status'), 'error');
+            showToast('❌ ' + (result.error || 'Failed to delete account'), 'error');
         }
     } catch (e) {
         showToast('❌ Network Error', 'error');
@@ -6687,33 +6736,8 @@ async function confirmLeaveApplication() {
 }
 
 // Export for global access
-window.openLeaveModal = openLeaveModal;
-window.confirmLeaveApplication = confirmLeaveApplication;
-async function cancelLeaveRequest() {
-    if (!confirm("⚠️ REACTIVATE STATUS?\n\nAre you sure you want to cancel your leave?\nYou will be required to complete missions again.")) {
-        return;
-    }
-
-    loading(true);
-    try {
-        const result = await api('cancelLeave', {
-            agentNo: STATE.agentNo,
-            week: STATE.week
-        });
-
-        if (result.success) {
-            showToast('✅ Welcome back, Agent. Leave cancelled.', 'success');
-            setTimeout(() => { loadDashboard(); }, 1000);
-        } else {
-            showToast('❌ ' + (result.error || 'Failed to cancel'), 'error');
-        }
-    } catch (e) {
-        showToast('❌ Network Error', 'error');
-    } finally {
-        loading(false);
-    }
-}
-window.cancelLeaveRequest = cancelLeaveRequest;
+window.promptDeleteAccount = promptDeleteAccount;
+window.confirmDeleteAccount = confirmDeleteAccount;
 // ==================== GOALS (MOBILE FIXED) ====================
 async function renderGoals() {
     const container = $('goals-content');
@@ -12303,6 +12327,35 @@ function analyzeIssue(debug, stats) {
 
     return `<span style="color:#00ff88">System Nominal.</span> Data is syncing correctly.`;
 }
+// Add this to app.js
+function promptDeleteAccount() {
+    const password = prompt("⚠️ WARNING: RETIREMENT PROTOCOL\n\nThis action is PERMANENT. All XP, Badges, and Stats will be wiped.\n\nTo confirm, enter your Access Key:");
+    
+    if (!password) return;
+
+    if (!confirm("🚨 FINAL WARNING 🚨\n\nAre you absolutely sure you want to delete your profile?")) return;
+
+    loading(true);
+    
+    api('deleteAccount', {
+        agentNo: STATE.agentNo,
+        password: password
+    }).then(res => {
+        if (res.success) {
+            alert("🛑 AGENT RETIRED.\n\nThank you for your service.");
+            logout(); // Reuse your logout function to clear state
+        } else {
+            showToast("❌ " + res.error, "error");
+        }
+    }).catch(e => {
+        showToast("Error: " + e.message, "error");
+    }).finally(() => {
+        loading(false);
+    });
+}
+
+// Export it so HTML can use it
+window.promptDeleteAccount = promptDeleteAccount;
 
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
