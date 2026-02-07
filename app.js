@@ -9482,6 +9482,24 @@ function extractYouTubeId(url) {
     return null;
 }
 // ==================== ANNOUNCEMENTS (TABBED VERSION) ====================
+
+// Add this helper function to window so HTML can access it
+window.toggleJournalistPanel = function() {
+    const form = document.getElementById('journalist-form');
+    const arrow = document.getElementById('journalist-arrow');
+    
+    if (!form) return;
+    
+    // Toggle logic
+    if (form.style.display === 'none' || form.style.display === '') {
+        form.style.display = 'block';
+        if(arrow) arrow.style.transform = 'rotate(180deg)';
+    } else {
+        form.style.display = 'none';
+        if(arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+};
+
 async function renderAnnouncements() {
     const container = $('announcements-content');
     if (!container) return;
@@ -9513,27 +9531,38 @@ async function renderAnnouncements() {
 
 // Tab 1: HQ News (Official announcements + Admin Panel)
 async function renderHQNews(displayArea) {
-    // 1. Admin/Journalist Panel UI
+    // 1. Admin/Journalist Panel UI (Fixed Toggle)
     const journalistPanelHTML = `
         <div class="card" style="border: 1px solid #00d4ff; background: rgba(0, 212, 255, 0.05); margin-bottom: 20px;">
             <div class="card-header" style="cursor: pointer; display:flex; justify-content:space-between; align-items:center;" 
-                 onclick="const f = document.getElementById('journalist-form'); f.style.display = f.style.display === 'none' ? 'block' : 'none'">
-                <h3 style="color: #00d4ff; margin:0; font-size:14px;">📰 Journalist & Voting Panel</h3>
-                <span style="color:#00d4ff;">[Click to Expand/Hide]</span>
+                 onclick="window.toggleJournalistPanel()">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:18px;">📰</span>
+                    <h3 style="color: #00d4ff; margin:0; font-size:14px;">Journalist & Voting Panel</h3>
+                </div>
+                <span id="journalist-arrow" style="color:#00d4ff; transition: transform 0.3s ease;">▼</span>
             </div>
-            <div id="journalist-form" class="card-body" style="display: none; padding-top: 15px;">
+            
+            <div id="journalist-form" class="card-body" style="display: none; padding-top: 15px; border-top: 1px solid rgba(0,212,255,0.1);">
                 <select id="news-type" class="form-input" style="width:100%; margin-bottom:10px;">
-                    <option value="News">📰 News Update</option>
-                    <option value="Voting">🗳️ Voting Alert</option>
+                    <option value="medium">📰 News Update (Normal)</option>
+                    <option value="high">🗳️ Voting Alert (High Priority)</option>
+                    <option value="low">💡 Tip / Fun (Low Priority)</option>
                 </select>
+                
                 <input type="text" id="news-title" placeholder="Headline" class="form-input" style="width:100%; margin-bottom:10px;">
                 <textarea id="news-message" placeholder="Details/Instructions..." class="form-input" style="width:100%; min-height:80px; margin-bottom:10px;"></textarea>
+                
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-                    <input type="text" id="news-link" placeholder="Link URL" class="form-input">
-                    <input type="text" id="news-link-text" placeholder="Button Text" class="form-input">
+                    <input type="text" id="news-link" placeholder="Link URL (Optional)" class="form-input">
+                    <input type="text" id="news-link-text" placeholder="Button Text (e.g. Vote)" class="form-input">
                 </div>
+                
                 <input type="password" id="news-password" placeholder="🔒 Journalist Password" class="form-input" style="width:100%; margin-bottom:10px; border:1px solid #00d4ff;">
-                <button onclick="submitJournalistNews()" class="btn-primary" style="width: 100%; background: #00d4ff; color: #000; font-weight:bold;">📡 Broadcast Update</button>
+                
+                <button onclick="submitJournalistNews()" class="btn-primary" style="width: 100%; background: linear-gradient(135deg, #00d4ff, #0077ff); color: #fff; font-weight:bold; border:none;">
+                    📡 Broadcast Update
+                </button>
             </div>
         </div>
     `;
@@ -9554,11 +9583,11 @@ async function renderHQNews(displayArea) {
 
         if (list.length) {
             const listHTML = list.map(a => `
-                <div class="card announcement ${getPriorityClass(a.priority)}">
+                <div class="card announcement priority-${a.priority || 'normal'}">
                     <div class="card-body">
                         <div class="announcement-header">
-                            <span class="announcement-date">${a.created ? new Date(a.created).toLocaleDateString() : ''}</span>
                             ${getPriorityBadge(a.priority)}
+                            <span class="announcement-date">${a.created ? formatLastUpdated(a.created) : ''}</span>
                         </div>
                         <h3>${sanitize(a.title)}</h3>
                         <p style="white-space:pre-line;">${sanitize(a.message || a.content || '')}</p>
@@ -9572,10 +9601,13 @@ async function renderHQNews(displayArea) {
         }
 
         // Update notification state as read
-        STATE.lastChecked.announcements = Date.now();
-        saveNotificationState();
+        if (STATE.lastChecked) {
+            STATE.lastChecked.announcements = Date.now();
+            saveNotificationState();
+        }
 
     } catch (e) {
+        console.error(e);
         displayArea.innerHTML = journalistPanelHTML + '<p class="error-text">Failed to load news archives.</p>';
     }
 }
@@ -9604,6 +9636,7 @@ async function renderActivityLog(displayArea) {
             else if(act.type === 'xp_milestone') { text = `<strong>${data.name}</strong> reached <strong>${data.xp} XP</strong> milestone!`; icon = '⭐'; }
             else if(act.type === 'sotd_winner') { text = `<strong>${data.team}</strong> solved the Song of the Day!`; icon = '🧠'; }
             else if(act.type === 'team_surge') { text = `<strong>${data.team}</strong> is on fire! ${data.streams} streams in the last hour!`; icon = '🚀'; }
+            else if(act.type === 'priority_alert') { text = `<strong style="color:#00d4ff;">PRIORITY:</strong> ${data.title}<br>${data.message || ''}`; icon = '🚨'; } // Fixed Priority Alert
             else return;
 
             html += `
@@ -9624,7 +9657,7 @@ async function renderActivityLog(displayArea) {
 
 // ==================== JOURNALIST ACTION ====================
 async function submitJournalistNews() {
-    const type = document.getElementById('news-type').value;
+    const priority = document.getElementById('news-type').value; // Mapped to priority now
     const title = document.getElementById('news-title').value.trim();
     const message = document.getElementById('news-message').value.trim();
     const link = document.getElementById('news-link').value.trim();
@@ -9638,29 +9671,43 @@ async function submitJournalistNews() {
 
     loading(true);
     try {
+        // Updated API call to match Backend Interface
         const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}`
+            },
             body: JSON.stringify({
                 action: 'addAnnouncement',
                 password: password,
-                type: type,
+                priority: priority, // Backend expects 'priority'
                 title: title,
                 message: message,
                 link: link,
                 linkText: linkText,
-                week: 'all',
+                week: STATE.week || 'all',
                 agentNo: STATE.agentNo || 'Unknown'
             })
         });
 
         const result = await response.json();
+        
         if (result.success) {
             showToast('✅ Broadcast Successful!', 'success');
+            // Clear inputs
+            document.getElementById('news-title').value = '';
+            document.getElementById('news-message').value = '';
+            document.getElementById('news-link').value = '';
+            document.getElementById('news-password').value = '';
+            
+            // Refresh list
             renderAnnouncements(); 
         } else {
             showToast('❌ ' + (result.error || 'Failed to publish'), 'error');
         }
     } catch (e) {
+        console.error(e);
         showToast('❌ Network Error', 'error');
     } finally {
         loading(false);
