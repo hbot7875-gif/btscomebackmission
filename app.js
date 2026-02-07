@@ -6745,6 +6745,147 @@ async function confirmDeleteAccount() {
 // Export for global access
 window.promptDeleteAccount = promptDeleteAccount;
 window.confirmDeleteAccount = confirmDeleteAccount;
+// ==================== APPLY LEAVE MODAL ====================
+
+function openLeaveModal() {
+    // Remove any existing modals
+    document.querySelectorAll('.spy-modal-overlay').forEach(e => e.remove());
+
+    const modal = document.createElement('div');
+    modal.className = 'spy-modal-overlay';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.9); z-index: 100000;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(5px); animation: fadeIn 0.3s ease;
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            background: linear-gradient(145deg, #1a1a2e, #0a0a0f);
+            border: 1px solid #ffa500;
+            border-radius: 12px;
+            padding: 0;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 0 40px rgba(255, 165, 0, 0.15);
+            overflow: hidden;
+            font-family: sans-serif;
+        ">
+            <!-- Header -->
+            <div style="
+                background: rgba(255, 165, 0, 0.15);
+                padding: 15px;
+                border-bottom: 1px solid rgba(255, 165, 0, 0.3);
+                display: flex; align-items: center; gap: 10px;
+            ">
+                <span style="font-size: 20px;">📝</span>
+                <span style="color: #ffa500; font-weight: bold; font-size: 14px;">Confirm Leave Application</span>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 20px;">
+                <p style="color: #fff; font-size: 13px; margin-top: 0; line-height: 1.5;">
+                    You are applying for <strong>Leave</strong> for the current week.
+                </p>
+
+                <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; margin: 15px 0;">
+                    <div style="color: #aaa; font-size: 11px; margin-bottom: 5px; font-weight:bold;">WHAT THIS MEANS:</div>
+                    <ul style="margin: 0; padding-left: 20px; color: #ddd; font-size: 12px; line-height: 1.6;">
+                        <li>You become <strong>EXEMPT</strong> from Team 2X Mission.</li>
+                        <li>Your team will NOT fail because of you.</li>
+                        <li>You will earn <strong>0 XP</strong> this week.</li>
+                        <!-- ADDED TIMING NOTE HERE -->
+                        <li style="margin-top: 8px; color: #ffa500; list-style-type: none; margin-left: -20px; font-style: italic;">
+                            ⚠️ <strong>Note:</strong> System updates hourly. Your status will reflect within 1 hour.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="
+                padding: 15px;
+                border-top: 1px solid rgba(255,255,255,0.1);
+                display: flex;
+                gap: 10px;
+            ">
+                <button onclick="document.querySelector('.spy-modal-overlay').remove()" style="
+                    flex: 1; padding: 12px; background: transparent; 
+                    border: 1px solid #444; color: #aaa; 
+                    border-radius: 6px; cursor: pointer;
+                ">Cancel</button>
+                
+                <button onclick="confirmLeaveApplication()" style="
+                    flex: 1; padding: 12px; background: #ffa500; 
+                    border: none; color: #000; font-weight: bold; 
+                    border-radius: 6px; cursor: pointer;
+                ">Confirm Apply</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+async function confirmLeaveApplication() {
+    // Close modal
+    document.querySelector('.spy-modal-overlay').remove();
+    
+    loading(true);
+    try {
+        const result = await api('applyLeave', {
+            agentNo: STATE.agentNo,
+            week: STATE.week
+        });
+
+        if (result.success) {
+            // ✅ Updated Message
+            showToast('✅ Application received! Status will update in ~1 hour.', 'success');
+            
+            // Reload dashboard to reflect changes (if backend updated immediately)
+            setTimeout(() => {
+                loadDashboard();
+            }, 1000);
+        } else {
+            showToast('❌ ' + (result.error || 'Failed to update status'), 'error');
+        }
+    } catch (e) {
+        showToast('❌ Network Error', 'error');
+        console.error(e);
+    } finally {
+        loading(false);
+    }
+}
+
+// Export for global access
+window.openLeaveModal = openLeaveModal;
+window.confirmLeaveApplication = confirmLeaveApplication;
+async function cancelLeaveRequest() {
+    if (!confirm("⚠️ REACTIVATE STATUS?\n\nAre you sure you want to cancel your leave?\nYou will be required to complete missions again.")) {
+        return;
+    }
+
+    loading(true);
+    try {
+        const result = await api('cancelLeave', {
+            agentNo: STATE.agentNo,
+            week: STATE.week
+        });
+
+        if (result.success) {
+            showToast('✅ Welcome back, Agent. Leave cancelled.', 'success');
+            setTimeout(() => { loadDashboard(); }, 1000);
+        } else {
+            showToast('❌ ' + (result.error || 'Failed to cancel'), 'error');
+        }
+    } catch (e) {
+        showToast('❌ Network Error', 'error');
+    } finally {
+        loading(false);
+    }
+}
+window.cancelLeaveRequest = cancelLeaveRequest;
 // ==================== GOALS (MOBILE FIXED) ====================
 async function renderGoals() {
     const container = $('goals-content');
