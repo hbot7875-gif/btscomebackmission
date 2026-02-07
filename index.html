@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0a0a0f">
-    <meta name="description" content="BTS COMEBACK MISSION - Hyung Line Streaming Competition Dashboard">
+    <meta name="description" content="HopeTracker - BTS COMEBACK MISSION - Hyung Line Streaming Competition Dashboard">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     
-    <title>BTS COMEBACK MISSION - HYUNG LINE</title>
+    <title>HopeTracker | BTS COMEBACK MISSION</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     
     <!-- CSS -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=5.1">
 </head>
 <body>
 
@@ -43,36 +43,61 @@
                     <div class="bts-logo">⟭⟬</div>
                     <h1 class="title">BTS COMEBACK MISSION</h1>
                     <p class="subtitle">HYUNG LINE EDITION</p>
+                    <!-- HopeTracker - Minimal below logo -->
+                    <div class="powered-by">
+                        <span class="powered-line"></span>
+                        <span class="powered-text">HopeTracker</span>
+                        <span class="powered-line"></span>
+                    </div>
                 </div>
 
                 <div class="login-box">
                     <form id="login-form" onsubmit="return false;">
                         <div class="input-group">
-                            <label for="agent-input"><span class="label-icon">🔑</span> AGENT IDENTIFICATION</label>
+                            <!-- Agent ID Input -->
+                            <label for="agent-input">
+                                <span class="label-icon">🆔</span> AGENT IDENTIFICATION
+                            </label>
                             <div class="input-wrapper">
                                 <input type="text" id="agent-input" placeholder="Enter Agent Number (e.g., AGENT001)" autocomplete="off">
                                 <span class="input-icon">👤</span>
                             </div>
-                            <button type="submit" id="login-btn" class="btn-primary">
-                                <span class="btn-text">ACCESS DASHBOARD</span>
+
+                            <!-- Password Input -->
+                            <label for="password-input" style="margin-top: 15px;">
+                                <span class="label-icon">🔑</span> ACCESS KEY
+                            </label>
+                            <div class="input-wrapper">
+                                <input type="password" id="password-input" placeholder="Enter Password" autocomplete="current-password">
+                                <span class="input-icon">🔒</span>
+                            </div>
+
+                            <!-- Login Button -->
+                            <button type="submit" id="login-btn" class="btn-primary" style="margin-top: 20px;">
+                                <span class="btn-text">AUTHENTICATE</span>
                                 <span class="btn-icon">→</span>
                             </button>
                         </div>
                     </form>
 
                     <div class="divider">
-                        <span class="divider-line"></span><span class="divider-text">OR</span><span class="divider-line"></span>
+                        <span class="divider-line"></span>
+                        <span class="divider-text">OR</span>
+                        <span class="divider-line"></span>
                     </div>
 
                     <form id="find-form" onsubmit="return false;">
                         <div class="input-group">
-                            <label for="instagram-input"><span class="label-icon">📱</span> FIND AGENT ID</label>
+                            <label for="instagram-input">
+                                <span class="label-icon">📱</span> FIND AGENT ID
+                            </label>
                             <div class="input-wrapper">
                                 <input type="text" id="instagram-input" placeholder="Enter Instagram username..." autocomplete="off">
                                 <span class="input-icon">@</span>
                             </div>
                             <button type="submit" id="find-btn" class="btn-secondary">
-                                <span class="btn-text">LOOKUP ID</span><span class="btn-icon">🔍</span>
+                                <span class="btn-text">LOOKUP ID</span>
+                                <span class="btn-icon">🔍</span>
                             </button>
                         </div>
                     </form>
@@ -80,7 +105,10 @@
                 </div>
 
                 <div class="login-footer">
-                    <div class="connection-status"><div class="pulse-dot"></div><span>SYSTEM ONLINE</span></div>
+                    <div class="connection-status">
+                        <div class="pulse-dot"></div>
+                        <span>SYSTEM ONLINE</span>
+                    </div>
                     <div class="version-info">v5.0 | Spy Battle Protocol</div>
                 </div>
             </div>
@@ -159,7 +187,6 @@
                         <span class="nav-text">Goal Progress</span>
                     </a>
 
-                    <!-- NAMJOON'S BRAIN LINK -->
                     <a href="#" class="nav-link" data-page="namjoon">
                         <span class="nav-icon">🧠</span>
                         <span class="nav-text">The 148 Protocol</span>
@@ -240,20 +267,15 @@
                         <span class="notification-dot" id="dot-summary"></span>
                     </a>
                 </div>
-
-                <!-- ADMIN (Inserted via JS) -->
                 
             </nav>
 
-            <div class="sidebar-footer">
-                <div class="sync-status">
-                    <span class="sync-icon">🔄</span>
-                    <span id="last-update">--:--</span>
-                </div>
-                <button id="logout-btn">
-                    <span class="logout-icon">⏻</span> LOGOUT
-                </button>
-            </div>
+            <button id="logout-btn">
+                <span class="logout-icon">⏻</span> LOGOUT
+            </button>
+            
+            <!-- Minimal HopeTracker in sidebar -->
+            <div class="sidebar-credit">HopeTracker</div>
         </aside>
 
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
@@ -270,7 +292,6 @@
                     <span class="header-logo-icon">⟭⟬</span>
                     <span class="header-logo-text">BTS COMEBACK MISSION</span>
                 </div>
-                <div class="header-spacer"></div>
             </header>
 
             <div class="pages-wrapper">
@@ -283,7 +304,7 @@
                             <p id="current-week" class="page-subtitle">Week: Loading...</p>
                         </div>
                         <div class="page-actions">
-                            <button class="refresh-btn" onclick="loadPage('home')">🔄</button>
+                            <button class="refresh-btn" onclick="loadPage('home')" title="Refresh Data">🔄</button>
                         </div>
                     </div>
                     <div class="quick-stats-section"></div>
@@ -310,7 +331,13 @@
 
                 <!-- PROFILE -->
                 <section id="page-profile" class="page">
-                    <div class="page-header"><h1>👤 Agent Profile</h1></div>
+                    <div class="page-header">
+                        <h1>👤 Agent Profile</h1>
+                        <button id="syncBtn" class="sync-button" onclick="handleManualSync()">
+                            <span class="sync-icon">🔄</span>
+                            <span class="sync-text">Sync Stats</span>
+                        </button>
+                    </div>
                     <div class="profile-card">
                         <div class="profile-header">
                             <div class="profile-avatar" id="profile-avatar"></div>
@@ -318,6 +345,11 @@
                                 <h2 id="profile-name">Agent Name</h2>
                                 <p id="profile-team" class="profile-team-name">Team</p>
                                 <p id="profile-id" class="profile-agent-id">ID: ---</p>
+                                
+                                <!-- Change Password Button -->
+                                <button onclick="openPasswordModal()" class="change-password-btn">
+                                    ⚙️ CHANGE ACCESS KEY
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -342,11 +374,11 @@
                     <div id="goals-content"></div>
                 </section>
 
-                <!-- NAMJOON'S BRAIN (Fixed Structure) -->
+                <!-- NAMJOON'S BRAIN -->
                 <section id="page-namjoon" class="page">
                     <div class="page-header">
-                         <h1>🧠 The 148 Protocol</h1>
-                         <p class="page-subtitle">Strategic Analysis</p>
+                        <h1>🧠 The 148 Protocol</h1>
+                        <p class="page-subtitle">Strategic Analysis</p>
                     </div>
                     <div id="namjoon-content"></div>
                 </section>
@@ -429,7 +461,7 @@
                     <div id="summary-content"></div>
                 </section>
 
-               <!-- STREAMING TIPS -->
+                <!-- STREAMING TIPS -->
                 <section id="page-streaming-tips" class="page">
                     <div class="page-header">
                         <h1>📚 Streaming Protocols</h1>
@@ -437,51 +469,119 @@
                     </div>
                     
                     <div id="tips-container">
-                        <!-- Tip 1 -->
-                        <div class="card" style="border-left: 3px solid #9d4edd; margin-bottom: 15px;">
-                            <div class="card-body" style="padding: 15px;">
-                                <h3 style="color:#fff; font-size:14px; margin:0 0 5px 0;">💿 Album Streaming</h3>
-                                <p style="font-size:12px; color:#ccc; margin:0; line-height:1.5;">Top-to-bottom streaming is recommended. If repeating an album, play other songs or playlists in between.</p>
+                        <div class="card tip-card tip-album">
+                            <div class="card-body">
+                                <h3>💿 Album Streaming</h3>
+                                <p>Top-to-bottom streaming is recommended. If repeating an album, play other songs or playlists in between.</p>
                             </div>
                         </div>
 
-                        <!-- Tip 2 -->
-                        <div class="card" style="border-left: 3px solid #ff4444; margin-bottom: 15px;">
-                            <div class="card-body" style="padding: 15px;">
-                                <h3 style="color:#ff6b6b; font-size:14px; margin:0 0 5px 0;">⚠️ Artist Looping Warning</h3>
-                                <p style="font-size:12px; color:#ccc; margin:0; line-height:1.5;">Playing the same artist continuously can reduce recommendations. Balanced listening protects long-term performance.</p>
+                        <div class="card tip-card tip-warning">
+                            <div class="card-body">
+                                <h3>⚠️ Artist Looping Warning</h3>
+                                <p>Playing the same artist continuously can reduce recommendations. Balanced listening protects long-term performance.</p>
                             </div>
                         </div>
 
-                        <!-- Tip 3 -->
-                        <div class="card" style="border-left: 3px solid #00d4ff; margin-bottom: 15px;">
-                            <div class="card-body" style="padding: 15px;">
-                                <h3 style="color:#00d4ff; font-size:14px; margin:0 0 5px 0;">🔄 Reusing Playlists</h3>
-                                <p style="font-size:12px; color:#ccc; margin:0; line-height:1.5;">You can reuse playlists on the same day. Just avoid constant repetition and switch between albums/playlists.</p>
+                        <div class="card tip-card tip-reuse">
+                            <div class="card-body">
+                                <h3>🔄 Reusing Playlists</h3>
+                                <p>You can reuse playlists on the same day. Just avoid constant repetition and switch between albums/playlists.</p>
                             </div>
                         </div>
 
-                        <!-- Tip 4 -->
-                        <div class="card" style="border-left: 3px solid #7b2cbf; margin-bottom: 15px;">
-                            <div class="card-body" style="padding: 15px;">
-                                <h3 style="color:#e0aaff; font-size:14px; margin:0 0 5px 0;">🌙 Night Streaming</h3>
-                                <p style="font-size:12px; color:#ccc; margin:0; line-height:1.5;">Queue 2-3 shorter playlists if you can't interact for 2-3 hours. <strong style="color:#fff;">Turn Autoplay OFF</strong> to avoid random playback.</p>
+                        <div class="card tip-card tip-night">
+                            <div class="card-body">
+                                <h3>🌙 Night Streaming</h3>
+                                <p>Queue 2-3 shorter playlists if you can't interact for 2-3 hours. <strong>Turn Autoplay OFF</strong> to avoid random playback.</p>
                             </div>
                         </div>
 
-                        <!-- Tip 5 -->
-                        <div class="card" style="border-left: 3px solid #00ff88; margin-bottom: 15px;">
-                            <div class="card-body" style="padding: 15px;">
-                                <h3 style="color:#00ff88; font-size:14px; margin:0 0 5px 0;">🔊 Volume Matters</h3>
-                                <p style="font-size:12px; color:#ccc; margin:0; line-height:1.5;">Keep volume at <strong style="color:#fff;">50% or higher</strong>. Muted playback or extremely low volume may be filtered as low-quality streams.</p>
+                        <div class="card tip-card tip-volume">
+                            <div class="card-body">
+                                <h3>🔊 Volume Matters</h3>
+                                <p>Keep volume at <strong>50% or higher</strong>. Muted playback or extremely low volume may be filtered as low-quality streams.</p>
                             </div>
                         </div>
                     </div>
                 </section>
 
-    <!-- ==================== TOAST & MODALS ==================== -->
+            </div><!-- END pages-wrapper -->
+        </main>
+
+        <!-- ==================== FLOATING SYNC BUTTON ==================== -->
+        <button id="floatingSyncBtn" class="floating-sync-btn" onclick="handleManualSync()" title="Sync Stats from Last.fm">
+            🔄
+        </button>
+
+    </div><!-- END dashboard-screen -->
+
+    <!-- ==================== PASSWORD CHANGE MODAL ==================== -->
+    <div id="password-modal" class="modal-overlay" style="display: none;">
+        <div class="password-modal-content">
+            <div class="password-modal-header">
+                <div class="modal-title-group">
+                    <span class="modal-icon">🔐</span>
+                    <h3>Change Access Key</h3>
+                </div>
+                <button class="modal-close-btn" onclick="closePasswordModal()">✕</button>
+            </div>
+            
+            <form id="password-form" onsubmit="return handlePasswordChange(event)">
+                <div class="password-modal-body">
+                    <div class="modal-input-group">
+                        <label for="current-password">
+                            <span class="input-label-icon">🔑</span>
+                            Current Password
+                        </label>
+                        <div class="modal-input-wrapper">
+                            <input type="password" id="current-password" required placeholder="Enter current password" autocomplete="current-password">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('current-password', this)">👁️</button>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-input-group">
+                        <label for="new-password">
+                            <span class="input-label-icon">🔒</span>
+                            New Password
+                        </label>
+                        <div class="modal-input-wrapper">
+                            <input type="password" id="new-password" required placeholder="Enter new password (min 6 chars)" minlength="6" autocomplete="new-password">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('new-password', this)">👁️</button>
+                        </div>
+                        <div class="password-strength" id="password-strength"></div>
+                    </div>
+                    
+                    <div class="modal-input-group">
+                        <label for="confirm-password">
+                            <span class="input-label-icon">✓</span>
+                            Confirm New Password
+                        </label>
+                        <div class="modal-input-wrapper">
+                            <input type="password" id="confirm-password" required placeholder="Confirm new password" autocomplete="new-password">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirm-password', this)">👁️</button>
+                        </div>
+                        <div class="password-match" id="password-match"></div>
+                    </div>
+                </div>
+                
+                <div class="password-modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closePasswordModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-confirm" id="submit-password-btn">
+                        <span class="btn-text">Update Password</span>
+                        <span class="btn-loader" style="display: none;">⏳</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST CONTAINER ==================== -->
     <div id="toast-container"></div>
     
+    <!-- ==================== GENERIC MODAL ==================== -->
     <div id="modal-container" class="modal-container" hidden>
         <div class="modal-overlay"></div>
         <div class="modal-content">
@@ -489,8 +589,10 @@
             <div class="modal-body" id="modal-body"></div>
         </div>
     </div>
+
     <!-- ==================== LIBRARIES ==================== -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <!-- ==================== APP SCRIPT ==================== -->
     <script src="app.js"></script>
 </body>
