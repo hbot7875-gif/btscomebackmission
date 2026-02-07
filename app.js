@@ -6401,7 +6401,7 @@ async function renderDrawer() {
     STATE.lastChecked.album2xBadge = album2xStatus.passed || false;
     saveNotificationState();
 }
-// ==================== PROFILE (UPDATED: APPLY LEAVE + DELETE ACCOUNT) ====================
+// ==================== PROFILE (FIXED ORDER: LEAVE & RETIRE AT BOTTOM) ====================
 async function renderProfile() {
     const container = $('profile-stats');
     if (!container) return;
@@ -6421,7 +6421,7 @@ async function renderProfile() {
     const specialBadges = getSpecialBadges(STATE.agentNo, STATE.week);
     const currentWeekBadges = [...specialBadges, ...xpBadges];
     
-    // --- 1. STATS GRID ---
+    // --- 1. STATS GRID ONLY ---
     let html = `
         <div class="stat-box">
             <span class="stat-value">${fmt(stats.totalXP)}</span>
@@ -6449,82 +6449,11 @@ async function renderProfile() {
         </div>
     `;
 
-    // --- 2. LEAVE REQUEST CARD ---
-    html += `
-        <div class="card" style="margin-top: 20px; border-color: ${isExempt ? '#888' : '#ffa500'}; background: linear-gradient(135deg, ${isExempt ? '#333' : '#ffa50015'}, #0a0a0f); position: relative; overflow: hidden;">
-            <div class="card-body" style="padding: 15px; display:flex; flex-wrap: wrap; gap: 15px; align-items:center; justify-content:space-between;">
-                <div style="flex: 1; min-width: 200px;">
-                    <div style="color: ${isExempt ? '#ccc' : '#ffa500'}; font-weight:700; font-size:13px; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
-                        <span>${isExempt ? '💤' : '📝'}</span> 
-                        ${isExempt ? 'STATUS: ON LEAVE' : 'APPLY FOR LEAVE'}
-                    </div>
-                    <div style="color:#aaa; font-size:11px; margin-top:4px; line-height:1.4;">
-                        ${isExempt 
-                            ? 'You are exempt from missions this week. No XP awarded.' 
-                            : 'Can\'t stream this week? Apply for leave to protect your team stats.'}
-                    </div>
-                </div>
-                <div style="flex-shrink: 0;">
-                    ${!isExempt ? `
-                    <button onclick="openLeaveModal()" style="
-                        background: rgba(255, 165, 0, 0.1);
-                        border: 1px solid #ffa500;
-                        color: #ffa500;
-                        padding: 10px 16px;
-                        border-radius: 8px;
-                        font-size: 11px;
-                        font-weight: bold;
-                        cursor: pointer;
-                        white-space: nowrap;
-                        transition: all 0.2s;
-                    ">
-                        APPLY
-                    </button>
-                    ` : `
-                    <button onclick="cancelLeaveRequest()" style="
-                        background: rgba(255, 68, 68, 0.15);
-                        border: 1px solid #ff4444;
-                        color: #ff4444;
-                        padding: 10px 16px;
-                        border-radius: 8px;
-                        font-size: 11px;
-                        font-weight: bold;
-                        cursor: pointer;
-                        white-space: nowrap;
-                        transition: all 0.2s;
-                    ">
-                        CANCEL LEAVE
-                    </button>
-                    `}
-                </div>
-            </div>
-        </div>
-    `;
-
-    // --- 3. DELETE ACCOUNT BUTTON ---
-    html += `
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px dashed rgba(255, 68, 68, 0.3); text-align: center;">
-            <button onclick="promptDeleteAccount()" style="
-                background: transparent; 
-                border: 1px solid #ff4444; 
-                color: #ff4444; 
-                padding: 10px 20px; 
-                border-radius: 8px; 
-                font-size: 11px; 
-                font-weight: bold; 
-                cursor: pointer; 
-                opacity: 0.6; 
-                transition: all 0.3s;
-            " onmouseover="this.style.opacity='1'; this.style.background='rgba(255,68,68,0.1)'" 
-               onmouseout="this.style.opacity='0.6'; this.style.background='transparent'">
-                ⚠️ RETIRE FROM MISSION (DELETE ACCOUNT)
-            </button>
-        </div>
-    `;
+    // ❌ REMOVED: Leave & Delete from here - moved to bottom
 
     container.innerHTML = html;
 
-    // --- 4. CONTRIBUTIONS ---
+    // --- 2. CONTRIBUTIONS ---
     const tracksContainer = $('profile-tracks');
     if (tracksContainer) {
         const trackEntries = Object.entries(trackContributions).sort((a, b) => b[1] - a[1]);
@@ -6547,7 +6476,7 @@ async function renderProfile() {
         `).join('') : '<p class="empty-text">No album data yet</p>';
     }
     
-    // --- 5. BADGES ---
+    // --- 3. BADGES ---
     const badgesContainer = $('profile-badges');
     if (badgesContainer) {
         let badgesHtml = '';
@@ -6587,6 +6516,87 @@ async function renderProfile() {
                 </button>
             </div>
         `;
+        
+        // ✅ ADD LEAVE & RETIRE HERE (After badges, inside badges container)
+        badgesHtml += `
+            <!-- DIVIDER -->
+            <div style="margin-top: 30px; padding-top: 25px; border-top: 2px dashed rgba(255,255,255,0.1);"></div>
+            
+            <!-- LEAVE REQUEST CARD -->
+            <div style="
+                margin-top: 15px;
+                padding: 15px;
+                border: 1px solid ${isExempt ? '#888' : '#ffa500'};
+                border-radius: 10px;
+                background: linear-gradient(135deg, ${isExempt ? '#333' : '#ffa50015'}, #0a0a0f);
+            ">
+                <div style="display:flex; flex-wrap:wrap; gap:15px; align-items:center; justify-content:space-between;">
+                    <div style="flex:1; min-width:200px;">
+                        <div style="color:${isExempt ? '#ccc' : '#ffa500'}; font-weight:700; font-size:13px; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
+                            <span>${isExempt ? '💤' : '📝'}</span> 
+                            ${isExempt ? 'STATUS: ON LEAVE' : 'APPLY FOR LEAVE'}
+                        </div>
+                        <div style="color:#aaa; font-size:11px; margin-top:4px; line-height:1.4;">
+                            ${isExempt 
+                                ? 'You are exempt from missions this week. No XP awarded.' 
+                                : 'Can\'t stream this week? Apply for leave to protect your team stats.'}
+                        </div>
+                    </div>
+                    <div style="flex-shrink:0;">
+                        ${!isExempt ? `
+                        <button onclick="openLeaveModal()" style="
+                            background: rgba(255, 165, 0, 0.1);
+                            border: 1px solid #ffa500;
+                            color: #ffa500;
+                            padding: 10px 16px;
+                            border-radius: 8px;
+                            font-size: 11px;
+                            font-weight: bold;
+                            cursor: pointer;
+                            white-space: nowrap;
+                            transition: all 0.2s;
+                        ">APPLY</button>
+                        ` : `
+                        <button onclick="cancelLeaveRequest()" style="
+                            background: rgba(255, 68, 68, 0.15);
+                            border: 1px solid #ff4444;
+                            color: #ff4444;
+                            padding: 10px 16px;
+                            border-radius: 8px;
+                            font-size: 11px;
+                            font-weight: bold;
+                            cursor: pointer;
+                            white-space: nowrap;
+                            transition: all 0.2s;
+                        ">CANCEL LEAVE</button>
+                        `}
+                    </div>
+                </div>
+            </div>
+
+            <!-- DELETE ACCOUNT BUTTON -->
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px dashed rgba(255, 68, 68, 0.3); text-align: center;">
+                <p style="color: #555; font-size: 10px; margin-bottom: 12px;">
+                    Leaving permanently? This action cannot be undone.
+                </p>
+                <button onclick="promptDeleteAccount()" style="
+                    background: transparent; 
+                    border: 1px solid #ff4444; 
+                    color: #ff4444; 
+                    padding: 10px 20px; 
+                    border-radius: 8px; 
+                    font-size: 11px; 
+                    font-weight: bold; 
+                    cursor: pointer; 
+                    opacity: 0.6; 
+                    transition: all 0.3s;
+                " onmouseover="this.style.opacity='1'; this.style.background='rgba(255,68,68,0.1)'" 
+                   onmouseout="this.style.opacity='0.6'; this.style.background='transparent'">
+                    ⚠️ RETIRE FROM MISSION (DELETE ACCOUNT)
+                </button>
+            </div>
+        `;
+        
         badgesContainer.innerHTML = badgesHtml;
     }
 }
