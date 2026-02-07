@@ -1,31 +1,30 @@
-
 // ==================== MAIN CONFIG ====================
 const CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbx5ArHi5Ws0NxMa9nhORy6bZ7ZYpW4urPIap24tax9H1HLuGQxYRCgTVwDaKOMrZ7JOGA/exec',
+    API_URL: 'https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api',
+    SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzcGV6b29xY2Ryd2FxeGNxb2puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMTk5NTIsImV4cCI6MjA4NTU5NTk1Mn0.4LHNAEys-bg7aDjgEVk6dXw3McZu5VNnK2h0OsvqwPg', 
     
     ADMIN_AGENT_NO: 'AGENT000',
 
-    // ==================== WEEK DATES ====================
     WEEK_DATES: {
-        'Test Week 1': '2025-11-29',
-        'Test Week 2': '2025-12-06',
-        'Week 1': '2025-12-13',
-        'Week 2': '2025-12-20',
-        'Week 3': '2025-12-27',
-        'Week 4': '2026-01-03',
-        'Week 5': '2026-01-10',
-        'Week 6': '2026-01-17',
-        'Week 7': '2026-01-24',
-        'Week 8': '2026-01-31',
-        'Week 9': '2026-02-07',
-        'Week 10': '2026-02-14',
-        'Week 11': '2026-02-21',
-        'Week 12': '2026-02-28',
-        'Week 13': '2026-03-07',
-        'Week 14': '2026-03-14',
-        'Week 15': '2026-03-21',
-        'Week 16': '2026-03-28'
-    },
+        'Test Week 1': '2025-11-23',  
+        'Test Week 2': '2025-11-30',
+        'Week 1': '2025-12-07',
+        'Week 2': '2025-12-14',
+        'Week 3': '2025-12-21',
+        'Week 4': '2025-12-28',
+        'Week 5': '2026-01-04',
+        'Week 6': '2026-01-11',
+        'Week 7': '2026-01-18',
+        'Week 8': '2026-01-25',
+        'Week 9': '2026-02-01',
+        'Week 10': '2026-02-08',
+        'Week 11': '2026-02-15',
+        'Week 12': '2026-02-22',
+        'Week 13': '2026-03-01',
+        'Week 14': '2026-03-08',
+        'Week 15': '2026-03-15',
+        'Week 16': '2026-03-22'
+},
 
     // ==================== BADGE SYSTEM ====================
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
@@ -392,12 +391,27 @@ function sanitize(str) {
 function formatLastUpdated(dateStr) {
     if (!dateStr) return 'Unknown';
     try {
-        const date = new Date(dateStr);
+        // FIX: Remove the 'Z' or timezone offset from the string so the browser 
+        // treats it as "Local Time" (which your backend already calculated as IST)
+        const cleanDateStr = dateStr.replace('Z', '').replace(/\.\d+/, '').replace(/\+.*$/, '');
+        
+        const date = new Date(cleanDateStr);
+        
         if (isNaN(date.getTime())) return dateStr;
-        return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    } catch (e) { return dateStr; }
-}
 
+        // Use simple formatting that reflects the string exactly
+        const hours = date.getHours();
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        const month = date.toLocaleString('en-US', { month: 'short' });
+        const day = date.getDate();
+
+        return `${month} ${day}, ${displayHours}:${minutes} ${ampm}`;
+    } catch (e) { 
+        return dateStr; 
+    }
+}
 function showToast(msg, type = 'info') {
     document.querySelectorAll('.toast-mini').forEach(t => t.remove());
     
@@ -479,19 +493,26 @@ function getDaysRemaining(weekLabel) {
 }
 
 function isWeekCompleted(selectedWeek) {
-    const endDateStr = CONFIG.WEEK_DATES[selectedWeek];
-    if (!endDateStr) return false;
-    const end = new Date(endDateStr);
-    end.setHours(23, 59, 59, 999);
+    const startDateStr = CONFIG.WEEK_DATES[selectedWeek];
+    if (!startDateStr) return false;
+    
+    const start = new Date(startDateStr);
+    // Week ends 7 days after start
+    const end = new Date(start.getTime() + (7 * 24 * 60 * 60 * 1000) - 1);
+    
     return new Date() > end;
 }
-function getPriorityClass(priority) {
-    switch ((priority || '').toLowerCase()) {
-        case 'high': return 'priority-high';
-        case 'medium': return 'priority-medium';
-        case 'low': return 'priority-low';
-        default: return 'priority-normal';
-    }
+
+function getDaysRemaining(weekLabel) {
+    const startDateStr = CONFIG.WEEK_DATES[weekLabel];
+    if (!startDateStr) return 0;
+    
+    const start = new Date(startDateStr);
+    const end = new Date(start.getTime() + (7 * 24 * 60 * 60 * 1000) - 1);
+    
+    const now = new Date();
+    const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
 }
 
 function getPriorityBadge(priority) {
@@ -613,49 +634,34 @@ function renderGuide(pageName) {
 
 // ==================== API ====================
 async function api(action, params = {}) {
-    const url = new URL(CONFIG.API_URL);
-    url.searchParams.set('action', action);
-    
-    // 1. Add normal parameters
-    Object.entries(params).forEach(([k, v]) => { 
-        if (v != null) url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v); 
-    });
-
-    // 2. 🔥 CACHE BUSTER: Forces a fresh request every time
-    url.searchParams.set('_t', Date.now()); 
-
-    console.log('📡 API Request:', action, params);
+    console.log('📡 Supabase Request:', action, params);
 
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000);
-        
-        // 3. Simple fetch (No custom headers to avoid CORS errors)
-        const res = await fetch(url.toString(), { 
-            signal: controller.signal,
-            method: 'GET'
+        const res = await fetch(CONFIG.API_URL, { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}`
+            },
+            body: JSON.stringify({
+                action,
+                agentNo: STATE.agentNo, 
+                week: STATE.week,       
+                ...params
+            })
         });
         
-        clearTimeout(timeout);
-        const text = await res.text();
+        const data = await res.json();
         
-        let data;
-        try { 
-            data = JSON.parse(text); 
-        } catch (e) { 
-            console.error("JSON Parse Error:", text);
-            throw new Error('Invalid JSON response'); 
-        }
+        if (data.error) throw new Error(data.error);
 
-        // 4. Update the global Last Updated time immediately
+        // Keep your timestamp logic
         if (data.lastUpdated) { 
             STATE.lastUpdated = data.lastUpdated; 
             updateTime(); 
         }
         
-        if (data.error) throw new Error(data.error);
         return data;
-
     } catch (e) {
         console.error('API Network Error:', e);
         throw e;
@@ -2404,6 +2410,7 @@ function showAdminPanel() {
             <button type="button" class="admin-tab active" data-tab="create">Create Mission</button>
             <button type="button" class="admin-tab" data-tab="active">Active</button>
             <button type="button" class="admin-tab" data-tab="confirm">📋 Confirm</button>
+            <button type="button" class="admin-tab" data-tab="system">⚙️ System</button>
             <button type="button" class="admin-tab" data-tab="leaves">🛑 On Leave</button> 
             <button type="button" class="admin-tab" data-tab="assets">Badge Preview</button>
             <button type="button" class="admin-tab" data-tab="history">History</button>
@@ -2412,6 +2419,7 @@ function showAdminPanel() {
             <div id="admin-tab-create" class="admin-tab-content active"></div>
             <div id="admin-tab-active" class="admin-tab-content"></div>
             <div id="admin-tab-confirm" class="admin-tab-content"></div>
+            <div id="admin-tab-system" class="admin-tab-content"></div>
             <div id="admin-tab-leaves" class="admin-tab-content"></div>
             <div id="admin-tab-assets" class="admin-tab-content"></div>
             <div id="admin-tab-history" class="admin-tab-content"></div>
@@ -2485,6 +2493,9 @@ function switchAdminTab(tabName) {
             break;
         case 'confirm':                    
             renderWeekConfirmation();
+            break;
+        case 'system':
+            renderAdminSystemTab();
             break;
         case 'leaves':
             loadLeavesAdmin(); 
@@ -3076,7 +3087,7 @@ async function loadLeavesAdmin() {
                             <div style="color:#fff; font-weight:bold; font-size:13px;">${sanitize(a.name)}</div>
                             <div style="color:#888; font-size:11px;">${sanitize(a.agentNo)} • ${sanitize(a.team)}</div>
                             <div style="color:#666; font-size:10px; margin-top:2px;">
-                                Applied: ${new Date(a.timestamp).toLocaleDateString()}
+                                Applied: ${new Date(a.created_at || a.timestamp || Date.now()).toLocaleDateString()}
                             </div>
                         </div>
                         
@@ -3464,10 +3475,7 @@ async function loadMissionHistory() {
 
 async function renderWeekConfirmation() {
     const container = document.getElementById('admin-tab-confirm');
-    if (!container) {
-        console.error('❌ Confirm tab container not found');
-        return;
-    }
+    if (!container) return;
     
     container.innerHTML = '<div class="loading-text" style="padding:40px;text-align:center;">⏳ Loading week status...</div>';
     
@@ -3490,233 +3498,124 @@ async function renderWeekConfirmation() {
                     ">${isCompleted ? '✅ Week Ended' : '⏳ In Progress'}</span>
                 </div>
                 <p style="color:#888;font-size:12px;margin-top:8px;">
-                    Confirm attendance and police reports for each team.<br>
-                    <span style="color:#ffa500;">Deadline: Sunday 4:00 PM IST</span>
+                    Manually Verify Attendance and Police Reports.<br>
+                    <span style="color:#ffa500;">Teams must be "PASS" in all 5 checks to win.</span>
                 </p>
             </div>
-            
-            <!-- Deadline Warning -->
-            <div style="
-                background: rgba(255,68,68,0.1);
-                border: 1px solid rgba(255,68,68,0.3);
-                border-radius: 12px;
-                padding: 15px;
-                margin-bottom: 20px;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-            ">
-                <span style="font-size:24px;">⚠️</span>
-                <div>
-                    <div style="color:#ff6b6b;font-weight:600;font-size:13px;">Important!</div>
-                    <div style="color:#ccc;font-size:11px;">
-                        Only confirm AFTER you receive reports from Attendance Checkers and Police Agents.
-                        Teams without both confirmations are NOT eligible to win.
-                    </div>
-                </div>
-            </div>
-            
+
             <!-- Team Cards -->
             ${Object.entries(teams).map(([teamName, info]) => {
                 const eligibility = getTeamEligibilityStatus(info);
                 const tColor = teamColor(teamName);
                 
                 return `
-                    <div style="
-                        background: linear-gradient(145deg, #1a1a2e, #12121a);
-                        border: 1px solid ${tColor}44;
-                        border-radius: 12px;
-                        padding: 18px;
-                        margin-bottom: 12px;
-                    ">
-                        <!-- Team Header -->
+                    <div style="background: linear-gradient(145deg, #1a1a2e, #12121a); border: 1px solid ${tColor}44; border-radius: 12px; padding: 18px; margin-bottom: 12px;">
                         <div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;">
                             ${teamPfp(teamName) ? `<img src="${teamPfp(teamName)}" style="width:40px;height:40px;border-radius:50%;border:2px solid ${tColor};">` : ''}
                             <div style="flex:1;">
                                 <div style="color:${tColor};font-weight:600;font-size:15px;">${teamName}</div>
                                 <div style="color:#888;font-size:11px;">${fmt(info.teamXP || 0)} XP</div>
                             </div>
-                            <div style="
-                                padding: 4px 12px;
-                                border-radius: 12px;
-                                font-size: 11px;
-                                background: ${eligibility.allPassed ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};
-                                color: ${eligibility.allPassed ? '#00ff88' : '#ffa500'};
-                            ">${eligibility.passedCount}/${eligibility.totalChecks} ✓</div>
+                            <div style="padding: 4px 12px; border-radius: 12px; font-size: 11px; background: ${eligibility.allPassed ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'}; color: ${eligibility.allPassed ? '#00ff88' : '#ffa500'};">
+                                ${eligibility.passedCount}/${eligibility.totalChecks} ✓
+                            </div>
                         </div>
                         
-                        <!-- Mission Status -->
-                        <div style="
-                            display: grid;
-                            grid-template-columns: repeat(5, 1fr);
-                            gap: 6px;
-                            margin-bottom: 15px;
-                            text-align: center;
-                        ">
+                        <!-- Mission Grid -->
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 15px; text-align: center;">
                             <div style="padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
                                 <div style="font-size:16px;">${info.trackGoalPassed ? '✅' : '❌'}</div>
-                                <div style="font-size:9px;color:#888;margin-top:4px;">Tracks</div>
+                                <div style="font-size:8px;color:#666;margin-top:4px;">Tracks</div>
                             </div>
                             <div style="padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
                                 <div style="font-size:16px;">${info.albumGoalPassed ? '✅' : '❌'}</div>
-                                <div style="font-size:9px;color:#888;margin-top:4px;">Albums</div>
+                                <div style="font-size:8px;color:#666;margin-top:4px;">Albums</div>
                             </div>
                             <div style="padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
                                 <div style="font-size:16px;">${info.album2xPassed ? '✅' : '❌'}</div>
-                                <div style="font-size:9px;color:#888;margin-top:4px;">2X</div>
+                                <div style="font-size:8px;color:#666;margin-top:4px;">2X</div>
                             </div>
-                            <div style="padding:8px;background:${info.attendanceConfirmed ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};border-radius:8px;border:1px solid ${info.attendanceConfirmed ? 'rgba(0,255,136,0.3)' : 'rgba(255,165,0,0.3)'};">
-                                <div style="font-size:16px;">${info.attendanceConfirmed ? '✅' : '⏳'}</div>
-                                <div style="font-size:9px;color:#888;margin-top:4px;">Attend</div>
+                            <div style="padding:8px;background:${info.attendanceConfirmed ? 'rgba(0,255,136,0.05)' : 'rgba(255,68,68,0.05)'};border-radius:8px; border:1px solid ${info.attendanceConfirmed ? '#00ff8833' : '#ff444433'}">
+                                <div style="font-size:16px;">${info.attendanceConfirmed ? '✅' : '❌'}</div>
+                                <div style="font-size:8px;color:#666;margin-top:4px;">Attend</div>
                             </div>
-                            <div style="padding:8px;background:${info.policeConfirmed ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};border-radius:8px;border:1px solid ${info.policeConfirmed ? 'rgba(0,255,136,0.3)' : 'rgba(255,165,0,0.3)'};">
-                                <div style="font-size:16px;">${info.policeConfirmed ? '✅' : '⏳'}</div>
-                                <div style="font-size:9px;color:#888;margin-top:4px;">Police</div>
+                            <div style="padding:8px;background:${info.policeConfirmed ? 'rgba(0,255,136,0.05)' : 'rgba(255,68,68,0.05)'};border-radius:8px; border:1px solid ${info.policeConfirmed ? '#00ff8833' : '#ff444433'}">
+                                <div style="font-size:16px;">${info.policeConfirmed ? '✅' : '❌'}</div>
+                                <div style="font-size:8px;color:#666;margin-top:4px;">Police</div>
                             </div>
                         </div>
                         
-                        <!-- Confirmation Buttons -->
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                            <button onclick="adminConfirmAttendance('${teamName}', ${!info.attendanceConfirmed})" style="
-                                padding: 12px;
-                                background: ${info.attendanceConfirmed ? 'rgba(0,255,136,0.15)' : 'rgba(123,44,191,0.2)'};
-                                border: 1px solid ${info.attendanceConfirmed ? 'rgba(0,255,136,0.4)' : 'rgba(123,44,191,0.4)'};
-                                border-radius: 8px;
-                                color: ${info.attendanceConfirmed ? '#00ff88' : '#c9a0ff'};
-                                font-size: 12px;
-                                cursor: pointer;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                gap: 6px;
-                            ">
-                                <span>📋</span>
-                                <span>${info.attendanceConfirmed ? 'Attendance ✓' : 'Confirm Attendance'}</span>
-                            </button>
-                            
-                            <button onclick="adminConfirmPolice('${teamName}', ${!info.policeConfirmed})" style="
-                                padding: 12px;
-                                background: ${info.policeConfirmed ? 'rgba(0,255,136,0.15)' : 'rgba(123,44,191,0.2)'};
-                                border: 1px solid ${info.policeConfirmed ? 'rgba(0,255,136,0.4)' : 'rgba(123,44,191,0.4)'};
-                                border-radius: 8px;
-                                color: ${info.policeConfirmed ? '#00ff88' : '#c9a0ff'};
-                                font-size: 12px;
-                                cursor: pointer;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                gap: 6px;
-                            ">
-                                <span>👮</span>
-                                <span>${info.policeConfirmed ? 'Police ✓' : 'Confirm Police'}</span>
-                            </button>
+                        <!-- Smart Pass/Fail Controls -->
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                            <!-- ATTENDANCE -->
+                            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid #333;">
+                                <div style="color: #888; font-size: 10px; margin-bottom: 8px; text-align: center; font-weight: bold;">ATTENDANCE</div>
+                                <div style="display: flex; gap: 5px;">
+                                    <button onclick="smartUpdateStatus('${teamName}', 'attendanceConfirmed', true)" 
+                                        style="flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;
+                                        background: ${info.attendanceConfirmed ? '#00ff88' : '#222'}; 
+                                        color: ${info.attendanceConfirmed ? '#000' : '#666'};">PASS</button>
+                                    <button onclick="smartUpdateStatus('${teamName}', 'attendanceConfirmed', false)" 
+                                        style="flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;
+                                        background: ${info.attendanceConfirmed === false ? '#ff4444' : '#222'}; 
+                                        color: ${info.attendanceConfirmed === false ? '#fff' : '#666'};">FAIL</button>
+                                </div>
+                            </div>
+
+                            <!-- POLICE -->
+                            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid #333;">
+                                <div style="color: #888; font-size: 10px; margin-bottom: 8px; text-align: center; font-weight: bold;">POLICE REPORT</div>
+                                <div style="display: flex; gap: 5px;">
+                                    <button onclick="smartUpdateStatus('${teamName}', 'policeConfirmed', true)" 
+                                        style="flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;
+                                        background: ${info.policeConfirmed ? '#00ff88' : '#222'}; 
+                                        color: ${info.policeConfirmed ? '#000' : '#666'};">PASS</button>
+                                    <button onclick="smartUpdateStatus('${teamName}', 'policeConfirmed', false)" 
+                                        style="flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;
+                                        background: ${info.policeConfirmed === false ? '#ff4444' : '#222'}; 
+                                        color: ${info.policeConfirmed === false ? '#fff' : '#666'};">FAIL</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
             }).join('')}
-            
-            <!-- Eligible Teams Summary -->
-            <div style="
-                margin-top: 20px;
-                padding: 15px;
-                background: rgba(255,215,0,0.05);
-                border: 1px solid rgba(255,215,0,0.2);
-                border-radius: 12px;
-            ">
-                <div style="color:#ffd700;font-weight:600;font-size:13px;margin-bottom:10px;">🏆 Eligible to Win</div>
-                ${(() => {
-                    const eligible = Object.entries(teams).filter(([t, info]) => isTeamEligibleForWin(info));
-                    if (eligible.length === 0) {
-                        return '<div style="color:#888;font-size:12px;">No team is fully eligible yet. Confirm attendance and police reports.</div>';
-                    }
-                    const sorted = eligible.sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
-                    const winner = sorted[0][0];
-                    return `
-                        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                            ${sorted.map(([t, info], i) => `
-                                <div style="
-                                    display:flex;
-                                    align-items:center;
-                                    gap:6px;
-                                    padding:6px 12px;
-                                    background:${i === 0 ? 'rgba(255,215,0,0.15)' : 'rgba(0,255,136,0.1)'};
-                                    border:1px solid ${i === 0 ? 'rgba(255,215,0,0.4)' : 'rgba(0,255,136,0.3)'};
-                                    border-radius:20px;
-                                ">
-                                    ${i === 0 ? '<span>👑</span>' : '<span>✓</span>'}
-                                    <span style="color:${teamColor(t)};font-weight:600;font-size:12px;">${t}</span>
-                                    <span style="color:#888;font-size:10px;">${fmt(info.teamXP)} XP</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <div style="margin-top:10px;color:#00ff88;font-size:12px;">
-                            🏆 Current Winner: <strong>${winner}</strong>
-                        </div>
-                    `;
-                })()}
-            </div>
         `;
         
     } catch (e) {
         console.error('❌ Error loading week confirmation:', e);
-        container.innerHTML = `
-            <div style="text-align:center;padding:40px;">
-                <p style="color:#ff4444;">❌ Error loading data</p>
-                <button onclick="renderWeekConfirmation()" class="btn-secondary" style="margin-top:15px;">🔄 Retry</button>
-            </div>
-        `;
+        container.innerHTML = `<div style="text-align:center;padding:40px;"><p style="color:#ff4444;">❌ Error loading data</p></div>`;
     }
 }
 
-// Admin action: Confirm Attendance
-async function adminConfirmAttendance(teamName, confirm) {
-    if (!confirm && !window.confirm(`Remove attendance confirmation for ${teamName}?`)) return;
+/**
+ * Smart Helper for Pass/Fail buttons
+ */
+async function smartUpdateStatus(teamName, field, value) {
+    const actionLabel = value ? "PASS" : "FAIL";
+    const fieldLabel = field === 'attendanceConfirmed' ? "Attendance" : "Police Report";
     
-    loading(true);
-    try {
-        const result = await api('confirmTeamAttendance', {
-            week: STATE.week,
-            team: teamName,
-            confirmed: confirm,
-            agentNo: STATE.agentNo,
-            sessionToken: STATE.adminSession
-        });
-        
-        if (result.success) {
-            showToast(`✅ ${teamName} attendance ${confirm ? 'confirmed' : 'removed'}`, 'success');
-            renderWeekConfirmation();
-        } else {
-            showToast('❌ ' + (result.error || 'Failed'), 'error');
-        }
-    } catch (e) {
-        showToast('❌ Error: ' + e.message, 'error');
-    } finally {
-        loading(false);
-    }
-}
+    if (!confirm(`Set ${teamName} to ${actionLabel} for ${fieldLabel}?`)) return;
 
-// Admin action: Confirm Police
-async function adminConfirmPolice(teamName, confirm) {
-    if (!confirm && !window.confirm(`Remove police confirmation for ${teamName}?`)) return;
-    
     loading(true);
     try {
-        const result = await api('confirmTeamPolice', {
+        const result = await api('updateTeamStatus', {
             week: STATE.week,
             team: teamName,
-            confirmed: confirm,
-            agentNo: STATE.agentNo,
+            field: field,
+            value: value,
             sessionToken: STATE.adminSession
         });
-        
+
         if (result.success) {
-            showToast(`✅ ${teamName} police report ${confirm ? 'confirmed' : 'removed'}`, 'success');
-            renderWeekConfirmation();
-        } else {
-            showToast('❌ ' + (result.error || 'Failed'), 'error');
+            // Trigger Sync to recalculate winner immediately
+            await api('runHourlySync', { adminKey: 'BTSSYNC2024' }); 
+            
+            showToast(`✅ ${teamName} ${fieldLabel}: ${actionLabel}`, 'success');
+            renderWeekConfirmation(); 
         }
     } catch (e) {
-        showToast('❌ Error: ' + e.message, 'error');
+        showToast('❌ Update Failed: ' + e.message, 'error');
     } finally {
         loading(false);
     }
@@ -4095,6 +3994,19 @@ function ensureAppCSS() {
         .toast-success{border:1px solid #00ff88;background:rgba(0,40,20,0.95)}
         .toast-error{border:1px solid #ff4444;background:rgba(40,20,20,0.95)}
         .toast-info{border:1px solid #7b2cbf;background:rgba(30,20,40,0.95)}
+        .hidden-badges-container {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+        }
+        .hidden-badges-container.expanded {
+        max-height: 2000px; /* Large enough to fit all badges */
+        opacity: 1;
+        pointer-events: auto;
+        margin-bottom: 15px;
+        }
     `;
     document.head.appendChild(style);
 }
@@ -4382,11 +4294,18 @@ function initStreakTracker() {
     if (!STATE.agentNo) return;
 
     let s = getStreakState();
+
     
     // 🇮🇳 FORCE IST TIME CALCULATION
     const istNow = getISTDate();
     const today = istNow.toDateString(); // e.g., "Mon Jan 26 2026" (IST)
     const currentMonth = istNow.getMonth();
+
+    if (!s.lastVisitDate) {
+        console.log("Streak initialized for new session.");
+        renderStreakWidget(s);
+        return;
+    }
 
     // 1. Monthly Freeze Reset (Based on IST Month)
     if (s.freezeResetMonth !== currentMonth) {
@@ -5034,22 +4953,73 @@ async function loadAllAgents() {
 
 async function handleLogin() {
     if (STATE.isLoading) return;
-    const agentInput = $('agent-input');
-    const agentNo = agentInput?.value.trim().toUpperCase();
-    if (!agentNo) { showResult('Enter Agent Number', true); return; }
+
+    // 1. Get inputs from DOM
+    const agentNo = $('agent-input')?.value.trim().toUpperCase();
+    const password = $('password-input')?.value.trim(); // Make sure you added this ID to your HTML
+
+    // 2. Simple validation
+    if (!agentNo || !password) {
+        showResult('Enter Agent ID and Access Key', true);
+        return;
+    }
+
     loading(true);
     try {
-        if (STATE.allAgents.length === 0) await loadAllAgents();
-        const found = STATE.allAgents.find(a => String(a.agentNo).trim().toUpperCase() === agentNo);
-        if (!found) throw new Error('Agent not found');
-        localStorage.setItem('spyAgent', found.agentNo);
-        STATE.agentNo = found.agentNo;
-        checkAdminStatus();
-        loadSeenResults();
-        await loadDashboard();
-        startUnreadCheck();
-    } catch (e) { showResult(e.message, true); } 
-    finally { loading(false); }
+        // 3. Call Supabase Edge Function to verify password
+        // This is much more secure than checking a local list
+        const res = await api('loginAgent', { agentNo, password });
+
+        if (res.success) {
+            // 4. If successful, save to storage
+            localStorage.setItem('spyAgent', res.agent.agent_no);
+            STATE.agentNo = res.agent.agent_no;
+            
+            // 5. Initialize session
+            checkAdminStatus();
+            loadSeenResults();
+            await loadDashboard();
+            startUnreadCheck();
+            
+            showToast(`Authentication Successful. Welcome, ${res.agent.name}.`, 'success');
+        } else {
+            // Handle "Invalid Password" or "Agent Not Found"
+            throw new Error(res.error || 'Access Denied');
+        }
+    } catch (e) {
+        showResult(e.message, true);
+    } finally {
+        loading(false);
+    }
+}
+async function changeAgentPassword() {
+    const oldPassword = prompt("Verify current Access Key:");
+    if (!oldPassword) return;
+    
+    const newPassword = prompt("Enter NEW Access Key (min 4 characters):");
+    if (!newPassword || newPassword.length < 4) {
+        showToast("Invalid Key: Minimum 4 characters required", "error");
+        return;
+    }
+
+    loading(true);
+    try {
+        const res = await api('updatePassword', {
+            agentNo: STATE.agentNo,
+            oldPassword: oldPassword,
+            newPassword: newPassword
+        });
+
+        if (res.success) {
+            showToast("✅ Access Key updated successfully!", "success");
+        } else {
+            showToast("❌ " + res.error, "error");
+        }
+    } catch (e) {
+        showToast("System Error: Could not update key", "error");
+    } finally {
+        loading(false);
+    }
 }
 
 async function handleFind() {
@@ -5058,15 +5028,26 @@ async function handleFind() {
     if (!handle) { showResult('Enter Instagram', true); return; }
     loading(true);
     try {
-        if (STATE.allAgents.length === 0) await loadAllAgents();
-        const found = STATE.allAgents.find(a => String(a.instagram||a.ig||'').toLowerCase().replace('@','') === handle || String(a.name||'').toLowerCase().includes(handle));
-        if (!found) throw new Error('Not found');
+        // Fetch agents from Supabase
+        const res = await api('getAllAgents');
+        STATE.allAgents = res.agents || [];
+        
+        // Match using the new column name 'instagram' provided by the Edge Function
+        const found = STATE.allAgents.find(a => 
+            String(a.instagram || '').toLowerCase().replace('@','') === handle || 
+            String(a.name || '').toLowerCase().includes(handle)
+        );
+
+        if (!found) throw new Error('Operative not found in database');
+        
         showResult(`Agent ID: <strong>${found.agentNo}</strong>`, false);
         if($('agent-input')) $('agent-input').value = found.agentNo;
-    } catch (e) { showResult(e.message, true); } 
-    finally { loading(false); }
+    } catch (e) { 
+        showResult(e.message, true); 
+    } finally { 
+        loading(false); 
+    }
 }
-
 // ==================== LOAD DASHBOARD ====================
 
 let notificationInterval = null;
@@ -5075,63 +5056,90 @@ let notificationInterval = null;
 async function loadDashboard() {
     console.log('🏠 Loading dashboard (Live Data)...');
     
-    // 1. Always show loading spinner immediately
     loading(true);
     startHeartbeat();
     
     try {
-        // 2. Fetch Fresh Data (No Cache Check)
-        const dashboardData = await api('getDashboardData', { 
-            agentNo: STATE.agentNo, 
-            week: ''
-        });
-        
-        console.log("📥 Fresh Data Loaded:", dashboardData.lastUpdated);
+        const dashboardData = await api('getDashboardData');
 
-        // 3. Update State
         STATE.weeks = dashboardData.availableWeeks || [];
-        STATE.week = dashboardData.week || dashboardData.currentWeek || STATE.weeks[0];
+        STATE.week = dashboardData.week || "Week 9";
+        
         STATE.data = {
             agentNo: dashboardData.agent.agentNo,
             week: dashboardData.week,
-            resultsReleased: dashboardData.resultsReleased,
             profile: dashboardData.agent.profile,
             stats: dashboardData.agent.stats,
             rank: dashboardData.agent.rank,
             teamRank: dashboardData.agent.teamRank,
-            trackContributions: dashboardData.agent.trackContributions,
-            albumContributions: dashboardData.agent.albumContributions,
-            album2xStatus: dashboardData.agent.album2xStatus,
+            trackContributions: dashboardData.agent.trackContributions || {},
+            albumContributions: dashboardData.agent.albumContributions || {},
+            album2xStatus: dashboardData.agent.album2xStatus || { passed: false, tracks: {} },
             teamInfo: {
-                level: dashboardData.team.level,
-                teamXP: dashboardData.team.teamXP,
-                winner: dashboardData.team.isWinner,
-                trackGoalPassed: dashboardData.team.missions?.tracksPassed,
-                albumGoalPassed: dashboardData.team.missions?.albumsPassed,
-                album2xPassed: dashboardData.team.missions?.album2xPassed
-            },
-            lastUpdated: dashboardData.lastUpdated
+                resultsReleased: dashboardData.resultsReleased || false
+            }
         };
-
-        // 4. Switch Screens & Render
+        
         $('login-screen').classList.remove('active');
         $('login-screen').style.display = 'none';
         $('dashboard-screen').classList.add('active');
         $('dashboard-screen').style.display = 'flex';
         
         setupDashboard(); 
-        
-        // Load initial page
+
+        try {
+            const streakRes = await api('getStreakData', { agentNo: STATE.agentNo });
+            
+            if (streakRes.success && streakRes.streak) {
+                const key = STREAK_KEY + STATE.agentNo;
+                
+                // 🔥 CRITICAL FIX: Ensure Dates match exact format required by initStreakTracker
+                // Backend sends YYYY-MM-DD. We need to convert to "Sat Feb 07 2026" format
+                const dbDateRaw = streakRes.streak.lastActiveDate; // "2026-02-07"
+                
+                // Create date object, ensuring we don't shift timezones on the date itself
+                let formattedDate = null;
+                if(dbDateRaw) {
+                    const parts = dbDateRaw.split('-'); // [2026, 02, 07]
+                    // Construct date manually to avoid timezone shifts: Year, Month (0-index), Day
+                    const d = new Date(parts[0], parts[1] - 1, parts[2]); 
+                    formattedDate = d.toDateString(); // "Sat Feb 07 2026"
+                }
+
+                const streakState = {
+                    currentStreak: streakRes.streak.current,
+                    longestStreak: streakRes.streak.longest,
+                    lastLogDate: formattedDate, 
+                    freezes: streakRes.streak.freezesRemaining,
+                    // If last active date is TODAY, mark as completed
+                    isCompletedToday: formattedDate === new Date().toDateString(),
+                    lastVisitDate: new Date().toDateString()
+                };
+
+                // 1. Save to Storage
+                localStorage.setItem(key, JSON.stringify(streakState));
+                
+                // 2. Force Update In-Memory State
+                Object.assign(STREAK_STATE, streakState);
+
+                console.log('⚡ Streak synced from DB:', streakState);
+                
+                // 3. Force UI Refresh Immediately
+                renderStreakWidget(streakState); 
+            }
+        } catch (streakErr) {
+            console.warn('⚠️ Streak sync failed:', streakErr);
+        }
+
         const currentPage = ROUTER.initialized ? STATE.page : 'home';
         await loadPage(currentPage); 
         
-        // 5. Trigger background checks
         setTimeout(() => {
             if (typeof initStreakTracker === 'function') initStreakTracker();
             if (typeof updateActivityFeedUI === 'function') {
-               updateActivityFeedUI(); // Run once immediately
-               if (window.activityInterval) clearInterval(window.activityInterval);
-               window.activityInterval = setInterval(updateActivityFeedUI, 60000);
+                updateActivityFeedUI();
+                if (window.activityInterval) clearInterval(window.activityInterval);
+                window.activityInterval = setInterval(updateActivityFeedUI, 60000);
             }
             if (typeof setupNotificationChecks === 'function') setupNotificationChecks();
             
@@ -5141,17 +5149,16 @@ async function loadDashboard() {
         
     } catch (e) {
         console.error('❌ Dashboard Load Error:', e);
-        
-        showToast('Connection failed. Please check your internet.', 'error');
-        
-        // Send back to login if live fetch fails
+        showToast('Connection failed.', 'error');
         $('login-screen').classList.add('active');
-        $('login-screen').style.display = 'flex';
         $('dashboard-screen').classList.remove('active');
-        
     } finally { 
         loading(false); 
     }
+}
+function getISTDate() {
+    const istString = new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"});
+    return new Date(istString);
 }
 // ==================== DATE HELPERS ====================
 
@@ -5242,30 +5249,38 @@ function setupDashboard() {
         select.innerHTML = STATE.weeks.map(w => `<option value="${w}" ${w === STATE.week ? 'selected' : ''}>${w}</option>`).join('');
         select.onchange = async () => {
             loading(true);
-            try {
-                // 1. Create the 'newData' variable here
-                const newData = await api('getAgentData', { agentNo: STATE.agentNo, week: select.value });
-                
-                // 2. Assign it to the global STATE
-                STATE.data = newData;
-                
-                // 3. Set the week
-                STATE.week = select.value;
-                
-                // 4. Update the timestamps
-                if (STATE.data?.lastUpdated) { 
-                    STATE.lastUpdated = STATE.data.lastUpdated; 
-                    updateTime(); 
-                }
-                
-                // 5. Refresh the page view
-                await loadPage(STATE.page);
-            } catch (e) { 
-                console.error("Week load error:", e);
-                showToast('Failed to load week', 'error'); 
-            } 
-            finally { loading(false); }
+    try {
+        const newData = await api('getDashboardData', { 
+            agentNo: STATE.agentNo, 
+            week: select.value 
+        });
+        
+        STATE.week = select.value;
+        STATE.data = {
+            agentNo: newData.agent?.agentNo,
+            week: newData.week,
+            profile: newData.agent?.profile,
+            stats: newData.agent?.stats,
+            rank: newData.agent?.rank,
+            teamRank: newData.agent?.teamRank,
+            trackContributions: newData.agent?.trackContributions || {},
+            albumContributions: newData.agent?.albumContributions || {},
+            album2xStatus: newData.agent?.album2xStatus || { passed: false, tracks: {} },
+            team: newData.team || {},
+            trackGoals: newData.trackGoals || {},
+            albumGoals: newData.albumGoals || {},
+            onLeave: newData.agent?.onLeave || false
         };
+        
+        STATE.lastUpdated = newData.lastUpdated;
+        updateTime();
+        await loadPage(STATE.page);
+    } catch (e) { 
+        showToast('Failed to load week', 'error'); 
+    } finally { 
+        loading(false); 
+    }
+};
     
     document.querySelectorAll('.nav-link').forEach(link => {
         link.onclick = null;
@@ -5376,8 +5391,6 @@ if (btn) {
 }
 // ==================== START APP ====================
 document.addEventListener('DOMContentLoaded', initApp);
-// ==================== START APP ====================
-document.addEventListener('DOMContentLoaded', initApp);
 async function renderHome() {
     const selectedWeek = STATE.week;
     const weekEl = $('current-week');
@@ -5475,8 +5488,8 @@ async function renderHome() {
         const album2xStatus = STATE.data?.album2xStatus || {};
         const allTeamTracks = (CONFIG.getTeamAlbumTracksForWeek) ? CONFIG.getTeamAlbumTracksForWeek(selectedWeek) : {};
         const teamTracks = allTeamTracks[team] || [];
-        const tracksCompleted2x = teamTracks.filter(t => (album2xStatus.tracks?.[t] || 0) >= (CONFIG.ALBUM_CHALLENGE?.REQUIRED_STREAMS || 2)).length;
-
+        const tracksCompleted2x = teamTracks.filter(t => (album2xStatus.tracks?.[t]?.count || album2xStatus.tracks?.[t] || 0) >= (CONFIG.ALBUM_CHALLENGE.REQUIRED_STREAMS || 2)).length;
+        const isActuallyComplete = teamTracks.length > 0 && tracksCompleted2x === teamTracks.length;
         const trackGoalsList = Object.entries(trackGoals).map(([trackName, info]) => {
             const tp = info.teams?.[team] || {};
             return { name: trackName, current: tp.current || 0, goal: info.goal || 0, done: tp.status === 'Completed' || (tp.current || 0) >= (info.goal || 0) };
@@ -6141,6 +6154,7 @@ function stopUnreadCheck() {
         unreadCheckInterval = null;
     }
 }
+
 // ==================== DRAWER (FIXED BADGE SECTION) ====================
 async function renderDrawer() {
     const container = $('drawer-content');
@@ -6320,7 +6334,7 @@ async function renderDrawer() {
 
                             <!-- Hidden Badges Container -->
                             ${hiddenXpBadges.length > 0 ? `
-                                <div id="hidden-xp-badges" class="hidden-badges-container">
+                                <div id="hidden-xp-badges" class="hidden-badges-container" style="display: none;">
                                     <div class="badge-grid" style="margin-top: 10px;">
                                         ${hiddenXpBadges.map(b => renderBadgeHTML(b)).join('')}
                                     </div>
@@ -8154,6 +8168,39 @@ async function renderSummary() {
         `; 
     }
 }
+function copyShareText() {
+    const week = STATE.week || 'Week';
+    const text = `🎵 BTS Comeback Mission ${week} Complete!
+
+💜 We streamed together for BTS!
+
+#BTS #BTSComeback #ARMY`;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => showToast('📋 Caption copied!', 'success'))
+            .catch(() => fallbackCopyText(text));
+    } else {
+        fallbackCopyText(text);
+    }
+}
+
+function fallbackCopyText(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        showToast('📋 Caption copied!', 'success');
+    } catch (e) {
+        showToast('Copy failed', 'error');
+    }
+    document.body.removeChild(textarea);
+}
+
+window.copyShareText = copyShareText;
 // ==================== SAVE POSTER TO GALLERY (FIXED) ====================
 async function shareStats() {
     const card = document.getElementById('shareable-stats-card');
@@ -11390,24 +11437,32 @@ window.addEventListener('beforeunload', () => {
 });
 // ==================== HELPER FUNCTIONS FOR DRAWER ====================
 
-// 1. Toggle Function
-window.toggleHiddenBadges = function(btn) {
-    const container = document.getElementById('hidden-xp-badges');
-    if (!container) return;
+// ==================== TOGGLE HIDDEN BADGES (FIXED) ====================
+window.toggleHiddenBadges = function(button) {
+    const hiddenContainer = document.getElementById('hidden-xp-badges');
+    if (!hiddenContainer) return;
     
-    const isExpanded = container.classList.contains('expanded');
+    // Check current state
+    const isHidden = hiddenContainer.style.display === 'none';
     
-    if (isExpanded) {
-        container.classList.remove('expanded');
-        btn.innerHTML = `View All Badges →`;
-        // Optional: Scroll back up slightly
-        btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (isHidden) {
+        // OPEN
+        hiddenContainer.style.display = 'block';
+        hiddenContainer.classList.add('expanded');
+        button.innerHTML = `↑ Show Less`;
+        
+        // Haptic feedback
+        if (navigator.vibrate) navigator.vibrate(10);
     } else {
-        container.classList.add('expanded');
-        btn.innerHTML = `↑ Show Less`;
+        // CLOSE
+        hiddenContainer.style.display = 'none';
+        hiddenContainer.classList.remove('expanded');
+        button.innerHTML = `View All Badges →`;
+        
+        // Scroll button back into view so they don't get lost
+        button.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 };
-
 // 2. Badge HTML Generator (Helper)
 function renderBadgeHTML(badge) {
     const isWinner = badge.type === 'winner';
@@ -11869,6 +11924,194 @@ Do you wish to proceed?`;
     }
 }
 window.applyForLeave = applyForLeave;
+
+// ==================== SYNC FUNCTIONALITY ====================
+
+async function handleManualSync() {
+    const syncBtn = document.getElementById('syncBtn');
+    const floatingBtn = document.getElementById('floatingSyncBtn');
+    
+    if (STATE.isLoading) return;
+    
+    // Disable both buttons
+    [syncBtn, floatingBtn].forEach(btn => {
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('syncing');
+        }
+    });
+    
+    if (syncBtn) {
+        const textEl = syncBtn.querySelector('.sync-text');
+        if (textEl) textEl.textContent = 'Syncing...';
+    }
+    
+    loading(true);
+    
+    try {
+        const res = await api('refreshAgentStats', {
+            agentNo: STATE.agentNo,
+            week: STATE.currentWeek
+        });
+        
+        if (res.alreadySynced) {
+            showToast(res.message || '⏱️ Recently synced. Try again in a few minutes.', 'info');
+        } else if (res.success) {
+            showToast('✅ Stats updated from Last.fm!', 'success');
+            
+            // Show stats summary
+            if (res.stats) {
+                setTimeout(() => {
+                    showToast(`📊 ${res.stats.trackScrobbles} tracks | ${res.stats.albumScrobbles} albums`, 'info');
+                }, 1500);
+            }
+            
+            // Reload current page data
+            await loadDashboard();
+            
+        } else if (res.error) {
+            showToast('⚠️ ' + res.error, 'warning');
+        }
+    } catch (e) {
+        console.error('Sync error:', e);
+        showToast('❌ Sync failed: ' + e.message, 'error');
+    } finally {
+        loading(false);
+        
+        // Reset buttons
+        [syncBtn, floatingBtn].forEach(btn => {
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('syncing');
+            }
+        });
+        
+        if (syncBtn) {
+            const textEl = syncBtn.querySelector('.sync-text');
+            if (textEl) textEl.textContent = 'Sync Stats';
+        }
+    }
+}
+// Export to window for button use
+window.handleManualSync = handleManualSync;
+
+function renderAdminSystemTab() {
+    const container = document.getElementById('admin-tab-system');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="card" style="border-color: #ff4444; background: rgba(255,68,68,0.05);">
+            <div class="card-header"><h3>⚙️ Global System Sync</h3></div>
+            <div class="card-body" style="padding: 20px; text-align: center;">
+                <p style="color: #ccc; font-size: 13px; margin-bottom: 20px;">
+                    This will force the backend to fetch Last.fm data for <strong>ALL active agents</strong> for the current week. 
+                    <br><br><span style="color: #ff6b6b;">⚠️ This may take 30-60 seconds depending on the number of agents.</span>
+                </p>
+                <button id="global-sync-btn" onclick="triggerGlobalSync()" class="btn-primary" style="width: 100%; padding: 15px; background: #ff4444;">
+                    🚀 Force Global Refresh (All Agents)
+                </button>
+                <div id="sync-status-output" style="margin-top: 20px; color: #888; font-size: 12px; font-family: monospace;"></div>
+            </div>
+        </div>
+    `;
+}
+
+async function triggerGlobalSync() {
+    const btn = document.getElementById('global-sync-btn');
+    const output = document.getElementById('sync-status-output');
+    if (!confirm("Start Global Sync? This processes agents in batches but may still time out if there are many agents.")) return;
+
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Syncing all agents...";
+    output.innerHTML = "Process started. This takes a while...";
+
+    try {
+        const res = await api('runHourlySync', { adminKey: 'BTSSYNC2024' });
+
+        if (res.success) {
+            output.innerHTML = `✅ Sync Complete! <br>Synced: ${res.synced} | Failed: ${res.failed}`;
+            showToast("Global Sync Complete!", "success");
+        } else {
+            // 🔥 Fix: Handle missing error property
+            output.innerHTML = `❌ Error: ${res.error || 'Server timed out or returned no response.'}`;
+        }
+    } catch (e) {
+        // 🔥 Fix: Catch timeouts properly
+        output.innerHTML = `⚠️ The sync is running in the background, but the browser connection timed out. Check the Dashboard in 1 minute.`;
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = "🚀 Force Global Refresh (All Agents)";
+    }
+}
+window.triggerGlobalSync = triggerGlobalSync;
+// --- PASSWORD MODAL LOGIC ---
+
+function openPasswordModal() {
+    const modal = document.getElementById('password-modal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closePasswordModal() {
+    const modal = document.getElementById('password-modal');
+    if (modal) modal.style.display = 'none';
+    document.getElementById('password-form').reset();
+}
+
+function togglePasswordVisibility(id, btn) {
+    const input = document.getElementById(id);
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+    }
+}
+
+async function handlePasswordChange(event) {
+    event.preventDefault();
+    
+    const oldPassword = document.getElementById('current-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+    
+    if (newPassword !== confirmPassword) {
+        showToast("New passwords do not match!", "error");
+        return;
+    }
+
+    const btn = document.getElementById('submit-password-btn');
+    btn.disabled = true;
+    btn.querySelector('.btn-text').textContent = 'Updating...';
+
+    try {
+        const res = await api('updatePassword', {
+            agentNo: STATE.agentNo,
+            oldPassword: oldPassword,
+            newPassword: newPassword
+        });
+
+        if (res.success) {
+            showToast("✅ Access Key Updated!", "success");
+            closePasswordModal();
+        } else {
+            showToast(res.error || "Update failed", "error");
+        }
+    } catch (e) {
+        showToast("System error. Try again later.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.querySelector('.btn-text').textContent = 'Update Password';
+    }
+}
+
+// Make globally available
+window.openPasswordModal = openPasswordModal;
+window.closePasswordModal = closePasswordModal;
+window.handlePasswordChange = handlePasswordChange;
+window.togglePasswordVisibility = togglePasswordVisibility;
+
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
@@ -11946,4 +12189,4 @@ window.renderWeekConfirmation = renderWeekConfirmation;
 window.updateTeamStatus = updateTeamStatus;
 window.toggleResultsRelease = toggleResultsRelease;
 
-console.log('🎮 BTS Spy Battle v5.0 Loaded with Voting System 🗳️💜');
+console.log('🎮 BTS Spy Battle v6.0 Loaded with Voting System 🗳️💜');
