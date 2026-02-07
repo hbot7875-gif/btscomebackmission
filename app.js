@@ -2410,6 +2410,7 @@ function showAdminPanel() {
             <button type="button" class="admin-tab active" data-tab="create">Create Mission</button>
             <button type="button" class="admin-tab" data-tab="active">Active</button>
             <button type="button" class="admin-tab" data-tab="confirm">📋 Confirm</button>
+            <button type="button" class="admin-tab" data-tab="debug">🔧 Diagnostics</button>
             <button type="button" class="admin-tab" data-tab="system">⚙️ System</button>
             <button type="button" class="admin-tab" data-tab="leaves">🛑 On Leave</button> 
             <button type="button" class="admin-tab" data-tab="assets">Badge Preview</button>
@@ -2419,6 +2420,7 @@ function showAdminPanel() {
             <div id="admin-tab-create" class="admin-tab-content active"></div>
             <div id="admin-tab-active" class="admin-tab-content"></div>
             <div id="admin-tab-confirm" class="admin-tab-content"></div>
+            <div id="admin-tab-debug" class="admin-tab-content"></div>
             <div id="admin-tab-system" class="admin-tab-content"></div>
             <div id="admin-tab-leaves" class="admin-tab-content"></div>
             <div id="admin-tab-assets" class="admin-tab-content"></div>
@@ -2493,6 +2495,9 @@ function switchAdminTab(tabName) {
             break;
         case 'confirm':                    
             renderWeekConfirmation();
+            break;
+        case 'debug': 
+            renderAdminDebugTab(); 
             break;
         case 'system':
             renderAdminSystemTab();
@@ -12167,6 +12172,137 @@ window.openPasswordModal = openPasswordModal;
 window.closePasswordModal = closePasswordModal;
 window.handlePasswordChange = handlePasswordChange;
 window.togglePasswordVisibility = togglePasswordVisibility;
+
+// ==================== ADMIN DIAGNOSTICS ====================
+
+function renderAdminDebugTab() {
+    const container = document.getElementById('admin-tab-debug');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="card" style="border-color: #00d4ff; background: rgba(0, 212, 255, 0.05);">
+            <div class="card-header"><h3>🕵️‍♂️ Agent Diagnostics</h3></div>
+            <div class="card-body">
+                <p style="color:#aaa; font-size:12px; margin-bottom:15px;">
+                    Investigate "0 Scrobble" issues. This forces a live fetch from Last.fm and shows exactly what data is being returned.
+                </p>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="debug-agent-id" class="form-input" placeholder="Enter AGENT ID (e.g. AGENT001)" style="flex:1;">
+                    <button onclick="runAgentDiagnosis()" class="btn-primary" style="background: #00d4ff; color: #000; border:none;">
+                        🔍 Analyze
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="debug-results" style="margin-top:20px;"></div>
+    `;
+}
+
+async function runAgentDiagnosis() {
+    const agentInput = document.getElementById('debug-agent-id');
+    const resultsDiv = document.getElementById('debug-results');
+    const agentNo = agentInput.value.trim().toUpperCase();
+
+    if (!agentNo) {
+        showToast("Enter an Agent ID", "error");
+        return;
+    }
+
+    resultsDiv.innerHTML = '<div class="loading-text">📡 Intercepting Data Stream...</div>';
+
+    try {
+        // 1. Fetch Agent Details first to check DB existence
+        const agentCheck = await api('getAgentData', { agentNo: agentNo, week: STATE.week });
+        
+        if (!agentCheck.success) {
+            resultsDiv.innerHTML = `<div class="error-state"><p>❌ Agent ${agentNo} not found in Database.</p></div>`;
+            return;
+        }
+
+        // 2. Force Sync with Last.fm
+        const res = await api('refreshAgentStats', { 
+            agentNo: agentNo, 
+            week: STATE.week 
+        });
+
+        // 3. Build Report
+        const debug = res.debug || {};
+        const stats = res.stats || {};
+        const userProfile = agentCheck.agent?.profile || {};
+
+        let reportHTML = `
+            <div style="background:#0a0a0f; border:1px solid #333; border-radius:12px; padding:20px; font-family:monospace;">
+                
+                <!-- ID Card -->
+                <div style="border-bottom:1px solid #333; padding-bottom:15px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="color:#fff; font-weight:bold; font-size:16px;">${agentNo}</div>
+                        <div style="color:${teamColor(userProfile.team)}; font-size:12px;">${userProfile.team}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="color:#888; font-size:10px;">LAST.FM USERNAME</div>
+                        <div style="color:#00ff88; font-size:14px;">${(debug.usernames || []).join(', ') || 'NONE LINKED'}</div>
+                    </div>
+                </div>
+
+                <!-- Status Grid -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
+                    <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
+                        <div style="font-size:10px; color:#888;">RAW SCROBBLES (Last.fm)</div>
+                        <div style="font-size:18px; color:#fff;">${debug.rawTrackScrobbles ?? '0'}</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
+                        <div style="font-size:10px; color:#888;">MATCHED GOALS (DB)</div>
+                        <div style="font-size:18px; color:#ffd700;">${stats.trackScrobbles ?? '0'}</div>
+                    </div>
+                </div>
+
+                <!-- Analysis Log -->
+                <div style="font-size:11px; color:#ccc; line-height:1.6;">
+                    <div>📅 <strong>Week:</strong> ${debug.week}</div>
+                    <div>🕒 <strong>Time Range (Unix):</strong> ${debug.weekRange?.from || '?'} to ${debug.weekRange?.to || '?'}</div>
+                    
+                    ${debug.fetchErrors ? 
+                        `<div style="color:#ff4444; margin-top:10px;">⚠️ <strong>API ERRORS:</strong><br>${debug.fetchErrors.join('<br>')}</div>` 
+                        : `<div style="color:#00ff88; margin-top:10px;">✅ Last.fm API Connection Successful</div>`
+                    }
+
+                    <div style="margin-top:10px; padding:10px; background:rgba(0,0,0,0.3); border-radius:6px;">
+                        <div style="color:#888; margin-bottom:5px;">DIAGNOSIS:</div>
+                        ${analyzeIssue(debug, stats)}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        resultsDiv.innerHTML = reportHTML;
+
+    } catch (e) {
+        resultsDiv.innerHTML = `<div class="error-text">Diagnosis Failed: ${e.message}</div>`;
+    }
+}
+
+function analyzeIssue(debug, stats) {
+    const raw = debug.rawTrackScrobbles || 0;
+    const matched = stats.trackScrobbles || 0;
+
+    if (!debug.usernames || debug.usernames.length === 0) 
+        return `<span style="color:#ff4444">CRITICAL: No Last.fm username linked in database.</span>`;
+
+    if (debug.fetchErrors && debug.fetchErrors.length > 0)
+        return `<span style="color:#ff4444">CRITICAL: Last.fm API Error. Likely invalid username or privacy settings. Check if user is "Private".</span>`;
+
+    if (raw === 0) 
+        return `<span style="color:#ffa500">Last.fm reports 0 streams. User might be inactive or scrobbling is disconnected on their end.</span>`;
+
+    if (raw > 0 && matched === 0) 
+        return `<span style="color:#ffa500">User is streaming (${raw} tracks), but NONE matched the current Goals. Check if they are streaming the correct songs.</span>`;
+
+    if (raw > matched) 
+        return `<span style="color:#00ff88">System Healthy.</span> Filtering applied: ${raw - matched} non-goal streams ignored.`;
+
+    return `<span style="color:#00ff88">System Nominal.</span> Data is syncing correctly.`;
+}
 
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
