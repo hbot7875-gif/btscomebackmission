@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Remove Agent</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .card {
+            background: rgba(255, 68, 68, 0.05);
+            border: 2px solid #ff4444;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: rgba(255, 68, 68, 0.15);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 68, 68, 0.3);
+        }
+
+        .card-header h1 {
+            font-size: 1.5rem;
+            color: #ff6666;
+        }
+
+        .card-header p {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .warning-box {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .warning-box h4 {
+            color: #ff6666;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .warning-box ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 11px;
+            color: #ccc;
+            line-height: 1.6;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background: #0a0a1a;
+            color: #fff;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #ff4444;
+        }
+
+        .input-group input::placeholder {
+            color: #555;
+        }
+
+        .btn-delete {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-delete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 68, 68, 0.4);
+        }
+
+        .btn-delete:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+
+        .result-box.success {
+            background: rgba(39, 174, 96, 0.2);
+            border: 1px solid #27ae60;
+            color: #27ae60;
+            display: block;
+        }
+
+        .result-box.error {
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            display: block;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .back-link:hover {
+            color: #9b59b6;
+        }
+
+        .agent-preview {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .agent-preview.show {
+            display: block;
+        }
+
+        .agent-preview h4 {
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .agent-preview p {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h1>⚠️ Remove Agent</h1>
+            <p>Admin Tool - Permanently delete an agent</p>
+        </div>
+        
+        <div class="card-body">
+            <div class="warning-box">
+                <h4>⚠️ THIS ACTION WILL DELETE:</h4>
+                <ul>
+                    <li>Agent profile & login</li>
+                    <li>All streaming stats & XP</li>
+                    <li>Badges and achievements</li>
+                    <li>Streak history</li>
+                    <li>Team contributions</li>
+                    <li>Chat messages</li>
+                </ul>
+            </div>
+
+            <div class="input-group">
+                <label>🆔 Agent Number</label>
+                <input type="text" id="agentNo" placeholder="e.g., AGENT123" oninput="lookupAgent()">
+            </div>
+
+            <div class="agent-preview" id="agentPreview">
+                <h4 id="previewName">Loading...</h4>
+                <p id="previewTeam">Team: ---</p>
+            </div>
+
+            <div class="input-group">
+                <label>🔑 Admin Key</label>
+                <input type="password" id="adminKey" placeholder="Enter admin key">
+            </div>
+
+            <button class="btn-delete" id="deleteBtn" onclick="deleteAgent()">
+                🗑️ PERMANENTLY DELETE AGENT
+            </button>
+
+            <div class="result-box" id="resultBox"></div>
+        </div>
+    </div>
+
+    <a href="index.html" class="back-link">← Back to Dashboard</a>
+</div>
+
+<script>
+    // =============================================
+    // CONFIGURATION
+    // =============================================
+    const API_URL = 'https://YOUR_PROJECT.supabase.co/functions/v1/hopetracker';
+    const API_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+    let lookupTimeout = null;
+
+    // =============================================
+    // API CALL
+    // =============================================
+    async function api(action, params = {}) {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`,
+                'apikey': API_KEY
+            },
+            body: JSON.stringify({ action, ...params })
+        });
+        return res.json();
+    }
+
+    // =============================================
+    // LOOKUP AGENT (Preview before delete)
+    // =============================================
+    function lookupAgent() {
+        const agentNo = document.getElementById('agentNo').value.trim().toUpperCase();
+        const preview = document.getElementById('agentPreview');
+        
+        if (agentNo.length < 5) {
+            preview.classList.remove('show');
+            return;
+        }
+
+        clearTimeout(lookupTimeout);
+        lookupTimeout = setTimeout(async () => {
+            try {
+                const result = await api('getAgentData', { agentNo });
+                
+                if (result.success && result.agent) {
+                    document.getElementById('previewName').textContent = result.agent.profile.name || agentNo;
+                    document.getElementById('previewTeam').textContent = `Team: ${result.agent.profile.team || 'Unknown'}`;
+                    preview.classList.add('show');
+                } else {
+                    document.getElementById('previewName').textContent = 'Agent not found';
+                    document.getElementById('previewTeam').textContent = '';
+                    preview.classList.add('show');
+                }
+            } catch (e) {
+                preview.classList.remove('show');
+            }
+        }, 500);
+    }
+
+    // =============================================
+    // DELETE AGENT
+    // =============================================
+    async function deleteAgent() {
+        const agentNo = document.getElementById('agentNo').value.trim().toUpperCase();
+        const adminKey = document.getElementById('adminKey').value.trim();
+        const btn = document.getElementById('deleteBtn');
+        const resultBox = document.getElementById('resultBox');
+
+        // Validation
+        if (!agentNo) {
+            showResult('Please enter an Agent Number', 'error');
+            return;
+        }
+
+        if (!adminKey) {
+            showResult('Please enter the Admin Key', 'error');
+            return;
+        }
+
+        // Confirm
+        const confirmed = confirm(`⚠️ FINAL WARNING!\n\nYou are about to PERMANENTLY DELETE:\n\n${agentNo}\n\nThis cannot be undone. Are you sure?`);
+        
+        if (!confirmed) return;
+
+        // Double confirm
+        const doubleConfirm = prompt(`Type "${agentNo}" to confirm deletion:`);
+        
+        if (doubleConfirm !== agentNo) {
+            showResult('Deletion cancelled - Agent number did not match', 'error');
+            return;
+        }
+
+        // Show loading
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading"></span> Deleting...';
+
+        try {
+            const result = await api('adminDeleteAgent', {
+                agentNo: agentNo,
+                adminKey: adminKey
+            });
+
+            if (result.success) {
+                showResult(`✅ ${result.message}`, 'success');
+                document.getElementById('agentNo').value = '';
+                document.getElementById('agentPreview').classList.remove('show');
+            } else {
+                showResult(`❌ ${result.error || 'Failed to delete agent'}`, 'error');
+            }
+        } catch (e) {
+            showResult('❌ Network error. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '🗑️ PERMANENTLY DELETE AGENT';
+        }
+    }
+
+    // =============================================
+    // SHOW RESULT
+    // =============================================
+    function showResult(message, type) {
+        const box = document.getElementById('resultBox');
+        box.textContent = message;
+        box.className = 'result-box ' + type;
+    }
+</script>
+
+</body>
+</html>
