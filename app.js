@@ -6630,7 +6630,7 @@ function promptDeleteAccount() {
             <!-- Body -->
             <div style="padding: 20px;">
                 <p style="color: #fff; font-size: 13px; margin: 0 0 15px 0; line-height: 1.6; text-align: center;">
-                    This action will <strong style="color:#ff4444;">permanently delete</strong> your account and all associated data.
+                    This action will <strong style="color:#ff4444;">permanently delete</strong> your account and all data.
                 </p>
 
                 <div style="background: rgba(255,68,68,0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,68,68,0.3);">
@@ -6645,8 +6645,8 @@ function promptDeleteAccount() {
                 </div>
 
                 <div style="margin-top: 15px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; text-align: center;">
-                    <div style="color: #888; font-size: 11px; margin-bottom: 8px;">Type your Agent No to confirm:</div>
-                    <input type="text" id="deleteConfirmInput" placeholder="${STATE.agentNo}" style="
+                    <div style="color: #888; font-size: 11px; margin-bottom: 8px;">Enter your password to confirm:</div>
+                    <input type="password" id="deleteConfirmPassword" placeholder="Your password" style="
                         width: 100%;
                         padding: 10px;
                         border: 1px solid #444;
@@ -6655,7 +6655,6 @@ function promptDeleteAccount() {
                         color: #fff;
                         text-align: center;
                         font-size: 14px;
-                        font-weight: bold;
                     ">
                 </div>
             </div>
@@ -6684,21 +6683,18 @@ function promptDeleteAccount() {
 
     document.body.appendChild(modal);
     
-    // Focus the input
     setTimeout(() => {
-        document.getElementById('deleteConfirmInput')?.focus();
+        document.getElementById('deleteConfirmPassword')?.focus();
     }, 100);
 }
 
 async function confirmDeleteAccount() {
-    const input = document.getElementById('deleteConfirmInput');
-    const enteredValue = input?.value?.trim();
+    const input = document.getElementById('deleteConfirmPassword');
+    const password = input?.value?.trim();
     
-    // Verify agent number matches
-    if (enteredValue !== STATE.agentNo) {
-        showToast('❌ Agent number does not match!', 'error');
-        input.style.borderColor = '#ff4444';
-        input.focus();
+    if (!password) {
+        showToast('❌ Please enter your password', 'error');
+        input?.focus();
         return;
     }
 
@@ -6707,9 +6703,10 @@ async function confirmDeleteAccount() {
     
     loading(true);
     try {
-        const result = await api('deleteAgent', {
+        // ✅ FIXED: Call 'deleteAccount' (matches your backend)
+        const result = await api('deleteAccount', {
             agentNo: STATE.agentNo,
-            confirmCode: enteredValue
+            password: password  // ✅ Backend expects 'password'
         });
 
         if (result.success) {
