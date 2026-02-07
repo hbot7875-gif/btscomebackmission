@@ -9719,35 +9719,55 @@ window.renderAnnouncements = renderAnnouncements;
 window.submitJournalistNews = submitJournalistNews;
 // ==================== PLAYLISTS PAGE ====================
 
+// Add helper to window for toggle
+window.toggleMakerPanel = function() {
+    const form = document.getElementById('maker-form');
+    const arrow = document.getElementById('maker-arrow');
+    
+    if (!form) return;
+    
+    if (form.style.display === 'none' || form.style.display === '') {
+        form.style.display = 'block';
+        if(arrow) arrow.style.transform = 'rotate(180deg)';
+    } else {
+        form.style.display = 'none';
+        if(arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+};
+
 async function renderPlaylists() {
     const container = $('playlists-content');
     if (!container) return;
 
     // --- 1. THE PLAYLIST MAKER FORM (UI) ---
     const makerPanelHTML = `
-        <div class="card" style="border: 1px solid #ffd700; background: linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(0,0,0,0.2)); margin-bottom: 25px;">
-            <div class="card-header" style="cursor: pointer; display:flex; justify-content:space-between; align-items:center;" onclick="document.getElementById('maker-form').style.display = document.getElementById('maker-form').style.display === 'none' ? 'block' : 'none'">
-                <div>
-                    <h3 style="color: #ffd700; margin:0;">🎵 Playlist Maker Panel</h3>
-                    <span style="font-size: 10px; color: #888;">(Click to Expand)</span>
+        <div class="card" style="border: 1px solid #ffd700; background: rgba(255, 215, 0, 0.05); margin-bottom: 25px;">
+            <div class="card-header" style="cursor: pointer; display:flex; justify-content:space-between; align-items:center;" 
+                 onclick="window.toggleMakerPanel()">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:18px;">🎵</span>
+                    <div>
+                        <h3 style="color: #ffd700; margin:0;">Playlist Maker Panel</h3>
+                        <span style="font-size: 10px; color: #888;">(Click to Expand)</span>
+                    </div>
                 </div>
-                <span style="color:#ffd700;">▼</span>
+                <span id="maker-arrow" style="color:#ffd700; transition: transform 0.3s ease;">▼</span>
             </div>
             
-            <div id="maker-form" class="card-body" style="display: none; padding-top: 15px;">
+            <div id="maker-form" class="card-body" style="display: none; padding-top: 15px; border-top: 1px solid rgba(255,215,0,0.1);">
                 <div style="display: grid; gap: 10px;">
-                    <input type="text" id="pl-name" placeholder="Playlist Name (e.g. Focus V1)" class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
+                    <input type="text" id="pl-name" placeholder="Playlist Name (e.g. Focus V1)" class="form-input" style="width: 100%;">
                     
-                    <input type="text" id="pl-url" placeholder="Playlist Link (URL)" class="form-input" style="width: 100%; padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
+                    <input type="text" id="pl-url" placeholder="Playlist Link (URL)" class="form-input" style="width: 100%;">
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <select id="pl-platform" style="padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
+                        <select id="pl-platform" class="form-input">
                             <option value="Spotify">Spotify</option>
                             <option value="Apple Music">Apple Music</option>
                             <option value="YouTube">YouTube</option>
                         </select>
                         
-                        <select id="pl-team" style="padding: 12px; background: #0a0a0f; border: 1px solid #333; color: white; border-radius: 8px;">
+                        <select id="pl-team" class="form-input">
                             <option value="All">All Teams</option>
                             <option value="Team Indigo">Team Indigo</option>
                             <option value="Team Echo">Team Echo</option>
@@ -9756,9 +9776,9 @@ async function renderPlaylists() {
                         </select>
                     </div>
 
-                    <input type="password" id="pl-password" placeholder="🔒 Enter Maker Password" class="form-input" style="width: 100%; padding: 12px; background: #1a0505; border: 1px solid #ff4444; color: white; border-radius: 8px;">
+                    <input type="password" id="pl-password" placeholder="🔒 Enter Maker Password" class="form-input" style="width: 100%; border-color: #ff4444;">
                     
-                    <button onclick="submitNewPlaylist()" class="btn-primary" style="width: 100%; background: #ffd700; color: #000; font-weight: bold; padding: 12px; border:none; border-radius:8px; cursor:pointer;">
+                    <button onclick="submitNewPlaylist()" class="btn-primary" style="width: 100%; background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; font-weight: bold; border:none;">
                         + Publish Playlist
                     </button>
                 </div>
@@ -9772,7 +9792,7 @@ async function renderPlaylists() {
         ${makerPanelHTML}
         
         <!-- Existing Request System -->
-        <div class="card" style="background: linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(123, 44, 191, 0.05)); border: 1px solid rgba(0, 255, 136, 0.3); margin-bottom: 20px;">
+        <div class="card" style="background: rgba(0, 255, 136, 0.05); border: 1px solid rgba(0, 255, 136, 0.3); margin-bottom: 20px;">
             <div class="card-header"><h3 style="margin:0;">📝 Request a Playlist</h3></div>
             <div class="card-body" style="padding: 20px; text-align: center;">
                 <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">Not a maker? Request one here!</p>
@@ -9802,8 +9822,6 @@ async function renderPlaylists() {
             playlists.reverse(); 
             
             listEl.innerHTML = playlists.map(pl => {
-                // Ensure we use the correct property names from your backend/excel
-                // Excel: Name, Link, Platform, Type, Team
                 const link = pl.link || pl.url || '#'; 
                 const name = pl.name || 'Untitled Playlist';
                 const platform = pl.platform || 'Spotify';
@@ -9811,7 +9829,7 @@ async function renderPlaylists() {
                 const type = pl.type || 'Playlist';
 
                 return `
-                <div class="playlist-card" style="background: linear-gradient(135deg, #1a1a2e, #16213e); border: 1px solid rgba(123, 44, 191, 0.3); border-radius: 12px; padding: 15px;">
+                <div class="playlist-card" style="background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; transition: transform 0.2s;">
                     <a href="${sanitize(link)}" target="_blank" style="display: flex; align-items: center; gap: 15px; text-decoration: none; color: inherit;">
                         <span style="font-size: 24px;">${getPlaylistIcon(platform)}</span>
                         <div style="flex: 1;">
@@ -9828,10 +9846,9 @@ async function renderPlaylists() {
             listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#888;">No playlists found.</div>`;
         }
         
-        // Update notification state
-        if (typeof STATE !== 'undefined' && STATE.lastChecked) {
+        if (STATE.lastChecked) {
             STATE.lastChecked.playlists = playlists.length;
-            if (typeof saveNotificationState === 'function') saveNotificationState();
+            saveNotificationState();
         }
 
     } catch (e) {
@@ -9840,6 +9857,7 @@ async function renderPlaylists() {
         if (listEl) listEl.innerHTML = `<p style="color:red; text-align:center;">Failed to load playlists.</p>`;
     }
 }
+
 // ==================== SUBMIT NEW PLAYLIST LOGIC ====================
 
 async function submitNewPlaylist() {
@@ -9857,33 +9875,25 @@ async function submitNewPlaylist() {
     const team = teamInput.value;
     const password = passwordInput.value.trim();
     
-    // 1. Validation
     if (!name || !url || !password) {
-        showToast('❌ Please fill all fields (Name, Link, Password)', 'error');
+        showToast('❌ Please fill all fields', 'error');
         return;
     }
 
-    // 2. Loading State
     loading(true);
 
     try {
-        // 3. Send POST Request using fetch (API usually defaults to GET)
-        const response = await fetch(CONFIG.API_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'addPlaylist',
-                password: password, // The secret password defined in GAS Config
-                name: name,
-                url: url,
-                platform: platform,
-                type: 'Playlist',
-                team: team,
-                targetWeek: STATE.week || 'Week 1',
-                agentNo: STATE.agentNo || 'Unknown' // Tracks who added it
-            })
+        // Use consistent api() wrapper instead of raw fetch
+        const result = await api('addPlaylist', {
+            password: password,
+            name: name,
+            url: url,
+            platform: platform,
+            type: 'Playlist',
+            team: team,
+            targetWeek: STATE.week || 'Week 1',
+            agentNo: STATE.agentNo || 'Unknown'
         });
-
-        const result = await response.json();
 
         if (result.success) {
             showToast('✅ Playlist Added Successfully!', 'success');
@@ -9893,11 +9903,10 @@ async function submitNewPlaylist() {
             urlInput.value = '';
             passwordInput.value = '';
             
-            // Hide Form
-            const form = document.getElementById('maker-form');
-            if (form) form.style.display = 'none';
+            // Hide Form via helper
+            window.toggleMakerPanel();
             
-            // Refresh List immediately to show new item
+            // Refresh List
             renderPlaylists();
         } else {
             showToast('❌ ' + (result.error || 'Failed to add'), 'error');
