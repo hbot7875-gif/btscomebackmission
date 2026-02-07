@@ -4403,80 +4403,80 @@ function initStreakTracker() {
 function renderStreakWidget(s) {
     if (!s) s = getStreakState();
 
-    const container = document.getElementById('streak-widget-container');
+    // 1. Safe Container Check
+    let container = document.getElementById('streak-widget-container');
     if (!container) {
         const parent = document.querySelector('.quick-stats-section');
         if (parent) {
-            const div = document.createElement('div');
-            div.id = 'streak-widget-container';
-            parent.insertBefore(div, parent.firstChild);
+            container = document.createElement('div');
+            container.id = 'streak-widget-container';
+            parent.insertBefore(container, parent.firstChild);
         } else {
-            return;
+            return; 
         }
     }
 
     const target = STREAK_CONFIG.ACTIVITY_THRESHOLD || 10;
-    const progressPct = Math.min(100, (s.todayProgress / target) * 100);
 
-    // --- LOGIC: DETERMINE STATUS & ICON ---
+    // --- FIX STARTS HERE ---
+    // Logic: If isCompletedToday is true, force visual 100%, otherwise calculate math
+    let progressPct = 0;
+    let progressDisplay = `${s.todayProgress} / ${target}`;
+
+    if (s.isCompletedToday) {
+        progressPct = 100; // Force bar to fill
+        progressDisplay = `${target} / ${target}`; // Force text to look complete
+    } else {
+        progressPct = Math.min(100, (s.todayProgress / target) * 100);
+    }
+    // --- FIX ENDS HERE ---
+
+    // Determine Styling
     let statusClass = "status-zero";
-    let icon = "⭕"; // Default: Empty Circle / Target
+    let icon = "⭕";
     let mainColor = "#666";
     let statusText = "SYSTEM STANDBY";
 
     if (s.isCompletedToday) {
-        // Daily Goal Done
         statusClass = "status-done";
-        icon = "⚡"; // Power / Energy
+        icon = "⚡";
         mainColor = "#00ff88";
-        statusText = "POWER RESTORED";
+        statusText = "GOAL COMPLETE";
     } else if (s.currentStreak > 0) {
-        // Active Streak, Goal Pending
         statusClass = "status-active";
-        icon = "🔥"; // Fire
+        icon = "🔥";
         mainColor = "#ff6b35";
         statusText = "STREAK ACTIVE";
     } else {
-        // 0 Streak, Goal Pending
         statusClass = "status-zero";
-        icon = "📡"; // Searching signal or ⭕
+        icon = "📡";
         mainColor = "#888";
         statusText = "NO SIGNAL";
     }
 
     const html = `
         <div class="streak-widget ${statusClass}">
-            <!-- 1. ICON BOX (Minimal) -->
-            <div class="streak-icon-box">
-                ${icon}
-            </div>
-
-            <!-- 2. DATA AREA -->
+            <div class="streak-icon-box">${icon}</div>
             <div class="streak-info">
-                
-                <!-- Top Row: Streak Count -->
                 <div class="streak-title-row">
                     <div>
                         <span class="streak-value" style="color:${mainColor}">${s.currentStreak}</span>
                         <span class="streak-label">DAYS</span>
                     </div>
-                    <!-- Freeze Count (Ice Blue) -->
-                    <div class="streak-freeze" title="Streak Freezes">
-                        🧊 ${s.freezes}
-                    </div>
+                    <div class="streak-freeze" title="Streak Freezes">🧊 ${s.freezes}</div>
                 </div>
-
-                <!-- Progress Bar (Thin Line) -->
+                
+                <!-- Bar Container -->
                 <div class="streak-bar-container">
                     <div class="streak-bar-fill" style="width: ${progressPct}%;"></div>
                 </div>
 
-                <!-- Bottom Meta Data -->
+                <!-- Text Below Bar -->
                 <div class="streak-meta">
                     <span style="color:${s.isCompletedToday ? '#00ff88' : '#666'}">
-                        ${s.isCompletedToday ? 'GOAL COMPLETE' : 'DAILY TARGET'}
+                        ${statusText}
                     </span>
-                    <span>${s.todayProgress} / ${target}</span>
+                    <span>${progressDisplay}</span>
                 </div>
             </div>
         </div>
