@@ -3616,6 +3616,13 @@ async function renderWeekConfirmation() {
  * Smart Helper for Pass/Fail buttons
  */
 async function smartUpdateStatus(teamName, field, value) {
+    // Check session
+    if (!STATE.adminSession) {
+        showToast('⚠️ Session expired. Please re-authenticate.', 'error');
+        showAdminLoginModal();
+        return;
+    }
+
     const actionLabel = value ? "PASS" : "FAIL";
     const fieldLabel = field === 'attendanceConfirmed' ? "Attendance" : "Police Report";
     
@@ -3623,14 +3630,25 @@ async function smartUpdateStatus(teamName, field, value) {
 
     loading(true);
     try {
+        console.log('📤 Sending updateTeamStatus:', {
+            agentNo: STATE.agentNo,
+            week: STATE.week,
+            team: teamName,
+            field: field,
+            value: value,
+            hasSession: !!STATE.adminSession
+        });
+
         const result = await api('updateTeamStatus', {
-            agentNo: STATE.agentNo,           // ✅ ADD THIS
-            sessionToken: STATE.adminSession,  // ✅ KEEP THIS
+            agentNo: STATE.agentNo,
+            sessionToken: STATE.adminSession,
             week: STATE.week,
             team: teamName,
             field: field,
             value: value
         });
+
+        console.log('📥 Result:', result);
 
         if (result.success) {
             showToast(`✅ ${teamName} ${fieldLabel}: ${actionLabel}`, 'success');
@@ -3639,11 +3657,15 @@ async function smartUpdateStatus(teamName, field, value) {
             showToast('❌ ' + (result.error || 'Update failed'), 'error');
         }
     } catch (e) {
+        console.error('Update error:', e);
         showToast('❌ Update Failed: ' + e.message, 'error');
     } finally {
         loading(false);
     }
 }
+
+// Make sure it's available globally
+window.smartUpdateStatus = smartUpdateStatus;
 async function setTodaysSong() {
     const title = prompt('Song Title:');
     if (!title) return;
