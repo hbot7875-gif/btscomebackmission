@@ -2345,9 +2345,9 @@ function closeAdminModal() {
 }
 
 async function verifyAdminPassword() {
-    const passwordField = $('admin-password');
+    const passwordField = document.getElementById('admin-password');
     const password = passwordField?.value;
-    const errorEl = $('admin-error');
+    const errorEl = document.getElementById('admin-error');
     
     if (!password) {
         if (errorEl) { errorEl.textContent = '❌ Please enter password'; errorEl.classList.add('show'); }
@@ -2356,29 +2356,44 @@ async function verifyAdminPassword() {
     
     let verified = false;
     
-    if (password === CONFIG.ADMIN_PASSWORD) {
-        verified = true;
-        STATE.adminSession = 'local_' + Date.now();
-    } else {
-        try {
-            const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password });
-            if (result.success) { verified = true; STATE.adminSession = result.sessionToken; }
-        } catch (e) { console.log('Server verification failed:', e); }
+    // 🔥 FIX: Always verify with server to get a real DB session token
+    // We try the API first.
+    loading(true);
+    try {
+        const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password });
+        if (result.success) { 
+            verified = true; 
+            STATE.adminSession = result.sessionToken; 
+        } else {
+            // Optional: If server fails but local config matches, allow read-only (but writes will fail)
+            // Ideally, just fail here.
+            if (result.error) throw new Error(result.error);
+        }
+    } catch (e) { 
+        console.log('Server verification failed:', e); 
+        if (errorEl) { errorEl.textContent = '❌ ' + (e.message || 'Auth Failed'); errorEl.classList.add('show'); }
+    } finally {
+        loading(false);
     }
 
     if (verified) {
         STATE.isAdmin = true;
         localStorage.setItem('adminSession', STATE.adminSession);
-        localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
+        // Set expiry for 2 hours (matching server)
+        localStorage.setItem('adminExpiry', String(Date.now() + 2 * 60 * 60 * 1000));
+        
         closeAdminModal();
         addAdminIndicator();
+        
         if (!STATE.week) { 
-            try { const w = await api('getAvailableWeeks'); STATE.week = w.current || w.weeks?.[0]; } catch(e) {} 
+            try { 
+                const w = await api('getAvailableWeeks'); 
+                STATE.week = w.current || w.weeks?.[0]; 
+            } catch(e) {} 
         }
+        
         showToast('Access Granted', 'success');
         setTimeout(() => showAdminPanel(), 100);
-    } else {
-        if (errorEl) { errorEl.textContent = '❌ Invalid password'; errorEl.classList.add('show'); }
     }
 }
 
