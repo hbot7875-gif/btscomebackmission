@@ -3624,19 +3624,19 @@ async function smartUpdateStatus(teamName, field, value) {
     loading(true);
     try {
         const result = await api('updateTeamStatus', {
+            agentNo: STATE.agentNo,           // ✅ ADD THIS
+            sessionToken: STATE.adminSession,  // ✅ KEEP THIS
             week: STATE.week,
             team: teamName,
             field: field,
-            value: value,
-            sessionToken: STATE.adminSession
+            value: value
         });
 
         if (result.success) {
-            // Trigger Sync to recalculate winner immediately
-            await api('runHourlySync', { adminKey: 'BTSSYNC2024' }); 
-            
             showToast(`✅ ${teamName} ${fieldLabel}: ${actionLabel}`, 'success');
             renderWeekConfirmation(); 
+        } else {
+            showToast('❌ ' + (result.error || 'Update failed'), 'error');
         }
     } catch (e) {
         showToast('❌ Update Failed: ' + e.message, 'error');
