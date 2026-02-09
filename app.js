@@ -2349,51 +2349,55 @@ async function verifyAdminPassword() {
     const password = passwordField?.value;
     const errorEl = document.getElementById('admin-error');
     
+    // 1. Validation
     if (!password) {
-        if (errorEl) { errorEl.textContent = '❌ Please enter password'; errorEl.classList.add('show'); }
+        if (errorEl) { 
+            errorEl.textContent = '❌ Please enter password'; 
+            errorEl.classList.add('show'); 
+        }
         return;
     }
     
-    let verified = false;
-    
-    // 🔥 FIX: Always verify with server to get a real DB session token
-    // We try the API first.
-    loading(true);
-    try {
-        const result = await api('verifyAdmin', { agentNo: STATE.agentNo, password });
-        if (result.success) { 
-            verified = true; 
-            STATE.adminSession = result.sessionToken; 
-        } else {
-            // Optional: If server fails but local config matches, allow read-only (but writes will fail)
-            // Ideally, just fail here.
-            if (result.error) throw new Error(result.error);
-        }
-    } catch (e) { 
-        console.log('Server verification failed:', e); 
-        if (errorEl) { errorEl.textContent = '❌ ' + (e.message || 'Auth Failed'); errorEl.classList.add('show'); }
-    } finally {
-        loading(false);
-    }
+    // UI Feedback
+    const btn = document.querySelector('.admin-modal-footer button');
+    const originalText = btn ? btn.innerHTML : 'Unlock';
+    if(btn) { btn.innerHTML = '⏳ Verifying...'; btn.disabled = true; }
 
-    if (verified) {
-        STATE.isAdmin = true;
-        localStorage.setItem('adminSession', STATE.adminSession);
-        // Set expiry for 2 hours (matching server)
-        localStorage.setItem('adminExpiry', String(Date.now() + 2 * 60 * 60 * 1000));
+    try {
+        // 2. ALWAYS HIT THE SERVER. NO LOCAL BYPASS.
+        // The server must generate and save the token in the DB, 
+        // otherwise future requests (like approving reports) will fail.
+        const result = await api('verifyAdmin', { 
+            agentNo: STATE.agentNo, 
+            password: password 
+        });
         
-        closeAdminModal();
-        addAdminIndicator();
-        
-        if (!STATE.week) { 
-            try { 
-                const w = await api('getAvailableWeeks'); 
-                STATE.week = w.current || w.weeks?.[0]; 
-            } catch(e) {} 
+        if (result.success && result.sessionToken) { 
+            // 3. Success: Save the REAL server token
+            STATE.isAdmin = true;
+            STATE.adminSession = result.sessionToken;
+            
+            localStorage.setItem('adminSession', result.sessionToken);
+            localStorage.setItem('adminExpiry', String(Date.now() + 2 * 60 * 60 * 1000)); // 2 hours
+            
+            closeAdminModal();
+            addAdminIndicator();
+            showToast('✅ Access Granted', 'success');
+            
+            // Open panel after short delay
+            setTimeout(() => showAdminPanel(), 100);
+        } else {
+            throw new Error(result.error || 'Invalid Password');
         }
-        
-        showToast('Access Granted', 'success');
-        setTimeout(() => showAdminPanel(), 100);
+
+    } catch (e) { 
+        console.error('Admin Auth Failed:', e); 
+        if (errorEl) { 
+            errorEl.textContent = '❌ ' + (e.message || 'Auth Failed'); 
+            errorEl.classList.add('show'); 
+        }
+    } finally {
+        if(btn) { btn.innerHTML = originalText; btn.disabled = false; }
     }
 }
 
