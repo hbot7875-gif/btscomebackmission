@@ -4699,6 +4699,9 @@ const ROUTES = {
     'guide': 'guide',
     'namjoon': 'namjoon', 
     'streaming-tips': 'streaming-tips',
+    'attendance': 'attendance',        // ✅ ADDED
+    'operatives': 'attendance',        // ✅ ALIAS
+    'database': 'attendance',          // ✅ ALIAS
     'login': 'login'
 };
 
@@ -4722,6 +4725,7 @@ const PAGE_TO_ROUTE = {
     'guide': 'guide',
     'namjoon': 'namjoon',
     'streaming-tips': 'streaming-tips',
+    'attendance': 'attendance',
     'login': 'login'
 };
 
