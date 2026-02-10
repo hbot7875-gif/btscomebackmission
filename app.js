@@ -4822,12 +4822,12 @@ async function renderPageByRoute(pageName) {
         p.style.display = 'none'; // Ensure hidden
     });
     
-    // ✅ FIX: Added ALL potential pages to this list so they are created dynamically if missing
+    // ✅ FIX 1: Added 'attendance' to this list so the HTML container is created
     const dynamicPages = [
         'chat', 'playlists', 'gc-links', 'helper-roles', 'song-of-day', 'sotd',
         'secret-missions', 'announcements', 'drawer', 'goals', 'rankings', 
         'team-level', 'summary', 'comparison', 'album2x', 'profile', 'namjoon', 
-        'streaming-tips', 'guide'
+        'streaming-tips', 'guide', 'attendance' 
     ];
 
     dynamicPages.forEach(pName => {
@@ -4837,7 +4837,7 @@ async function renderPageByRoute(pageName) {
                 const newPage = document.createElement('section');
                 newPage.id = `page-${pName}`;
                 newPage.className = 'page';
-                // Automatically create the content container ID (e.g., 'secret-missions-content')
+                // Automatically create the content container ID
                 newPage.innerHTML = `<div id="${pName}-content"></div>`;
                 mainContent.appendChild(newPage);
             }
@@ -4875,6 +4875,9 @@ async function renderPageByRoute(pageName) {
             case 'streaming-tips': await renderStreamingTips(); break;
             case 'namjoon': await renderNamjoonBrain(); break;
             case 'guide': await renderGuidePage(); break; 
+            
+            // ✅ FIX 2: Added the case to actually load the attendance data
+            case 'attendance': await renderAttendance(); break; 
         }
     } catch (e) {
         console.error('Page render error:', e);
