@@ -11570,7 +11570,7 @@ window.renderGuidePage = renderGuidePage;
 window.toggleGuideSection = toggleGuideSection;
 window.scrollToGuideSection = scrollToGuideSection;
 
-// ==================== ATTENDANCE PAGE (OPERATIVE DATABASE) ===================
+// ==================== ATTENDANCE PAGE (OPERATIVE DATABASE) ====================
 
 async function renderAttendance() {
     const container = document.getElementById('attendance-content');
@@ -11599,10 +11599,10 @@ async function renderAttendance() {
         
         // Group agents by Team
         const teamsData = {
-            'Team Indigo': { active: [], leave: [] },
-            'Team Echo': { active: [], leave: [] },
-            'Team Agust D': { active: [], leave: [] },
-            'Team JITB': { active: [], leave: [] }
+            'Team Indigo': { active: [], leave: [], total: 0 },
+            'Team Echo': { active: [], leave: [], total: 0 },
+            'Team Agust D': { active: [], leave: [], total: 0 },
+            'Team JITB': { active: [], leave: [], total: 0 }
         };
 
         agents.forEach(agent => {
@@ -11610,6 +11610,7 @@ async function renderAttendance() {
             const isActuallyOnLeave = leaveAgentIds.includes(agent.agentNo);
 
             if (teamsData[team]) {
+                teamsData[team].total++;
                 if (isActuallyOnLeave) {
                     teamsData[team].leave.push(agent);
                 } else {
@@ -11624,20 +11625,25 @@ async function renderAttendance() {
             data.leave.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         });
 
+        // Calculate totals for footer
+        const grandTotalActive = Object.values(teamsData).reduce((sum, t) => sum + t.active.length, 0);
+        const grandTotalLeave = Object.values(teamsData).reduce((sum, t) => sum + t.leave.length, 0);
+        const grandTotal = grandTotalActive + grandTotalLeave;
+
         // Build HTML
         let html = `
             <div class="db-header">
-                <h1>OPERATIVE DATABASE</h1>
-                <p>CLASSIFIED PERSONNEL MANIFEST • ${STATE.week || 'CURRENT'}</p>
+                <h1>DEPLOYED AGENTS</h1>
+                <p>FIELD OPERATIVE STATUS • ${STATE.week || 'ACTIVE'}</p>
             </div>
 
             <div class="search-container">
-                <input type="text" id="attendance-search" placeholder="SEARCH OPERATIVE ID OR NAME..." oninput="filterAttendanceList()">
+                <input type="text" id="attendance-search" placeholder="SEARCH AGENT ID OR CODENAME..." oninput="filterAttendanceList()">
             </div>
             
             <div class="helper-tip">
                 <span class="tip-icon">💡</span>
-                <span class="tip-text">HELPERS: Tap checkboxes to mark present. Report calculated below.</span>
+                <span class="tip-text">HELPERS: Tap checkboxes to mark present. Stats update in real-time.</span>
             </div>
         `;
 
@@ -11645,11 +11651,12 @@ async function renderAttendance() {
         for (const [teamName, data] of Object.entries(teamsData)) {
             const teamColorVal = teamColor(teamName);
             const pfp = teamPfp(teamName);
-            const totalAgents = data.active.length + data.leave.length;
             const teamId = teamName.replace(/\s+/g, '-').toLowerCase();
+            const teamIdClean = teamName.replace(/\s+/g, '');
 
             html += `
-                <div class="attendance-section" id="section-${teamId}" data-team="${teamName}">
+                <div class="attendance-section" id="section-${teamId}" data-team="${teamName}" data-team-id="${teamIdClean}">
+                    <!-- TEAM HEADER -->
                     <div class="attendance-team-header" onclick="toggleAttendanceSection(this)" style="border-left: 4px solid ${teamColorVal};">
                         <div class="team-header-pfp" style="border-color: ${teamColorVal}">
                             ${pfp ? `<img src="${pfp}" alt="${teamName}" onerror="this.style.display='none'">` : `<span class="pfp-fallback">${teamName.charAt(5)}</span>`}
@@ -11657,6 +11664,8 @@ async function renderAttendance() {
                         <div class="team-header-info">
                             <div class="team-header-name" style="color: ${teamColorVal}">${teamName.toUpperCase()}</div>
                             <div class="team-header-stats">
+                                <span class="stat-total">${data.total} TOTAL</span>
+                                <span class="stat-divider">•</span>
                                 <span class="stat-active">${data.active.length} ACTIVE</span>
                                 <span class="stat-divider">•</span>
                                 <span class="stat-leave">${data.leave.length} LEAVE</span>
@@ -11665,10 +11674,32 @@ async function renderAttendance() {
                         <div class="attendance-toggle-icon">＋</div>
                     </div>
 
+                    <!-- TEAM CONTENT -->
                     <div class="attendance-content-wrapper">
                         <div class="inner-sections-wrapper">
+                            
+                            <!-- TEAM ATTENDANCE MINI-CARD -->
+                            <div class="team-attendance-card" id="stats-${teamIdClean}">
+                                <div class="team-attendance-header">
+                                    <span class="team-att-icon">📊</span>
+                                    <span class="team-att-title">TEAM ATTENDANCE</span>
+                                </div>
+                                <div class="team-attendance-body">
+                                    <div class="team-att-numbers">
+                                        <span class="team-present-count" id="present-${teamIdClean}">0</span>
+                                        <span class="team-att-slash">/</span>
+                                        <span class="team-total-count" id="active-${teamIdClean}">${data.active.length}</span>
+                                    </div>
+                                    <div class="team-att-label">ACTIVE AGENTS PRESENT</div>
+                                    <div class="team-att-progress-wrapper">
+                                        <div class="team-att-progress-bar" id="bar-${teamIdClean}" style="width: 0%;"></div>
+                                    </div>
+                                    <div class="team-att-percent" id="percent-${teamIdClean}">0%</div>
+                                </div>
+                            </div>
+
                             <!-- ACTIVE OPERATIVES -->
-                            <div class="attendance-section inner-section active-section">
+                            <div class="attendance-section inner-section active-section" data-team-ref="${teamIdClean}">
                                 <div class="attendance-team-header inner-header" onclick="toggleAttendanceSection(this)">
                                     <div class="inner-icon">🟢</div>
                                     <div class="team-header-info">
@@ -11680,7 +11711,7 @@ async function renderAttendance() {
                                 <div class="attendance-content-wrapper">
                                     <div class="agent-list-grid">
                                         ${data.active.length > 0 
-                                            ? data.active.map(a => renderAgentRow(a, false)).join('') 
+                                            ? data.active.map(a => renderAgentRow(a, false, teamIdClean)).join('') 
                                             : '<div class="empty-state">NO ACTIVE AGENTS</div>'}
                                     </div>
                                 </div>
@@ -11691,7 +11722,7 @@ async function renderAttendance() {
                                 <div class="attendance-team-header inner-header" onclick="toggleAttendanceSection(this)">
                                     <div class="inner-icon">🛑</div>
                                     <div class="team-header-info">
-                                        <div class="inner-header-name leave-title">ON LEAVE</div>
+                                        <div class="inner-header-name leave-title">ON LEAVE / INACTIVE</div>
                                         <div class="inner-header-count">${data.leave.length} AGENTS</div>
                                     </div>
                                     <div class="attendance-toggle-icon inner-toggle">▼</div>
@@ -11699,122 +11730,85 @@ async function renderAttendance() {
                                 <div class="attendance-content-wrapper">
                                     <div class="agent-list-grid">
                                         ${data.leave.length > 0 
-                                            ? data.leave.map(a => renderAgentRow(a, true)).join('') 
+                                            ? data.leave.map(a => renderAgentRow(a, true, teamIdClean)).join('') 
                                             : '<div class="empty-state">NO AGENTS ON LEAVE</div>'}
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        // --- NEW: CALCULATION FOOTER ---
+        // --- OVERALL SUMMARY FOOTER ---
         html += `
-            <div class="card" style="margin-top: 25px; border: 1px solid #00ff88; background: linear-gradient(145deg, #0a0a0f, rgba(0, 255, 136, 0.05));">
-                <div class="card-body" style="text-align: center; padding: 20px;">
-                    <h3 style="color: #00ff88; font-size: 14px; margin: 0 0 10px 0; letter-spacing: 2px;">📋 DAILY ATTENDANCE REPORT</h3>
-                    
-                    <div style="display: flex; justify-content: center; align-items: baseline; gap: 10px; margin-bottom: 5px;">
-                        <span id="present-count" style="font-size: 36px; font-weight: 800; color: #fff;">0</span>
-                        <span style="font-size: 20px; color: #888;">/</span>
-                        <span id="total-active-count" style="font-size: 24px; font-weight: 600; color: #aaa;">0</span>
+            <div class="attendance-summary-card" id="overall-stats">
+                <div class="summary-header">
+                    <span class="summary-icon">📋</span>
+                    <span class="summary-title">OVERALL ATTENDANCE REPORT</span>
+                </div>
+                
+                <div class="summary-grid">
+                    <!-- Total Present -->
+                    <div class="summary-stat">
+                        <div class="summary-numbers">
+                            <span class="summary-present" id="overall-present">0</span>
+                            <span class="summary-slash">/</span>
+                            <span class="summary-total" id="overall-active">${grandTotalActive}</span>
+                        </div>
+                        <div class="summary-label">PRESENT TODAY</div>
+                        <div class="summary-progress-wrapper">
+                            <div class="summary-progress-bar" id="overall-bar" style="width: 0%;"></div>
+                        </div>
+                        <div class="summary-percent" id="overall-percent">0%</div>
                     </div>
                     
-                    <div style="font-size: 11px; color: #888; margin-bottom: 15px;">ACTIVE AGENTS PRESENT</div>
-                    
-                    <!-- Progress Bar -->
-                    <div style="background: #222; height: 8px; border-radius: 4px; overflow: hidden; max-width: 250px; margin: 0 auto;">
-                        <div id="attendance-progress-bar" style="width: 0%; height: 100%; background: #00ff88; transition: width 0.3s ease;"></div>
+                    <!-- Breakdown Stats -->
+                    <div class="summary-breakdown">
+                        <div class="breakdown-item">
+                            <span class="breakdown-number" style="color: var(--text-bright);">${grandTotal}</span>
+                            <span class="breakdown-label">TOTAL AGENTS</span>
+                        </div>
+                        <div class="breakdown-divider"></div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-number" style="color: var(--success);">${grandTotalActive}</span>
+                            <span class="breakdown-label">ACTIVE</span>
+                        </div>
+                        <div class="breakdown-divider"></div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-number" style="color: var(--danger);">${grandTotalLeave}</span>
+                            <span class="breakdown-label">ON LEAVE</span>
+                        </div>
                     </div>
-                    
-                    <div id="attendance-percent" style="margin-top: 8px; color: #00ff88; font-weight: bold; font-size: 12px;">0%</div>
                 </div>
             </div>
         `;
 
         container.innerHTML = html;
         
-        // Calculate immediately after rendering
-        updateAttendanceStats();
+        // Calculate stats immediately after rendering
+        updateAllAttendanceStats();
 
     } catch (e) {
         console.error('Attendance Error:', e);
-        container.innerHTML = `<div class="error-state"><p>DATABASE ERROR</p></div>`;
+        container.innerHTML = `
+            <div class="error-state">
+                <div class="error-icon">⚠️</div>
+                <p>DATABASE CONNECTION FAILED</p>
+                <small>${e.message || 'Unknown error'}</small>
+                <button type="button" onclick="renderAttendance()" class="btn-primary" style="margin-top: 15px;">
+                    🔄 RETRY CONNECTION
+                </button>
+            </div>
+        `;
     }
 }
 
-// ---------------------------------------------------------
-// NEW FUNCTION: Calculate Stats Dynamically
-// ---------------------------------------------------------
-function updateAttendanceStats() {
-    // Select all ACTIVE (not on leave) items
-    const activeItems = document.querySelectorAll('.agent-roster-item:not(.on-leave)');
-    const totalActive = activeItems.length;
-    
-    // Count how many of those have the 'checked' class
-    let presentCount = 0;
-    activeItems.forEach(item => {
-        if (item.classList.contains('checked')) {
-            presentCount++;
-        }
-    });
+// ==================== RENDER AGENT ROW ====================
 
-    // Calculate Percentage
-    const percentage = totalActive > 0 ? Math.round((presentCount / totalActive) * 100) : 0;
-
-    // Update DOM
-    const presentEl = document.getElementById('present-count');
-    const totalEl = document.getElementById('total-active-count');
-    const barEl = document.getElementById('attendance-progress-bar');
-    const percentEl = document.getElementById('attendance-percent');
-
-    if (presentEl) presentEl.textContent = presentCount;
-    if (totalEl) totalEl.textContent = totalActive;
-    if (barEl) barEl.style.width = `${percentage}%`;
-    if (percentEl) percentEl.textContent = `${percentage}%`;
-}
-
-// ---------------------------------------------------------
-// UPDATED: Toggle Helper Check (Triggers Calculation)
-// ---------------------------------------------------------
-function toggleHelperCheck(event, wrapper, agentNo) {
-    event.stopPropagation(); // Stop accordion from toggling
-
-    const today = new Date().toISOString().split('T')[0];
-    const storageKey = `helper_check_${agentNo}_${today}`;
-    
-    const row = wrapper.closest('.agent-roster-item');
-    const checkbox = wrapper.querySelector('.helper-checkbox');
-    
-    if (!row || !checkbox) return;
-
-    const wasChecked = row.classList.contains('checked');
-    const isNowChecked = !wasChecked;
-
-    if (isNowChecked) {
-        row.classList.add('checked');
-        checkbox.textContent = '✓';
-        localStorage.setItem(storageKey, 'true');
-        if (navigator.vibrate) navigator.vibrate(10);
-    } else {
-        row.classList.remove('checked');
-        checkbox.textContent = '';
-        localStorage.removeItem(storageKey);
-    }
-
-    // 🔥 Trigger recalculation immediately
-    updateAttendanceStats();
-}
-
-// Re-expose global functions
-window.renderAttendance = renderAttendance;
-window.updateAttendanceStats = updateAttendanceStats;
-window.toggleHelperCheck = toggleHelperCheck;
-
-function renderAgentRow(agent, isLeave = false) {
-    // Get Today's Date String for daily reset
+function renderAgentRow(agent, isLeave = false, teamId = '') {
     const today = new Date().toISOString().split('T')[0];
     const storageKey = `helper_check_${agent.agentNo}_${today}`;
     const isChecked = localStorage.getItem(storageKey) === 'true';
@@ -11825,10 +11819,8 @@ function renderAgentRow(agent, isLeave = false) {
         displayName = 'Classified Agent';
     }
 
-    // Agent Number (still needed for logic/search, but we won't display it textually)
     const agentNo = agent.agentNo || 'N/A';
 
-    // Status Badge
     const statusBadge = isLeave 
         ? `<span class="status-badge status-leave">LEAVE</span>`
         : `<span class="status-badge status-active">ACTIVE</span>`;
@@ -11837,15 +11829,16 @@ function renderAgentRow(agent, isLeave = false) {
         <div class="agent-roster-item ${isLeave ? 'on-leave' : ''} ${isChecked ? 'checked' : ''}" 
              id="row-${agentNo}"
              data-agent="${agentNo}"
+             data-team-ref="${teamId}"
              data-search="${(agent.name || '').toLowerCase()} ${agentNo.toLowerCase()}">
             
-            <div class="helper-check-wrapper" onclick="toggleHelperCheck(event, this, '${agentNo}')">
+            <div class="helper-check-wrapper" onclick="toggleHelperCheck(event, this, '${agentNo}', '${teamId}')">
                 <div class="helper-checkbox">${isChecked ? '✓' : ''}</div>
             </div>
 
             <div class="agent-roster-info">
-                <!-- Agent ID line removed below, only Name remains -->
                 <div class="agent-roster-name">${displayName}</div>
+                <div class="agent-roster-id">${agentNo}</div>
             </div>
             
             <div class="agent-status-box">
@@ -11854,10 +11847,91 @@ function renderAgentRow(agent, isLeave = false) {
         </div>
     `;
 }
-// ==================== HELPER FUNCTIONS ====================
 
-function toggleHelperCheck(event, wrapper, agentNo) {
-    // Prevent bubbling to parent accordion
+// ==================== STATS CALCULATION ====================
+
+function updateAllAttendanceStats() {
+    // Get all unique team IDs
+    const teamSections = document.querySelectorAll('.attendance-section[data-team-id]');
+    let overallPresent = 0;
+    let overallActive = 0;
+
+    teamSections.forEach(section => {
+        const teamId = section.getAttribute('data-team-id');
+        const stats = updateTeamStats(teamId);
+        overallPresent += stats.present;
+        overallActive += stats.total;
+    });
+
+    // Update overall stats
+    updateOverallStats(overallPresent, overallActive);
+}
+
+function updateTeamStats(teamId) {
+    // Get all active (not on leave) agents for this team
+    const activeItems = document.querySelectorAll(`.agent-roster-item[data-team-ref="${teamId}"]:not(.on-leave)`);
+    const totalActive = activeItems.length;
+    
+    let presentCount = 0;
+    activeItems.forEach(item => {
+        if (item.classList.contains('checked')) {
+            presentCount++;
+        }
+    });
+
+    const percentage = totalActive > 0 ? Math.round((presentCount / totalActive) * 100) : 0;
+
+    // Update DOM for this team
+    const presentEl = document.getElementById(`present-${teamId}`);
+    const activeEl = document.getElementById(`active-${teamId}`);
+    const barEl = document.getElementById(`bar-${teamId}`);
+    const percentEl = document.getElementById(`percent-${teamId}`);
+
+    if (presentEl) presentEl.textContent = presentCount;
+    if (activeEl) activeEl.textContent = totalActive;
+    if (barEl) barEl.style.width = `${percentage}%`;
+    if (percentEl) {
+        percentEl.textContent = `${percentage}%`;
+        // Color based on percentage
+        if (percentage >= 80) {
+            percentEl.style.color = 'var(--success)';
+        } else if (percentage >= 50) {
+            percentEl.style.color = 'var(--warning)';
+        } else {
+            percentEl.style.color = 'var(--danger)';
+        }
+    }
+
+    return { present: presentCount, total: totalActive };
+}
+
+function updateOverallStats(presentCount, totalActive) {
+    const percentage = totalActive > 0 ? Math.round((presentCount / totalActive) * 100) : 0;
+
+    const presentEl = document.getElementById('overall-present');
+    const activeEl = document.getElementById('overall-active');
+    const barEl = document.getElementById('overall-bar');
+    const percentEl = document.getElementById('overall-percent');
+
+    if (presentEl) presentEl.textContent = presentCount;
+    if (activeEl) activeEl.textContent = totalActive;
+    if (barEl) barEl.style.width = `${percentage}%`;
+    if (percentEl) {
+        percentEl.textContent = `${percentage}%`;
+        // Color based on percentage
+        if (percentage >= 80) {
+            percentEl.style.color = 'var(--success)';
+        } else if (percentage >= 50) {
+            percentEl.style.color = 'var(--warning)';
+        } else {
+            percentEl.style.color = 'var(--danger)';
+        }
+    }
+}
+
+// ==================== CHECKBOX TOGGLE ====================
+
+function toggleHelperCheck(event, wrapper, agentNo, teamId) {
     event.stopPropagation();
 
     const today = new Date().toISOString().split('T')[0];
@@ -11887,7 +11961,13 @@ function toggleHelperCheck(event, wrapper, agentNo) {
         checkbox.textContent = '';
         localStorage.removeItem(storageKey);
     }
+
+    // 🔥 Update team stats + overall stats
+    updateTeamStats(teamId);
+    updateAllAttendanceStats();
 }
+
+// ==================== ACCORDION TOGGLE ====================
 
 function toggleAttendanceSection(header) {
     const section = header.parentElement;
@@ -11898,7 +11978,6 @@ function toggleAttendanceSection(header) {
     
     section.classList.toggle('open');
     
-    // Update icon based on type
     if (icon) {
         if (icon.textContent === '＋' || icon.textContent === '－') {
             icon.textContent = isOpen ? '＋' : '－';
@@ -11907,6 +11986,8 @@ function toggleAttendanceSection(header) {
         }
     }
 }
+
+// ==================== SEARCH FILTER ====================
 
 function filterAttendanceList() {
     const input = document.getElementById('attendance-search');
@@ -11926,7 +12007,6 @@ function filterAttendanceList() {
             item.classList.remove('hidden');
             matchCount++;
             
-            // Collect parent sections to expand
             let parent = item.closest('.attendance-section');
             while (parent) {
                 sectionsToExpand.add(parent);
@@ -11951,7 +12031,7 @@ function filterAttendanceList() {
         });
     }
 
-    // Update search feedback (optional)
+    // Search count badge
     const searchContainer = input.closest('.search-container');
     if (searchContainer) {
         const existing = searchContainer.querySelector('.search-count');
@@ -11966,9 +12046,8 @@ function filterAttendanceList() {
     }
 }
 
-// ==================== UTILITY FUNCTIONS ====================
+// ==================== CLEANUP OLD CHECKMARKS ====================
 
-// Clear old daily checkmarks (cleanup)
 function cleanupOldCheckmarks() {
     const today = new Date().toISOString().split('T')[0];
     const keysToRemove = [];
@@ -11996,6 +12075,8 @@ window.renderAttendance = renderAttendance;
 window.toggleAttendanceSection = toggleAttendanceSection;
 window.filterAttendanceList = filterAttendanceList;
 window.toggleHelperCheck = toggleHelperCheck;
+window.updateAllAttendanceStats = updateAllAttendanceStats;
+window.updateTeamStats = updateTeamStats;
 // ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
