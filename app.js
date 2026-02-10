@@ -3634,56 +3634,7 @@ async function renderWeekConfirmation() {
         container.innerHTML = `<div class="error-state"><p>❌ Failed to load data</p><button class="btn-secondary" onclick="renderWeekConfirmation()">Retry</button></div>`;
     }
 }
-async function smartUpdateStatus(teamName, field, value) {
-    // 1. GET TOKEN: Try State first, fallback to LocalStorage (Safety Net)
-    let token = STATE.adminSession || localStorage.getItem('adminSession');
-    
-    // 2. CHECK: If still no token, stop immediately
-    if (!token) {
-        showToast('⚠️ Admin session expired. Please re-login.', 'error');
-        showAdminLogin(); // Opens the login modal
-        return;
-    }
-
-    loading(true);
-
-    try {
-        console.log(`📝 Updating ${teamName}: ${field} = ${value}`);
-
-        const result = await api('updateTeamStatus', {
-            agentNo: STATE.agentNo, // This MUST be AGENT000 (or your admin ID)
-            sessionToken: token,    // Sending the token found in step 1
-            week: STATE.week,
-            team: teamName,
-            field: field,
-            value: value
-        });
-
-        if (result.success) {
-            const statusText = value ? "PASSED ✅" : "FAILED ❌";
-            const typeText = field === 'attendanceConfirmed' ? "Attendance" : "Police Report";
-            showToast(`${teamName} ${typeText}: ${statusText}`, value ? 'success' : 'error');
-            
-            // Reload the buttons to show the change
-            await renderWeekConfirmation();
-        } else {
-            // If backend says unauthorized, clear storage to force fresh login next time
-            if (result.error === 'Unauthorized') {
-                localStorage.removeItem('adminSession');
-                STATE.adminSession = null;
-                showToast('⚠️ Session invalid. Please log in again.', 'error');
-                showAdminLogin();
-            } else {
-                throw new Error(result.error || 'Update failed');
-            }
-        }
-    } catch (e) {
-        console.error(e);
-        showToast('❌ Error: ' + e.message, 'error');
-    } finally {
-        loading(false);
-    }
-}
+smartUpdateStatus
 // Make sure it's available globally
 window.smartUpdateStatus = smartUpdateStatus;
 async function toggleResultsReleaseAdmin() {
