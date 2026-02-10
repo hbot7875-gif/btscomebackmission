@@ -11573,38 +11573,41 @@ async function renderAttendance() {
     container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
 
     try {
-        const [agentsRes, leaveRes] = await Promise.all([
-            api('getAllAgents'),
-            api('getAgentsOnLeave', { week: STATE.week })
-        ]);
+        // 1. Fetch data with fallbacks to empty arrays
+        const agentsRes = await api('getAllAgents').catch(() => ({ agents: [] }));
+        const leaveRes = await api('getAgentsOnLeave', { week: STATE.week }).catch(() => ({ agents: [] }));
 
         const allAgents = agentsRes.agents || [];
         const leaveAgents = leaveRes.agents || [];
-        const leaveSet = new Set(leaveAgents.map(a => String(a.agentNo)));
+        
+        // 2. Safe mapping for Leave Set
+        const leaveSet = new Set();
+        leaveAgents.forEach(a => { if(a && a.agentNo) leaveSet.add(String(a.agentNo)); });
+
         const teams = ['Team Indigo', 'Team Echo', 'Team Agust D', 'Team JITB'];
         
+        // 3. Checklist logic
         const storageKey = `helper_checklist_${STATE.week}`;
         const checklist = JSON.parse(localStorage.getItem(storageKey) || '{}');
 
         let html = `
             <div class="db-header">
                 <h1>OPERATIVE DIRECTORY</h1>
-                <p>WEEKLY STATUS REPORT • ${STATE.week}</p>
+                <p>WEEKLY STATUS REPORT • ${STATE.week || 'CURRENT'}</p>
             </div>
-
             <div class="search-container">
                 <input type="text" id="attendance-search" placeholder="SEARCH CODENAME OR HANDLE..." oninput="filterAttendance()">
             </div>
         `;
 
         teams.forEach(teamName => {
-            const teamMembers = allAgents.filter(a => a.team === teamName)
+            const teamMembers = allAgents.filter(a => a && a.team === teamName)
                                          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            
             const color = teamColor(teamName);
             const onLeaveCount = teamMembers.filter(a => leaveSet.has(String(a.agentNo))).length;
             const activeCount = teamMembers.length - onLeaveCount;
 
-            // Header for each team
             html += `
                 <div class="attendance-section" id="section-${teamName.replace(/\s+/g, '')}">
                     <div class="attendance-team-header" onclick="toggleAttendanceTeam(this)" style="border-left: 4px solid ${color};">
@@ -11620,20 +11623,26 @@ async function renderAttendance() {
                     
                     <div class="attendance-content-wrapper">
                         <div class="agent-list-grid">
-                            ${teamMembers.map(agent => {
-                                const isLeave = leaveSet.has(String(agent.agentNo));
-                                const isChecked = checklist[agent.agentNo] ? 'checked' : '';
-                                const cleanIG = agent.instagram ? agent.instagram.replace('@@', '@') : 'SECRET';
-                                if (!cleanIG.startsWith('@')) cleanIG = '@' + cleanIG;
+                            ${teamMembers.length === 0 ? '<p style="padding:15px; color:#666; font-size:12px;">No agents found in this unit.</p>' : 
+                            teamMembers.map(agent => {
+                                const aNo = String(agent.agentNo);
+                                const isLeave = leaveSet.has(aNo);
+                                const isChecked = checklist[aNo] ? 'checked' : '';
+                                
+                                // SAFE STRING HANDLING: Prevents crash if fields are null
+                                const name = agent.name || 'Unknown Agent';
+                                let ig = agent.instagram || agent.instagram_handle || 'SECRET';
+                                ig = ig.replace('@@', '@');
+                                if (!ig.startsWith('@') && ig !== 'SECRET') ig = '@' + ig;
 
                                 return `
-                                    <div class="agent-roster-item ${isLeave ? 'on-leave' : ''} ${isChecked}" id="item-${agent.agentNo}">
-                                        <div class="helper-check-wrapper" onclick="toggleAgentCheck(event, '${agent.agentNo}')">
+                                    <div class="agent-roster-item ${isLeave ? 'on-leave' : ''} ${isChecked}" id="item-${aNo}">
+                                        <div class="helper-check-wrapper" onclick="toggleAgentCheck(event, '${aNo}')">
                                             <div class="helper-checkbox">${isChecked ? '✓' : ''}</div>
                                         </div>
                                         <div class="agent-roster-info">
-                                            <span class="agent-roster-name">${sanitize(agent.name)}</span>
-                                            <span class="agent-roster-ig">${sanitize(cleanIG)}</span>
+                                            <span class="agent-roster-name">${sanitize(name)}</span>
+                                            <span class="agent-roster-ig">${sanitize(ig)}</span>
                                         </div>
                                         <div class="agent-status-box">
                                             <span class="status-badge ${isLeave ? 'status-leave' : 'status-active'}">
@@ -11652,33 +11661,13 @@ async function renderAttendance() {
         container.innerHTML = html;
 
     } catch (e) {
-        console.error(e);
-        container.innerHTML = '<div class="error-state"><p>ENCRYPTED DATA CORRUPTED</p></div>';
+        console.error('Attendance Render Error:', e);
+        container.innerHTML = `<div class="error-state">
+            <p>ENCRYPTED DATA CORRUPTED</p>
+            <button onclick="renderAttendance()" class="btn-secondary" style="margin-top:10px">REBOOT DATABASE</button>
+        </div>`;
     }
 }
-
-// NEW EXCLUSIVE TOGGLE FUNCTION
-function toggleAttendanceTeam(header) {
-    const section = header.parentElement;
-    const allSections = document.querySelectorAll('.attendance-section');
-    const icon = header.querySelector('.attendance-toggle-icon');
-    
-    // Close others (Optional - remove this loop if you want multiple teams open)
-    allSections.forEach(s => {
-        if(s !== section) {
-            s.classList.remove('open');
-            s.querySelector('.attendance-toggle-icon').textContent = '＋';
-        }
-    });
-
-    // Toggle current
-    const isOpen = section.classList.toggle('open');
-    icon.textContent = isOpen ? '－' : '＋';
-    
-    if (navigator.vibrate) navigator.vibrate(5);
-}
-
-window.toggleAttendanceTeam = toggleAttendanceTeam;
 // ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
