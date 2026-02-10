@@ -11580,24 +11580,16 @@ async function renderAttendance() {
 
         const allAgents = agentsRes.agents || [];
         const leaveAgents = leaveRes.agents || [];
-        
-        // Create a Set of Agent IDs on leave for fast comparison
         const leaveSet = new Set(leaveAgents.map(a => String(a.agentNo)));
         const teams = ['Team Indigo', 'Team Echo', 'Team Agust D', 'Team JITB'];
         
-        // Load the local checklist state for this week
         const storageKey = `helper_checklist_${STATE.week}`;
         const checklist = JSON.parse(localStorage.getItem(storageKey) || '{}');
 
         let html = `
             <div class="db-header">
-                <div class="db-title-row">
-                    <span class="db-icon">📂</span>
-                    <div>
-                        <h1>OPERATIVE DIRECTORY</h1>
-                        <p>TEAM HELPER VERIFICATION PROTOCOL • ${STATE.week}</p>
-                    </div>
-                </div>
+                <h1>OPERATIVE DIRECTORY</h1>
+                <p>WEEKLY STATUS REPORT • ${STATE.week}</p>
             </div>
 
             <div class="search-container">
@@ -11612,43 +11604,40 @@ async function renderAttendance() {
             const onLeaveCount = teamMembers.filter(a => leaveSet.has(String(a.agentNo))).length;
             const activeCount = teamMembers.length - onLeaveCount;
 
+            // Header for each team
             html += `
-                <div class="guide-section attendance-section" data-team="${teamName}">
-                    <div class="guide-section-header" onclick="toggleGuideSection(this)" style="border-left: 4px solid ${color} !important;">
+                <div class="attendance-section" id="section-${teamName.replace(/\s+/g, '')}">
+                    <div class="attendance-team-header" onclick="toggleAttendanceTeam(this)" style="border-left: 4px solid ${color};">
                         <div class="team-header-pfp">
                             <img src="${teamPfp(teamName)}" onerror="this.src='https://via.placeholder.com/40'">
                         </div>
                         <div class="team-header-info">
-                            <span class="team-header-name">${teamName}</span>
-                            <span class="team-header-stats">${activeCount} ACTIVE / ${onLeaveCount} ON GHOST PROTOCOL</span>
+                            <span class="team-header-name">${teamName.toUpperCase()}</span>
+                            <span class="team-header-stats">${activeCount} ACTIVE • ${onLeaveCount} GHOST</span>
                         </div>
-                        <span class="guide-section-toggle">▼</span>
+                        <span class="attendance-toggle-icon">＋</span>
                     </div>
-                    <div class="guide-section-content">
+                    
+                    <div class="attendance-content-wrapper">
                         <div class="agent-list-grid">
                             ${teamMembers.map(agent => {
                                 const isLeave = leaveSet.has(String(agent.agentNo));
                                 const isChecked = checklist[agent.agentNo] ? 'checked' : '';
-                                
-                                // Logic to clean names and prevent repeating @
-                                const displayName = agent.name || 'Unknown';
-                                const displayIG = agent.instagram ? agent.instagram : 'PRIVATE';
+                                const cleanIG = agent.instagram ? agent.instagram.replace('@@', '@') : 'SECRET';
+                                if (!cleanIG.startsWith('@')) cleanIG = '@' + cleanIG;
 
                                 return `
                                     <div class="agent-roster-item ${isLeave ? 'on-leave' : ''} ${isChecked}" id="item-${agent.agentNo}">
-                                        <!-- Interactive Checkbox -->
                                         <div class="helper-check-wrapper" onclick="toggleAgentCheck(event, '${agent.agentNo}')">
                                             <div class="helper-checkbox">${isChecked ? '✓' : ''}</div>
                                         </div>
-
                                         <div class="agent-roster-info">
-                                            <span class="agent-roster-name">${sanitize(displayName)}</span>
-                                            <span class="agent-roster-ig">@${sanitize(displayIG.replace('@', ''))}</span>
+                                            <span class="agent-roster-name">${sanitize(agent.name)}</span>
+                                            <span class="agent-roster-ig">${sanitize(cleanIG)}</span>
                                         </div>
-
                                         <div class="agent-status-box">
                                             <span class="status-badge ${isLeave ? 'status-leave' : 'status-active'}">
-                                                ${isLeave ? 'LEAVE' : 'ACTIVE'}
+                                                ${isLeave ? 'GHOST' : 'ACTIVE'}
                                             </span>
                                         </div>
                                     </div>
@@ -11664,37 +11653,32 @@ async function renderAttendance() {
 
     } catch (e) {
         console.error(e);
-        container.innerHTML = '<div class="error-state"><p>SYSTEM ERROR: UNABLE TO LOAD RECIPIENTS</p></div>';
+        container.innerHTML = '<div class="error-state"><p>ENCRYPTED DATA CORRUPTED</p></div>';
     }
 }
 
-// Function to handle the checkbox toggle
-function toggleAgentCheck(event, agentNo) {
-    event.stopPropagation(); // Prevents closing the team toggle
+// NEW EXCLUSIVE TOGGLE FUNCTION
+function toggleAttendanceTeam(header) {
+    const section = header.parentElement;
+    const allSections = document.querySelectorAll('.attendance-section');
+    const icon = header.querySelector('.attendance-toggle-icon');
     
-    const storageKey = `helper_checklist_${STATE.week}`;
-    const checklist = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    // Close others (Optional - remove this loop if you want multiple teams open)
+    allSections.forEach(s => {
+        if(s !== section) {
+            s.classList.remove('open');
+            s.querySelector('.attendance-toggle-icon').textContent = '＋';
+        }
+    });
+
+    // Toggle current
+    const isOpen = section.classList.toggle('open');
+    icon.textContent = isOpen ? '－' : '＋';
     
-    // Toggle state
-    checklist[agentNo] = !checklist[agentNo];
-    localStorage.setItem(storageKey, JSON.stringify(checklist));
-    
-    // Update UI immediately
-    const row = document.getElementById(`item-${agentNo}`);
-    const box = row.querySelector('.helper-checkbox');
-    
-    if (checklist[agentNo]) {
-        row.classList.add('checked');
-        box.innerHTML = '✓';
-        if (navigator.vibrate) navigator.vibrate(10); // Haptic feedback
-    } else {
-        row.classList.remove('checked');
-        box.innerHTML = '';
-    }
+    if (navigator.vibrate) navigator.vibrate(5);
 }
 
-// Assign to window so HTML can access
-window.toggleAgentCheck = toggleAgentCheck;
+window.toggleAttendanceTeam = toggleAttendanceTeam;
 // ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
