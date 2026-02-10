@@ -4697,6 +4697,7 @@ const ROUTES = {
     'sotd': 'sotd',
     'song-of-day': 'sotd',
     'guide': 'guide',
+    'attendance': 'attendance'
     'namjoon': 'namjoon', 
     'streaming-tips': 'streaming-tips',
     'login': 'login'
@@ -4720,6 +4721,7 @@ const PAGE_TO_ROUTE = {
     'summary': 'summary',
     'sotd': 'sotd',
     'guide': 'guide',
+    'attendance': 'attendance'
     'namjoon': 'namjoon',
     'streaming-tips': 'streaming-tips',
     'login': 'login'
@@ -11562,6 +11564,94 @@ window.handleGuideQuickLink = handleGuideQuickLink;
 window.renderGuidePage = renderGuidePage;
 window.toggleGuideSection = toggleGuideSection;
 window.scrollToGuideSection = scrollToGuideSection;
+async function renderAttendance() {
+    const container = document.getElementById('attendance-content');
+    if (!container) {
+        // Create the page section if it doesn't exist
+        const main = document.querySelector('.pages-wrapper');
+        const page = document.createElement('section');
+        page.id = 'page-attendance';
+        page.className = 'page';
+        page.innerHTML = '<div id="attendance-content"></div>';
+        main.appendChild(page);
+    }
+
+    const agents = STATE.allAgents || [];
+    const teams = ['Team Indigo', 'Team Echo', 'Team Agust D', 'Team JITB'];
+    
+    let html = `
+        <div class="guide-header" style="background: linear-gradient(135deg, #4a1a7a, #2c0b47); margin-bottom: 20px;">
+            <h1>📋 Live Attendance List</h1>
+            <p>Full roster of active operatives by team</p>
+        </div>
+
+        <div class="search-container" style="margin-bottom: 20px;">
+            <input type="text" id="attendance-search" placeholder="Search Agent Name or Instagram..." 
+                   style="width: 100%; padding: 12px 15px; background: rgba(255,255,255,0.05); border: 1px solid #7b2cbf44; border-radius: 10px; color: #fff;"
+                   oninput="filterAttendance()">
+        </div>
+    `;
+
+    teams.forEach(teamName => {
+        const teamMembers = agents.filter(a => a.team === teamName)
+                                  .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        const color = teamColor(teamName);
+
+        html += `
+            <div class="guide-section attendance-section" data-team="${teamName}">
+                <div class="guide-section-header" onclick="toggleGuideSection(this)" style="border-left: 4px solid ${color};">
+                    <div style="width: 30px; height: 30px; border-radius: 50%; overflow: hidden; margin-right: 10px;">
+                        <img src="${teamPfp(teamName)}" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <span class="guide-section-title">${teamName}</span>
+                    <span style="font-size: 11px; color: #888; margin-right: 10px;">${teamMembers.length} Agents</span>
+                    <span class="guide-section-toggle">▼</span>
+                </div>
+                <div class="guide-section-content">
+                    <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 10px;">
+                        ${teamMembers.map(agent => `
+                            <div class="agent-roster-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="color: #fff; font-weight: 600; font-size: 13px;">${sanitize(agent.name)}</span>
+                                    <span style="color: #888; font-size: 11px;">@${sanitize(agent.instagram || 'No IG Linked')}</span>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="font-size: 9px; color: ${color}; background: ${color}22; padding: 3px 8px; border-radius: 10px; font-weight: bold;">ACTIVE</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById('attendance-content').innerHTML = html;
+}
+
+// Search/Filter Function
+function filterAttendance() {
+    const query = document.getElementById('attendance-search').value.toLowerCase();
+    const items = document.querySelectorAll('.agent-roster-item');
+    
+    items.forEach(item => {
+        const text = item.innerText.toLowerCase();
+        if (text.includes(query)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    // Auto-expand sections if searching
+    if (query.length > 1) {
+        document.querySelectorAll('.attendance-section').forEach(s => s.classList.add('open'));
+    }
+}
+
+// Global Exports
+window.renderAttendance = renderAttendance;
+window.filterAttendance = filterAttendance;
 // ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
