@@ -8970,17 +8970,21 @@ function ensureStreakCSS() {
     margin-bottom: 12px !important;
 }
 /* ==================== OPERATIVE DATABASE PAGE ==================== */
+/* Matched to your existing theme variables */
 
 /* Header Section */
 .db-header {
     text-align: center;
     padding: 30px 20px;
     margin-bottom: 25px;
-    background: linear-gradient(135deg, rgba(15, 15, 25, 0.9), rgba(25, 25, 40, 0.8));
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     position: relative;
     overflow: hidden;
+    box-shadow: var(--shadow-md);
 }
 
 .db-header::before {
@@ -8990,7 +8994,7 @@ function ensureStreakCSS() {
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, #00d4ff, #7b2cbf, #ff006e, #00d4ff);
+    background: linear-gradient(90deg, var(--info), var(--purple-main), var(--danger), var(--info));
     background-size: 300% 100%;
     animation: headerGlow 3s linear infinite;
 }
@@ -9001,82 +9005,112 @@ function ensureStreakCSS() {
 }
 
 .db-header h1 {
-    font-family: 'Orbitron', monospace;
-    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-family: 'Orbitron', sans-serif !important;
+    font-size: clamp(1.4rem, 4vw, 2rem);
     font-weight: 700;
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     margin: 0 0 10px 0;
-    background: linear-gradient(135deg, #00d4ff, #ffffff, #7b2cbf);
+    background: linear-gradient(135deg, var(--info), var(--text-bright), var(--purple-main));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
 }
 
 .db-header p {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
-    letter-spacing: 3px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    letter-spacing: 2px;
     margin: 0;
 }
 
 /* Search Container */
 .search-container {
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     position: relative;
-}
-
-.search-container input,
-#attendance-search {
-    width: 100%;
-    padding: 15px 20px 15px 50px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.95rem;
-    background: rgba(15, 15, 25, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    color: #fff;
-    letter-spacing: 1px;
-    transition: all 0.3s ease;
-    box-sizing: border-box;
 }
 
 .search-container::before {
     content: '🔍';
     position: absolute;
-    left: 18px;
+    left: 16px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 1.1rem;
+    font-size: 1rem;
     opacity: 0.5;
     z-index: 1;
+    pointer-events: none;
+}
+
+#attendance-search {
+    width: 100%;
+    padding: 14px 50px 14px 48px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.9rem;
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    letter-spacing: 0.5px;
+    transition: all var(--transition-normal);
+    box-sizing: border-box;
 }
 
 #attendance-search:focus {
     outline: none;
-    border-color: #00d4ff;
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
-    background: rgba(20, 20, 35, 0.9);
+    border-color: var(--purple-main);
+    box-shadow: var(--shadow-glow);
+    background: var(--bg-elevated);
 }
 
 #attendance-search::placeholder {
-    color: rgba(255, 255, 255, 0.3);
-    letter-spacing: 2px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+}
+
+/* Helper Tip Box */
+.helper-tip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    background: rgba(56, 189, 248, 0.05);
+    border: 1px solid rgba(56, 189, 248, 0.15);
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.helper-tip .tip-icon {
+    font-size: 14px;
+}
+
+.helper-tip .tip-text {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
 }
 
 /* Team Sections */
 .attendance-section {
-    margin-bottom: 20px;
-    border-radius: 12px;
+    margin-bottom: 16px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    background: rgba(15, 15, 25, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    transition: all 0.3s ease;
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-sm);
 }
 
 .attendance-section:hover {
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: var(--border-bright);
+    box-shadow: var(--shadow-md);
 }
 
 /* Team Header - Clickable */
@@ -9085,33 +9119,47 @@ function ensureStreakCSS() {
     align-items: center;
     gap: 15px;
     padding: 18px 20px;
-    background: linear-gradient(135deg, rgba(25, 25, 40, 0.9), rgba(15, 15, 25, 0.9));
+    background: linear-gradient(135deg, rgba(26, 26, 46, 0.9), rgba(20, 20, 35, 0.8));
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all var(--transition-fast);
     user-select: none;
 }
 
 .attendance-team-header:hover {
-    background: linear-gradient(135deg, rgba(35, 35, 55, 0.9), rgba(25, 25, 40, 0.9));
+    background: var(--bg-hover);
 }
 
 .attendance-team-header:active {
-    transform: scale(0.99);
+    transform: scale(0.995);
 }
 
 .team-header-pfp {
     width: 48px;
     height: 48px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     overflow: hidden;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid var(--border-bright);
     flex-shrink: 0;
+    background: var(--bg-dark);
 }
 
 .team-header-pfp img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.pfp-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-family: 'Orbitron', sans-serif !important;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-dim);
+    background: var(--bg-elevated);
 }
 
 .team-header-info {
@@ -9123,51 +9171,119 @@ function ensureStreakCSS() {
 }
 
 .team-header-name {
-    font-family: 'Orbitron', monospace;
-    font-size: 1rem;
+    font-family: 'Orbitron', sans-serif !important;
+    font-size: 0.95rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-bright);
     letter-spacing: 2px;
 }
 
 .team-header-stats {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
-    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
 }
 
+.stat-active { color: var(--success); }
+.stat-leave { color: var(--danger); }
+.stat-total { color: var(--text-dim); }
+.stat-divider { color: var(--text-muted); }
+
 .attendance-toggle-icon {
-    font-size: 1.5rem;
-    color: rgba(255, 255, 255, 0.4);
-    transition: all 0.3s ease;
+    font-size: 1.4rem;
+    color: var(--text-muted);
+    transition: all var(--transition-normal);
     font-weight: 300;
     flex-shrink: 0;
 }
 
-.attendance-section.expanded .attendance-toggle-icon {
-    transform: rotate(45deg);
-    color: #00d4ff;
+.attendance-section.open > .attendance-team-header .attendance-toggle-icon {
+    color: var(--purple-light);
 }
 
 /* Content Wrapper - Collapsible */
 .attendance-content-wrapper {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.4s ease;
-    background: rgba(10, 10, 18, 0.5);
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(5, 5, 8, 0.4);
 }
 
-.attendance-section.expanded .attendance-content-wrapper {
-    max-height: 2000px;
+.attendance-section.open > .attendance-content-wrapper {
+    max-height: 5000px;
+}
+
+/* Inner Sections Wrapper */
+.inner-sections-wrapper {
+    padding: var(--spacing-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+/* Inner Sections (Active / Leave) */
+.inner-section {
+    border-radius: var(--radius-md) !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+}
+
+.active-section {
+    background: rgba(74, 222, 128, 0.03) !important;
+    border: 1px solid rgba(74, 222, 128, 0.1) !important;
+}
+
+.leave-section {
+    background: rgba(248, 113, 113, 0.03) !important;
+    border: 1px solid rgba(248, 113, 113, 0.1) !important;
+}
+
+.inner-header {
+    padding: 12px 15px !important;
+    min-height: auto !important;
+    background: transparent !important;
+}
+
+.inner-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.inner-header-name {
+    font-family: 'Orbitron', sans-serif !important;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.active-title { color: var(--success); }
+.leave-title { color: var(--danger); }
+
+.inner-header-count {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.inner-toggle {
+    font-size: 12px !important;
+    transition: transform var(--transition-normal);
+}
+
+.inner-section.open .inner-toggle {
+    transform: rotate(180deg);
 }
 
 /* Agent List Grid */
 .agent-list-grid {
-    padding: 15px;
+    padding: var(--spacing-sm) var(--spacing-md);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 /* Individual Agent Item */
@@ -9175,240 +9291,16 @@ function ensureStreakCSS() {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 15px;
-    background: rgba(25, 25, 40, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
-
-.agent-roster-item:hover {
-    background: rgba(35, 35, 55, 0.7);
-    border-color: rgba(255, 255, 255, 0.15);
-    transform: translateX(5px);
-}
-
-.agent-roster-item.on-leave {
-    opacity: 0.5;
-    background: rgba(255, 0, 0, 0.05);
-    border-color: rgba(255, 100, 100, 0.2);
-}
-
-.agent-roster-item.checked {
-    background: rgba(0, 212, 255, 0.1);
-    border-color: rgba(0, 212, 255, 0.3);
-}
-
-.agent-roster-item.checked .helper-checkbox {
-    background: linear-gradient(135deg, #00d4ff, #0099cc);
-    border-color: #00d4ff;
-    color: #000;
-}
-
-/* Helper Checkbox */
-.helper-check-wrapper {
-    cursor: pointer;
-    padding: 5px;
-    flex-shrink: 0;
-}
-
-.helper-checkbox {
-    width: 24px;
-    height: 24px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: bold;
-    transition: all 0.2s ease;
-    background: rgba(0, 0, 0, 0.3);
-}
-
-.helper-check-wrapper:hover .helper-checkbox {
-    border-color: #00d4ff;
-    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
-}
-
-/* Agent Info */
-.agent-roster-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-}
-
-.agent-roster-name {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.agent-roster-ig {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.75rem;
-    color: rgba(0, 212, 255, 0.7);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Status Badge */
-.agent-status-box {
-    flex-shrink: 0;
-}
-
-.status-badge {
-    display: inline-block;
-    padding: 5px 12px;
-    font-family: 'Orbitron', monospace;
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 1px;
-    border-radius: 20px;
-    text-transform: uppercase;
-}
-
-.status-badge.status-active {
-    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 200, 100, 0.1));
-    color: #00ff88;
-    border: 1px solid rgba(0, 255, 136, 0.4);
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
-}
-
-.status-badge.status-leave {
-    background: linear-gradient(135deg, rgba(255, 100, 100, 0.2), rgba(200, 50, 50, 0.1));
-    color: #ff6b6b;
-    border: 1px solid rgba(255, 100, 100, 0.4);
-    box-shadow: 0 0 10px rgba(255, 100, 100, 0.2);
-}
-
-/* Error State */
-.error-state {
-    text-align: center;
-    padding: 60px 20px;
-    background: rgba(255, 50, 50, 0.1);
-    border: 1px solid rgba(255, 100, 100, 0.3);
-    border-radius: 12px;
-}
-
-.error-state p {
-    font-family: 'Orbitron', monospace;
-    font-size: 1.1rem;
-    color: #ff6b6b;
-    letter-spacing: 2px;
-    margin: 0;
-}
-
-/* Loading Skeleton */
-.loading-skeleton {
-    padding: 20px;
-}
-
-.skeleton-card {
-    height: 200px;
-    background: linear-gradient(90deg, 
-        rgba(30, 30, 50, 0.5) 25%, 
-        rgba(50, 50, 80, 0.5) 50%, 
-        rgba(30, 30, 50, 0.5) 75%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    border-radius: 12px;
-}
-
-@keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-/* Hidden class for search filter */
-.agent-roster-item.hidden {
-    display: none;
-}
-
-/* ==================== MOBILE RESPONSIVE ==================== */
-
-@media (max-width: 600px) {
-    .db-header {
-        padding: 20px 15px;
-    }
-    
-    .db-header h1 {
-        font-size: 1.3rem;
-        letter-spacing: 2px;
-    }
-    
-    .db-header p {
-        font-size: 0.7rem;
-    }
-    
-    .search-container input,
-    #attendance-search {
-        padding: 12px 15px 12px 45px;
-        font-size: 0.85rem;
-    }
-    
-    .search-container::before {
-        left: 15px;
-        font-size: 1rem;
-    }
-    
-    .attendance-team-header {
-        padding: 15px;
-        gap: 12px;
-    }
-    
-    .team-header-pfp {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .team-header-name {
-        font-size: 0.85rem;
-    }
-    
-    .team-header-stats {
-        font-size: 0.7rem;
-    }
-    
-    .agent-roster-item {
-        padding: 10px 12px;
-        gap: 10px;
-    }
-    
-    .helper-checkbox {
-        width: 22px;
-        height: 22px;
-    }
-    
-    .agent-roster-name {
-        font-size: 0.85rem;
-    }
-    
-    .agent-roster-ig {
-        font-size: 0.7rem;
-    }
-    
-    .status-badge {
-        padding: 4px 8px;
-        font-size: 0.6rem;
-    }
-}
-
-/* ==================== ANIMATIONS ==================== */
-
-.agent-roster-item {
-    animation: fadeInUp 0.3s ease forwards;
+    padding: 12px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
     opacity: 0;
+    animation: agentFadeIn 0.3s ease forwards;
 }
 
+/* Staggered animation delays */
 .agent-roster-item:nth-child(1) { animation-delay: 0.02s; }
 .agent-roster-item:nth-child(2) { animation-delay: 0.04s; }
 .agent-roster-item:nth-child(3) { animation-delay: 0.06s; }
@@ -9421,10 +9313,10 @@ function ensureStreakCSS() {
 .agent-roster-item:nth-child(10) { animation-delay: 0.2s; }
 .agent-roster-item:nth-child(n+11) { animation-delay: 0.22s; }
 
-@keyframes fadeInUp {
+@keyframes agentFadeIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(8px);
     }
     to {
         opacity: 1;
@@ -9432,26 +9324,355 @@ function ensureStreakCSS() {
     }
 }
 
+.agent-roster-item:hover {
+    background: var(--bg-hover);
+    border-color: rgba(157, 78, 221, 0.3);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-sm);
+}
+
 .agent-roster-item.on-leave {
-    animation: fadeInUp 0.3s ease forwards;
-}
-/* FORCE ATTENDANCE ACCORDION */
-.attendance-section:not(.open) .attendance-content-wrapper {
-    display: none !important;
-    max-height: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
+    opacity: 0.5;
+    background: rgba(248, 113, 113, 0.03);
+    border-color: rgba(248, 113, 113, 0.15);
 }
 
-.attendance-section.open .attendance-content-wrapper {
-    display: block !important;
-    max-height: none !important;
-    padding-bottom: 10px !important;
+.agent-roster-item.on-leave:hover {
+    opacity: 0.7;
 }
 
-/* Hide agents during search */
+.agent-roster-item.checked {
+    background: rgba(157, 78, 221, 0.08);
+    border-color: rgba(157, 78, 221, 0.3);
+}
+
+.agent-roster-item.checked .helper-checkbox {
+    background: linear-gradient(135deg, var(--purple-main), var(--purple-dark));
+    border-color: var(--purple-main);
+    color: var(--text-bright);
+    box-shadow: 0 0 10px rgba(157, 78, 221, 0.3);
+}
+
+/* Helper Checkbox */
+.helper-check-wrapper {
+    cursor: pointer;
+    padding: 4px;
+    flex-shrink: 0;
+}
+
+.helper-checkbox {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border-bright);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: bold;
+    transition: all var(--transition-fast);
+    background: rgba(0, 0, 0, 0.3);
+    color: transparent;
+}
+
+.helper-check-wrapper:hover .helper-checkbox {
+    border-color: var(--purple-main);
+    box-shadow: var(--shadow-glow);
+}
+
+/* Agent Info */
+.agent-roster-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.agent-roster-name {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.agent-roster-id {
+    font-family: 'Orbitron', sans-serif !important;
+    font-size: 0.65rem;
+    color: var(--purple-light);
+    opacity: 0.8;
+    letter-spacing: 1px;
+}
+
+/* Status Badge */
+.agent-status-box {
+    flex-shrink: 0;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    font-family: 'Orbitron', sans-serif !important;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    border-radius: 20px;
+    text-transform: uppercase;
+}
+
+.status-badge.status-active {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.status-badge.status-leave {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+/* Empty State */
+.empty-state {
+    padding: 25px;
+    text-align: center;
+    color: var(--text-muted);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+/* Hidden class for search filter */
 .agent-roster-item.hidden {
     display: none !important;
+}
+
+/* Search Count Badge */
+.search-count {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 10px;
+    color: var(--purple-light);
+    background: rgba(157, 78, 221, 0.1);
+    padding: 4px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(157, 78, 221, 0.2);
+}
+
+/* Attendance Footer Stats */
+.attendance-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    margin-top: 25px;
+    padding: 20px;
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+.footer-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.footer-number {
+    font-family: 'Orbitron', sans-serif !important;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-bright);
+}
+
+.footer-label {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+}
+
+.footer-divider {
+    width: 1px;
+    height: 35px;
+    background: var(--border);
+}
+
+/* Error State */
+.error-state {
+    text-align: center;
+    padding: 50px 20px;
+    background: rgba(248, 113, 113, 0.05);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    border-radius: var(--radius-lg);
+}
+
+.error-state .error-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+}
+
+.error-state p {
+    font-family: 'Orbitron', sans-serif !important;
+    font-size: 1rem;
+    color: var(--danger);
+    letter-spacing: 2px;
+    margin: 0 0 5px 0;
+}
+
+.error-state small {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* ==================== MOBILE RESPONSIVE ==================== */
+
+@media (max-width: 600px) {
+    .db-header {
+        padding: 20px 15px;
+    }
+
+    .db-header h1 {
+        font-size: 1.2rem;
+        letter-spacing: 2px;
+    }
+
+    .db-header p {
+        font-size: 0.7rem;
+    }
+
+    #attendance-search {
+        padding: 12px 45px 12px 42px;
+        font-size: 0.85rem;
+    }
+
+    .search-container::before {
+        left: 14px;
+        font-size: 0.9rem;
+    }
+
+    .attendance-team-header {
+        padding: 14px 16px;
+        gap: 12px;
+    }
+
+    .team-header-pfp {
+        width: 40px;
+        height: 40px;
+    }
+
+    .team-header-name {
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }
+
+    .team-header-stats {
+        font-size: 0.65rem;
+    }
+
+    .agent-roster-item {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+
+    .helper-checkbox {
+        width: 22px;
+        height: 22px;
+        font-size: 11px;
+    }
+
+    .agent-roster-name {
+        font-size: 0.85rem;
+    }
+
+    .agent-roster-id {
+        font-size: 0.6rem;
+    }
+
+    .status-badge {
+        padding: 3px 8px;
+        font-size: 0.55rem;
+    }
+
+    .agent-list-grid {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        gap: 5px;
+    }
+
+    .attendance-footer {
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .footer-number {
+        font-size: 1.1rem;
+    }
+
+    .footer-label {
+        font-size: 0.55rem;
+        letter-spacing: 1px;
+    }
+
+    .footer-divider {
+        height: 30px;
+    }
+
+    .helper-tip {
+        padding: 8px 12px;
+    }
+
+    .helper-tip .tip-text {
+        font-size: 9px;
+    }
+
+    .inner-header {
+        padding: 10px 12px !important;
+    }
+
+    .inner-header-name {
+        font-size: 10px;
+    }
+
+    .inner-icon {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 380px) {
+    .team-header-stats {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+
+    .stat-divider {
+        display: none;
+    }
+
+    .attendance-footer {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .footer-divider {
+        display: none;
+    }
+
+    .footer-stat {
+        flex: 1;
+        min-width: 80px;
+    }
 }
 
 /* Fix Modal Backdrop */
