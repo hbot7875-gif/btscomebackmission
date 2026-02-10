@@ -8969,125 +8969,245 @@ function ensureStreakCSS() {
 .guide-section.attendance-section {
     margin-bottom: 12px !important;
 }
-/* ==================== OPERATIVE DATABASE (ATTENDANCE) - THEME ALIGNED ==================== */
+/* ==================== REFINED OPERATIVE DATABASE ==================== */
 
-/* Search Container - Glass effect to match header */
+.db-header {
+    margin-bottom: 25px;
+    padding-left: 5px;
+}
+
+.db-title-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.db-icon {
+    font-size: 32px;
+}
+
+.db-header h1 {
+    font-family: 'Orbitron', sans-serif !important;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--text-bright);
+    margin: 0;
+}
+
+.db-header p {
+    font-size: 11px;
+    color: var(--purple-glow);
+    letter-spacing: 1px;
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+/* Search bar overhaul */
 .search-container {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: var(--bg-dark); /* Matches deepest black */
-    padding: 10px 0 20px 0;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    position: relative;
+    margin-bottom: 25px;
+    overflow: hidden;
 }
 
 #attendance-search {
     width: 100%;
-    padding: 14px 18px;
-    background: var(--bg-card); /* Matches your glass cards */
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    color: var(--text-bright);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 15px;
-    transition: all var(--transition-normal);
-    box-shadow: var(--shadow-sm);
-}
-
-/* Coded look for placeholder */
-#attendance-search::placeholder {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
+    background: rgba(0, 0, 0, 0.4) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 15px 20px !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    color: var(--purple-glow) !important;
+    font-size: 14px !important;
     letter-spacing: 1px;
-    color: var(--text-muted);
 }
 
 #attendance-search:focus {
-    outline: none;
-    border-color: var(--purple-main);
-    background: rgba(157, 78, 221, 0.05);
-    box-shadow: var(--shadow-glow);
+    border-color: var(--purple-main) !important;
+    background: rgba(123, 44, 191, 0.05) !important;
 }
 
-/* Team Header Styling */
-.attendance-section {
-    margin-bottom: 12px !important;
+/* Team Header Alignment Fix */
+.team-header-pfp {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
 }
 
-.attendance-section .guide-section-header {
-    background: linear-gradient(90deg, var(--bg-hover), transparent) !important;
-    border-left: 3px solid var(--purple-main) !important;
+.team-header-pfp img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
-/* Agent List Item - Minimalist Glass */
+.team-header-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-left: 5px;
+}
+
+.team-header-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    color: #fff;
+}
+
+.team-header-stats {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+}
+
+/* Agent List - Glass Cards */
+.agent-list-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px 0;
+}
+
 .agent-roster-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 15px;
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: var(--radius-md);
-    margin-bottom: 6px;
-    border: 1px solid var(--border-dim);
+    padding: 12px 18px;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px;
     transition: all var(--transition-fast);
 }
 
 .agent-roster-item:hover {
-    background: var(--bg-hover);
+    background: var(--bg-hover) !important;
+    border-color: var(--purple-main) !important;
     transform: translateX(4px);
-    border-color: var(--border-bright);
 }
 
-/* Agent Info (Left side) */
+.agent-roster-item.on-leave {
+    opacity: 0.6;
+    border-style: dashed !important;
+}
+
 .agent-roster-name {
-    color: var(--text-bright);
+    display: block;
+    color: #fff;
     font-weight: 600;
     font-size: 14px;
     font-family: 'Rajdhani', sans-serif;
 }
 
 .agent-roster-ig {
+    display: block;
     color: var(--text-dim);
     font-size: 11px;
-    font-family: 'Share Tech Mono', monospace; /* Coded spy feel */
-    opacity: 0.8;
+    font-family: 'Share Tech Mono', monospace;
 }
 
-/* Status Badges - Using Root Status Colors */
+/* High-Tech Badges */
 .status-badge {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    padding: 3px 10px;
-    border-radius: 6px;
-    text-transform: uppercase;
     font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 4px;
 }
 
 .status-active {
     color: var(--success);
     background: rgba(74, 222, 128, 0.1);
-    border: 1px solid rgba(74, 222, 128, 0.2);
+    border: 1px solid var(--success);
 }
 
 .status-leave {
     color: var(--warning);
     background: rgba(251, 191, 36, 0.1);
-    border: 1px solid rgba(251, 191, 36, 0.2);
+    border: 1px solid var(--warning);
+}
+/* ==================== ATTENDANCE CHECKLIST STYLES ==================== */
+
+/* Checkbox Styling (148 Protocol Style) */
+.helper-check-wrapper {
+    padding: 10px;
+    margin-right: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Custom Scrollbar for long team lists */
-.guide-section-content {
-    max-height: 450px;
-    overflow-y: auto;
+.helper-checkbox {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--purple-main);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: all 0.2s ease;
+    background: rgba(0,0,0,0.3);
+    font-weight: bold;
+    font-size: 14px;
 }
 
-.guide-section-content::-webkit-scrollbar {
-    width: 3px;
+/* Checked State */
+.agent-roster-item.checked {
+    background: rgba(0, 255, 136, 0.05) !important;
+    border-color: rgba(0, 255, 136, 0.2) !important;
 }
 
-.guide-section-content::-webkit-scrollbar-thumb {
-    background: var(--purple-main);
-    border-radius: 10px;
+.agent-roster-item.checked .helper-checkbox {
+    background: var(--success);
+    border-color: var(--success);
+    color: #000; /* Black checkmark on green background */
+}
+
+.agent-roster-item.checked .agent-roster-name {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+/* Leave Status Styles */
+.agent-roster-item.on-leave {
+    background: rgba(255, 165, 0, 0.02) !important;
+    border: 1px dashed rgba(255, 165, 0, 0.2) !important;
+    opacity: 0.7;
+}
+
+.status-leave {
+    color: var(--warning) !important;
+    border: 1px solid var(--warning) !important;
+    background: rgba(251, 191, 36, 0.1) !important;
+}
+
+/* Agent Info Spacing */
+.agent-roster-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-left: 5px;
+}
+
+.agent-roster-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px;
+    margin-bottom: 6px;
+    transition: all 0.2s ease;
+}
+
+/* Search bar sticky fix */
+.search-container {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg-dark);
+    padding: 10px 0;
 }
