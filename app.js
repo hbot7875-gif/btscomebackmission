@@ -11760,7 +11760,7 @@ function renderAgentRow(agent, isLeave = false) {
         displayName = 'Classified Agent';
     }
 
-    // Agent Number display
+    // Agent Number (still needed for logic/search, but we won't display it textually)
     const agentNo = agent.agentNo || 'N/A';
 
     // Status Badge
@@ -11779,8 +11779,8 @@ function renderAgentRow(agent, isLeave = false) {
             </div>
 
             <div class="agent-roster-info">
+                <!-- Agent ID line removed below, only Name remains -->
                 <div class="agent-roster-name">${displayName}</div>
-                <div class="agent-roster-id">${agentNo}</div>
             </div>
             
             <div class="agent-status-box">
@@ -11789,7 +11789,6 @@ function renderAgentRow(agent, isLeave = false) {
         </div>
     `;
 }
-
 // ==================== HELPER FUNCTIONS ====================
 
 function toggleHelperCheck(event, wrapper, agentNo) {
