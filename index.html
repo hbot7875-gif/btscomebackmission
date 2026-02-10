@@ -35,7 +35,11 @@
         <div class="login-container">
             <div class="cyber-grid"></div>
             <div class="floating-particles">
-                <span></span><span></span><span></span><span></span><span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
             </div>
             
             <div class="login-content">
@@ -52,7 +56,7 @@
                 </div>
 
                 <div class="login-box">
-                    <form id="login-form" onsubmit="return false;">
+                    <form id="login-form">
                         <div class="input-group">
                             <!-- Agent ID Input -->
                             <label for="agent-input">
@@ -86,7 +90,7 @@
                         <span class="divider-line"></span>
                     </div>
 
-                    <form id="find-form" onsubmit="return false;">
+                    <form id="find-form">
                         <div class="input-group">
                             <label for="instagram-input">
                                 <span class="label-icon">📱</span> FIND AGENT ID
@@ -128,7 +132,7 @@
                         <span class="logo-subtitle">MISSION</span>
                     </div>
                 </div>
-                <button id="close-sidebar" class="close-btn">✕</button>
+                <button type="button" id="close-sidebar" class="close-btn">✕</button>
             </div>
 
             <div class="agent-card">
@@ -210,7 +214,7 @@
                     </a>
                 </div>
                 
-                <!-- ANALYTICS -->
+                <!-- ANALYTICS / INTEL -->
                 <div class="nav-section">
                     <span class="nav-section-title">INTEL</span>
                     
@@ -223,6 +227,11 @@
                         <span class="nav-icon">📊</span>
                         <span class="nav-text">Team Levels</span>
                     </a>
+
+                    <a href="#" class="nav-link" data-page="attendance">
+                        <span class="nav-icon">📋</span>
+                        <span class="nav-text">Operative Database</span>
+                    </a>
                     
                     <a href="#" class="nav-link" data-page="comparison">
                         <span class="nav-icon">⚔️</span>
@@ -232,7 +241,7 @@
                 
                 <!-- RESOURCES -->
                 <div class="nav-section">
-                    <span class="nav-section-title">COMMS & TOOLS</span>
+                    <span class="nav-section-title">COMMS &amp; TOOLS</span>
                     
                     <a href="#" class="nav-link" data-page="playlists">
                         <span class="nav-icon">🎧</span>
@@ -270,7 +279,7 @@
                 
             </nav>
 
-            <button id="logout-btn">
+            <button type="button" id="logout-btn">
                 <span class="logout-icon">⏻</span> LOGOUT
             </button>
             
@@ -283,7 +292,7 @@
         <!-- ==================== MAIN CONTENT AREA ==================== -->
         <main class="main-content">
             <header class="mobile-header">
-                <button id="menu-btn" class="menu-btn">
+                <button type="button" id="menu-btn" class="menu-btn">
                     <span class="hamburger-line"></span>
                     <span class="hamburger-line"></span>
                     <span class="hamburger-line"></span>
@@ -304,36 +313,43 @@
                             <p id="current-week" class="page-subtitle">Week: Loading...</p>
                         </div>
                         <div class="page-actions">
-                            <button class="refresh-btn" onclick="loadPage('home')" title="Refresh Data">🔄</button>
+                            <button type="button" class="refresh-btn" onclick="loadPage('home')" title="Refresh Data">🔄</button>
                         </div>
                     </div>
                     <div class="quick-stats-section"></div>
-                    <div class="section-header"><h2>📋 Active Missions</h2></div>
+                    <div class="section-header">
+                        <h2>📋 Active Missions</h2>
+                    </div>
                     <div class="missions-grid"></div>
                     <div class="card">
                         <div class="card-header">
                             <h3><span class="header-icon">🏆</span> Top Agents</h3>
-                            <a href="#" class="card-link" onclick="event.preventDefault(); loadPage('rankings');">View All →</a>
+                            <button type="button" class="card-link" onclick="loadPage('rankings')">View All →</button>
                         </div>
                         <div class="card-body" id="home-top-agents"></div>
                     </div>
                     <div class="card">
                         <div class="card-header">
                             <h3><span class="header-icon">🎭</span> Battle Standings</h3>
-                            <a href="#" class="card-link" onclick="event.preventDefault(); loadPage('comparison');">Details →</a>
+                            <button type="button" class="card-link" onclick="loadPage('comparison')">Details →</button>
                         </div>
                         <div class="card-body" id="home-standings"></div>
                     </div>
                 </section>
 
                 <!-- GUIDE -->
-                <section id="page-guide" class="page"></section>
+                <section id="page-guide" class="page">
+                    <div class="page-header">
+                        <h1>📚 Agent Manual</h1>
+                    </div>
+                    <div id="guide-content"></div>
+                </section>
 
                 <!-- PROFILE -->
                 <section id="page-profile" class="page">
                     <div class="page-header">
                         <h1>👤 Agent Profile</h1>
-                        <button id="syncBtn" class="sync-button" onclick="handleManualSync()">
+                        <button type="button" id="syncBtn" class="sync-button" onclick="handleManualSync()">
                             <span class="sync-icon">🔄</span>
                             <span class="sync-text">Sync Stats</span>
                         </button>
@@ -347,7 +363,7 @@
                                 <p id="profile-id" class="profile-agent-id">ID: ---</p>
                                 
                                 <!-- Change Password Button -->
-                                <button onclick="openPasswordModal()" class="change-password-btn">
+                                <button type="button" onclick="openPasswordModal()" class="change-password-btn">
                                     ⚙️ CHANGE ACCESS KEY
                                 </button>
                             </div>
@@ -355,22 +371,30 @@
                     </div>
                     <div class="stats-grid" id="profile-stats"></div>
                     <div class="card">
-                        <div class="card-header"><h3><span class="header-icon">🎵</span> Track Streams</h3></div>
+                        <div class="card-header">
+                            <h3><span class="header-icon">🎵</span> Track Streams</h3>
+                        </div>
                         <div class="card-body scrollable" id="profile-tracks"></div>
                     </div>
                     <div class="card">
-                        <div class="card-header"><h3><span class="header-icon">💿</span> Album Streams</h3></div>
+                        <div class="card-header">
+                            <h3><span class="header-icon">💿</span> Album Streams</h3>
+                        </div>
                         <div class="card-body scrollable" id="profile-albums"></div>
                     </div>
                     <div class="card">
-                        <div class="card-header"><h3><span class="header-icon">🎖️</span> Badges</h3></div>
+                        <div class="card-header">
+                            <h3><span class="header-icon">🎖️</span> Badges</h3>
+                        </div>
                         <div class="card-body" id="profile-badges"></div>
                     </div>
                 </section>
 
                 <!-- GOALS -->
                 <section id="page-goals" class="page">
-                    <div class="page-header"><h1>🎯 Goals Progress</h1></div>
+                    <div class="page-header">
+                        <h1>🎯 Goals Progress</h1>
+                    </div>
                     <div id="goals-content"></div>
                 </section>
 
@@ -385,86 +409,120 @@
 
                 <!-- ALBUM 2X -->
                 <section id="page-album2x" class="page">
-                    <div class="page-header"><h1>💿 Album 2X Mission</h1></div>
+                    <div class="page-header">
+                        <h1>💿 Album 2X Mission</h1>
+                    </div>
                     <div id="album2x-content"></div>
                 </section>
 
                 <!-- SECRET MISSIONS -->
                 <section id="page-secret-missions" class="page">
-                    <div class="page-header"><h1>🔒 Secret Missions</h1></div>
+                    <div class="page-header">
+                        <h1>🔒 Secret Missions</h1>
+                    </div>
                     <div id="secret-missions-content"></div>
                 </section>
 
                 <!-- SOTD -->
                 <section id="page-sotd" class="page">
-                    <div class="page-header"><h1>🎬 Song of the Day</h1></div>
+                    <div class="page-header">
+                        <h1>🎬 Song of the Day</h1>
+                    </div>
                     <div id="sotd-content"></div>
                 </section>
 
                 <!-- RANKINGS -->
                 <section id="page-rankings" class="page">
-                    <div class="page-header"><h1>🏆 Rankings</h1></div>
+                    <div class="page-header">
+                        <h1>🏆 Rankings</h1>
+                    </div>
                     <div id="rankings-list"></div>
                 </section>
 
                 <!-- TEAM LEVEL -->
                 <section id="page-team-level" class="page">
-                    <div class="page-header"><h1>📊 Team Levels</h1></div>
+                    <div class="page-header">
+                        <h1>📊 Team Levels</h1>
+                    </div>
                     <div id="team-level-content"></div>
                 </section>
 
                 <!-- COMPARISON -->
                 <section id="page-comparison" class="page">
-                    <div class="page-header"><h1>⚔️ Team Comparison</h1></div>
+                    <div class="page-header">
+                        <h1>⚔️ Team Comparison</h1>
+                    </div>
                     <div id="comparison-content"></div>
                 </section>
 
                 <!-- PLAYLISTS -->
                 <section id="page-playlists" class="page">
-                    <div class="page-header"><h1>🎧 Playlists</h1></div>
+                    <div class="page-header">
+                        <h1>🎧 Playlists</h1>
+                    </div>
                     <div id="playlists-content"></div>
                 </section>
 
                 <!-- CHAT -->
                 <section id="page-chat" class="page">
-                    <div class="page-header"><h1>💬 Secret Comms</h1></div>
+                    <div class="page-header">
+                        <h1>💬 Secret Comms</h1>
+                    </div>
                     <div id="chat-content"></div>
                 </section>
 
                 <!-- ANNOUNCEMENTS -->
                 <section id="page-announcements" class="page">
-                    <div class="page-header"><h1>📢 Announcements</h1></div>
+                    <div class="page-header">
+                        <h1>📢 Announcements</h1>
+                    </div>
                     <div id="announcements-content"></div>
                 </section>
 
                 <!-- GC LINKS -->
                 <section id="page-gc-links" class="page">
-                    <div class="page-header"><h1>🔗 GC Links</h1></div>
+                    <div class="page-header">
+                        <h1>🔗 GC Links</h1>
+                    </div>
                     <div id="gc-links-content"></div>
                 </section>
 
                 <!-- HELPER ROLES -->
                 <section id="page-helper-roles" class="page">
-                    <div class="page-header"><h1>🎖️ Helper Roles</h1></div>
+                    <div class="page-header">
+                        <h1>🎖️ Helper Roles</h1>
+                    </div>
                     <div id="helper-roles-content"></div>
                 </section>
 
                 <!-- DRAWER -->
                 <section id="page-drawer" class="page">
-                    <div class="page-header"><h1>🎒 My Drawer</h1></div>
+                    <div class="page-header">
+                        <h1>🎒 My Drawer</h1>
+                    </div>
                     <div id="drawer-content"></div>
                 </section>
 
                 <!-- SUMMARY -->
                 <section id="page-summary" class="page">
-                    <div class="page-header"><h1>📋 Weekly Summary</h1></div>
+                    <div class="page-header">
+                        <h1>📋 Weekly Summary</h1>
+                    </div>
                     <div id="summary-content"></div>
+                </section>
+
+                <!-- ATTENDANCE / OPERATIVE DATABASE -->
+                <section id="page-attendance" class="page">
+                    <div class="page-header">
+                        <h1>📋 Operative Database</h1>
+                    </div>
+                    <div id="attendance-content"></div>
                 </section>
 
                 <!-- STREAMING TIPS -->
                 <section id="page-streaming-tips" class="page">
                     <div class="page-header">
-                        <h1>📚 Streaming Protocols</h1>
+                        <h1>📡 Streaming Protocols</h1>
                         <p class="page-subtitle">Official Spotify Guidelines</p>
                     </div>
                     
@@ -510,24 +568,24 @@
         </main>
 
         <!-- ==================== FLOATING SYNC BUTTON ==================== -->
-        <button id="floatingSyncBtn" class="floating-sync-btn" onclick="handleManualSync()" title="Sync Stats from Last.fm">
+        <button type="button" id="floatingSyncBtn" class="floating-sync-btn" onclick="handleManualSync()" title="Sync Stats from Last.fm">
             🔄
         </button>
 
     </div><!-- END dashboard-screen -->
 
     <!-- ==================== PASSWORD CHANGE MODAL ==================== -->
-    <div id="password-modal" class="modal-overlay" style="display: none;">
+    <div id="password-modal" class="modal-overlay" hidden>
         <div class="password-modal-content">
             <div class="password-modal-header">
                 <div class="modal-title-group">
                     <span class="modal-icon">🔐</span>
                     <h3>Change Access Key</h3>
                 </div>
-                <button class="modal-close-btn" onclick="closePasswordModal()">✕</button>
+                <button type="button" class="modal-close-btn" onclick="closePasswordModal()">✕</button>
             </div>
             
-            <form id="password-form" onsubmit="return handlePasswordChange(event)">
+            <form id="password-form">
                 <div class="password-modal-body">
                     <div class="modal-input-group">
                         <label for="current-password">
@@ -583,9 +641,9 @@
     
     <!-- ==================== GENERIC MODAL ==================== -->
     <div id="modal-container" class="modal-container" hidden>
-        <div class="modal-overlay"></div>
+        <div class="modal-overlay-bg"></div>
         <div class="modal-content">
-            <button class="modal-close">✕</button>
+            <button type="button" class="modal-close">✕</button>
             <div class="modal-body" id="modal-body"></div>
         </div>
     </div>
@@ -594,6 +652,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <!-- ==================== APP SCRIPT ==================== -->
-    <script src="app.js"></script>
+    <script src="app.js?v=5.1"></script>
 </body>
 </html>
