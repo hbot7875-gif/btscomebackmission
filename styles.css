@@ -8969,70 +8969,142 @@ function ensureStreakCSS() {
 .guide-section.attendance-section {
     margin-bottom: 12px !important;
 }
-/* ==================== REFINED OPERATIVE DATABASE ==================== */
+/* ==================== OPERATIVE DATABASE PAGE ==================== */
 
+/* Header Section */
 .db-header {
+    text-align: center;
+    padding: 30px 20px;
     margin-bottom: 25px;
-    padding-left: 5px;
+    background: linear-gradient(135deg, rgba(15, 15, 25, 0.9), rgba(25, 25, 40, 0.8));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
 }
 
-.db-title-row {
-    display: flex;
-    align-items: center;
-    gap: 15px;
+.db-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #00d4ff, #7b2cbf, #ff006e, #00d4ff);
+    background-size: 300% 100%;
+    animation: headerGlow 3s linear infinite;
 }
 
-.db-icon {
-    font-size: 32px;
+@keyframes headerGlow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
 }
 
 .db-header h1 {
-    font-family: 'Orbitron', sans-serif !important;
-    font-size: 22px;
-    letter-spacing: 2px;
-    color: var(--text-bright);
-    margin: 0;
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: 4px;
+    margin: 0 0 10px 0;
+    background: linear-gradient(135deg, #00d4ff, #ffffff, #7b2cbf);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
 }
 
 .db-header p {
-    font-size: 11px;
-    color: var(--purple-glow);
-    letter-spacing: 1px;
-    margin-top: 4px;
-    font-weight: 600;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 3px;
+    margin: 0;
 }
 
-/* Search bar overhaul */
+/* Search Container */
 .search-container {
-    position: relative;
     margin-bottom: 25px;
-    overflow: hidden;
+    position: relative;
 }
 
+.search-container input,
 #attendance-search {
     width: 100%;
-    background: rgba(0, 0, 0, 0.4) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 8px !important;
-    padding: 15px 20px !important;
-    font-family: 'Share Tech Mono', monospace !important;
-    color: var(--purple-glow) !important;
-    font-size: 14px !important;
+    padding: 15px 20px 15px 50px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.95rem;
+    background: rgba(15, 15, 25, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: #fff;
     letter-spacing: 1px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.search-container::before {
+    content: '🔍';
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.1rem;
+    opacity: 0.5;
+    z-index: 1;
 }
 
 #attendance-search:focus {
-    border-color: var(--purple-main) !important;
-    background: rgba(123, 44, 191, 0.05) !important;
+    outline: none;
+    border-color: #00d4ff;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    background: rgba(20, 20, 35, 0.9);
 }
 
-/* Team Header Alignment Fix */
+#attendance-search::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 2px;
+}
+
+/* Team Sections */
+.attendance-section {
+    margin-bottom: 20px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(15, 15, 25, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.3s ease;
+}
+
+.attendance-section:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Team Header - Clickable */
+.attendance-team-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 18px 20px;
+    background: linear-gradient(135deg, rgba(25, 25, 40, 0.9), rgba(15, 15, 25, 0.9));
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.attendance-team-header:hover {
+    background: linear-gradient(135deg, rgba(35, 35, 55, 0.9), rgba(25, 25, 40, 0.9));
+}
+
+.attendance-team-header:active {
+    transform: scale(0.99);
+}
+
 .team-header-pfp {
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     overflow: hidden;
-    border: 2px solid rgba(255,255,255,0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
 }
 
@@ -9046,254 +9118,346 @@ function ensureStreakCSS() {
     flex: 1;
     display: flex;
     flex-direction: column;
-    margin-left: 5px;
+    gap: 4px;
+    min-width: 0;
 }
 
 .team-header-name {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 14px;
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 600;
     color: #fff;
+    letter-spacing: 2px;
 }
 
 .team-header-stats {
-    font-size: 10px;
-    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
     letter-spacing: 1px;
 }
 
-/* Agent List - Glass Cards */
-.agent-list-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 10px 0;
+.attendance-toggle-icon {
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.4);
+    transition: all 0.3s ease;
+    font-weight: 300;
+    flex-shrink: 0;
 }
 
+.attendance-section.expanded .attendance-toggle-icon {
+    transform: rotate(45deg);
+    color: #00d4ff;
+}
+
+/* Content Wrapper - Collapsible */
+.attendance-content-wrapper {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+    background: rgba(10, 10, 18, 0.5);
+}
+
+.attendance-section.expanded .attendance-content-wrapper {
+    max-height: 2000px;
+}
+
+/* Agent List Grid */
+.agent-list-grid {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Individual Agent Item */
 .agent-roster-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 18px;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 12px;
-    transition: all var(--transition-fast);
+    gap: 12px;
+    padding: 12px 15px;
+    background: rgba(25, 25, 40, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    transition: all 0.3s ease;
 }
 
 .agent-roster-item:hover {
-    background: var(--bg-hover) !important;
-    border-color: var(--purple-main) !important;
-    transform: translateX(4px);
+    background: rgba(35, 35, 55, 0.7);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateX(5px);
 }
 
 .agent-roster-item.on-leave {
-    opacity: 0.6;
-    border-style: dashed !important;
+    opacity: 0.5;
+    background: rgba(255, 0, 0, 0.05);
+    border-color: rgba(255, 100, 100, 0.2);
 }
 
-.agent-roster-name {
-    display: block;
-    color: #fff;
-    font-weight: 600;
-    font-size: 14px;
-    font-family: 'Rajdhani', sans-serif;
+.agent-roster-item.checked {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: rgba(0, 212, 255, 0.3);
 }
 
-.agent-roster-ig {
-    display: block;
-    color: var(--text-dim);
-    font-size: 11px;
-    font-family: 'Share Tech Mono', monospace;
+.agent-roster-item.checked .helper-checkbox {
+    background: linear-gradient(135deg, #00d4ff, #0099cc);
+    border-color: #00d4ff;
+    color: #000;
 }
 
-/* High-Tech Badges */
-.status-badge {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 9px;
-    font-weight: 800;
-    padding: 4px 10px;
-    border-radius: 4px;
-}
-
-.status-active {
-    color: var(--success);
-    background: rgba(74, 222, 128, 0.1);
-    border: 1px solid var(--success);
-}
-
-.status-leave {
-    color: var(--warning);
-    background: rgba(251, 191, 36, 0.1);
-    border: 1px solid var(--warning);
-}
-/* ==================== ATTENDANCE CHECKLIST STYLES ==================== */
-
-/* Checkbox Styling (148 Protocol Style) */
+/* Helper Checkbox */
 .helper-check-wrapper {
-    padding: 10px;
-    margin-right: 5px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 5px;
+    flex-shrink: 0;
 }
 
 .helper-checkbox {
-    width: 22px;
-    height: 22px;
-    border: 2px solid var(--purple-main);
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: transparent;
-    transition: all 0.2s ease;
-    background: rgba(0,0,0,0.3);
-    font-weight: bold;
     font-size: 14px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    background: rgba(0, 0, 0, 0.3);
 }
 
-/* Checked State */
-.agent-roster-item.checked {
-    background: rgba(0, 255, 136, 0.05) !important;
-    border-color: rgba(0, 255, 136, 0.2) !important;
+.helper-check-wrapper:hover .helper-checkbox {
+    border-color: #00d4ff;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
 }
 
-.agent-roster-item.checked .helper-checkbox {
-    background: var(--success);
-    border-color: var(--success);
-    color: #000; /* Black checkmark on green background */
-}
-
-.agent-roster-item.checked .agent-roster-name {
-    text-decoration: line-through;
-    opacity: 0.6;
-}
-
-/* Leave Status Styles */
-.agent-roster-item.on-leave {
-    background: rgba(255, 165, 0, 0.02) !important;
-    border: 1px dashed rgba(255, 165, 0, 0.2) !important;
-    opacity: 0.7;
-}
-
-.status-leave {
-    color: var(--warning) !important;
-    border: 1px solid var(--warning) !important;
-    background: rgba(251, 191, 36, 0.1) !important;
-}
-
-/* Agent Info Spacing */
+/* Agent Info */
 .agent-roster-info {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    margin-left: 5px;
+    gap: 3px;
+    min-width: 0;
 }
 
-.agent-roster-item {
-    display: flex;
-    align-items: center;
-    padding: 10px 15px;
-    background: rgba(255, 255, 255, 0.02) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 12px;
-    margin-bottom: 6px;
-    transition: all 0.2s ease;
-}
-
-/* Search bar sticky fix */
-.search-container {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--bg-dark);
-    padding: 10px 0;
-}
-/* ==================== ATTENDANCE TOGGLE LOGIC ==================== */
-
-.attendance-section {
-    margin-bottom: 10px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.02);
+.agent-roster-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
     overflow: hidden;
-    border: 1px solid var(--border);
+    text-overflow: ellipsis;
 }
 
-.attendance-team-header {
-    display: flex;
-    align-items: center;
-    padding: 15px 20px;
-    cursor: pointer;
-    background: linear-gradient(90deg, rgba(123, 44, 191, 0.05), transparent);
-    transition: background 0.3s ease;
-}
-
-.attendance-team-header:hover {
-    background: rgba(123, 44, 191, 0.1);
-}
-
-/* THE FIX: Content hidden by default */
-.attendance-content-wrapper {
-    max-height: 0;
+.agent-roster-ig {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: rgba(0, 212, 255, 0.7);
+    white-space: nowrap;
     overflow: hidden;
-    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    background: rgba(0, 0, 0, 0.2);
+    text-overflow: ellipsis;
 }
 
-/* THE FIX: When open, set max-height to a large value */
-.attendance-section.open .attendance-content-wrapper {
-    max-height: 2500px; /* High enough for a long list */
-    border-top: 1px solid var(--border-dim);
-}
-
-.attendance-toggle-icon {
-    font-family: monospace;
-    font-size: 20px;
-    color: var(--purple-glow);
-    font-weight: bold;
-    width: 25px;
-    text-align: center;
-}
-
-.attendance-section.open .attendance-team-header {
-    background: rgba(123, 44, 191, 0.15);
-}
-
-/* ==================== CLEAN LIST STYLES ==================== */
-
-.agent-list-grid {
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.agent-roster-item {
-    display: flex;
-    align-items: center;
-    padding: 10px 15px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-dim);
-    border-radius: 10px;
-}
-
-/* Ghost Protocol (Leave) Style */
-.agent-roster-item.on-leave {
-    background: rgba(255, 165, 0, 0.03);
-    border: 1px dashed rgba(255, 165, 0, 0.3);
-    opacity: 0.7;
+/* Status Badge */
+.agent-status-box {
+    flex-shrink: 0;
 }
 
 .status-badge {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 8px;
-    font-weight: bold;
-    padding: 3px 8px;
-    border-radius: 4px;
+    display: inline-block;
+    padding: 5px 12px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
     letter-spacing: 1px;
+    border-radius: 20px;
+    text-transform: uppercase;
 }
 
-.status-active { color: #00ff88; border: 1px solid #00ff8855; background: rgba(0, 255, 136, 0.1); }
-.status-leave { color: #ffa500; border: 1px solid #ffa50055; background: rgba(255, 165, 0, 0.1); }
+.status-badge.status-active {
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 200, 100, 0.1));
+    color: #00ff88;
+    border: 1px solid rgba(0, 255, 136, 0.4);
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+}
+
+.status-badge.status-leave {
+    background: linear-gradient(135deg, rgba(255, 100, 100, 0.2), rgba(200, 50, 50, 0.1));
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 100, 100, 0.4);
+    box-shadow: 0 0 10px rgba(255, 100, 100, 0.2);
+}
+
+/* Error State */
+.error-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(255, 50, 50, 0.1);
+    border: 1px solid rgba(255, 100, 100, 0.3);
+    border-radius: 12px;
+}
+
+.error-state p {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    color: #ff6b6b;
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+/* Loading Skeleton */
+.loading-skeleton {
+    padding: 20px;
+}
+
+.skeleton-card {
+    height: 200px;
+    background: linear-gradient(90deg, 
+        rgba(30, 30, 50, 0.5) 25%, 
+        rgba(50, 50, 80, 0.5) 50%, 
+        rgba(30, 30, 50, 0.5) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 12px;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Hidden class for search filter */
+.agent-roster-item.hidden {
+    display: none;
+}
+
+/* ==================== MOBILE RESPONSIVE ==================== */
+
+@media (max-width: 600px) {
+    .db-header {
+        padding: 20px 15px;
+    }
+    
+    .db-header h1 {
+        font-size: 1.3rem;
+        letter-spacing: 2px;
+    }
+    
+    .db-header p {
+        font-size: 0.7rem;
+    }
+    
+    .search-container input,
+    #attendance-search {
+        padding: 12px 15px 12px 45px;
+        font-size: 0.85rem;
+    }
+    
+    .search-container::before {
+        left: 15px;
+        font-size: 1rem;
+    }
+    
+    .attendance-team-header {
+        padding: 15px;
+        gap: 12px;
+    }
+    
+    .team-header-pfp {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .team-header-name {
+        font-size: 0.85rem;
+    }
+    
+    .team-header-stats {
+        font-size: 0.7rem;
+    }
+    
+    .agent-roster-item {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+    
+    .helper-checkbox {
+        width: 22px;
+        height: 22px;
+    }
+    
+    .agent-roster-name {
+        font-size: 0.85rem;
+    }
+    
+    .agent-roster-ig {
+        font-size: 0.7rem;
+    }
+    
+    .status-badge {
+        padding: 4px 8px;
+        font-size: 0.6rem;
+    }
+}
+
+/* ==================== ANIMATIONS ==================== */
+
+.agent-roster-item {
+    animation: fadeInUp 0.3s ease forwards;
+    opacity: 0;
+}
+
+.agent-roster-item:nth-child(1) { animation-delay: 0.02s; }
+.agent-roster-item:nth-child(2) { animation-delay: 0.04s; }
+.agent-roster-item:nth-child(3) { animation-delay: 0.06s; }
+.agent-roster-item:nth-child(4) { animation-delay: 0.08s; }
+.agent-roster-item:nth-child(5) { animation-delay: 0.1s; }
+.agent-roster-item:nth-child(6) { animation-delay: 0.12s; }
+.agent-roster-item:nth-child(7) { animation-delay: 0.14s; }
+.agent-roster-item:nth-child(8) { animation-delay: 0.16s; }
+.agent-roster-item:nth-child(9) { animation-delay: 0.18s; }
+.agent-roster-item:nth-child(10) { animation-delay: 0.2s; }
+.agent-roster-item:nth-child(n+11) { animation-delay: 0.22s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.agent-roster-item.on-leave {
+    animation: fadeInUp 0.3s ease forwards;
+}
+/* FORCE ATTENDANCE ACCORDION */
+.attendance-section:not(.open) .attendance-content-wrapper {
+    display: none !important;
+    max-height: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.attendance-section.open .attendance-content-wrapper {
+    display: block !important;
+    max-height: none !important;
+    padding-bottom: 10px !important;
+}
+
+/* Hide agents during search */
+.agent-roster-item.hidden {
+    display: none !important;
+}
+
+/* Fix Modal Backdrop */
+#password-modal {
+    display: none; /* Default to hidden */
+}
+#password-modal.show {
+    display: flex; /* Show only when triggered */
+}
