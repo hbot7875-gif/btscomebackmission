@@ -2246,18 +2246,26 @@ function isAdminAgent() {
 }
 
 function checkAdminStatus() {
-    if (!isAdminAgent()) { 
+    // 1. Check if user is the Admin Agent
+    // Ensure CONFIG.ADMIN_AGENT_NO matches your backend (usually 'AGENT000')
+    if (String(STATE.agentNo).toUpperCase() !== 'AGENT000') { 
         STATE.isAdmin = false; 
         return; 
     }
+
+    // 2. Check for saved session in browser
     const savedSession = localStorage.getItem('adminSession');
     const savedExpiry = localStorage.getItem('adminExpiry');
+
+    // 3. If session exists and hasn't expired
     if (savedSession && savedExpiry && Date.now() < parseInt(savedExpiry)) {
         STATE.isAdmin = true;
-        STATE.adminSession = savedSession;
-        localStorage.setItem('adminExpiry', String(Date.now() + 86400000));
+        STATE.adminSession = savedSession; // RESTORE THE SESSION HERE
+        addAdminIndicator(); // Show the button
+        console.log("✅ Admin session restored");
     } else {
         STATE.isAdmin = false;
+        STATE.adminSession = null;
     }
 }
 
@@ -3497,175 +3505,218 @@ async function loadMissionHistory() {
 }
 // ==================== ADMIN WEEK CONFIRMATION ====================
 
+// ==================== ADMIN: EASY APPROVAL SYSTEM ====================
+
 async function renderWeekConfirmation() {
     const container = document.getElementById('admin-tab-confirm');
     if (!container) return;
     
-    container.innerHTML = '<div class="loading-text" style="padding:40px;text-align:center;">⏳ Loading week status...</div>';
+    container.innerHTML = '<div class="loading-text" style="padding:40px;text-align:center;">⏳ Loading Team Status...</div>';
     
     try {
+        // Fetch fresh data
         const summary = await api('getWeeklySummary', { week: STATE.week });
         const teams = summary.teams || {};
-        const isCompleted = isWeekCompleted(STATE.week);
         
-        container.innerHTML = `
-            <div style="margin-bottom:20px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <h4 style="color:#fff;margin:0;">📋 ${STATE.week} Confirmations</h4>
-                    <span style="
-                        padding: 6px 12px;
-                        background: ${isCompleted ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'};
-                        border: 1px solid ${isCompleted ? 'rgba(0,255,136,0.3)' : 'rgba(255,165,0,0.3)'};
-                        border-radius: 20px;
-                        color: ${isCompleted ? '#00ff88' : '#ffa500'};
-                        font-size: 11px;
-                    ">${isCompleted ? '✅ Week Ended' : '⏳ In Progress'}</span>
+        // Define team order
+        const teamList = ['Team Indigo', 'Team Echo', 'Team Agust D', 'Team JITB'];
+        
+        let html = `
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h4 style="color:#fff;margin:0;">📋 Verification Center</h4>
+                    <p style="color:#888;font-size:11px;margin-top:2px;">${STATE.week}</p>
                 </div>
-                <p style="color:#888;font-size:12px;margin-top:8px;">
-                    Manually Verify Attendance and Police Reports.<br>
-                    <span style="color:#ffa500;">Teams must be "PASS" in all 5 checks to win.</span>
-                </p>
+                <button onclick="renderWeekConfirmation()" class="btn-secondary" style="padding:8px 12px;font-size:12px;">🔄 Refresh</button>
             </div>
+            
+            <div style="display:flex; flex-direction:column; gap:12px;">
+        `;
 
-            <!-- Team Cards -->
-            ${Object.entries(teams).map(([teamName, info]) => {
-                const eligibility = getTeamEligibilityStatus(info);
-                const tColor = teamColor(teamName);
-                
-                return `
-                    <div style="background: linear-gradient(145deg, #1a1a2e, #12121a); border: 1px solid ${tColor}44; border-radius: 12px; padding: 18px; margin-bottom: 12px;">
-                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;">
-                            ${teamPfp(teamName) ? `<img src="${teamPfp(teamName)}" style="width:40px;height:40px;border-radius:50%;border:2px solid ${tColor};">` : ''}
-                            <div style="flex:1;">
-                                <div style="color:${tColor};font-weight:600;font-size:15px;">${teamName}</div>
-                                <div style="color:#888;font-size:11px;">${fmt(info.teamXP || 0)} XP</div>
-                            </div>
-                            <div style="padding: 4px 12px; border-radius: 12px; font-size: 11px; background: ${eligibility.allPassed ? 'rgba(0,255,136,0.1)' : 'rgba(255,165,0,0.1)'}; color: ${eligibility.allPassed ? '#00ff88' : '#ffa500'};">
-                                ${eligibility.passedCount}/${eligibility.totalChecks} ✓
-                            </div>
-                        </div>
-                        
-                        <!-- Mission Grid -->
-                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 15px; text-align: center;">
-                            <div style="padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
-                                <div style="font-size:16px;">${info.trackGoalPassed ? '✅' : '❌'}</div>
-                                <div style="font-size:8px;color:#666;margin-top:4px;">Tracks</div>
-                            </div>
-                            <div style="padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
-                                <div style="font-size:16px;">${info.albumGoalPassed ? '✅' : '❌'}</div>
-                                <div style="font-size:8px;color:#666;margin-top:4px;">Albums</div>
-                            </div>
-                            <div style="padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;">
-                                <div style="font-size:16px;">${info.album2xPassed ? '✅' : '❌'}</div>
-                                <div style="font-size:8px;color:#666;margin-top:4px;">2X</div>
-                            </div>
-                            <div style="padding:8px;background:${info.attendanceConfirmed ? 'rgba(0,255,136,0.05)' : 'rgba(255,68,68,0.05)'};border-radius:8px; border:1px solid ${info.attendanceConfirmed ? '#00ff8833' : '#ff444433'}">
-                                <div style="font-size:16px;">${info.attendanceConfirmed ? '✅' : '❌'}</div>
-                                <div style="font-size:8px;color:#666;margin-top:4px;">Attend</div>
-                            </div>
-                            <div style="padding:8px;background:${info.policeConfirmed ? 'rgba(0,255,136,0.05)' : 'rgba(255,68,68,0.05)'};border-radius:8px; border:1px solid ${info.policeConfirmed ? '#00ff8833' : '#ff444433'}">
-                                <div style="font-size:16px;">${info.policeConfirmed ? '✅' : '❌'}</div>
-                                <div style="font-size:8px;color:#666;margin-top:4px;">Police</div>
-                            </div>
-                        </div>
-                        
-                        <!-- Smart Pass/Fail Controls -->
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
-                            <!-- ATTENDANCE -->
-                            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid #333;">
-                                <div style="color: #888; font-size: 10px; margin-bottom: 8px; text-align: center; font-weight: bold;">ATTENDANCE</div>
-                                <div style="display: flex; gap: 5px;">
-                                    <button onclick="smartUpdateStatus('${teamName}', 'attendanceConfirmed', true)" 
-                                        style="flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;
-                                        background: ${info.attendanceConfirmed ? '#00ff88' : '#222'}; 
-                                        color: ${info.attendanceConfirmed ? '#000' : '#666'};">PASS</button>
-                                    <button onclick="smartUpdateStatus('${teamName}', 'attendanceConfirmed', false)" 
-                                        style="flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;
-                                        background: ${info.attendanceConfirmed === false ? '#ff4444' : '#222'}; 
-                                        color: ${info.attendanceConfirmed === false ? '#fff' : '#666'};">FAIL</button>
-                                </div>
-                            </div>
+        teamList.forEach(teamName => {
+            const info = teams[teamName] || {};
+            const tColor = teamColor(teamName);
+            
+            // Check status
+            const attStatus = info.attendanceConfirmed; // true, false, or null
+            const polStatus = info.policeConfirmed;     // true, false, or null
 
-                            <!-- POLICE -->
-                            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid #333;">
-                                <div style="color: #888; font-size: 10px; margin-bottom: 8px; text-align: center; font-weight: bold;">POLICE REPORT</div>
-                                <div style="display: flex; gap: 5px;">
-                                    <button onclick="smartUpdateStatus('${teamName}', 'policeConfirmed', true)" 
-                                        style="flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;
-                                        background: ${info.policeConfirmed ? '#00ff88' : '#222'}; 
-                                        color: ${info.policeConfirmed ? '#000' : '#666'};">PASS</button>
-                                    <button onclick="smartUpdateStatus('${teamName}', 'policeConfirmed', false)" 
-                                        style="flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;
-                                        background: ${info.policeConfirmed === false ? '#ff4444' : '#222'}; 
-                                        color: ${info.policeConfirmed === false ? '#fff' : '#666'};">FAIL</button>
-                                </div>
-                            </div>
+            html += `
+            <div style="
+                background: linear-gradient(145deg, #1a1a2e, #12121a); 
+                border-left: 4px solid ${tColor};
+                border-radius: 8px; 
+                padding: 15px; 
+                box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            ">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <span style="color:${tColor}; font-weight:bold; font-size:14px;">${teamName}</span>
+                    <span style="font-size:11px; color:#888;">XP: ${fmt(info.teamXP || 0)}</span>
+                </div>
+
+                <!-- CONTROLS GRID -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    
+                    <!-- ATTENDANCE CONTROL -->
+                    <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;">
+                        <div style="font-size:10px; color:#aaa; margin-bottom:6px; font-weight:600;">ATTENDANCE</div>
+                        
+                        <div style="display:flex; gap:5px;">
+                            <!-- PASS BUTTON -->
+                            <button onclick="smartUpdateStatus('${teamName}', 'attendanceConfirmed', true)" 
+                                style="
+                                    flex:1; padding:8px; border:1px solid #00ff88; border-radius:6px; 
+                                    background: ${attStatus === true ? '#00ff88' : 'transparent'}; 
+                                    color: ${attStatus === true ? '#000' : '#00ff88'}; 
+                                    font-weight:bold; font-size:10px; cursor:pointer;
+                                ">PASS</button>
+                                
+                            <!-- FAIL BUTTON -->
+                            <button onclick="smartUpdateStatus('${teamName}', 'attendanceConfirmed', false)" 
+                                style="
+                                    flex:1; padding:8px; border:1px solid #ff4444; border-radius:6px; 
+                                    background: ${attStatus === false ? '#ff4444' : 'transparent'}; 
+                                    color: ${attStatus === false ? '#fff' : '#ff4444'}; 
+                                    font-weight:bold; font-size:10px; cursor:pointer;
+                                ">FAIL</button>
                         </div>
                     </div>
-                `;
-            }).join('')}
+
+                    <!-- POLICE REPORT CONTROL -->
+                    <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;">
+                        <div style="font-size:10px; color:#aaa; margin-bottom:6px; font-weight:600;">POLICE REPORT</div>
+                        
+                        <div style="display:flex; gap:5px;">
+                            <!-- PASS BUTTON -->
+                            <button onclick="smartUpdateStatus('${teamName}', 'policeConfirmed', true)" 
+                                style="
+                                    flex:1; padding:8px; border:1px solid #00ff88; border-radius:6px; 
+                                    background: ${polStatus === true ? '#00ff88' : 'transparent'}; 
+                                    color: ${polStatus === true ? '#000' : '#00ff88'}; 
+                                    font-weight:bold; font-size:10px; cursor:pointer;
+                                ">PASS</button>
+                                
+                            <!-- FAIL BUTTON -->
+                            <button onclick="smartUpdateStatus('${teamName}', 'policeConfirmed', false)" 
+                                style="
+                                    flex:1; padding:8px; border:1px solid #ff4444; border-radius:6px; 
+                                    background: ${polStatus === false ? '#ff4444' : 'transparent'}; 
+                                    color: ${polStatus === false ? '#fff' : '#ff4444'}; 
+                                    font-weight:bold; font-size:10px; cursor:pointer;
+                                ">FAIL</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>`;
+        });
+
+        html += `</div>`;
+        
+        // Add "Release Results" Button at bottom
+        html += `
+            <div style="margin-top:20px; padding-top:15px; border-top:1px dashed #444;">
+                <p style="color:#888; font-size:11px; text-align:center; margin-bottom:10px;">
+                    Once all teams are verified, release the results to the dashboard.
+                </p>
+                <button onclick="toggleResultsReleaseAdmin()" 
+                    class="btn-primary" 
+                    style="width:100%; background:linear-gradient(135deg, #7b2cbf, #9d4edd);">
+                    📢 ${summary.resultsReleased ? 'HIDE RESULTS' : 'RELEASE RESULTS'}
+                </button>
+            </div>
         `;
+
+        container.innerHTML = html;
         
     } catch (e) {
-        console.error('❌ Error loading week confirmation:', e);
-        container.innerHTML = `<div style="text-align:center;padding:40px;"><p style="color:#ff4444;">❌ Error loading data</p></div>`;
+        console.error('Confirm Tab Error:', e);
+        container.innerHTML = `<div class="error-state"><p>❌ Failed to load data</p><button class="btn-secondary" onclick="renderWeekConfirmation()">Retry</button></div>`;
     }
 }
-
-/**
- * Smart Helper for Pass/Fail buttons
- */
 async function smartUpdateStatus(teamName, field, value) {
-    // Check session
-    if (!STATE.adminSession) {
-        showToast('⚠️ Session expired. Please re-authenticate.', 'error');
-        showAdminLoginModal();
+    // 1. GET TOKEN: Try State first, fallback to LocalStorage (Safety Net)
+    let token = STATE.adminSession || localStorage.getItem('adminSession');
+    
+    // 2. CHECK: If still no token, stop immediately
+    if (!token) {
+        showToast('⚠️ Admin session expired. Please re-login.', 'error');
+        showAdminLogin(); // Opens the login modal
         return;
     }
 
-    const actionLabel = value ? "PASS" : "FAIL";
-    const fieldLabel = field === 'attendanceConfirmed' ? "Attendance" : "Police Report";
-    
-    if (!confirm(`Set ${teamName} to ${actionLabel} for ${fieldLabel}?`)) return;
-
     loading(true);
+
     try {
-        console.log('📤 Sending updateTeamStatus:', {
-            agentNo: STATE.agentNo,
-            week: STATE.week,
-            team: teamName,
-            field: field,
-            value: value,
-            hasSession: !!STATE.adminSession
-        });
+        console.log(`📝 Updating ${teamName}: ${field} = ${value}`);
 
         const result = await api('updateTeamStatus', {
-            agentNo: STATE.agentNo,
-            sessionToken: STATE.adminSession,
+            agentNo: STATE.agentNo, // This MUST be AGENT000 (or your admin ID)
+            sessionToken: token,    // Sending the token found in step 1
             week: STATE.week,
             team: teamName,
             field: field,
             value: value
         });
 
-        console.log('📥 Result:', result);
-
         if (result.success) {
-            showToast(`✅ ${teamName} ${fieldLabel}: ${actionLabel}`, 'success');
-            renderWeekConfirmation(); 
+            const statusText = value ? "PASSED ✅" : "FAILED ❌";
+            const typeText = field === 'attendanceConfirmed' ? "Attendance" : "Police Report";
+            showToast(`${teamName} ${typeText}: ${statusText}`, value ? 'success' : 'error');
+            
+            // Reload the buttons to show the change
+            await renderWeekConfirmation();
         } else {
-            showToast('❌ ' + (result.error || 'Update failed'), 'error');
+            // If backend says unauthorized, clear storage to force fresh login next time
+            if (result.error === 'Unauthorized') {
+                localStorage.removeItem('adminSession');
+                STATE.adminSession = null;
+                showToast('⚠️ Session invalid. Please log in again.', 'error');
+                showAdminLogin();
+            } else {
+                throw new Error(result.error || 'Update failed');
+            }
         }
     } catch (e) {
-        console.error('Update error:', e);
-        showToast('❌ Update Failed: ' + e.message, 'error');
+        console.error(e);
+        showToast('❌ Error: ' + e.message, 'error');
+    } finally {
+        loading(false);
+    }
+}
+// Make sure it's available globally
+window.smartUpdateStatus = smartUpdateStatus;
+async function toggleResultsReleaseAdmin() {
+    if(!confirm("Are you sure you want to toggle visibility of results for all users?")) return;
+    
+    loading(true);
+    try {
+        // Check current status first to toggle
+        const summary = await api('getWeeklySummary', { week: STATE.week });
+        const newState = !summary.resultsReleased;
+        
+        const res = await api('toggleResultsRelease', {
+            agentNo: STATE.agentNo,
+            adminSession: STATE.adminSession,
+            week: STATE.week,
+            released: newState
+        });
+        
+        if (res.success) {
+            showToast(`Results are now ${newState ? 'VISIBLE ✅' : 'HIDDEN 🔒'}`, 'success');
+            renderWeekConfirmation();
+        }
+    } catch(e) {
+        showToast("Error: " + e.message, 'error');
     } finally {
         loading(false);
     }
 }
 
-// Make sure it's available globally
+// Ensure functions are global
+window.renderWeekConfirmation = renderWeekConfirmation;
 window.smartUpdateStatus = smartUpdateStatus;
+window.toggleResultsReleaseAdmin = toggleResultsReleaseAdmin;
 async function setTodaysSong() {
     const title = prompt('Song Title:');
     if (!title) return;
