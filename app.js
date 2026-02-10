@@ -3563,7 +3563,7 @@ async function renderWeekConfirmation() {
                         
                         <div style="display:flex; gap:5px;">
                             <!-- PASS BUTTON -->
-                            <button onclick="smartUpdateStatus('${teamName}', 'attendanceConfirmed', true)" 
+                            <button onclick="('${teamName}', 'attendanceConfirmed', true)" 
                                 style="
                                     flex:1; padding:8px; border:1px solid #00ff88; border-radius:6px; 
                                     background: ${attStatus === true ? '#00ff88' : 'transparent'}; 
@@ -3572,7 +3572,7 @@ async function renderWeekConfirmation() {
                                 ">PASS</button>
                                 
                             <!-- FAIL BUTTON -->
-                            <button onclick="smartUpdateStatus('${teamName}', 'attendanceConfirmed', false)" 
+                            <button onclick="('${teamName}', 'attendanceConfirmed', false)" 
                                 style="
                                     flex:1; padding:8px; border:1px solid #ff4444; border-radius:6px; 
                                     background: ${attStatus === false ? '#ff4444' : 'transparent'}; 
@@ -3588,7 +3588,7 @@ async function renderWeekConfirmation() {
                         
                         <div style="display:flex; gap:5px;">
                             <!-- PASS BUTTON -->
-                            <button onclick="smartUpdateStatus('${teamName}', 'policeConfirmed', true)" 
+                            <button onclick="('${teamName}', 'policeConfirmed', true)" 
                                 style="
                                     flex:1; padding:8px; border:1px solid #00ff88; border-radius:6px; 
                                     background: ${polStatus === true ? '#00ff88' : 'transparent'}; 
@@ -3597,7 +3597,7 @@ async function renderWeekConfirmation() {
                                 ">PASS</button>
                                 
                             <!-- FAIL BUTTON -->
-                            <button onclick="smartUpdateStatus('${teamName}', 'policeConfirmed', false)" 
+                            <button onclick="('${teamName}', 'policeConfirmed', false)" 
                                 style="
                                     flex:1; padding:8px; border:1px solid #ff4444; border-radius:6px; 
                                     background: ${polStatus === false ? '#ff4444' : 'transparent'}; 
@@ -3634,9 +3634,69 @@ async function renderWeekConfirmation() {
         container.innerHTML = `<div class="error-state"><p>❌ Failed to load data</p><button class="btn-secondary" onclick="renderWeekConfirmation()">Retry</button></div>`;
     }
 }
-smartUpdateStatus
-// Make sure it's available globally
+async function smartUpdateStatus(teamName, field, value) {
+    // 1. Get the token from state or storage
+    const token = STATE.adminSession || localStorage.getItem('adminSession');
+
+    // 2. If no token exists locally, force login immediately
+    if (!token) {
+        console.warn("⛔ No admin token found.");
+        showToast('⚠️ Admin session missing. Please log in.', 'error');
+        showAdminLogin();
+        return;
+    }
+
+    loading(true);
+
+    try {
+        console.log(`📤 Sending Update: ${teamName} -> ${field} = ${value}`);
+        console.log(`🔑 Using Token: ${token.substring(0, 10)}...`);
+
+        // 3. API CALL - SENDING TOKEN IN ALL FORMATS TO BE SAFE
+        const result = await api('updateTeamStatus', {
+            agentNo: 'AGENT000',       // Hardcoded Admin ID
+            adminSession: token,       // Format 1
+            sessionToken: token,       // Format 2 (Redundancy)
+            week: STATE.week,
+            team: teamName,
+            field: field,
+            value: value
+        });
+
+        // 4. Handle Success
+        if (result.success) {
+            const statusText = value ? "PASSED ✅" : "FAILED ❌";
+            const typeText = field === 'attendanceConfirmed' ? "Attendance" : "Police Report";
+            showToast(`${teamName} ${typeText}: ${statusText}`, value ? 'success' : 'error');
+            await renderWeekConfirmation(); // Refresh UI
+        } 
+        // 5. Handle "Unauthorized" specifically
+        else if (result.error === 'Unauthorized' || result.error.includes('Access denied')) {
+            console.error("⛔ Backend rejected token. Clearing storage.");
+            
+            // WIPE EVERYTHING RELATED TO ADMIN
+            STATE.adminSession = null;
+            STATE.isAdmin = false;
+            localStorage.removeItem('adminSession');
+            localStorage.removeItem('adminExpiry');
+            
+            // Force the modal to open so you generate a NEW valid token
+            showToast('⚠️ Session Expired/Invalid. Enter Password again.', 'error');
+            showAdminLogin();
+        } 
+        else {
+            throw new Error(result.error || 'Unknown error');
+        }
+
+    } catch (e) {
+        console.error("Update Failed:", e);
+        showToast('❌ Error: ' + e.message, 'error');
+    } finally {
+        loading(false);
+    }
+}
 window.smartUpdateStatus = smartUpdateStatus;
+
 async function toggleResultsReleaseAdmin() {
     if(!confirm("Are you sure you want to toggle visibility of results for all users?")) return;
     
@@ -3666,7 +3726,7 @@ async function toggleResultsReleaseAdmin() {
 
 // Ensure functions are global
 window.renderWeekConfirmation = renderWeekConfirmation;
-window.smartUpdateStatus = smartUpdateStatus;
+window. = ;
 window.toggleResultsReleaseAdmin = toggleResultsReleaseAdmin;
 async function setTodaysSong() {
     const title = prompt('Song Title:');
