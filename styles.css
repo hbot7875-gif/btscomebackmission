@@ -8963,3 +8963,9 @@ function ensureStreakCSS() {
     animation: shimmer 2s infinite ease-in-out; /* Slower, smoother */
     border-radius: 12px;
 }
+.agent-roster-item:hover {
+    background: rgba(255,255,255,0.08) !important;
+}
+.guide-section.attendance-section {
+    margin-bottom: 12px !important;
+}
