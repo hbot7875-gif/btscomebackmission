@@ -3726,7 +3726,6 @@ async function toggleResultsReleaseAdmin() {
 
 // Ensure functions are global
 window.renderWeekConfirmation = renderWeekConfirmation;
-window. = ;
 window.toggleResultsReleaseAdmin = toggleResultsReleaseAdmin;
 async function setTodaysSong() {
     const title = prompt('Song Title:');
