@@ -11570,9 +11570,7 @@ window.renderGuidePage = renderGuidePage;
 window.toggleGuideSection = toggleGuideSection;
 window.scrollToGuideSection = scrollToGuideSection;
 
-// ==================== ATTENDANCE PAGE (OPERATIVE DATABASE) ====================
-
-// ==================== ATTENDANCE PAGE (OPERATIVE DATABASE) ====================
+// ==================== ATTENDANCE PAGE (OPERATIVE DATABASE) ===================
 
 async function renderAttendance() {
     const container = document.getElementById('attendance-content');
@@ -11589,7 +11587,7 @@ async function renderAttendance() {
     `;
 
     try {
-        // ✅ FIX: Fetch BOTH the full roster AND the specific leave list for this week
+        // Fetch fresh data
         const [allAgentsRes, leaveRes] = await Promise.all([
             api('getAllAgents'), 
             api('getAgentsOnLeave', { week: STATE.week })
@@ -11597,8 +11595,6 @@ async function renderAttendance() {
 
         const agents = allAgentsRes.agents || [];
         const leaveData = leaveRes.agents || [];
-        
-        // Create a list of Agent IDs who are confirmed on leave
         const leaveAgentIds = leaveData.map(a => a.agentNo);
         
         // Group agents by Team
@@ -11611,9 +11607,6 @@ async function renderAttendance() {
 
         agents.forEach(agent => {
             const team = agent.team || 'Unknown';
-            
-            // ✅ FIX: Check against the specific leave list we just fetched
-            // instead of relying on the static agent profile
             const isActuallyOnLeave = leaveAgentIds.includes(agent.agentNo);
 
             if (teamsData[team]) {
@@ -11625,7 +11618,7 @@ async function renderAttendance() {
             }
         });
 
-        // Sort agents alphabetically within each category
+        // Sort agents alphabetically
         Object.values(teamsData).forEach(data => {
             data.active.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
             data.leave.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -11635,16 +11628,16 @@ async function renderAttendance() {
         let html = `
             <div class="db-header">
                 <h1>OPERATIVE DATABASE</h1>
-                <p>DEPLOYED AGENTS • ${STATE.week || 'CURRENT'}</p>
+                <p>CLASSIFIED PERSONNEL MANIFEST • ${STATE.week || 'CURRENT'}</p>
             </div>
 
             <div class="search-container">
-                <input type="text" id="attendance-search" placeholder="SEARCH OPERATIVE NAME..." oninput="filterAttendanceList()">
+                <input type="text" id="attendance-search" placeholder="SEARCH OPERATIVE ID OR NAME..." oninput="filterAttendanceList()">
             </div>
             
             <div class="helper-tip">
                 <span class="tip-icon">💡</span>
-                <span class="tip-text">HELPERS: Tap checkbox to mark attendance. Resets daily at midnight.</span>
+                <span class="tip-text">HELPERS: Tap checkboxes to mark present. Report calculated below.</span>
             </div>
         `;
 
@@ -11657,7 +11650,6 @@ async function renderAttendance() {
 
             html += `
                 <div class="attendance-section" id="section-${teamId}" data-team="${teamName}">
-                    <!-- TEAM HEADER -->
                     <div class="attendance-team-header" onclick="toggleAttendanceSection(this)" style="border-left: 4px solid ${teamColorVal};">
                         <div class="team-header-pfp" style="border-color: ${teamColorVal}">
                             ${pfp ? `<img src="${pfp}" alt="${teamName}" onerror="this.style.display='none'">` : `<span class="pfp-fallback">${teamName.charAt(5)}</span>`}
@@ -11668,17 +11660,13 @@ async function renderAttendance() {
                                 <span class="stat-active">${data.active.length} ACTIVE</span>
                                 <span class="stat-divider">•</span>
                                 <span class="stat-leave">${data.leave.length} LEAVE</span>
-                                <span class="stat-divider">•</span>
-                                <span class="stat-total">${totalAgents} TOTAL</span>
                             </div>
                         </div>
                         <div class="attendance-toggle-icon">＋</div>
                     </div>
 
-                    <!-- TEAM CONTENT -->
                     <div class="attendance-content-wrapper">
                         <div class="inner-sections-wrapper">
-                            
                             <!-- ACTIVE OPERATIVES -->
                             <div class="attendance-section inner-section active-section">
                                 <div class="attendance-team-header inner-header" onclick="toggleAttendanceSection(this)">
@@ -11697,13 +11685,13 @@ async function renderAttendance() {
                                     </div>
                                 </div>
                             </div>
-
+                            
                             <!-- ON LEAVE -->
                             <div class="attendance-section inner-section leave-section">
                                 <div class="attendance-team-header inner-header" onclick="toggleAttendanceSection(this)">
                                     <div class="inner-icon">🛑</div>
                                     <div class="team-header-info">
-                                        <div class="inner-header-name leave-title">ON LEAVE / INACTIVE</div>
+                                        <div class="inner-header-name leave-title">ON LEAVE</div>
                                         <div class="inner-header-count">${data.leave.length} AGENTS</div>
                                     </div>
                                     <div class="attendance-toggle-icon inner-toggle">▼</div>
@@ -11716,52 +11704,114 @@ async function renderAttendance() {
                                     </div>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        // Summary Stats Footer
-        const totalActive = Object.values(teamsData).reduce((sum, t) => sum + t.active.length, 0);
-        const totalLeave = Object.values(teamsData).reduce((sum, t) => sum + t.leave.length, 0);
-        
+        // --- NEW: CALCULATION FOOTER ---
         html += `
-            <div class="attendance-footer">
-                <div class="footer-stat">
-                    <span class="footer-number">${totalActive}</span>
-                    <span class="footer-label">ACTIVE</span>
-                </div>
-                <div class="footer-divider"></div>
-                <div class="footer-stat">
-                    <span class="footer-number">${totalLeave}</span>
-                    <span class="footer-label">ON LEAVE</span>
-                </div>
-                <div class="footer-divider"></div>
-                <div class="footer-stat">
-                    <span class="footer-number">${totalActive + totalLeave}</span>
-                    <span class="footer-label">TOTAL</span>
+            <div class="card" style="margin-top: 25px; border: 1px solid #00ff88; background: linear-gradient(145deg, #0a0a0f, rgba(0, 255, 136, 0.05));">
+                <div class="card-body" style="text-align: center; padding: 20px;">
+                    <h3 style="color: #00ff88; font-size: 14px; margin: 0 0 10px 0; letter-spacing: 2px;">📋 DAILY ATTENDANCE REPORT</h3>
+                    
+                    <div style="display: flex; justify-content: center; align-items: baseline; gap: 10px; margin-bottom: 5px;">
+                        <span id="present-count" style="font-size: 36px; font-weight: 800; color: #fff;">0</span>
+                        <span style="font-size: 20px; color: #888;">/</span>
+                        <span id="total-active-count" style="font-size: 24px; font-weight: 600; color: #aaa;">0</span>
+                    </div>
+                    
+                    <div style="font-size: 11px; color: #888; margin-bottom: 15px;">ACTIVE AGENTS PRESENT</div>
+                    
+                    <!-- Progress Bar -->
+                    <div style="background: #222; height: 8px; border-radius: 4px; overflow: hidden; max-width: 250px; margin: 0 auto;">
+                        <div id="attendance-progress-bar" style="width: 0%; height: 100%; background: #00ff88; transition: width 0.3s ease;"></div>
+                    </div>
+                    
+                    <div id="attendance-percent" style="margin-top: 8px; color: #00ff88; font-weight: bold; font-size: 12px;">0%</div>
                 </div>
             </div>
         `;
 
         container.innerHTML = html;
+        
+        // Calculate immediately after rendering
+        updateAttendanceStats();
 
     } catch (e) {
-        console.error('Attendance Load Error:', e);
-        container.innerHTML = `
-            <div class="error-state">
-                <div class="error-icon">⚠️</div>
-                <p>DATABASE CONNECTION FAILED</p>
-                <small>${e.message || 'Unknown error'}</small>
-                <button type="button" onclick="renderAttendance()" class="btn-primary" style="margin-top: 15px;">
-                    🔄 RETRY CONNECTION
-                </button>
-            </div>
-        `;
+        console.error('Attendance Error:', e);
+        container.innerHTML = `<div class="error-state"><p>DATABASE ERROR</p></div>`;
     }
 }
+
+// ---------------------------------------------------------
+// NEW FUNCTION: Calculate Stats Dynamically
+// ---------------------------------------------------------
+function updateAttendanceStats() {
+    // Select all ACTIVE (not on leave) items
+    const activeItems = document.querySelectorAll('.agent-roster-item:not(.on-leave)');
+    const totalActive = activeItems.length;
+    
+    // Count how many of those have the 'checked' class
+    let presentCount = 0;
+    activeItems.forEach(item => {
+        if (item.classList.contains('checked')) {
+            presentCount++;
+        }
+    });
+
+    // Calculate Percentage
+    const percentage = totalActive > 0 ? Math.round((presentCount / totalActive) * 100) : 0;
+
+    // Update DOM
+    const presentEl = document.getElementById('present-count');
+    const totalEl = document.getElementById('total-active-count');
+    const barEl = document.getElementById('attendance-progress-bar');
+    const percentEl = document.getElementById('attendance-percent');
+
+    if (presentEl) presentEl.textContent = presentCount;
+    if (totalEl) totalEl.textContent = totalActive;
+    if (barEl) barEl.style.width = `${percentage}%`;
+    if (percentEl) percentEl.textContent = `${percentage}%`;
+}
+
+// ---------------------------------------------------------
+// UPDATED: Toggle Helper Check (Triggers Calculation)
+// ---------------------------------------------------------
+function toggleHelperCheck(event, wrapper, agentNo) {
+    event.stopPropagation(); // Stop accordion from toggling
+
+    const today = new Date().toISOString().split('T')[0];
+    const storageKey = `helper_check_${agentNo}_${today}`;
+    
+    const row = wrapper.closest('.agent-roster-item');
+    const checkbox = wrapper.querySelector('.helper-checkbox');
+    
+    if (!row || !checkbox) return;
+
+    const wasChecked = row.classList.contains('checked');
+    const isNowChecked = !wasChecked;
+
+    if (isNowChecked) {
+        row.classList.add('checked');
+        checkbox.textContent = '✓';
+        localStorage.setItem(storageKey, 'true');
+        if (navigator.vibrate) navigator.vibrate(10);
+    } else {
+        row.classList.remove('checked');
+        checkbox.textContent = '';
+        localStorage.removeItem(storageKey);
+    }
+
+    // 🔥 Trigger recalculation immediately
+    updateAttendanceStats();
+}
+
+// Re-expose global functions
+window.renderAttendance = renderAttendance;
+window.updateAttendanceStats = updateAttendanceStats;
+window.toggleHelperCheck = toggleHelperCheck;
 
 function renderAgentRow(agent, isLeave = false) {
     // Get Today's Date String for daily reset
