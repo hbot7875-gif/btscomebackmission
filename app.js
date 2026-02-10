@@ -6,7 +6,7 @@ const CONFIG = {
     ADMIN_AGENT_NO: 'AGENT000',
 
     WEEK_DATES: {
-        'Test Week 1': '2025-11-23',  
+        'Test Week 1': '2025-11-23',   
         'Test Week 2': '2025-11-30',
         'Week 1': '2025-12-07',
         'Week 2': '2025-12-14',
