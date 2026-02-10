@@ -11565,94 +11565,136 @@ window.handleGuideQuickLink = handleGuideQuickLink;
 window.renderGuidePage = renderGuidePage;
 window.toggleGuideSection = toggleGuideSection;
 window.scrollToGuideSection = scrollToGuideSection;
+
 async function renderAttendance() {
     const container = document.getElementById('attendance-content');
-    if (!container) {
-        // Create the page section if it doesn't exist
-        const main = document.querySelector('.pages-wrapper');
-        const page = document.createElement('section');
-        page.id = 'page-attendance';
-        page.className = 'page';
-        page.innerHTML = '<div id="attendance-content"></div>';
-        main.appendChild(page);
-    }
+    if (!container) return;
 
-    const agents = STATE.allAgents || [];
-    const teams = ['Team Indigo', 'Team Echo', 'Team Agust D', 'Team JITB'];
-    
-    let html = `
-        <div class="guide-header" style="background: linear-gradient(135deg, #4a1a7a, #2c0b47); margin-bottom: 20px;">
-            <h1>📋 Live Attendance List</h1>
-            <p>Full roster of active operatives by team</p>
-        </div>
+    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
 
-        <div class="search-container" style="margin-bottom: 20px;">
-            <input type="text" id="attendance-search" placeholder="Search Agent Name or Instagram..." 
-                   style="width: 100%; padding: 12px 15px; background: rgba(255,255,255,0.05); border: 1px solid #7b2cbf44; border-radius: 10px; color: #fff;"
-                   oninput="filterAttendance()">
-        </div>
-    `;
+    try {
+        const [agentsRes, leaveRes] = await Promise.all([
+            api('getAllAgents'),
+            api('getAgentsOnLeave', { week: STATE.week })
+        ]);
 
-    teams.forEach(teamName => {
-        const teamMembers = agents.filter(a => a.team === teamName)
-                                  .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        const color = teamColor(teamName);
+        const allAgents = agentsRes.agents || [];
+        const leaveAgents = leaveRes.agents || [];
+        
+        // Create a Set of Agent IDs on leave for fast comparison
+        const leaveSet = new Set(leaveAgents.map(a => String(a.agentNo)));
+        const teams = ['Team Indigo', 'Team Echo', 'Team Agust D', 'Team JITB'];
+        
+        // Load the local checklist state for this week
+        const storageKey = `helper_checklist_${STATE.week}`;
+        const checklist = JSON.parse(localStorage.getItem(storageKey) || '{}');
 
-        html += `
-            <div class="guide-section attendance-section" data-team="${teamName}">
-                <div class="guide-section-header" onclick="toggleGuideSection(this)" style="border-left: 4px solid ${color};">
-                    <div style="width: 30px; height: 30px; border-radius: 50%; overflow: hidden; margin-right: 10px;">
-                        <img src="${teamPfp(teamName)}" style="width: 100%; height: 100%; object-fit: cover;">
-                    </div>
-                    <span class="guide-section-title">${teamName}</span>
-                    <span style="font-size: 11px; color: #888; margin-right: 10px;">${teamMembers.length} Agents</span>
-                    <span class="guide-section-toggle">▼</span>
-                </div>
-                <div class="guide-section-content">
-                    <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 10px;">
-                        ${teamMembers.map(agent => `
-                            <div class="agent-roster-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-                                <div style="display: flex; flex-direction: column;">
-                                    <span style="color: #fff; font-weight: 600; font-size: 13px;">${sanitize(agent.name)}</span>
-                                    <span style="color: #888; font-size: 11px;">@${sanitize(agent.instagram || 'No IG Linked')}</span>
-                                </div>
-                                <div style="text-align: right;">
-                                    <span style="font-size: 9px; color: ${color}; background: ${color}22; padding: 3px 8px; border-radius: 10px; font-weight: bold;">ACTIVE</span>
-                                </div>
-                            </div>
-                        `).join('')}
+        let html = `
+            <div class="db-header">
+                <div class="db-title-row">
+                    <span class="db-icon">📂</span>
+                    <div>
+                        <h1>OPERATIVE DIRECTORY</h1>
+                        <p>TEAM HELPER VERIFICATION PROTOCOL • ${STATE.week}</p>
                     </div>
                 </div>
             </div>
+
+            <div class="search-container">
+                <input type="text" id="attendance-search" placeholder="SEARCH CODENAME OR HANDLE..." oninput="filterAttendance()">
+            </div>
         `;
-    });
 
-    document.getElementById('attendance-content').innerHTML = html;
-}
+        teams.forEach(teamName => {
+            const teamMembers = allAgents.filter(a => a.team === teamName)
+                                         .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            const color = teamColor(teamName);
+            const onLeaveCount = teamMembers.filter(a => leaveSet.has(String(a.agentNo))).length;
+            const activeCount = teamMembers.length - onLeaveCount;
 
-// Search/Filter Function
-function filterAttendance() {
-    const query = document.getElementById('attendance-search').value.toLowerCase();
-    const items = document.querySelectorAll('.agent-roster-item');
-    
-    items.forEach(item => {
-        const text = item.innerText.toLowerCase();
-        if (text.includes(query)) {
-            item.style.display = 'flex';
-        } else {
-            item.style.display = 'none';
-        }
-    });
+            html += `
+                <div class="guide-section attendance-section" data-team="${teamName}">
+                    <div class="guide-section-header" onclick="toggleGuideSection(this)" style="border-left: 4px solid ${color} !important;">
+                        <div class="team-header-pfp">
+                            <img src="${teamPfp(teamName)}" onerror="this.src='https://via.placeholder.com/40'">
+                        </div>
+                        <div class="team-header-info">
+                            <span class="team-header-name">${teamName}</span>
+                            <span class="team-header-stats">${activeCount} ACTIVE / ${onLeaveCount} ON GHOST PROTOCOL</span>
+                        </div>
+                        <span class="guide-section-toggle">▼</span>
+                    </div>
+                    <div class="guide-section-content">
+                        <div class="agent-list-grid">
+                            ${teamMembers.map(agent => {
+                                const isLeave = leaveSet.has(String(agent.agentNo));
+                                const isChecked = checklist[agent.agentNo] ? 'checked' : '';
+                                
+                                // Logic to clean names and prevent repeating @
+                                const displayName = agent.name || 'Unknown';
+                                const displayIG = agent.instagram ? agent.instagram : 'PRIVATE';
 
-    // Auto-expand sections if searching
-    if (query.length > 1) {
-        document.querySelectorAll('.attendance-section').forEach(s => s.classList.add('open'));
+                                return `
+                                    <div class="agent-roster-item ${isLeave ? 'on-leave' : ''} ${isChecked}" id="item-${agent.agentNo}">
+                                        <!-- Interactive Checkbox -->
+                                        <div class="helper-check-wrapper" onclick="toggleAgentCheck(event, '${agent.agentNo}')">
+                                            <div class="helper-checkbox">${isChecked ? '✓' : ''}</div>
+                                        </div>
+
+                                        <div class="agent-roster-info">
+                                            <span class="agent-roster-name">${sanitize(displayName)}</span>
+                                            <span class="agent-roster-ig">@${sanitize(displayIG.replace('@', ''))}</span>
+                                        </div>
+
+                                        <div class="agent-status-box">
+                                            <span class="status-badge ${isLeave ? 'status-leave' : 'status-active'}">
+                                                ${isLeave ? 'LEAVE' : 'ACTIVE'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<div class="error-state"><p>SYSTEM ERROR: UNABLE TO LOAD RECIPIENTS</p></div>';
     }
 }
 
-// Global Exports
-window.renderAttendance = renderAttendance;
-window.filterAttendance = filterAttendance;
+// Function to handle the checkbox toggle
+function toggleAgentCheck(event, agentNo) {
+    event.stopPropagation(); // Prevents closing the team toggle
+    
+    const storageKey = `helper_checklist_${STATE.week}`;
+    const checklist = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    
+    // Toggle state
+    checklist[agentNo] = !checklist[agentNo];
+    localStorage.setItem(storageKey, JSON.stringify(checklist));
+    
+    // Update UI immediately
+    const row = document.getElementById(`item-${agentNo}`);
+    const box = row.querySelector('.helper-checkbox');
+    
+    if (checklist[agentNo]) {
+        row.classList.add('checked');
+        box.innerHTML = '✓';
+        if (navigator.vibrate) navigator.vibrate(10); // Haptic feedback
+    } else {
+        row.classList.remove('checked');
+        box.innerHTML = '';
+    }
+}
+
+// Assign to window so HTML can access
+window.toggleAgentCheck = toggleAgentCheck;
 // ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
