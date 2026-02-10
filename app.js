@@ -4697,7 +4697,6 @@ const ROUTES = {
     'sotd': 'sotd',
     'song-of-day': 'sotd',
     'guide': 'guide',
-    'attendance': 'attendance',
     'namjoon': 'namjoon', 
     'streaming-tips': 'streaming-tips',
     'login': 'login'
@@ -4721,7 +4720,6 @@ const PAGE_TO_ROUTE = {
     'summary': 'summary',
     'sotd': 'sotd',
     'guide': 'guide',
-    'attendance': 'attendance',
     'namjoon': 'namjoon',
     'streaming-tips': 'streaming-tips',
     'login': 'login'
@@ -4822,7 +4820,7 @@ async function renderPageByRoute(pageName) {
     
     // ✅ FIX: Added ALL potential pages to this list so they are created dynamically if missing
     const dynamicPages = [
-        'chat', 'playlists', 'attendance', 'gc-links', 'helper-roles', 'song-of-day', 'sotd',
+        'chat', 'playlists', 'gc-links', 'helper-roles', 'song-of-day', 'sotd',
         'secret-missions', 'announcements', 'drawer', 'goals', 'rankings', 
         'team-level', 'summary', 'comparison', 'album2x', 'profile', 'namjoon', 
         'streaming-tips', 'guide'
@@ -4873,7 +4871,6 @@ async function renderPageByRoute(pageName) {
             case 'streaming-tips': await renderStreamingTips(); break;
             case 'namjoon': await renderNamjoonBrain(); break;
             case 'guide': await renderGuidePage(); break; 
-            case 'attendance': await renderAttendance(); break;
         }
     } catch (e) {
         console.error('Page render error:', e);
@@ -11565,196 +11562,6 @@ window.handleGuideQuickLink = handleGuideQuickLink;
 window.renderGuidePage = renderGuidePage;
 window.toggleGuideSection = toggleGuideSection;
 window.scrollToGuideSection = scrollToGuideSection;
-
-async function renderAttendance() {
-    const container = document.getElementById('attendance-content');
-    if (!container) return;
-
-    container.innerHTML = '<div class="loading-skeleton"><div class="skeleton-card"></div></div>';
-
-    try {
-        // 1. Fetch data with fallbacks to empty arrays
-        const agentsRes = await api('getAllAgents').catch(() => ({ agents: [] }));
-        const leaveRes = await api('getAgentsOnLeave', { week: STATE.week }).catch(() => ({ agents: [] }));
-
-        const allAgents = agentsRes.agents || [];
-        const leaveAgents = leaveRes.agents || [];
-        
-        // 2. Safe mapping for Leave Set
-        const leaveSet = new Set();
-        leaveAgents.forEach(a => { if(a && a.agentNo) leaveSet.add(String(a.agentNo)); });
-
-        const teams = ['Team Indigo', 'Team Echo', 'Team Agust D', 'Team JITB'];
-        
-        // 3. Checklist logic
-        const storageKey = `helper_checklist_${STATE.week}`;
-        const checklist = JSON.parse(localStorage.getItem(storageKey) || '{}');
-
-        let html = `
-            <div class="db-header">
-                <h1>OPERATIVE DIRECTORY</h1>
-                <p>WEEKLY STATUS REPORT • ${STATE.week || 'CURRENT'}</p>
-            </div>
-            <div class="search-container">
-                <input type="text" id="attendance-search" placeholder="SEARCH CODENAME OR HANDLE..." oninput="filterAttendance()">
-            </div>
-        `;
-
-        teams.forEach(teamName => {
-            const teamMembers = allAgents.filter(a => a && a.team === teamName)
-                                         .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-            
-            const color = teamColor(teamName);
-            const onLeaveCount = teamMembers.filter(a => leaveSet.has(String(a.agentNo))).length;
-            const activeCount = teamMembers.length - onLeaveCount;
-
-            html += `
-                <div class="attendance-section" id="section-${teamName.replace(/\s+/g, '')}">
-                    <div class="attendance-team-header" onclick="toggleAttendanceTeam(this)" style="border-left: 4px solid ${color};">
-                        <div class="team-header-pfp">
-                            <img src="${teamPfp(teamName)}" onerror="this.src='https://via.placeholder.com/40'">
-                        </div>
-                        <div class="team-header-info">
-                            <span class="team-header-name">${teamName.toUpperCase()}</span>
-                            <span class="team-header-stats">${activeCount} ACTIVE • ${onLeaveCount} GHOST</span>
-                        </div>
-                        <span class="attendance-toggle-icon">＋</span>
-                    </div>
-                    
-                    <div class="attendance-content-wrapper">
-                        <div class="agent-list-grid">
-                            ${teamMembers.length === 0 ? '<p style="padding:15px; color:#666; font-size:12px;">No agents found in this unit.</p>' : 
-                            teamMembers.map(agent => {
-                                const aNo = String(agent.agentNo);
-                                const isLeave = leaveSet.has(aNo);
-                                const isChecked = checklist[aNo] ? 'checked' : '';
-                                
-                                // SAFE STRING HANDLING: Prevents crash if fields are null
-                                const name = agent.name || 'Unknown Agent';
-                                let ig = agent.instagram || agent.instagram_handle || 'SECRET';
-                                ig = ig.replace('@@', '@');
-                                if (!ig.startsWith('@') && ig !== 'SECRET') ig = '@' + ig;
-
-                                return `
-                                    <div class="agent-roster-item ${isLeave ? 'on-leave' : ''} ${isChecked}" id="item-${aNo}">
-                                        <div class="helper-check-wrapper" onclick="toggleAgentCheck(event, '${aNo}')">
-                                            <div class="helper-checkbox">${isChecked ? '✓' : ''}</div>
-                                        </div>
-                                        <div class="agent-roster-info">
-                                            <span class="agent-roster-name">${sanitize(name)}</span>
-                                            <span class="agent-roster-ig">${sanitize(ig)}</span>
-                                        </div>
-                                        <div class="agent-status-box">
-                                            <span class="status-badge ${isLeave ? 'status-leave' : 'status-active'}">
-                                                ${isLeave ? 'GHOST' : 'ACTIVE'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-
-        container.innerHTML = html;
-
-    } catch (e) {
-        console.error('Attendance Render Error:', e);
-        container.innerHTML = `<div class="error-state">
-            <p>ENCRYPTED DATA CORRUPTED</p>
-            <button onclick="renderAttendance()" class="btn-secondary" style="margin-top:10px">REBOOT DATABASE</button>
-        </div>`;
-    }
-}
-// Toggle team section expand/collapse
-function toggleAttendanceTeam(header) {
-    const section = header.closest('.attendance-section');
-    section.classList.toggle('expanded');
-}
-
-// Toggle agent checkbox for helpers
-function toggleAgentCheck(event, agentNo) {
-    event.stopPropagation();
-    
-    const storageKey = `helper_checklist_${STATE.week}`;
-    const checklist = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    
-    const item = document.getElementById(`item-${agentNo}`);
-    const checkbox = item.querySelector('.helper-checkbox');
-    
-    if (checklist[agentNo]) {
-        delete checklist[agentNo];
-        item.classList.remove('checked');
-        checkbox.textContent = '';
-    } else {
-        checklist[agentNo] = true;
-        item.classList.add('checked');
-        checkbox.textContent = '✓';
-    }
-    
-    localStorage.setItem(storageKey, JSON.stringify(checklist));
-}
-
-// Search/filter agents
-function filterAttendance() {
-    const query = document.getElementById('attendance-search').value.toLowerCase().trim();
-    const items = document.querySelectorAll('.agent-roster-item');
-    
-    items.forEach(item => {
-        const name = item.querySelector('.agent-roster-name')?.textContent.toLowerCase() || '';
-        const ig = item.querySelector('.agent-roster-ig')?.textContent.toLowerCase() || '';
-        
-        if (name.includes(query) || ig.includes(query)) {
-            item.classList.remove('hidden');
-        } else {
-            item.classList.add('hidden');
-        }
-    });
-    
-    // Auto-expand sections with matching results
-    if (query.length > 0) {
-        document.querySelectorAll('.attendance-section').forEach(section => {
-            const visibleItems = section.querySelectorAll('.agent-roster-item:not(.hidden)');
-            if (visibleItems.length > 0) {
-                section.classList.add('expanded');
-            } else {
-                section.classList.remove('expanded');
-            }
-        });
-    }
-}
-
-// Sanitize HTML to prevent XSS
-function sanitize(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-// Team profile picture helper
-function teamPfp(teamName) {
-    const pfps = {
-        'Team Indigo': 'https://i.imgur.com/your-indigo-image.png',
-        'Team Echo': 'https://i.imgur.com/your-echo-image.png',
-        'Team Agust D': 'https://i.imgur.com/your-agustd-image.png',
-        'Team JITB': 'https://i.imgur.com/your-jitb-image.png'
-    };
-    return pfps[teamName] || 'https://via.placeholder.com/48';
-}
-
-// Team color helper
-function teamColor(teamName) {
-    const colors = {
-        'Team Indigo': '#6366f1',
-        'Team Echo': '#00d4ff',
-        'Team Agust D': '#8b5cf6',
-        'Team JITB': '#f59e0b'
-    };
-    return colors[teamName] || '#888';
-}
 // ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
