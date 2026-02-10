@@ -8969,3 +8969,125 @@ function ensureStreakCSS() {
 .guide-section.attendance-section {
     margin-bottom: 12px !important;
 }
+/* ==================== OPERATIVE DATABASE (ATTENDANCE) - THEME ALIGNED ==================== */
+
+/* Search Container - Glass effect to match header */
+.search-container {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-dark); /* Matches deepest black */
+    padding: 10px 0 20px 0;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+#attendance-search {
+    width: 100%;
+    padding: 14px 18px;
+    background: var(--bg-card); /* Matches your glass cards */
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-bright);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Coded look for placeholder */
+#attendance-search::placeholder {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+}
+
+#attendance-search:focus {
+    outline: none;
+    border-color: var(--purple-main);
+    background: rgba(157, 78, 221, 0.05);
+    box-shadow: var(--shadow-glow);
+}
+
+/* Team Header Styling */
+.attendance-section {
+    margin-bottom: 12px !important;
+}
+
+.attendance-section .guide-section-header {
+    background: linear-gradient(90deg, var(--bg-hover), transparent) !important;
+    border-left: 3px solid var(--purple-main) !important;
+}
+
+/* Agent List Item - Minimalist Glass */
+.agent-roster-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-md);
+    margin-bottom: 6px;
+    border: 1px solid var(--border-dim);
+    transition: all var(--transition-fast);
+}
+
+.agent-roster-item:hover {
+    background: var(--bg-hover);
+    transform: translateX(4px);
+    border-color: var(--border-bright);
+}
+
+/* Agent Info (Left side) */
+.agent-roster-name {
+    color: var(--text-bright);
+    font-weight: 600;
+    font-size: 14px;
+    font-family: 'Rajdhani', sans-serif;
+}
+
+.agent-roster-ig {
+    color: var(--text-dim);
+    font-size: 11px;
+    font-family: 'Share Tech Mono', monospace; /* Coded spy feel */
+    opacity: 0.8;
+}
+
+/* Status Badges - Using Root Status Colors */
+.status-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.status-active {
+    color: var(--success);
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.status-leave {
+    color: var(--warning);
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+/* Custom Scrollbar for long team lists */
+.guide-section-content {
+    max-height: 450px;
+    overflow-y: auto;
+}
+
+.guide-section-content::-webkit-scrollbar {
+    width: 3px;
+}
+
+.guide-section-content::-webkit-scrollbar-thumb {
+    background: var(--purple-main);
+    border-radius: 10px;
+}
