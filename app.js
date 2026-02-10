@@ -11643,7 +11643,7 @@ async function renderAttendance() {
             
             <div class="helper-tip">
                 <span class="tip-icon">💡</span>
-                <span class="tip-text">TEAM HELPERS OR ATTENDENCE CHECKERS: Tap checkboxes to mark present. Stats update in real-time.</span>
+                <span class="tip-text">TEAM HELPERS OR ATTENDANCE CHECKERS: Tap checkboxes to mark present. Stats update in real-time.</span>
             </div>
         `;
 
