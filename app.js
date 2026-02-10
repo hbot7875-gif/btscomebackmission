@@ -3503,10 +3503,6 @@ async function loadMissionHistory() {
         `; 
     }
 }
-// ==================== ADMIN WEEK CONFIRMATION ====================
-
-// ==================== ADMIN: EASY APPROVAL SYSTEM ====================
-
 async function renderWeekConfirmation() {
     const container = document.getElementById('admin-tab-confirm');
     if (!container) return;
@@ -3563,7 +3559,7 @@ async function renderWeekConfirmation() {
                         
                         <div style="display:flex; gap:5px;">
                             <!-- PASS BUTTON -->
-                            <button onclick="('${teamName}', 'attendanceConfirmed', true)" 
+                            <button onclick="smartUpdateStatus('${teamName}', 'attendanceConfirmed', true)" 
                                 style="
                                     flex:1; padding:8px; border:1px solid #00ff88; border-radius:6px; 
                                     background: ${attStatus === true ? '#00ff88' : 'transparent'}; 
@@ -3572,7 +3568,7 @@ async function renderWeekConfirmation() {
                                 ">PASS</button>
                                 
                             <!-- FAIL BUTTON -->
-                            <button onclick="('${teamName}', 'attendanceConfirmed', false)" 
+                            <button onclick="smartUpdateStatus('${teamName}', 'attendanceConfirmed', false)" 
                                 style="
                                     flex:1; padding:8px; border:1px solid #ff4444; border-radius:6px; 
                                     background: ${attStatus === false ? '#ff4444' : 'transparent'}; 
@@ -3588,7 +3584,7 @@ async function renderWeekConfirmation() {
                         
                         <div style="display:flex; gap:5px;">
                             <!-- PASS BUTTON -->
-                            <button onclick="('${teamName}', 'policeConfirmed', true)" 
+                            <button onclick="smartUpdateStatus('${teamName}', 'policeConfirmed', true)" 
                                 style="
                                     flex:1; padding:8px; border:1px solid #00ff88; border-radius:6px; 
                                     background: ${polStatus === true ? '#00ff88' : 'transparent'}; 
@@ -3597,7 +3593,7 @@ async function renderWeekConfirmation() {
                                 ">PASS</button>
                                 
                             <!-- FAIL BUTTON -->
-                            <button onclick="('${teamName}', 'policeConfirmed', false)" 
+                            <button onclick="smartUpdateStatus('${teamName}', 'policeConfirmed', false)" 
                                 style="
                                     flex:1; padding:8px; border:1px solid #ff4444; border-radius:6px; 
                                     background: ${polStatus === false ? '#ff4444' : 'transparent'}; 
@@ -3635,13 +3631,12 @@ async function renderWeekConfirmation() {
     }
 }
 async function smartUpdateStatus(teamName, field, value) {
-    // 1. Get the token from state or storage
+    // 1. Get the token from storage (Safety net if page was refreshed)
     const token = STATE.adminSession || localStorage.getItem('adminSession');
 
-    // 2. If no token exists locally, force login immediately
+    // 2. If no token, force login
     if (!token) {
-        console.warn("⛔ No admin token found.");
-        showToast('⚠️ Admin session missing. Please log in.', 'error');
+        showToast('⚠️ Admin session expired. Please re-login.', 'error');
         showAdminLogin();
         return;
     }
@@ -3649,47 +3644,40 @@ async function smartUpdateStatus(teamName, field, value) {
     loading(true);
 
     try {
-        console.log(`📤 Sending Update: ${teamName} -> ${field} = ${value}`);
-        console.log(`🔑 Using Token: ${token.substring(0, 10)}...`);
+        console.log(`📝 Admin Action: ${teamName} -> ${field} = ${value}`);
 
-        // 3. API CALL - SENDING TOKEN IN ALL FORMATS TO BE SAFE
         const result = await api('updateTeamStatus', {
-            agentNo: 'AGENT000',       // Hardcoded Admin ID
-            adminSession: token,       // Format 1
-            sessionToken: token,       // Format 2 (Redundancy)
-            week: STATE.week,
+            // 🔥 CRITICAL FIX: Hardcode this to 'AGENT000'
+            // Do NOT use STATE.agentNo, because if you are viewing the dashboard
+            // as a normal user, STATE.agentNo will be wrong.
+            agentNo: 'AGENT000', 
+            
+            sessionToken: token, 
+            adminSession: token, // Send in both formats to be safe
+            week: STATE.week,    // This can be Week 9, that's totally fine
             team: teamName,
             field: field,
             value: value
         });
 
-        // 4. Handle Success
         if (result.success) {
             const statusText = value ? "PASSED ✅" : "FAILED ❌";
-            const typeText = field === 'attendanceConfirmed' ? "Attendance" : "Police Report";
-            showToast(`${teamName} ${typeText}: ${statusText}`, value ? 'success' : 'error');
-            await renderWeekConfirmation(); // Refresh UI
-        } 
-        // 5. Handle "Unauthorized" specifically
-        else if (result.error === 'Unauthorized' || result.error.includes('Access denied')) {
-            console.error("⛔ Backend rejected token. Clearing storage.");
-            
-            // WIPE EVERYTHING RELATED TO ADMIN
-            STATE.adminSession = null;
-            STATE.isAdmin = false;
-            localStorage.removeItem('adminSession');
-            localStorage.removeItem('adminExpiry');
-            
-            // Force the modal to open so you generate a NEW valid token
-            showToast('⚠️ Session Expired/Invalid. Enter Password again.', 'error');
-            showAdminLogin();
-        } 
-        else {
-            throw new Error(result.error || 'Unknown error');
+            showToast(`${teamName}: ${statusText}`, value ? 'success' : 'error');
+            await renderWeekConfirmation(); // Refresh the UI
+        } else {
+            // If backend says Unauthorized, the token is dead or ID is wrong
+            if (result.error === 'Unauthorized' || result.error.includes('Access denied')) {
+                console.error("⛔ Admin Token Rejected");
+                localStorage.removeItem('adminSession'); // Clear bad token
+                STATE.adminSession = null;
+                showToast('⚠️ Admin session timed out. Enter password again.', 'error');
+                showAdminLogin();
+            } else {
+                throw new Error(result.error || 'Update failed');
+            }
         }
-
     } catch (e) {
-        console.error("Update Failed:", e);
+        console.error(e);
         showToast('❌ Error: ' + e.message, 'error');
     } finally {
         loading(false);
@@ -8179,6 +8167,7 @@ async function renderComparison() {
     }
 }
 // ==================== ULTIMATE SUMMARY (ENHANCED) ====================
+// ==================== RENDER SUMMARY ====================
 async function renderSummary() {
     const container = document.getElementById('summary-content'); 
     if (!container) return;
@@ -8189,7 +8178,7 @@ async function renderSummary() {
     const selectedWeek = STATE.week;
     const isCompleted = isWeekCompleted(selectedWeek);
     
-    // --- 1. LOCKED VIEW ---
+    // --- 1. LOCKED VIEW (week still running) ---
     if (!isCompleted) {
         container.innerHTML = `
             <div style="text-align:center; padding:60px 30px; background:rgba(123,44,191,0.05); border:1px solid rgba(123,44,191,0.3); border-radius:16px;">
@@ -8200,19 +8189,7 @@ async function renderSummary() {
         return;
     }
 
-    // --- 2. ADMIN RELEASE CHECK ---
-    const isReleased = STATE.data?.resultsReleased === true || STATE.data?.teamInfo?.resultsReleased === true;
-    if (!isReleased) {
-        container.innerHTML = `
-            <div style="text-align:center; padding:60px 30px; background:rgba(255,165,0,0.03); border:1px solid rgba(255,165,0,0.3); border-radius:16px;">
-                <div style="font-size:50px; margin-bottom:20px;">🔒</div>
-                <h3 style="color:#fff; font-size:16px; margin:0 0 10px;">Verification in Progress</h3>
-                <p style="color:#666; font-size:11px; margin:0; line-height:1.5;">HQ is verifying Attendance & Police Reports.</p>
-            </div>`;
-        return; 
-    }
-    
-    // Loading State (improved)
+    // --- 2. SHOW LOADING SKELETON ---
     container.innerHTML = `
         <div style="display:flex; flex-direction:column; gap:15px; padding:20px 0;">
             <div style="height:200px; background:linear-gradient(90deg, #1a1a2e 25%, #252540 50%, #1a1a2e 75%); border-radius:16px; animation:shimmer 1.5s infinite;"></div>
@@ -8222,47 +8199,83 @@ async function renderSummary() {
     `;
     
     try {
+        // Fetch the SELECTED week's data
         const [summary, goals, rankings] = await Promise.all([
             api('getWeeklySummary', { week: selectedWeek }), 
             api('getGoalsProgress', { week: selectedWeek }),
             api('getRankings', { week: selectedWeek, limit: 10 })
         ]);
+
+        // Check release from FETCHED data, not STATE.data
+        const isReleased = summary.resultsReleased === true;
+        if (!isReleased) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:60px 30px; background:rgba(255,165,0,0.03); border:1px solid rgba(255,165,0,0.3); border-radius:16px;">
+                    <div style="font-size:50px; margin-bottom:20px;">🔒</div>
+                    <h3 style="color:#fff; font-size:16px; margin:0 0 10px;">Verification in Progress</h3>
+                    <p style="color:#666; font-size:11px; margin:0; line-height:1.5;">HQ is verifying Attendance & Police Reports.</p>
+                </div>`;
+            return; 
+        }
         
         const teams = summary.teams || {};
         const trackGoals = goals.trackGoals || {};
         const albumGoals = goals.albumGoals || {};
         const topAgents = rankings.rankings || [];
-        const myTeam = STATE.data?.profile?.team;
         
         const sortedTeams = Object.entries(teams).sort((a, b) => (b[1].teamXP || 0) - (a[1].teamXP || 0));
         const winnerEntry = sortedTeams.find(([t, info]) => info.isWinner === true);
         const winner = winnerEntry ? winnerEntry[0] : null;
 
-        // Math for Stats
-        let totalTrackStreams = 0; let totalAlbumStreams = 0;
-        const trackStats = []; const albumStats = [];
+        // Calculate stream totals
+        let totalTrackStreams = 0; 
+        let totalAlbumStreams = 0;
+        const trackStats = []; 
+        const albumStats = [];
+        
         Object.entries(trackGoals).forEach(([name, info]) => {
-            let t = 0; Object.values(info.teams || {}).forEach(s => t += (s.current || 0));
-            totalTrackStreams += t; trackStats.push({ name, total: t });
+            let t = 0; 
+            Object.values(info.teams || {}).forEach(s => t += (s.current || 0));
+            totalTrackStreams += t; 
+            trackStats.push({ name, total: t });
         });
         Object.entries(albumGoals).forEach(([name, info]) => {
-            let t = 0; Object.values(info.teams || {}).forEach(s => t += (s.current || 0));
-            totalAlbumStreams += t; albumStats.push({ name, total: t });
+            let t = 0; 
+            Object.values(info.teams || {}).forEach(s => t += (s.current || 0));
+            totalAlbumStreams += t; 
+            albumStats.push({ name, total: t });
         });
         trackStats.sort((a,b) => b.total - a.total);
         albumStats.sort((a,b) => b.total - a.total);
 
         const dateStr = CONFIG.WEEK_DATES[selectedWeek] ? new Date(CONFIG.WEEK_DATES[selectedWeek]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
 
+        // Build qualification status for each team
+        const qualificationLabels = sortedTeams.map(([t, info]) => {
+            const checks = [
+                { label: 'Tracks', passed: info.trackGoalPassed },
+                { label: 'Albums', passed: info.albumGoalPassed },
+                { label: '2X', passed: info.album2xPassed },
+                { label: 'Attendance', passed: info.attendanceConfirmed },
+                { label: 'Police', passed: info.policeConfirmed }
+            ];
+            const passedCount = checks.filter(c => c.passed).length;
+            const failedNames = checks.filter(c => !c.passed).map(c => c.label);
+            return { team: t, info, checks, passedCount, failedNames, allPassed: passedCount === 5 };
+        });
+
+        // Prepare data for share buttons
+        const teamsDataForShare = JSON.stringify(sortedTeams.map(([t, info]) => ({t, xp: info.teamXP}))).replace(/"/g, '&quot;');
+
         // --- RENDER HTML ---
         container.innerHTML = `
-            <!-- Header Section (Cleaner) -->
+            <!-- Header Section -->
             <div style="text-align:center; padding: 25px 0 30px;">
                 <div style="color:#7b2cbf; font-size:10px; font-weight:800; letter-spacing:4px; text-transform:uppercase; opacity:0.8;">Post-Action Report</div>
                 <h1 style="color:#fff; font-size:28px; font-weight:900; margin:8px 0 0; letter-spacing:1px;">${selectedWeek} RESULTS</h1>
             </div>
 
-            <!-- 🏆 WINNER BANNER (if exists) -->
+            <!-- 🏆 WINNER or ⬡ NO WINNER -->
             ${winner ? `
                 <div style="background:linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0.05) 100%); border:1px solid rgba(255,215,0,0.3); border-radius:16px; padding:25px; text-align:center; margin-bottom:25px; position:relative; overflow:hidden;">
                     <div style="position:absolute; top:0; left:0; width:100%; height:2px; background:linear-gradient(90deg, transparent, #ffd700, transparent);"></div>
@@ -8270,148 +8283,169 @@ async function renderSummary() {
                     <div style="color:#ffd700; font-size:10px; font-weight:800; letter-spacing:3px; margin-bottom:5px;">MISSION VICTOR</div>
                     <div style="color:#fff; font-size:24px; font-weight:900; text-shadow:0 0 20px rgba(255,215,0,0.3);">${winner}</div>
                 </div>
-            ` : ''}
-
-            <!-- ⬡ GHOST PROTOCOL (if no winner) -->
-            ${!winner ? `
-                <div style="background:rgba(255,255,255,0.02); border:1px solid #2a2a3a; border-radius:12px; padding:25px; text-align:center; margin-bottom:25px; position:relative; overflow:hidden;">
+            ` : `
+                <div style="background:rgba(255,255,255,0.02); border:1px solid #2a2a3a; border-radius:16px; padding:25px; text-align:center; margin-bottom:25px; position:relative; overflow:hidden;">
                     <div style="position:absolute; top:0; left:0; width:100%; height:2px; background:linear-gradient(90deg, transparent, #ff4444, transparent);"></div>
-                    <div style="color:#ff4444; font-weight:800; font-size:11px; letter-spacing:3px; margin-bottom:8px;">⬡ EXTRACTION FAILED</div>
-                    <div style="color:#555; font-size:11px; line-height:1.6;">All units fell short of full clearance.<br><span style="color:#777;">Trophy remains secured at HQ.</span></div>
+                    <div style="font-size:36px; margin-bottom:10px;">⬡</div>
+                    <div style="color:#ff4444; font-weight:800; font-size:11px; letter-spacing:3px; margin-bottom:8px;">EXTRACTION FAILED</div>
+                    <div style="color:#555; font-size:11px; line-height:1.8;">
+                        No team cleared all 5 checkpoints.<br>
+                        <span style="color:#777;">The trophy remains secured at HQ.</span>
+                    </div>
+                    <div style="margin-top:15px; display:flex; justify-content:center; gap:6px; flex-wrap:wrap;">
+                        ${['Tracks','Albums','2X','Attendance','Police'].map(m => 
+                            `<span style="color:#666; font-size:8px; font-weight:700; padding:3px 8px; background:rgba(255,255,255,0.03); border:1px solid #222; border-radius:4px; letter-spacing:1px;">${m}</span>`
+                        ).join('')}
+                    </div>
+                    <div style="color:#444; font-size:9px; margin-top:10px;">All 5 required for clearance</div>
                 </div>
-            ` : ''}
+            `}
+                        <!-- 📸 POSTER (Screenshot This!) -->
+            <div style="text-align:center; margin-bottom:8px;">
+                <span style="color:#444; font-size:9px; font-weight:600; letter-spacing:1px;">📸 Long-press or screenshot to share</span>
+            </div>
 
-            <!-- 📸 SHAREABLE POSTER CARD -->
-            <div id="shareable-stats-card" style="background:#0a0a0f; border:1px solid #2a2a3a; border-radius:20px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.4); margin:0 auto 25px; box-sizing:border-box;">
+            <div id="shareable-stats-card" style="background:#0a0a0f; border:1px solid #2a2a3a; border-radius:16px; overflow:hidden; margin:0 auto 10px; box-sizing:border-box; max-width:380px; -webkit-user-select:none; user-select:none;">
                 
-                <!-- Poster Header -->
-                <div style="background:linear-gradient(135deg, #4a1a7a 0%, #7b2cbf 100%); padding:30px 20px; text-align:center;">
-                    <div style="color:rgba(255,255,255,0.6); font-size:9px; font-weight:700; letter-spacing:4px; text-transform:uppercase; margin-bottom:8px;">
-                        Intelligence Report
-                    </div>
-                    <div style="color:#fff; font-size:20px; font-weight:900; letter-spacing:1px;">
-                        BTS COMEBACK MISSION
-                    </div>
-                    <div style="margin-top:12px; color:rgba(255,255,255,0.5); font-size:11px; font-family:monospace;">
-                        ${dateStr}
+                <!-- Header -->
+                <div style="background:linear-gradient(135deg, #4a1a7a, #7b2cbf); padding:20px 16px; text-align:center;">
+                    <div style="color:rgba(255,255,255,0.45); font-size:7px; font-weight:700; letter-spacing:3px;">INTELLIGENCE REPORT</div>
+                    <div style="color:#fff; font-size:15px; font-weight:900; margin-top:4px; letter-spacing:0.5px;">BTS COMEBACK MISSION</div>
+                    <div style="color:rgba(255,255,255,0.35); font-size:9px; font-family:monospace; margin-top:5px;">${selectedWeek}${dateStr ? ' • ' + dateStr : ''}</div>
+                </div>
+
+                <!-- Big Number -->
+                <div style="padding:22px 16px 18px; text-align:center;">
+                    <div style="color:#555; font-size:8px; font-weight:700; letter-spacing:2px; margin-bottom:6px;">TOTAL STREAMS</div>
+                    <div style="color:#ffd700; font-size:38px; font-weight:900; line-height:1; font-family:'Arial Black',Arial,sans-serif;">${fmt(totalTrackStreams + totalAlbumStreams)}</div>
+                    <div style="display:flex; justify-content:center; gap:16px; margin-top:10px;">
+                        <span style="color:#00ff88; font-size:9px; font-weight:700;">🎵 ${fmt(totalTrackStreams)}</span>
+                        <span style="color:#333;">|</span>
+                        <span style="color:#00d4ff; font-size:9px; font-weight:700;">💿 ${fmt(totalAlbumStreams)}</span>
                     </div>
                 </div>
 
-                <!-- Grand Total Section -->
-                <div style="padding:35px 20px; text-align:center; background:linear-gradient(180deg, rgba(123,44,191,0.1) 0%, transparent 100%);">
-                    <div style="color:#666; font-size:10px; font-weight:700; letter-spacing:3px; margin-bottom:10px;">WEEKLY MISSION OUTPUT</div>
-                    <div style="color:#ffd700; font-size:56px; font-weight:900; line-height:1; text-shadow:0 0 30px rgba(255,215,0,0.3); font-family:'Arial Black',sans-serif;">${fmt(totalTrackStreams + totalAlbumStreams)}</div>
-                    <div style="color:#ffd700; font-size:11px; font-weight:700; margin-top:10px; letter-spacing:2px; opacity:0.8;">STREAMS RECORDED</div>
-                </div>
+                <div style="height:1px; background:#1a1a2a; margin:0 14px;"></div>
 
-                <!-- Divider -->
-                <div style="height:1px; background:linear-gradient(90deg, transparent, #333, transparent); margin:0 20px;"></div>
-
-                <!-- Two Column Grid -->
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; padding:25px 20px;">
-                    
-                    <!-- Track Column -->
-                    <div style="min-width:0;">
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #222;">
-                            <span style="color:#00ff88; font-size:14px;">🎵</span>
-                            <div>
-                                <div style="color:#00ff88; font-size:9px; font-weight:800; letter-spacing:1px;">TRACKS</div>
-                                <div style="color:#fff; font-size:14px; font-weight:900; font-family:monospace;">${fmt(totalTrackStreams)}</div>
-                            </div>
+                <!-- Tracks -->
+                <div style="padding:12px 14px 4px;">
+                    <div style="color:#00ff88; font-size:7px; font-weight:800; letter-spacing:2px; margin-bottom:6px;">TOP TRACKS</div>
+                    ${trackStats.slice(0, 5).map((s, i) => `
+                        <div style="display:flex; align-items:center; padding:4px 0; ${i < 4 ? 'border-bottom:1px solid rgba(255,255,255,0.02);' : ''}">
+                            <span style="color:#333; font-size:9px; font-weight:700; width:14px;">${i+1}</span>
+                            <span style="color:#999; font-size:10px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:8px;">${s.name}</span>
+                            <span style="color:#fff; font-size:10px; font-weight:800; font-family:monospace;">${fmt(s.total)}</span>
                         </div>
-                        ${trackStats.slice(0, 5).map(s => `
-                            <div style="margin-bottom:10px;">
-                                <div style="color:#888; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
-                                <div style="color:#fff; font-size:13px; font-weight:bold; font-family:monospace;">${fmt(s.total)}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-
-                    <!-- Album Column -->
-                    <div style="min-width:0;">
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #222;">
-                            <span style="color:#00d4ff; font-size:14px;">💿</span>
-                            <div>
-                                <div style="color:#00d4ff; font-size:9px; font-weight:800; letter-spacing:1px;">ALBUMS</div>
-                                <div style="color:#fff; font-size:14px; font-weight:900; font-family:monospace;">${fmt(totalAlbumStreams)}</div>
-                            </div>
-                        </div>
-                        ${albumStats.slice(0, 5).map(s => `
-                            <div style="margin-bottom:10px;">
-                                <div style="color:#888; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
-                                <div style="color:#fff; font-size:13px; font-weight:bold; font-family:monospace;">${fmt(s.total)}</div>
-                            </div>
-                        `).join('')}
-                    </div>
+                    `).join('')}
                 </div>
 
-                <!-- Footer -->
-                <div style="background:#0d0d12; padding:15px; text-align:center; border-top:1px solid #1a1a2a;">
-                    <div style="color:#444; font-size:9px; font-weight:700; letter-spacing:3px;">HOPETRACKER</div>
+                <!-- Albums -->
+                <div style="padding:10px 14px 4px;">
+                    <div style="color:#00d4ff; font-size:7px; font-weight:800; letter-spacing:2px; margin-bottom:6px;">TOP ALBUMS</div>
+                    ${albumStats.slice(0, 5).map((s, i) => `
+                        <div style="display:flex; align-items:center; padding:4px 0; ${i < 4 ? 'border-bottom:1px solid rgba(255,255,255,0.02);' : ''}">
+                            <span style="color:#333; font-size:9px; font-weight:700; width:14px;">${i+1}</span>
+                            <span style="color:#999; font-size:10px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:8px;">${s.name}</span>
+                            <span style="color:#fff; font-size:10px; font-weight:800; font-family:monospace;">${fmt(s.total)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="height:1px; background:#1a1a2a; margin:0 14px;"></div>
+
+                <!-- Teams -->
+                <div style="padding:10px 14px 4px;">
+                    <div style="color:#7b2cbf; font-size:7px; font-weight:800; letter-spacing:2px; margin-bottom:6px;">TEAM STANDINGS</div>
+                    ${sortedTeams.map(([t, info], i) => `
+                        <div style="display:flex; align-items:center; gap:6px; padding:4px 0; ${i < 3 ? 'border-bottom:1px solid rgba(255,255,255,0.02);' : ''}">
+                            <span style="font-size:11px; width:18px; text-align:center;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'4.'}</span>
+                            <span style="color:${teamColor(t)}; font-size:10px; font-weight:700; flex:1;">${t}</span>
+                            <span style="color:#fff; font-size:10px; font-weight:800; font-family:monospace;">${fmt(info.teamXP)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <!-- CTA -->
+                <div style="padding:12px 14px; text-align:center; border-top:1px solid #1a1a2a; margin-top:6px;">
+                    <div style="color:#7b2cbf; font-size:9px; font-weight:700;">Join the BTS comeback mission 💜</div>
+                    <div style="color:#7b2cbf; font-size:9px; font-weight:700;">Want to join? 💜</div>
+                    <div style="color:#444; font-size:8px; margin-top:2px;">@hopetracker • link in bio</div>
+                </div>
+                </div>
+            </div>
+            <!-- Footer -->
+                <div style="background:#0d0d12; padding:10px; text-align:center; border-top:1px solid #1a1a2a;">
+                    <div style="color:#333; font-size:8px; font-weight:700; letter-spacing:3px;">HOPETRACKER</div>
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:35px;">
-                <button onclick="shareStats()" id="share-btn" style="height:50px; border-radius:12px; font-size:12px; font-weight:700; background:linear-gradient(135deg, #7b2cbf, #5a1f99); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                    📸 Save Poster
-                </button>
-                <button onclick="copyShareText()" style="height:50px; border-radius:12px; font-size:12px; font-weight:700; background:#1a1a2e; border:1px solid #333; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                    📋 Copy Caption
-                </button>
-            </div>
-
-            <!-- Section Divider -->
+            <!-- Copy Caption Button Only -->
+            <button onclick="copyShareText('${selectedWeek}', ${totalTrackStreams + totalAlbumStreams}, '${winner || ''}', '${teamsDataForShare}')" style="width:100%; max-width:380px; margin:0 auto 35px; display:flex; height:46px; border-radius:12px; font-size:12px; font-weight:700; background:linear-gradient(135deg, #7b2cbf, #5a1f99); border:none; color:#fff; cursor:pointer; align-items:center; justify-content:center; gap:8px;">
+                📋 Copy Caption to Share
+            </button>
+                        
+            <!-- Section: Team Intel -->
             <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px;">
                 <div style="flex:1; height:1px; background:#222;"></div>
                 <div style="color:#555; font-size:9px; font-weight:700; letter-spacing:2px;">TEAM INTEL</div>
                 <div style="flex:1; height:1px; background:#222;"></div>
             </div>
 
-            <!-- 📊 TEAM STANDINGS -->
+            <!-- 📊 TEAM STANDINGS with 5-checkpoint detail -->
             <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:35px;">
-                ${sortedTeams.map(([t, info], i) => {
-                    const missionsPassed = info.trackGoalPassed && info.albumGoalPassed && info.album2xPassed;
-                    let failures = [];
-                    if (!missionsPassed) failures.push("Missions");
-                    if (!info.attendanceConfirmed) failures.push("Attendance");
-                    if (!info.policeConfirmed) failures.push("Police");
-                    const isQualified = failures.length === 0;
-                    const isWinner = info.isWinner === true;
+                ${qualificationLabels.map((q, i) => {
+                    const isWinner = q.info.isWinner === true;
+                    const isQualified = q.allPassed;
 
                     return `
-                        <div style="background:${isWinner ? 'linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,215,0,0.02))' : '#111118'}; border-radius:14px; padding:16px; display:flex; align-items:center; gap:12px; border:1px solid ${isWinner ? 'rgba(255,215,0,0.3)' : isQualified ? 'rgba(0,255,136,0.15)' : 'rgba(255,68,68,0.1)'};">
+                        <div style="background:${isWinner ? 'linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,215,0,0.02))' : '#111118'}; border-radius:14px; padding:16px; border:1px solid ${isWinner ? 'rgba(255,215,0,0.3)' : isQualified ? 'rgba(0,255,136,0.15)' : 'rgba(255,68,68,0.1)'};">
                             
-                            <!-- Rank -->
-                            <div style="width:28px; height:28px; border-radius:8px; background:${i===0?'linear-gradient(135deg,#ffd700,#ffaa00)':i===1?'linear-gradient(135deg,#c0c0c0,#888)':i===2?'linear-gradient(135deg,#cd7f32,#a0522d)':'#222'}; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:12px; color:${i<3?'#000':'#666'};">
-                                ${i+1}
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <!-- Rank -->
+                                <div style="width:28px; height:28px; border-radius:8px; background:${i===0?'linear-gradient(135deg,#ffd700,#ffaa00)':i===1?'linear-gradient(135deg,#c0c0c0,#888)':i===2?'linear-gradient(135deg,#cd7f32,#a0522d)':'#222'}; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:12px; color:${i<3?'#000':'#666'}; flex-shrink:0;">
+                                    ${i+1}
+                                </div>
+                                
+                                <!-- Team Info -->
+                                <div style="flex:1; min-width:0;">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="color:${teamColor(q.team)}; font-weight:800; font-size:14px;">${q.team}</span>
+                                        ${isWinner ? '<span style="font-size:14px;">🏆</span>' : ''}
+                                    </div>
+                                </div>
+                                
+                                <!-- XP -->
+                                <div style="text-align:right; flex-shrink:0;">
+                                    <div style="color:#fff; font-size:16px; font-weight:900; font-family:monospace;">${fmt(q.info.teamXP)}</div>
+                                    <div style="color:#444; font-size:8px; font-weight:600; letter-spacing:1px;">XP</div>
+                                </div>
                             </div>
                             
-                            <!-- Team Info -->
-                            <div style="flex:1; min-width:0;">
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <span style="color:${teamColor(t)}; font-weight:800; font-size:14px;">${t}</span>
-                                    ${isWinner ? '<span style="font-size:14px;">🏆</span>' : ''}
-                                </div>
-                                <div style="margin-top:4px;">
-                                    ${isQualified ? 
-                                        `<span style="color:#00ff88; font-size:9px; font-weight:700; padding:2px 6px; background:rgba(0,255,136,0.1); border-radius:4px;">✓ CLEARED</span>` : 
-                                        `<span style="color:#ff6666; font-size:9px; font-weight:600;">${failures.join(' • ')}</span>`
-                                    }
-                                </div>
+                            <!-- 5 Checkpoint Pills -->
+                            <div style="display:flex; gap:4px; margin-top:10px; flex-wrap:wrap;">
+                                ${q.checks.map(c => `
+                                    <span style="font-size:8px; font-weight:700; padding:3px 7px; border-radius:4px; letter-spacing:0.5px;
+                                        background:${c.passed ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)'};
+                                        color:${c.passed ? '#00ff88' : '#ff4444'};
+                                        border:1px solid ${c.passed ? 'rgba(0,255,136,0.2)' : 'rgba(255,68,68,0.15)'};">
+                                        ${c.passed ? '✓' : '✗'} ${c.label}
+                                    </span>
+                                `).join('')}
                             </div>
                             
-                            <!-- XP -->
-                            <div style="text-align:right;">
-                                <div style="color:#fff; font-size:16px; font-weight:900; font-family:monospace;">${fmt(info.teamXP)}</div>
-                                <div style="color:#444; font-size:8px; font-weight:600; letter-spacing:1px;">XP</div>
+                            <!-- Status line -->
+                            <div style="margin-top:8px;">
+                                ${isQualified ? 
+                                    `<span style="color:#00ff88; font-size:9px; font-weight:700;">✓ FULLY CLEARED — ${q.passedCount}/5</span>` : 
+                                    `<span style="color:#ff6666; font-size:9px; font-weight:600;">✗ ${q.passedCount}/5 cleared — Failed: ${q.failedNames.join(', ')}</span>`
+                                }
                             </div>
                         </div>
                     `;
                 }).join('')}
             </div>
 
-            <!-- Section Divider -->
+            <!-- Section: Elite Agents -->
             <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px;">
                 <div style="flex:1; height:1px; background:#222;"></div>
                 <div style="color:#555; font-size:9px; font-weight:700; letter-spacing:2px;">ELITE AGENTS</div>
@@ -8454,20 +8488,74 @@ async function renderSummary() {
         `; 
     }
 }
-function copyShareText() {
-    const week = STATE.week || 'Week';
-    const text = `🎵 BTS Comeback Mission ${week} Complete!
+// ==================== COPY SHARE TEXT ====================
+function copyShareText(week, totalStreams, winner, teamsArr) {
+    // If called without args, build from current state
+    if (!week) {
+        week = STATE.week || 'This Week';
+        totalStreams = 0;
+        winner = '';
+        teamsArr = [];
+    }
 
-💜 We streamed together for BTS!
+    // Parse teams if string
+    if (typeof teamsArr === 'string') {
+        try { teamsArr = JSON.parse(teamsArr); } catch(e) { teamsArr = []; }
+    }
 
-#BTS #BTSComeback #ARMY`;
-    
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text)
-            .then(() => showToast('📋 Caption copied!', 'success'))
-            .catch(() => fallbackCopyText(text));
+    const rankEmojis = ['🥇', '🥈', '🥉', '4.'];
+    const rankings = (teamsArr || []).map((team, i) => 
+        `${rankEmojis[i] || (i+1)+'.'} ${team.t} — ${fmt(team.xp)} XP`
+    ).join('\n');
+
+    // Only show winner line if there IS a winner
+    const winnerLine = winner ? `\n🏆 ${winner} takes the crown!\n` : '';
+
+    const caption = `⬡ BTS COMEBACK MISSION — ${week}
+
+${fmt(totalStreams)} total streams this week 🔥
+${winnerLine}
+${rankings}
+
+We're streaming for BTS every week as teams — tracking scrobbles, earning XP, competing for the trophy.
+
+Want in? DM @hopetracker to join a team 💜
+
+#BTSComebackMission #BTS #BTS_ARMY`;
+
+    // Always copy to clipboard first
+    const copyToClipboard = () => {
+        return navigator.clipboard.writeText(caption).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = caption;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            return Promise.resolve();
+        });
+    };
+
+    // Check if Web Share API is available (mobile)
+    if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        copyToClipboard().then(() => {
+            navigator.share({
+                title: 'BTS Comeback Mission',
+                text: caption,
+                url: 'https://www.instagram.com/hopetracker?igsh=d3huaDBtY2hlZmg0'
+            }).then(() => {
+                showToast('Caption also copied — paste in your story! 💜', 'success');
+            }).catch(() => {
+                showToast('Caption copied! Paste on your story 💜', 'success');
+            });
+        });
     } else {
-        fallbackCopyText(text);
+        // Desktop or no share API — just copy
+        copyToClipboard().then(() => {
+            showToast('Caption copied! Paste on your story 💜', 'success');
+        });
     }
 }
 
@@ -13199,4 +13287,4 @@ window.renderWeekConfirmation = renderWeekConfirmation;
 window.updateTeamStatus = updateTeamStatus;
 window.toggleResultsRelease = toggleResultsRelease;
 
-console.log('🎮 BTS Spy Battle v6.0 Loaded with Voting System 🗳️💜');
+console.log('🎮 hopetracker v6.0 Loaded with Voting System 🗳️💜');
