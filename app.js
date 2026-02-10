@@ -11635,7 +11635,7 @@ async function renderAttendance() {
         let html = `
             <div class="db-header">
                 <h1>OPERATIVE DATABASE</h1>
-                <p>CLASSIFIED PERSONNEL MANIFEST • ${STATE.week || 'CURRENT'}</p>
+                <p>DEPLOYED AGENTS • ${STATE.week || 'CURRENT'}</p>
             </div>
 
             <div class="search-container">
