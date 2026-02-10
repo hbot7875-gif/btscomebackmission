@@ -11634,7 +11634,7 @@ async function renderAttendance() {
         let html = `
             <div class="db-header">
                 <h1>DEPLOYED AGENTS</h1>
-                <p>FIELD OPERATIVE STATUS • ${STATE.week || 'ACTIVE'}</p>
+                <p>MISSION OPERATIVE STATUS • ${STATE.week || 'ACTIVE'}</p>
             </div>
 
             <div class="search-container">
