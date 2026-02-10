@@ -11668,6 +11668,93 @@ async function renderAttendance() {
         </div>`;
     }
 }
+// Toggle team section expand/collapse
+function toggleAttendanceTeam(header) {
+    const section = header.closest('.attendance-section');
+    section.classList.toggle('expanded');
+}
+
+// Toggle agent checkbox for helpers
+function toggleAgentCheck(event, agentNo) {
+    event.stopPropagation();
+    
+    const storageKey = `helper_checklist_${STATE.week}`;
+    const checklist = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    
+    const item = document.getElementById(`item-${agentNo}`);
+    const checkbox = item.querySelector('.helper-checkbox');
+    
+    if (checklist[agentNo]) {
+        delete checklist[agentNo];
+        item.classList.remove('checked');
+        checkbox.textContent = '';
+    } else {
+        checklist[agentNo] = true;
+        item.classList.add('checked');
+        checkbox.textContent = '✓';
+    }
+    
+    localStorage.setItem(storageKey, JSON.stringify(checklist));
+}
+
+// Search/filter agents
+function filterAttendance() {
+    const query = document.getElementById('attendance-search').value.toLowerCase().trim();
+    const items = document.querySelectorAll('.agent-roster-item');
+    
+    items.forEach(item => {
+        const name = item.querySelector('.agent-roster-name')?.textContent.toLowerCase() || '';
+        const ig = item.querySelector('.agent-roster-ig')?.textContent.toLowerCase() || '';
+        
+        if (name.includes(query) || ig.includes(query)) {
+            item.classList.remove('hidden');
+        } else {
+            item.classList.add('hidden');
+        }
+    });
+    
+    // Auto-expand sections with matching results
+    if (query.length > 0) {
+        document.querySelectorAll('.attendance-section').forEach(section => {
+            const visibleItems = section.querySelectorAll('.agent-roster-item:not(.hidden)');
+            if (visibleItems.length > 0) {
+                section.classList.add('expanded');
+            } else {
+                section.classList.remove('expanded');
+            }
+        });
+    }
+}
+
+// Sanitize HTML to prevent XSS
+function sanitize(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// Team profile picture helper
+function teamPfp(teamName) {
+    const pfps = {
+        'Team Indigo': 'https://i.imgur.com/your-indigo-image.png',
+        'Team Echo': 'https://i.imgur.com/your-echo-image.png',
+        'Team Agust D': 'https://i.imgur.com/your-agustd-image.png',
+        'Team JITB': 'https://i.imgur.com/your-jitb-image.png'
+    };
+    return pfps[teamName] || 'https://via.placeholder.com/48';
+}
+
+// Team color helper
+function teamColor(teamName) {
+    const colors = {
+        'Team Indigo': '#6366f1',
+        'Team Echo': '#00d4ff',
+        'Team Agust D': '#8b5cf6',
+        'Team JITB': '#f59e0b'
+    };
+    return colors[teamName] || '#888';
+}
 // ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
