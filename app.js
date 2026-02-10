@@ -11562,6 +11562,369 @@ window.handleGuideQuickLink = handleGuideQuickLink;
 window.renderGuidePage = renderGuidePage;
 window.toggleGuideSection = toggleGuideSection;
 window.scrollToGuideSection = scrollToGuideSection;
+
+// ==================== ATTENDANCE PAGE (OPERATIVE DATABASE) ====================
+
+async function renderAttendance() {
+    const container = document.getElementById('attendance-content');
+    if (!container) return;
+
+    // Loading State
+    container.innerHTML = `
+        <div class="loading-skeleton">
+            <div class="skeleton-card" style="height: 100px; margin-bottom: 10px;"></div>
+            <div class="skeleton-card" style="height: 100px; margin-bottom: 10px;"></div>
+            <div class="skeleton-card" style="height: 100px; margin-bottom: 10px;"></div>
+            <div class="skeleton-card" style="height: 100px;"></div>
+        </div>
+    `;
+
+    try {
+        // Fetch fresh data
+        const response = await api('getAllAgents');
+        const agents = response.agents || [];
+        
+        // Group agents by Team
+        const teamsData = {
+            'Team Indigo': { active: [], leave: [] },
+            'Team Echo': { active: [], leave: [] },
+            'Team Agust D': { active: [], leave: [] },
+            'Team JITB': { active: [], leave: [] }
+        };
+
+        agents.forEach(agent => {
+            const team = agent.team || 'Unknown';
+            if (teamsData[team]) {
+                if (agent.onLeave) {
+                    teamsData[team].leave.push(agent);
+                } else {
+                    teamsData[team].active.push(agent);
+                }
+            }
+        });
+
+        // Sort agents alphabetically within each category
+        Object.values(teamsData).forEach(data => {
+            data.active.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            data.leave.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        });
+
+        // Build HTML
+        let html = `
+            <div class="db-header">
+                <h1>OPERATIVE DATABASE</h1>
+                <p>CLASSIFIED PERSONNEL MANIFEST • ${STATE.week || 'CURRENT'}</p>
+            </div>
+
+            <div class="search-container">
+                <input type="text" id="attendance-search" placeholder="SEARCH OPERATIVE ID OR NAME..." oninput="filterAttendanceList()">
+            </div>
+            
+            <div class="helper-tip">
+                <span class="tip-icon">💡</span>
+                <span class="tip-text">HELPERS: Tap checkbox to mark attendance. Resets daily at midnight.</span>
+            </div>
+        `;
+
+        // Render each team
+        for (const [teamName, data] of Object.entries(teamsData)) {
+            const teamColorVal = teamColor(teamName);
+            const pfp = teamPfp(teamName);
+            const totalAgents = data.active.length + data.leave.length;
+            const teamId = teamName.replace(/\s+/g, '-').toLowerCase();
+
+            html += `
+                <div class="attendance-section" id="section-${teamId}" data-team="${teamName}">
+                    <!-- TEAM HEADER -->
+                    <div class="attendance-team-header" onclick="toggleAttendanceSection(this)" style="border-left: 4px solid ${teamColorVal};">
+                        <div class="team-header-pfp" style="border-color: ${teamColorVal}">
+                            ${pfp ? `<img src="${pfp}" alt="${teamName}" onerror="this.style.display='none'">` : `<span class="pfp-fallback">${teamName.charAt(5)}</span>`}
+                        </div>
+                        <div class="team-header-info">
+                            <div class="team-header-name" style="color: ${teamColorVal}">${teamName.toUpperCase()}</div>
+                            <div class="team-header-stats">
+                                <span class="stat-active">${data.active.length} ACTIVE</span>
+                                <span class="stat-divider">•</span>
+                                <span class="stat-leave">${data.leave.length} LEAVE</span>
+                                <span class="stat-divider">•</span>
+                                <span class="stat-total">${totalAgents} TOTAL</span>
+                            </div>
+                        </div>
+                        <div class="attendance-toggle-icon">＋</div>
+                    </div>
+
+                    <!-- TEAM CONTENT -->
+                    <div class="attendance-content-wrapper">
+                        <div class="inner-sections-wrapper">
+                            
+                            <!-- ACTIVE OPERATIVES -->
+                            <div class="attendance-section inner-section active-section">
+                                <div class="attendance-team-header inner-header" onclick="toggleAttendanceSection(this)">
+                                    <div class="inner-icon">🟢</div>
+                                    <div class="team-header-info">
+                                        <div class="inner-header-name active-title">ACTIVE OPERATIVES</div>
+                                        <div class="inner-header-count">${data.active.length} AGENTS</div>
+                                    </div>
+                                    <div class="attendance-toggle-icon inner-toggle">▼</div>
+                                </div>
+                                <div class="attendance-content-wrapper">
+                                    <div class="agent-list-grid">
+                                        ${data.active.length > 0 
+                                            ? data.active.map(a => renderAgentRow(a, false)).join('') 
+                                            : '<div class="empty-state">NO ACTIVE AGENTS</div>'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ON LEAVE -->
+                            <div class="attendance-section inner-section leave-section">
+                                <div class="attendance-team-header inner-header" onclick="toggleAttendanceSection(this)">
+                                    <div class="inner-icon">🛑</div>
+                                    <div class="team-header-info">
+                                        <div class="inner-header-name leave-title">ON LEAVE / INACTIVE</div>
+                                        <div class="inner-header-count">${data.leave.length} AGENTS</div>
+                                    </div>
+                                    <div class="attendance-toggle-icon inner-toggle">▼</div>
+                                </div>
+                                <div class="attendance-content-wrapper">
+                                    <div class="agent-list-grid">
+                                        ${data.leave.length > 0 
+                                            ? data.leave.map(a => renderAgentRow(a, true)).join('') 
+                                            : '<div class="empty-state">NO AGENTS ON LEAVE</div>'}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Summary Stats Footer
+        const totalActive = Object.values(teamsData).reduce((sum, t) => sum + t.active.length, 0);
+        const totalLeave = Object.values(teamsData).reduce((sum, t) => sum + t.leave.length, 0);
+        
+        html += `
+            <div class="attendance-footer">
+                <div class="footer-stat">
+                    <span class="footer-number">${totalActive}</span>
+                    <span class="footer-label">ACTIVE</span>
+                </div>
+                <div class="footer-divider"></div>
+                <div class="footer-stat">
+                    <span class="footer-number">${totalLeave}</span>
+                    <span class="footer-label">ON LEAVE</span>
+                </div>
+                <div class="footer-divider"></div>
+                <div class="footer-stat">
+                    <span class="footer-number">${totalActive + totalLeave}</span>
+                    <span class="footer-label">TOTAL</span>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+
+    } catch (e) {
+        console.error('Attendance Load Error:', e);
+        container.innerHTML = `
+            <div class="error-state">
+                <div class="error-icon">⚠️</div>
+                <p>DATABASE CONNECTION FAILED</p>
+                <small>${e.message || 'Unknown error'}</small>
+                <button type="button" onclick="renderAttendance()" class="btn-primary" style="margin-top: 15px;">
+                    🔄 RETRY CONNECTION
+                </button>
+            </div>
+        `;
+    }
+}
+
+function renderAgentRow(agent, isLeave = false) {
+    // Get Today's Date String for daily reset
+    const today = new Date().toISOString().split('T')[0];
+    const storageKey = `helper_check_${agent.agentNo}_${today}`;
+    const isChecked = localStorage.getItem(storageKey) === 'true';
+
+    // Display Name Logic
+    let displayName = agent.name ? sanitize(agent.name) : 'Unknown Agent';
+    if (displayName.toUpperCase().startsWith('AGENT') || !agent.name) {
+        displayName = 'Classified Agent';
+    }
+
+    // Agent Number display
+    const agentNo = agent.agentNo || 'N/A';
+
+    // Status Badge
+    const statusBadge = isLeave 
+        ? `<span class="status-badge status-leave">LEAVE</span>`
+        : `<span class="status-badge status-active">ACTIVE</span>`;
+
+    return `
+        <div class="agent-roster-item ${isLeave ? 'on-leave' : ''} ${isChecked ? 'checked' : ''}" 
+             id="row-${agentNo}"
+             data-agent="${agentNo}"
+             data-search="${(agent.name || '').toLowerCase()} ${agentNo.toLowerCase()}">
+            
+            <div class="helper-check-wrapper" onclick="toggleHelperCheck(event, this, '${agentNo}')">
+                <div class="helper-checkbox">${isChecked ? '✓' : ''}</div>
+            </div>
+
+            <div class="agent-roster-info">
+                <div class="agent-roster-name">${displayName}</div>
+                <div class="agent-roster-id">${agentNo}</div>
+            </div>
+            
+            <div class="agent-status-box">
+                ${statusBadge}
+            </div>
+        </div>
+    `;
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+function toggleHelperCheck(event, wrapper, agentNo) {
+    // Prevent bubbling to parent accordion
+    event.stopPropagation();
+
+    const today = new Date().toISOString().split('T')[0];
+    const storageKey = `helper_check_${agentNo}_${today}`;
+    
+    const row = wrapper.closest('.agent-roster-item');
+    const checkbox = wrapper.querySelector('.helper-checkbox');
+    
+    if (!row || !checkbox) return;
+
+    const wasChecked = row.classList.contains('checked');
+    const isNowChecked = !wasChecked;
+
+    if (isNowChecked) {
+        row.classList.add('checked');
+        checkbox.textContent = '✓';
+        localStorage.setItem(storageKey, 'true');
+        
+        // Haptic feedback
+        if (navigator.vibrate) navigator.vibrate(10);
+        
+        // Visual feedback
+        row.style.transform = 'scale(1.02)';
+        setTimeout(() => { row.style.transform = ''; }, 150);
+    } else {
+        row.classList.remove('checked');
+        checkbox.textContent = '';
+        localStorage.removeItem(storageKey);
+    }
+}
+
+function toggleAttendanceSection(header) {
+    const section = header.parentElement;
+    if (!section) return;
+    
+    const icon = header.querySelector('.attendance-toggle-icon');
+    const isOpen = section.classList.contains('open');
+    
+    section.classList.toggle('open');
+    
+    // Update icon based on type
+    if (icon) {
+        if (icon.textContent === '＋' || icon.textContent === '－') {
+            icon.textContent = isOpen ? '＋' : '－';
+        } else if (icon.textContent === '▼' || icon.textContent === '▲') {
+            icon.textContent = isOpen ? '▼' : '▲';
+        }
+    }
+}
+
+function filterAttendanceList() {
+    const input = document.getElementById('attendance-search');
+    if (!input) return;
+    
+    const filter = input.value.toLowerCase().trim();
+    const items = document.querySelectorAll('.agent-roster-item');
+    const sectionsToExpand = new Set();
+    
+    let matchCount = 0;
+
+    items.forEach(item => {
+        const searchText = item.getAttribute('data-search') || '';
+        const matches = filter === '' || searchText.includes(filter);
+        
+        if (matches) {
+            item.classList.remove('hidden');
+            matchCount++;
+            
+            // Collect parent sections to expand
+            let parent = item.closest('.attendance-section');
+            while (parent) {
+                sectionsToExpand.add(parent);
+                parent = parent.parentElement?.closest('.attendance-section');
+            }
+        } else {
+            item.classList.add('hidden');
+        }
+    });
+
+    // Auto-expand sections with matches
+    if (filter.length > 0) {
+        sectionsToExpand.forEach(section => {
+            if (!section.classList.contains('open')) {
+                section.classList.add('open');
+                const icon = section.querySelector('.attendance-toggle-icon');
+                if (icon) {
+                    if (icon.textContent === '＋') icon.textContent = '－';
+                    if (icon.textContent === '▼') icon.textContent = '▲';
+                }
+            }
+        });
+    }
+
+    // Update search feedback (optional)
+    const searchContainer = input.closest('.search-container');
+    if (searchContainer) {
+        const existing = searchContainer.querySelector('.search-count');
+        if (existing) existing.remove();
+        
+        if (filter.length > 0) {
+            const countBadge = document.createElement('span');
+            countBadge.className = 'search-count';
+            countBadge.textContent = `${matchCount} found`;
+            searchContainer.appendChild(countBadge);
+        }
+    }
+}
+
+// ==================== UTILITY FUNCTIONS ====================
+
+// Clear old daily checkmarks (cleanup)
+function cleanupOldCheckmarks() {
+    const today = new Date().toISOString().split('T')[0];
+    const keysToRemove = [];
+    
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('helper_check_') && !key.endsWith(today)) {
+            keysToRemove.push(key);
+        }
+    }
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    if (keysToRemove.length > 0) {
+        console.log(`🧹 Cleaned ${keysToRemove.length} old checkmarks`);
+    }
+}
+
+// Run cleanup on load
+cleanupOldCheckmarks();
+
+// ==================== EXPOSE GLOBALLY ====================
+
+window.renderAttendance = renderAttendance;
+window.toggleAttendanceSection = toggleAttendanceSection;
+window.filterAttendanceList = filterAttendanceList;
+window.toggleHelperCheck = toggleHelperCheck;
 // ==================== showChatRules ====================
 function showChatRules() {
     const popup = document.createElement('div');
