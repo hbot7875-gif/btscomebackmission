@@ -11572,6 +11572,8 @@ window.scrollToGuideSection = scrollToGuideSection;
 
 // ==================== ATTENDANCE PAGE (OPERATIVE DATABASE) ====================
 
+// ==================== ATTENDANCE PAGE (OPERATIVE DATABASE) ====================
+
 async function renderAttendance() {
     const container = document.getElementById('attendance-content');
     if (!container) return;
@@ -11587,9 +11589,17 @@ async function renderAttendance() {
     `;
 
     try {
-        // Fetch fresh data
-        const response = await api('getAllAgents');
-        const agents = response.agents || [];
+        // ✅ FIX: Fetch BOTH the full roster AND the specific leave list for this week
+        const [allAgentsRes, leaveRes] = await Promise.all([
+            api('getAllAgents'), 
+            api('getAgentsOnLeave', { week: STATE.week })
+        ]);
+
+        const agents = allAgentsRes.agents || [];
+        const leaveData = leaveRes.agents || [];
+        
+        // Create a list of Agent IDs who are confirmed on leave
+        const leaveAgentIds = leaveData.map(a => a.agentNo);
         
         // Group agents by Team
         const teamsData = {
@@ -11601,8 +11611,13 @@ async function renderAttendance() {
 
         agents.forEach(agent => {
             const team = agent.team || 'Unknown';
+            
+            // ✅ FIX: Check against the specific leave list we just fetched
+            // instead of relying on the static agent profile
+            const isActuallyOnLeave = leaveAgentIds.includes(agent.agentNo);
+
             if (teamsData[team]) {
-                if (agent.onLeave) {
+                if (isActuallyOnLeave) {
                     teamsData[team].leave.push(agent);
                 } else {
                     teamsData[team].active.push(agent);
@@ -11624,7 +11639,7 @@ async function renderAttendance() {
             </div>
 
             <div class="search-container">
-                <input type="text" id="attendance-search" placeholder="SEARCH OPERATIVE ID OR NAME..." oninput="filterAttendanceList()">
+                <input type="text" id="attendance-search" placeholder="SEARCH OPERATIVE NAME..." oninput="filterAttendanceList()">
             </div>
             
             <div class="helper-tip">
