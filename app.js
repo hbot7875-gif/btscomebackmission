@@ -11838,7 +11838,7 @@ function renderAgentRow(agent, isLeave = false, teamId = '') {
 
             <div class="agent-roster-info">
                 <div class="agent-roster-name">${displayName}</div>
-                <div class="agent-roster-id">${agentNo}</div>
+                
             </div>
             
             <div class="agent-status-box">
