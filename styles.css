@@ -9211,3 +9211,89 @@ function ensureStreakCSS() {
     background: var(--bg-dark);
     padding: 10px 0;
 }
+/* ==================== ATTENDANCE TOGGLE LOGIC ==================== */
+
+.attendance-section {
+    margin-bottom: 10px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.attendance-team-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    cursor: pointer;
+    background: linear-gradient(90deg, rgba(123, 44, 191, 0.05), transparent);
+    transition: background 0.3s ease;
+}
+
+.attendance-team-header:hover {
+    background: rgba(123, 44, 191, 0.1);
+}
+
+/* THE FIX: Content hidden by default */
+.attendance-content-wrapper {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* THE FIX: When open, set max-height to a large value */
+.attendance-section.open .attendance-content-wrapper {
+    max-height: 2500px; /* High enough for a long list */
+    border-top: 1px solid var(--border-dim);
+}
+
+.attendance-toggle-icon {
+    font-family: monospace;
+    font-size: 20px;
+    color: var(--purple-glow);
+    font-weight: bold;
+    width: 25px;
+    text-align: center;
+}
+
+.attendance-section.open .attendance-team-header {
+    background: rgba(123, 44, 191, 0.15);
+}
+
+/* ==================== CLEAN LIST STYLES ==================== */
+
+.agent-list-grid {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.agent-roster-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-dim);
+    border-radius: 10px;
+}
+
+/* Ghost Protocol (Leave) Style */
+.agent-roster-item.on-leave {
+    background: rgba(255, 165, 0, 0.03);
+    border: 1px dashed rgba(255, 165, 0, 0.3);
+    opacity: 0.7;
+}
+
+.status-badge {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 8px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+}
+
+.status-active { color: #00ff88; border: 1px solid #00ff8855; background: rgba(0, 255, 136, 0.1); }
+.status-leave { color: #ffa500; border: 1px solid #ffa50055; background: rgba(255, 165, 0, 0.1); }
