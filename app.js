@@ -4697,7 +4697,7 @@ const ROUTES = {
     'sotd': 'sotd',
     'song-of-day': 'sotd',
     'guide': 'guide',
-    'attendance': 'attendance'
+    'attendance': 'attendance',
     'namjoon': 'namjoon', 
     'streaming-tips': 'streaming-tips',
     'login': 'login'
@@ -4721,7 +4721,7 @@ const PAGE_TO_ROUTE = {
     'summary': 'summary',
     'sotd': 'sotd',
     'guide': 'guide',
-    'attendance': 'attendance'
+    'attendance': 'attendance',
     'namjoon': 'namjoon',
     'streaming-tips': 'streaming-tips',
     'login': 'login'
@@ -4822,7 +4822,7 @@ async function renderPageByRoute(pageName) {
     
     // ✅ FIX: Added ALL potential pages to this list so they are created dynamically if missing
     const dynamicPages = [
-        'chat', 'playlists', 'gc-links', 'helper-roles', 'song-of-day', 'sotd',
+        'chat', 'playlists', 'attendance', 'gc-links', 'helper-roles', 'song-of-day', 'sotd',
         'secret-missions', 'announcements', 'drawer', 'goals', 'rankings', 
         'team-level', 'summary', 'comparison', 'album2x', 'profile', 'namjoon', 
         'streaming-tips', 'guide'
@@ -4873,6 +4873,7 @@ async function renderPageByRoute(pageName) {
             case 'streaming-tips': await renderStreamingTips(); break;
             case 'namjoon': await renderNamjoonBrain(); break;
             case 'guide': await renderGuidePage(); break; 
+            case 'attendance': await renderAttendance(); break;
         }
     } catch (e) {
         console.error('Page render error:', e);
