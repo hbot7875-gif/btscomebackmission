@@ -11942,7 +11942,7 @@ async function renderAttendance() {
                         <span class="summary-icon">👮</span>
                         <span class="summary-title">POLICE VERIFICATION</span>
                     </div>
-                    <div style="color:#666; font-size:10px; padding:10px 14px;">Tap to access Last.fm verification links</div>
+                    <div style="color:#666; font-size:10px; padding:10px 14px;">Tap to access </div>
                 </div>
             </div>
 
