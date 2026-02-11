@@ -5778,12 +5778,10 @@ async function updateOnlineCount() {
             const users = data.users || [];
             
             if (STATE.chatMode === 'team') {
-                // Filter to only team members
                 const myTeam = STATE.data?.profile?.team;
                 const teamOnline = users.filter(u => u.team === myTeam);
-                el.textContent = teamOnline.length || 0;
+                el.textContent = teamOnline.length;
             } else {
-                // Global — show all
                 el.textContent = data.online || 0;
             }
         }
