@@ -5773,19 +5773,31 @@ async function updateOnlineCount() {
     try {
         const data = await api('getOnlineCount');
         const el = $('online-count');
+        if (!el || !data.success) return;
+
+        const allOperatives = data.users || [];
         
-        if (el && data.success) {
-            const users = data.users || [];
+        if (STATE.chatMode === 'team') {
+            // 1. Get my team and clean it (e.g. "Team Indigo" -> "indigo")
+            const myTeamRaw = STATE.data?.profile?.team || '';
+            const myTeamClean = myTeamRaw.toLowerCase().replace('team ', '').trim();
             
-            if (STATE.chatMode === 'team') {
-                const myTeam = STATE.data?.profile?.team;
-                const teamOnline = users.filter(u => u.team === myTeam);
-                el.textContent = teamOnline.length;
-            } else {
-                el.textContent = data.online || 0;
-            }
+            // 2. Filter the list using cleaned names
+            const teamUnit = allOperatives.filter(u => {
+                const opTeamClean = (u.team || '').toLowerCase().replace('team ', '').trim();
+                return opTeamClean === myTeamClean;
+            });
+            
+            // 3. Display count for specific unit
+            el.textContent = teamUnit.length;
+            console.log(`📡 Unit Scan: Found ${teamUnit.length} operatives in ${myTeamClean}`);
+        } else {
+            // Global mode: Show total network count
+            el.textContent = data.online || 0;
         }
-    } catch (_e) { /* silent */ }
+    } catch (_e) {
+        console.error("Uplink Error: Online count sync failed.");
+    }
 }
 function stopHeartbeat() {
     if (heartbeatInterval) {
