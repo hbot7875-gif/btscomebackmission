@@ -323,6 +323,7 @@ function startBTSCountdown() {
     }, 1000);
 }
 // ==================== STATE ====================
+
 const STATE = {
     agentNo: null,
     week: null,
@@ -336,6 +337,8 @@ const STATE = {
     adminSession: null,
     lastUpdated: null,
     hasSeenResults: {},
+    chatMode: 'global',
+    
 
     // ===== NOTIFICATION STATE (UPDATED) =====
     notifications: [],
@@ -360,6 +363,7 @@ const $ = id => document.getElementById(id);
 const teamColor = team => CONFIG.TEAMS[team]?.color || '#7b2cbf';
 const teamPfp = team => CONFIG.TEAM_PFPS[team] || '';
 const getTeamMemberCount = team => STATE.allAgents?.filter(a => a.team === team).length || 0;
+
 
 // ==================== PLAYLIST ICON HELPER ====================
 function getPlaylistIcon(platform) {
@@ -5878,6 +5882,9 @@ async function showOnlineUsers() {
 
 let chatRefreshInterval = null;
 
+// Initialize chat mode if not already in STATE
+if (typeof STATE.chatMode === 'undefined') STATE.chatMode = 'global';
+
 async function renderChat() {
     let container = $('chat-content');
     if (!container) {
@@ -5889,31 +5896,39 @@ async function renderChat() {
     }
     if (!container) return;
     
-    const team = STATE.data?.profile?.team;
+    const team = STATE.data?.profile?.team || 'Unknown Team';
     const myUsername = STATE.data?.profile?.name || 'Agent';
     
     container.innerHTML = `
-        <div class="chat-container-wrapper">
+        <div class="chat-container-pro">
+            <!-- FREQUENCY TOGGLE (Global vs Team) -->
+            <div class="comm-toggle-bar">
+                <button class="comm-btn ${STATE.chatMode === 'global' ? 'active' : ''}" 
+                        onclick="switchChatMode('global')">
+                    <span class="btn-icon">🌐</span> GLOBAL HQ
+                </button>
+                <button class="comm-btn ${STATE.chatMode === 'team' ? 'active' : ''}" 
+                        style="--team-glow: ${teamColor(team)}"
+                        onclick="switchChatMode('team')">
+                    <span class="btn-icon">👥</span> ${team.toUpperCase()}
+                </button>
+            </div>
+
             <!-- Rules Toggle (Compact for Mobile) -->
-            <div class="chat-rules-banner" onclick="showChatRules()">
+            <div class="chat-rules-banner" onclick="showChatRules()" style="margin-bottom:10px;">
                 <span class="icon">📜</span>
                 <span class="text">Tap to read Secret Comms Protocol</span>
                 <span class="arrow">→</span>
             </div>
             
             <div class="chat-main-box">
-                <!-- Header -->
-                <div class="chat-header">
-                    <div class="header-info">
-                        <div class="status-dot-wrapper">
-                            <div class="live-dot"></div>
-                        </div>
-                        <div>
-                            <div class="chat-title">SECRET COMMS</div>
-                            <div class="chat-online-count"><span id="online-count">0</span> Operatives Online</div>
-                        </div>
+                <!-- Header: Refresh moved here to prevent overlap with Send -->
+                <div class="chat-header-pro">
+                    <div class="connection-status">
+                        <div class="pulse-dot"></div>
+                        <span class="status-text">${STATE.chatMode === 'global' ? 'ENCRYPTED GLOBAL CHANNEL' : 'SECURE TEAM FREQUENCY'}</span>
                     </div>
-                    <button class="rules-btn-circle" onclick="updateOnlineCount()">🔄</button>
+                    <button class="refresh-chat-btn" onclick="loadMessages()" title="Refresh Feed">🔄</button>
                 </div>
                 
                 <!-- Messages Area -->
@@ -5924,16 +5939,16 @@ async function renderChat() {
                     </div>
                 </div>
                 
-                <!-- Input Area -->
-                <div class="chat-input-area">
-                    <div class="input-wrapper-inner">
+                <!-- Input Area: Send button locked inside input box -->
+                <div class="chat-input-area-pro">
+                    <div class="input-container-inner">
                         <div class="user-tag" style="color: ${teamColor(team)}">
-                            ${sanitize(myUsername)}
+                            AGENT: ${sanitize(myUsername)}
                         </div>
                         <div class="input-row">
                             <textarea 
                                 id="chat-input" 
-                                placeholder="Enter encrypted message..." 
+                                placeholder="Enter transmission..." 
                                 maxlength="500"
                                 rows="1"
                             ></textarea>
@@ -5972,7 +5987,7 @@ async function renderChat() {
             }
         });
         
-        // Mobile Focus Fix: Scroll into view when keyboard pops up
+        // Mobile Focus Fix
         input.addEventListener('focus', () => {
             setTimeout(() => {
                 input.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -5990,32 +6005,33 @@ async function renderChat() {
         updateOnlineCount();
     }, 5000);
 }
-    
 
+// Logic to switch between frequencies
+async function switchChatMode(mode) {
+    if (navigator.vibrate) navigator.vibrate(10);
+    STATE.chatMode = mode;
+    renderChat(); // Re-render everything with new filter
+}
 
 async function loadMessages() {
     const container = $('chat-messages');
     if (!container) return;
     
     try {
-        const data = await api('getChatMessages', { limit: 50 });
-        const messages = data.messages || [];
+        const data = await api('getChatMessages', { limit: 60 });
+        let messages = data.messages || [];
+        
+        // APPLY FILTER: If in team mode, only show current team's messages
+        if (STATE.chatMode === 'team') {
+            const myTeam = STATE.data?.profile?.team;
+            messages = messages.filter(m => m.team === myTeam);
+        }
         
         if (messages.length === 0) {
             container.innerHTML = `
-                <div style="
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    color: #888;
-                    text-align: center;
-                    padding: 40px;
-                ">
-                    <div style="font-size:48px;margin-bottom:15px;">💬</div>
-                    <p style="margin:0 0 5px 0;">No messages yet</p>
-                    <p style="font-size:12px;color:#666;">Be the first to say hello!</p>
+                <div class="chat-empty">
+                    <div style="font-size:48px;margin-bottom:15px;">📡</div>
+                    <p>NO TRANSMISSIONS FOUND ON THIS FREQUENCY.</p>
                 </div>
             `;
             return;
@@ -6026,37 +6042,13 @@ async function loadMessages() {
         container.innerHTML = messages.map(msg => {
             const isMe = msg.username.toLowerCase() === myName;
             return `
-                <div style="
-                    display: flex;
-                    flex-direction: column;
-                    align-items: ${isMe ? 'flex-end' : 'flex-start'};
-                    max-width: 85%;
-                    ${isMe ? 'margin-left:auto;' : 'margin-right:auto;'}
-                ">
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-                        <span style="color:${teamColor(msg.team)};font-size:12px;font-weight:600;">
-                            @${sanitize(msg.username)}
-                        </span>
-                        <span style="
-                            font-size:9px;
-                            color:#888;
-                            background:${teamColor(msg.team)}22;
-                            padding:2px 6px;
-                            border-radius:4px;
-                        ">${sanitize(msg.team?.replace('Team ', '') || '')}</span>
+                <div class="msg-wrapper ${isMe ? 'me' : 'other'}">
+                    <div class="msg-meta">
+                        <span class="msg-user" style="color:${teamColor(msg.team)}">@${sanitize(msg.username)}</span>
+                        <span class="msg-team-tag">${sanitize(msg.team?.replace('Team ', '') || '')}</span>
                     </div>
-                    <div style="
-                        background: ${isMe ? 'linear-gradient(135deg, #7b2cbf, #5a1f99)' : 'rgba(255,255,255,0.08)'};
-                        padding: 10px 14px;
-                        border-radius: ${isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
-                        color: #fff;
-                        font-size: 14px;
-                        line-height: 1.4;
-                        word-break: break-word;
-                    ">${sanitize(msg.message)}</div>
-                    <span style="font-size:9px;color:#555;margin-top:4px;">
-                        ${formatTime(msg.timestamp)}
-                    </span>
+                    <div class="msg-bubble">${sanitize(msg.message)}</div>
+                    <span class="msg-time">${formatTime(msg.timestamp)}</span>
                 </div>
             `;
         }).join('');
@@ -6064,20 +6056,13 @@ async function loadMessages() {
         container.scrollTop = container.scrollHeight;
         
     } catch (e) {
-        console.error('Failed to load chat:', e);
-        container.innerHTML = `
-            <div style="text-align:center;color:#ff6b6b;padding:40px;">
-                <p>Failed to load messages</p>
-                <button onclick="loadMessages()" class="btn-secondary" style="margin-top:10px;">Retry</button>
-            </div>
-        `;
+        container.innerHTML = `<div class="chat-error">SIGNAL INTERRUPTED</div>`;
     }
 }
 
 async function sendMessage() {
     const input = $('chat-input');
     const sendBtn = $('send-btn');
-    
     if (!input) return;
     
     const msg = input.value.trim();
@@ -6086,52 +6071,45 @@ async function sendMessage() {
     if (sendBtn) {
         sendBtn.disabled = true;
         sendBtn.style.opacity = '0.6';
-        sendBtn.innerHTML = '...';
     }
-    input.value = '';
-    const charCount = $('char-count');
-    if (charCount) charCount.textContent = '0/500';
     
     try {
         const result = await api('sendChatMessage', {
             agentNo: STATE.agentNo,
-            message: msg
+            message: msg,
+            team: STATE.data?.profile?.team // Ensure team is sent for filtering
         });
         
         if (result.success) {
+            input.value = '';
+            input.style.height = 'auto';
+            if ($('char-count')) $('char-count').textContent = '0/500';
             await loadMessages();
         } else {
             showToast(result.error || 'Failed to send', 'error');
-            input.value = msg;
         }
     } catch (e) {
-        console.error('Send error:', e);
         showToast('Failed to send', 'error');
-        input.value = msg;
     } finally {
         if (sendBtn) {
             sendBtn.disabled = false;
             sendBtn.style.opacity = '1';
-            sendBtn.innerHTML = 'Send ➤';
         }
-        input.focus();
     }
 }
 
+// Preserve existing utilities
 function formatTime(ts) {
     if (!ts) return '';
     try {
         const d = new Date(ts);
         const now = new Date();
         const diff = now - d;
-        
         if (diff < 60000) return 'Just now';
         if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
         if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
         return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } catch (e) {
-        return '';
-    }
+    } catch (e) { return ''; }
 }
 
 function cleanupChat() {
@@ -6141,50 +6119,31 @@ function cleanupChat() {
     }
 }
 
-function openChat() {
-    loadPage('chat');
-}
+function openChat() { loadPage('chat'); }
 
-// ==================== CHAT NOTIFICATION SYSTEM ====================
-
+// Notification logic remains identical
 let unreadCheckInterval = null;
-
 async function checkUnreadMessages() {
     if (!STATE.agentNo) return;
-
     try {
-        // Use your existing api() function instead of fetch
         const data = await api('hasUnreadMessages', { agentNo: STATE.agentNo });
-        
         const dot = document.getElementById('dot-chat');
-        
-        if (data.hasUnread) {
-            if (dot) dot.classList.add('active');
-        } else {
-            if (dot) dot.classList.remove('active');
-        }
-    } catch (e) {
-        console.error('Error checking unread:', e);
-    }
+        if (data.hasUnread) { if (dot) dot.classList.add('active'); } 
+        else { if (dot) dot.classList.remove('active'); }
+    } catch (e) {}
 }
 
 async function markChatRead() {
     if (!STATE.agentNo) return;
-
     try {
-        // Use your existing api() function instead of fetch
         await api('markChatAsRead', { agentNo: STATE.agentNo });
-        
         const dot = document.getElementById('dot-chat');
         if (dot) dot.classList.remove('active');
-    } catch (e) {
-        console.error('Error marking as read:', e);
-    }
+    } catch (e) {}
 }
 
 function startUnreadCheck() {
     checkUnreadMessages();
-    
     if (unreadCheckInterval) clearInterval(unreadCheckInterval);
     unreadCheckInterval = setInterval(checkUnreadMessages, 30000);
 }
@@ -6195,7 +6154,6 @@ function stopUnreadCheck() {
         unreadCheckInterval = null;
     }
 }
-
 // ==================== DRAWER (FIXED BADGE SECTION) ====================
 async function renderDrawer() {
     const container = $('drawer-content');
