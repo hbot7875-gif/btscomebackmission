@@ -12356,6 +12356,12 @@ async function verifyPoliceAccess() {
                 WEEK RANGE: ${res.weekRange?.fromDate || '?'} → ${res.weekRange?.toDate || '?'}
             </div>
         `;
+                
+        html += `
+            <button onclick="logoutPolice()" style="width:100%; margin-top:10px; padding:12px; background:#111118; border:1px solid #2a2a3a; border-radius:10px; color:#666; font-size:11px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                🔒 Lock Police Panel
+            </button>
+        `;
 
         if (container) container.innerHTML = html;
         showToast('👮 Police access granted', 'success');
@@ -12373,6 +12379,19 @@ async function verifyPoliceAccess() {
         }
     }
 }
+function logoutPolice() {
+    const section = document.getElementById('police-section');
+    const loginModal = document.getElementById('police-login-modal');
+    const container = document.getElementById('police-lastfm-container');
+    const input = document.getElementById('police-password');
+
+    if (section) section.style.display = 'block';
+    if (loginModal) loginModal.style.display = 'none';
+    if (container) { container.style.display = 'none'; container.innerHTML = ''; }
+    if (input) input.value = '';
+
+    showToast('🔒 Police panel locked', 'info');
+}
 
 function togglePoliceTeam(id) {
     const el = document.getElementById(id);
@@ -12382,6 +12401,7 @@ function togglePoliceTeam(id) {
 }
 
 // ==================== EXPOSE GLOBALLY ====================
+window.logoutPolice = logoutPolice;
 window.showPoliceLogin = showPoliceLogin;
 window.verifyPoliceAccess = verifyPoliceAccess;
 window.togglePoliceTeam = togglePoliceTeam;
