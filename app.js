@@ -11934,6 +11934,38 @@ async function renderAttendance() {
                 </div>
             </div>
         `;
+                // --- POLICE SECTION ---
+        html += `
+            <div id="police-section" style="margin-top:20px;">
+                <div class="attendance-summary-card" onclick="showPoliceLogin()" style="cursor:pointer;">
+                    <div class="summary-header">
+                        <span class="summary-icon">👮</span>
+                        <span class="summary-title">POLICE VERIFICATION</span>
+                    </div>
+                    <div style="color:#666; font-size:10px; padding:10px 14px;">Tap to access Last.fm verification links</div>
+                </div>
+            </div>
+
+            <div id="police-login-modal" style="display:none; margin-top:10px;">
+                <div class="attendance-summary-card">
+                    <div class="summary-header">
+                        <span class="summary-icon">🔐</span>
+                        <span class="summary-title">ENTER POLICE CODE</span>
+                    </div>
+                    <div style="padding:14px; display:flex; gap:8px;">
+                        <input type="password" id="police-password" placeholder="Enter police password..." 
+                            style="flex:1; padding:10px 12px; background:#0d0d12; border:1px solid #2a2a3a; border-radius:8px; color:#fff; font-size:12px; outline:none;"
+                            onkeydown="if(event.key==='Enter') verifyPoliceAccess()">
+                        <button onclick="verifyPoliceAccess()" 
+                            style="padding:10px 16px; background:linear-gradient(135deg, #7b2cbf, #5a1f99); border:none; border-radius:8px; color:#fff; font-weight:700; font-size:11px; cursor:pointer; white-space:nowrap;">
+                            VERIFY
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="police-lastfm-container" style="display:none; margin-top:10px;"></div>
+        `;
 
         container.innerHTML = html;
         
@@ -12218,8 +12250,144 @@ function cleanupOldCheckmarks() {
 // Run cleanup on load
 cleanupOldCheckmarks();
 
-// ==================== EXPOSE GLOBALLY ====================
+// ==================== POLICE VERIFICATION ====================
 
+function showPoliceLogin() {
+    const modal = document.getElementById('police-login-modal');
+    const section = document.getElementById('police-section');
+    if (modal) {
+        modal.style.display = 'block';
+        const input = document.getElementById('police-password');
+        if (input) input.focus();
+    }
+    if (section) section.style.display = 'none';
+}
+
+async function verifyPoliceAccess() {
+    const input = document.getElementById('police-password');
+    const password = input?.value?.trim();
+    
+    if (!password) {
+        showToast('Enter password', 'error');
+        return;
+    }
+
+    
+    if (password !== POLICE_PASSWORD) {
+        showToast('❌ Access Denied', 'error');
+        if (input) input.value = '';
+        return;
+    }
+
+    // Hide login, show loading
+    const loginModal = document.getElementById('police-login-modal');
+    const container = document.getElementById('police-lastfm-container');
+    if (loginModal) loginModal.style.display = 'none';
+    if (container) {
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div class="attendance-summary-card">
+                <div style="text-align:center; padding:20px; color:#666; font-size:11px;">
+                    ⏳ Loading Last.fm profiles...
+                </div>
+            </div>
+        `;
+    }
+
+    try {
+        const res = await api('getPoliceData', { 
+            password: password, 
+            week: STATE.week 
+        });
+
+        if (!res.success) {
+            showToast(res.error || 'Failed', 'error');
+            return;
+        }
+
+        const teams = res.teams || {};
+        let html = '';
+
+        for (const [teamName, members] of Object.entries(teams)) {
+            const teamColorVal = teamColor(teamName);
+            const teamId = teamName.replace(/\s+/g, '-').toLowerCase();
+
+            html += `
+                <div class="attendance-summary-card" style="margin-bottom:10px; border-left:3px solid ${teamColorVal};">
+                    <div class="summary-header" onclick="togglePoliceTeam('police-team-${teamId}')" style="cursor:pointer;">
+                        <span class="summary-icon" style="color:${teamColorVal};">👮</span>
+                        <span class="summary-title" style="color:${teamColorVal};">${teamName.toUpperCase()}</span>
+                        <span style="color:#444; font-size:10px; margin-left:auto;">${members.length} agents ▼</span>
+                    </div>
+                    <div id="police-team-${teamId}" style="display:none; padding:0 14px 14px;">
+                        ${members.map(m => {
+                            const usernames = m.usernames || [];
+                            const hasLastFm = usernames.length > 0;
+                            
+                            return `
+                                <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.03);">
+                                    <div style="min-width:0; flex:1;">
+                                        <div style="color:#ccc; font-size:11px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                            ${sanitize(m.name || 'Agent')}
+                                        </div>
+                                        <div style="color:#444; font-size:9px; font-family:monospace;">${m.agentNo}</div>
+                                    </div>
+                                    <div style="display:flex; gap:4px; flex-shrink:0; margin-left:8px;">
+                                        ${hasLastFm ? usernames.map((u, i) => `
+                                            <a href="https://www.last.fm/user/${encodeURIComponent(u)}/library?from=${res.weekRange?.fromDate || ''}&to=${res.weekRange?.toDate || ''}" 
+                                               target="_blank" rel="noopener"
+                                               style="padding:4px 8px; background:rgba(185,0,0,0.15); border:1px solid rgba(185,0,0,0.3); border-radius:6px; color:#d41109; font-size:9px; font-weight:700; text-decoration:none; white-space:nowrap;">
+                                                🎵 ${usernames.length > 1 ? 'LFM ' + (i+1) : 'Last.fm'}
+                                            </a>
+                                        `).join('') : `
+                                            <span style="padding:4px 8px; background:rgba(255,255,255,0.03); border:1px solid #222; border-radius:6px; color:#444; font-size:9px;">
+                                                No Last.fm
+                                            </span>
+                                        `}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Weekly range info
+        html += `
+            <div style="text-align:center; padding:10px; color:#333; font-size:8px; letter-spacing:1px;">
+                WEEK RANGE: ${res.weekRange?.fromDate || '?'} → ${res.weekRange?.toDate || '?'}
+            </div>
+        `;
+
+        if (container) container.innerHTML = html;
+        showToast('👮 Police access granted', 'success');
+
+    } catch (e) {
+        console.error('Police data error:', e);
+        if (container) {
+            container.innerHTML = `
+                <div class="attendance-summary-card">
+                    <div style="text-align:center; padding:20px; color:#ff4444; font-size:11px;">
+                        ⚠️ Failed to load: ${e.message}
+                    </div>
+                </div>
+            `;
+        }
+    }
+}
+
+function togglePoliceTeam(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// ==================== EXPOSE GLOBALLY ====================
+window.showPoliceLogin = showPoliceLogin;
+window.verifyPoliceAccess = verifyPoliceAccess;
+window.togglePoliceTeam = togglePoliceTeam;
 window.renderAttendance = renderAttendance;
 window.toggleAttendanceSection = toggleAttendanceSection;
 window.filterAttendanceList = filterAttendanceList;
