@@ -5882,8 +5882,14 @@ async function showOnlineUsers() {
 
 let chatRefreshInterval = null;
 
-// Initialize chat mode if not already in STATE
+// ==================== CHAT SYSTEM ====================
+
 if (typeof STATE.chatMode === 'undefined') STATE.chatMode = 'global';
+let chatRefreshInterval = null;
+let lastMessageId = null;
+let isSending = false;
+let lastKnownMessageId = null;
+let unreadCheckInterval = null;
 
 async function renderChat() {
     let container = $('chat-content');
@@ -5895,60 +5901,73 @@ async function renderChat() {
         }
     }
     if (!container) return;
-    
-    const team = STATE.data?.profile?.team || 'Unknown Team';
+
+    const team = STATE.data?.profile?.team || 'Unknown';
     const myUsername = STATE.data?.profile?.name || 'Agent';
-    
+
     container.innerHTML = `
         <div class="chat-container-pro">
-            <!-- FREQUENCY TOGGLE (Global vs Team) -->
+            <!-- Frequency Toggle -->
             <div class="comm-toggle-bar">
                 <button class="comm-btn ${STATE.chatMode === 'global' ? 'active' : ''}" 
                         onclick="switchChatMode('global')">
-                    <span class="btn-icon">🌐</span> GLOBAL HQ
+                    <span class="btn-icon">🌐</span> ALL FREQ
                 </button>
                 <button class="comm-btn ${STATE.chatMode === 'team' ? 'active' : ''}" 
                         style="--team-glow: ${teamColor(team)}"
                         onclick="switchChatMode('team')">
-                    <span class="btn-icon">👥</span> ${team.toUpperCase()}
+                    <span class="btn-icon">🔒</span> ${team.replace('Team ', '').toUpperCase()}
                 </button>
             </div>
 
-            <!-- Rules Toggle (Compact for Mobile) -->
+            <!-- Rules -->
             <div class="chat-rules-banner" onclick="showChatRules()" style="margin-bottom:10px;">
                 <span class="icon">📜</span>
-                <span class="text">Tap to read Secret Comms Protocol</span>
+                <span class="text">Comms Protocol</span>
                 <span class="arrow">→</span>
             </div>
-            
+
             <div class="chat-main-box">
-                <!-- Header: Refresh moved here to prevent overlap with Send -->
+                <!-- Header -->
                 <div class="chat-header-pro">
                     <div class="connection-status">
                         <div class="pulse-dot"></div>
-                        <span class="status-text">${STATE.chatMode === 'global' ? 'ENCRYPTED GLOBAL CHANNEL' : 'SECURE TEAM FREQUENCY'}</span>
+                        <span class="status-text">${STATE.chatMode === 'global' ? 'GLOBAL' : 'TEAM'} — <span id="online-count">0</span> ACTIVE</span>
                     </div>
-                    <button class="refresh-chat-btn" onclick="loadMessages()" title="Refresh Feed">🔄</button>
+                    <button class="refresh-chat-btn" onclick="loadMessages(true)" title="Refresh">🔄</button>
                 </div>
-                
-                <!-- Messages Area -->
+
+                <!-- Messages -->
                 <div id="chat-messages" class="chat-messages-area">
                     <div class="chat-loading-shimmer">
                         <div class="loader-ring"></div>
-                        <p>DECRYPTING MESSAGES...</p>
+                        <p>DECRYPTING...</p>
                     </div>
                 </div>
-                
-                <!-- Input Area: Send button locked inside input box -->
+
+                <!-- New message indicator -->
+                <div id="new-msg-indicator" style="
+                    display:none;
+                    text-align:center;
+                    padding:6px;
+                    background:linear-gradient(135deg,#7b2cbf,#5a1f99);
+                    cursor:pointer;
+                    font-size:11px;
+                    color:#fff;
+                    font-weight:600;
+                    letter-spacing:1px;
+                " onclick="scrollChatToBottom()">↓ NEW INTEL</div>
+
+                <!-- Input -->
                 <div class="chat-input-area-pro">
                     <div class="input-container-inner">
-                        <div class="user-tag" style="color: ${teamColor(team)}">
-                            AGENT: ${sanitize(myUsername)}
+                        <div class="user-tag" style="color:${teamColor(team)}">
+                            ${sanitize(myUsername)}
                         </div>
                         <div class="input-row">
-                            <textarea 
-                                id="chat-input" 
-                                placeholder="Enter transmission..." 
+                            <textarea
+                                id="chat-input"
+                                placeholder="Transmit..."
                                 maxlength="500"
                                 rows="1"
                             ></textarea>
@@ -5958,22 +5977,21 @@ async function renderChat() {
                         </div>
                         <div class="input-footer">
                             <span id="char-count">0/500</span>
-                            <span class="encryption-label">🔒 AES-256 ENCRYPTED</span>
+                            <span class="encryption-label">🔒 ENCRYPTED</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     `;
-    
-    // Auto-resize textarea logic
+
     const input = $('chat-input');
     const charCount = $('char-count');
-    
+
     if (input) {
-        input.addEventListener('input', function() {
+        input.addEventListener('input', function () {
             this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
+            this.style.height = this.scrollHeight + 'px';
             if (charCount) {
                 charCount.textContent = `${this.value.length}/500`;
                 charCount.style.color = this.value.length > 450 ? '#ff4444' : '#666';
@@ -5986,59 +6004,87 @@ async function renderChat() {
                 sendMessage();
             }
         });
-        
-        // Mobile Focus Fix
+
         input.addEventListener('focus', () => {
-            setTimeout(() => {
-                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 300);
+            setTimeout(() => input.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
         });
     }
-    
+
+    lastMessageId = null;
+    isSending = false;
+
     markChatRead();
-    await loadMessages();
+    await loadMessages(true);
     await updateOnlineCount();
-    
-    if (chatRefreshInterval) clearInterval(chatRefreshInterval);
+
+    cleanupChat();
     chatRefreshInterval = setInterval(() => {
-        loadMessages();
+        loadMessages(false);
         updateOnlineCount();
     }, 5000);
 }
 
-// Logic to switch between frequencies
+// ==================== FREQUENCY SWITCH ====================
+
 async function switchChatMode(mode) {
     if (navigator.vibrate) navigator.vibrate(10);
     STATE.chatMode = mode;
-    renderChat(); // Re-render everything with new filter
+    lastMessageId = null;
+    renderChat();
 }
 
-async function loadMessages() {
+// ==================== SCROLL HELPERS ====================
+
+function isChatAtBottom() {
+    const c = $('chat-messages');
+    if (!c) return true;
+    return (c.scrollHeight - c.scrollTop - c.clientHeight) < 60;
+}
+
+function scrollChatToBottom() {
+    const c = $('chat-messages');
+    if (c) c.scrollTop = c.scrollHeight;
+    const ind = $('new-msg-indicator');
+    if (ind) ind.style.display = 'none';
+}
+
+// ==================== LOAD MESSAGES ====================
+
+async function loadMessages(fullReload = false) {
     const container = $('chat-messages');
     if (!container) return;
-    
+
     try {
         const data = await api('getChatMessages', { limit: 60 });
         let messages = data.messages || [];
-        
-        // APPLY FILTER: If in team mode, only show current team's messages
+
+        // Filter for team mode
         if (STATE.chatMode === 'team') {
             const myTeam = STATE.data?.profile?.team;
             messages = messages.filter(m => m.team === myTeam);
         }
-        
+
         if (messages.length === 0) {
             container.innerHTML = `
                 <div class="chat-empty">
-                    <div style="font-size:48px;margin-bottom:15px;">📡</div>
-                    <p>NO TRANSMISSIONS FOUND ON THIS FREQUENCY.</p>
+                    <div style="font-size:40px;margin-bottom:12px;">📡</div>
+                    <p>NO SIGNALS ON THIS FREQ</p>
                 </div>
             `;
+            lastMessageId = null;
             return;
         }
-        
+
+        const newestId = messages[messages.length - 1]?.id;
+
+        // Skip if nothing changed
+        if (!fullReload && newestId === lastMessageId) return;
+
+        const hasNew = lastMessageId !== null && newestId !== lastMessageId;
+        const wasAtBottom = isChatAtBottom();
+
         const myName = (STATE.data?.profile?.name || '').toLowerCase();
-        
+
         container.innerHTML = messages.map(msg => {
             const isMe = msg.username.toLowerCase() === myName;
             return `
@@ -6052,64 +6098,99 @@ async function loadMessages() {
                 </div>
             `;
         }).join('');
-        
-        container.scrollTop = container.scrollHeight;
-        
+
+        lastMessageId = newestId;
+
+        if (fullReload || wasAtBottom) {
+            scrollChatToBottom();
+        } else if (hasNew) {
+            const ind = $('new-msg-indicator');
+            if (ind) ind.style.display = 'block';
+        }
+
     } catch (e) {
-        container.innerHTML = `<div class="chat-error">SIGNAL INTERRUPTED</div>`;
+        if (fullReload) {
+            container.innerHTML = `
+                <div class="chat-error">
+                    <p>SIGNAL LOST</p>
+                    <button onclick="loadMessages(true)" class="btn-secondary" style="margin-top:8px;">RECONNECT</button>
+                </div>
+            `;
+        }
     }
 }
 
+// ==================== SEND MESSAGE ====================
+
 async function sendMessage() {
+    if (isSending) return;
+
     const input = $('chat-input');
     const sendBtn = $('send-btn');
     if (!input) return;
-    
+
     const msg = input.value.trim();
     if (!msg) return;
-    
+
+    isSending = true;
+
     if (sendBtn) {
         sendBtn.disabled = true;
         sendBtn.style.opacity = '0.6';
     }
-    
+
+    const backup = msg;
+    input.value = '';
+    input.style.height = 'auto';
+    if ($('char-count')) $('char-count').textContent = '0/500';
+
     try {
         const result = await api('sendChatMessage', {
             agentNo: STATE.agentNo,
-            message: msg,
-            team: STATE.data?.profile?.team // Ensure team is sent for filtering
+            message: backup
         });
-        
+
         if (result.success) {
-            input.value = '';
-            input.style.height = 'auto';
-            if ($('char-count')) $('char-count').textContent = '0/500';
-            await loadMessages();
+            await loadMessages(true);
         } else {
-            showToast(result.error || 'Failed to send', 'error');
+            showToast(result.error || 'Transmission failed', 'error');
+            input.value = backup;
         }
     } catch (e) {
-        showToast('Failed to send', 'error');
+        showToast('Transmission failed', 'error');
+        input.value = backup;
     } finally {
+        isSending = false;
         if (sendBtn) {
             sendBtn.disabled = false;
             sendBtn.style.opacity = '1';
         }
+        input.focus();
     }
 }
 
-// Preserve existing utilities
+// ==================== ONLINE COUNT ====================
+
+async function updateOnlineCount() {
+    try {
+        const data = await api('getOnlineCount');
+        const el = $('online-count');
+        if (el && data.success) el.textContent = data.online || 0;
+    } catch (_e) { /* silent */ }
+}
+
+// ==================== UTILITIES ====================
+
 function formatTime(ts) {
     if (!ts) return '';
     try {
         const d = new Date(ts);
-        const now = new Date();
-        const diff = now - d;
-        if (diff < 60000) return 'Just now';
-        if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-        if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+        const diff = Date.now() - d.getTime();
+        if (diff < 60000) return 'Now';
+        if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + 'h';
         return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } catch (e) { return ''; }
+    } catch (_e) { return ''; }
 }
 
 function cleanupChat() {
@@ -6117,29 +6198,49 @@ function cleanupChat() {
         clearInterval(chatRefreshInterval);
         chatRefreshInterval = null;
     }
+    lastMessageId = null;
+    isSending = false;
 }
 
 function openChat() { loadPage('chat'); }
 
-// Notification logic remains identical
-let unreadCheckInterval = null;
+// ==================== UNREAD SYSTEM (Client-side) ====================
+
 async function checkUnreadMessages() {
     if (!STATE.agentNo) return;
     try {
-        const data = await api('hasUnreadMessages', { agentNo: STATE.agentNo });
+        const data = await api('getChatMessages', { limit: 1 });
+        const msgs = data.messages || [];
+        if (msgs.length === 0) return;
+
+        const latestId = msgs[msgs.length - 1]?.id;
         const dot = document.getElementById('dot-chat');
-        if (data.hasUnread) { if (dot) dot.classList.add('active'); } 
-        else { if (dot) dot.classList.remove('active'); }
-    } catch (e) {}
+
+        // First run — store baseline
+        if (lastKnownMessageId === null) {
+            lastKnownMessageId = latestId;
+            return;
+        }
+
+        // On chat page — silently update
+        const onChat = document.getElementById('page-chat')?.classList.contains('active');
+        if (onChat) {
+            lastKnownMessageId = latestId;
+            if (dot) dot.classList.remove('active');
+            return;
+        }
+
+        // New message while away
+        if (latestId !== lastKnownMessageId) {
+            if (dot) dot.classList.add('active');
+        }
+    } catch (_e) { /* silent */ }
 }
 
-async function markChatRead() {
-    if (!STATE.agentNo) return;
-    try {
-        await api('markChatAsRead', { agentNo: STATE.agentNo });
-        const dot = document.getElementById('dot-chat');
-        if (dot) dot.classList.remove('active');
-    } catch (e) {}
+function markChatRead() {
+    if (lastMessageId) lastKnownMessageId = lastMessageId;
+    const dot = document.getElementById('dot-chat');
+    if (dot) dot.classList.remove('active');
 }
 
 function startUnreadCheck() {
