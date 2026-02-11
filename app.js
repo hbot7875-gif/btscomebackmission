@@ -12272,13 +12272,6 @@ async function verifyPoliceAccess() {
         return;
     }
 
-    
-    if (password !== POLICE_PASSWORD) {
-        showToast('❌ Access Denied', 'error');
-        if (input) input.value = '';
-        return;
-    }
-
     // Hide login, show loading
     const loginModal = document.getElementById('police-login-modal');
     const container = document.getElementById('police-lastfm-container');
@@ -12301,7 +12294,11 @@ async function verifyPoliceAccess() {
         });
 
         if (!res.success) {
-            showToast(res.error || 'Failed', 'error');
+            // Wrong password comes back here
+            showToast(res.error || '❌ Access Denied', 'error');
+            if (input) input.value = '';
+            if (loginModal) loginModal.style.display = 'block';
+            if (container) container.style.display = 'none';
             return;
         }
 
