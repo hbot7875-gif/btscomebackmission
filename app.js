@@ -4918,7 +4918,7 @@ async function renderPageByRoute(pageName) {
             case 'playlists': await renderPlaylists(); break;
             case 'gc-links': await renderGCLinks(); break;
             case 'helper-roles': await renderHelperRoles(); break;
-            case 'chat': await (); break;
+            case 'chat': await renderChat(); break;
             case 'sotd': await renderSOTD(); break;
             case 'song-of-day': await renderSOTD(); break; 
             case 'streaming-tips': await renderStreamingTips(); break;
@@ -5195,11 +5195,10 @@ async function loadDashboard() {
             if (streakRes.success && streakRes.streak) {
                 const key = STREAK_KEY + STATE.agentNo;
                 
-                // 🔥 CRITICAL FIX: Ensure Dates match exact format required by initStreakTracker
-                // Backend sends YYYY-MM-DD. We need to convert to "Sat Feb 07 2026" format
-                const dbDateRaw = streakRes.streak.lastActiveDate; // "2026-02-07"
                 
-                // Create date object, ensuring we don't shift timezones on the date itself
+                const dbDateRaw = streakRes.streak.lastActiveDate; 
+                
+                
                 let formattedDate = null;
                 if(dbDateRaw) {
                     const parts = dbDateRaw.split('-'); // [2026, 02, 07]
