@@ -8280,7 +8280,7 @@ async function renderSummary() {
                 <div style="background:linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0.05) 100%); border:1px solid rgba(255,215,0,0.3); border-radius:16px; padding:25px; text-align:center; margin-bottom:25px; position:relative; overflow:hidden;">
                     <div style="position:absolute; top:0; left:0; width:100%; height:2px; background:linear-gradient(90deg, transparent, #ffd700, transparent);"></div>
                     <div style="font-size:36px; margin-bottom:10px;">🏆</div>
-                    <div style="color:#ffd700; font-size:10px; font-weight:800; letter-spacing:3px; margin-bottom:5px;">MISSION VICTOR</div>
+                    <div style="color:#ffd700; font-size:10px; font-weight:800; letter-spacing:3px; margin-bottom:5px;">MISSION CLEARED BY</div>
                     <div style="color:#fff; font-size:24px; font-weight:900; text-shadow:0 0 20px rgba(255,215,0,0.3);">${winner}</div>
                 </div>
             ` : `
