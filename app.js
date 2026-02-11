@@ -6038,6 +6038,7 @@ async function switchChatMode(mode) {
     STATE.chatMode = mode;
     lastMessageId = null;
     renderChat();
+    await updateOnlineCount();
 }
 
 // ==================== SCROLL HELPERS ====================
