@@ -5772,15 +5772,23 @@ async function sendHeartbeat() {
 async function updateOnlineCount() {
     try {
         const data = await api('getOnlineCount');
-        onlineCount = data.online || 0;
         const el = $('online-count');
-        if (el) el.textContent = onlineCount;
-        return data;
-    } catch (e) {
-        return { online: 0, users: [] };
-    }
+        
+        if (el && data.success) {
+            const users = data.users || [];
+            
+            if (STATE.chatMode === 'team') {
+                // Filter to only team members
+                const myTeam = STATE.data?.profile?.team;
+                const teamOnline = users.filter(u => u.team === myTeam);
+                el.textContent = teamOnline.length || 0;
+            } else {
+                // Global — show all
+                el.textContent = data.online || 0;
+            }
+        }
+    } catch (_e) { /* silent */ }
 }
-
 function stopHeartbeat() {
     if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
