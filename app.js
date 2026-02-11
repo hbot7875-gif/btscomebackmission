@@ -5885,7 +5885,6 @@ let chatRefreshInterval = null;
 // ==================== CHAT SYSTEM ====================
 
 if (typeof STATE.chatMode === 'undefined') STATE.chatMode = 'global';
-let chatRefreshInterval = null;
 let lastMessageId = null;
 let isSending = false;
 let lastKnownMessageId = null;
