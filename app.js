@@ -4918,7 +4918,7 @@ async function renderPageByRoute(pageName) {
             case 'playlists': await renderPlaylists(); break;
             case 'gc-links': await renderGCLinks(); break;
             case 'helper-roles': await renderHelperRoles(); break;
-            case 'chat': await renderChat(); break;
+            case 'chat': await (); break;
             case 'sotd': await renderSOTD(); break;
             case 'song-of-day': await renderSOTD(); break; 
             case 'streaming-tips': await renderStreamingTips(); break;
@@ -5894,131 +5894,78 @@ async function renderChat() {
     const myUsername = STATE.data?.profile?.name || 'Agent';
     
     container.innerHTML = `
-        <!-- Chat Rules -->
-        <div style="
-            background: rgba(255,255,255,0.03);
-            border-left: 3px solid #7b2cbf;
-            border-radius: 8px;
-            padding: 10px 12px;
-            margin-bottom: 12px;
-        ">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-                <span style="font-size:16px;">📋</span>
-                <span style="color:#fff;font-size:13px;font-weight:600;">Chat Rules</span>
+        <div class="chat-container-wrapper">
+            <!-- Rules Toggle (Compact for Mobile) -->
+            <div class="chat-rules-banner" onclick="showChatRules()">
+                <span class="icon">📜</span>
+                <span class="text">Tap to read Secret Comms Protocol</span>
+                <span class="arrow">→</span>
             </div>
-            <div style="color:#888;font-size:11px;line-height:1.6;">
-                • Be kind & respectful to all agents 💜<br>
-                • Messages auto-delete after 24 hours 🕐<br>
-                • Battle related conversations only ⚔️<br>
-                • No spam, links, or inappropriate content 🚫
-            </div>
-        </div>
-        
-        <!-- Chat Box -->
-        <div class="chat-box" style="
-            background: #12121a;
-            border-radius: 16px;
-            border: 1px solid #7b2cbf44;
-            overflow: hidden;
-            height: calc(100vh - 320px);
-            min-height: 350px;
-            display: flex;
-            flex-direction: column;
-        ">
-            <!-- Header -->
-            <div style="
-                background: #7b2cbf22;
-                padding: 12px 15px;
-                border-bottom: 1px solid #7b2cbf33;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            ">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <span style="font-size:20px;">🔐</span>
-                    <div>
-                        <div style="color:#fff;font-weight:600;font-size:14px;">Secret Comms</div>
-                        <div style="color:#888;font-size:10px;">All Teams • Encrypted</div>
+            
+            <div class="chat-main-box">
+                <!-- Header -->
+                <div class="chat-header">
+                    <div class="header-info">
+                        <div class="status-dot-wrapper">
+                            <div class="live-dot"></div>
+                        </div>
+                        <div>
+                            <div class="chat-title">SECRET COMMS</div>
+                            <div class="chat-online-count"><span id="online-count">0</span> Operatives Online</div>
+                        </div>
+                    </div>
+                    <button class="rules-btn-circle" onclick="updateOnlineCount()">🔄</button>
+                </div>
+                
+                <!-- Messages Area -->
+                <div id="chat-messages" class="chat-messages-area">
+                    <div class="chat-loading-shimmer">
+                        <div class="loader-ring"></div>
+                        <p>DECRYPTING MESSAGES...</p>
                     </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(0,255,136,0.1);border-radius:20px;">
-                    <span style="width:8px;height:8px;background:#00ff88;border-radius:50%;animation:pulse 2s infinite;"></span>
-                    <span style="color:#00ff88;font-size:12px;font-weight:600;">
-                        <span id="online-count">0</span> online
-                    </span>
-                </div>
-            </div>
-            
-            <!-- Messages -->
-            <div id="chat-messages" style="
-                flex: 1;
-                overflow-y: auto;
-                padding: 15px;
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-            ">
-                <div style="text-align:center;color:#888;">Loading messages...</div>
-            </div>
-            
-            <!-- Input -->
-            <div style="
-                padding: 12px;
-                border-top: 1px solid #7b2cbf33;
-                background: #0a0a0f;
-            ">
-                <div style="display:flex;gap:10px;align-items:center;">
-                    <span style="
-                        padding: 6px 10px;
-                        background: ${teamColor(team)}22;
-                        border: 1px solid ${teamColor(team)}44;
-                        border-radius: 6px;
-                        color: ${teamColor(team)};
-                        font-size: 11px;
-                        white-space: nowrap;
-                    ">@${sanitize(myUsername)}</span>
-                    <input 
-                        type="text" 
-                        id="chat-input" 
-                        placeholder="Type message..." 
-                        maxlength="500"
-                        style="
-                            flex: 1;
-                            background: #1a1a2e;
-                            border: 1px solid #333;
-                            border-radius: 8px;
-                            padding: 10px 12px;
-                            color: #fff;
-                            font-size: 14px;
-                            outline: none;
-                        "
-                    >
-                    <button id="send-btn" onclick="sendMessage()" style="
-                        background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                        border: none;
-                        border-radius: 8px;
-                        padding: 10px 16px;
-                        color: #fff;
-                        cursor: pointer;
-                        font-size: 13px;
-                        display: flex;
-                        align-items: center;
-                        gap: 5px;
-                    ">Send ➤</button>
-                </div>
-                <div style="margin-top:6px;display:flex;justify-content:space-between;">
-                    <span style="color:#555;font-size:10px;">Press Enter to send</span>
-                    <span id="char-count" style="color:#555;font-size:10px;">0/500</span>
+                
+                <!-- Input Area -->
+                <div class="chat-input-area">
+                    <div class="input-wrapper-inner">
+                        <div class="user-tag" style="color: ${teamColor(team)}">
+                            ${sanitize(myUsername)}
+                        </div>
+                        <div class="input-row">
+                            <textarea 
+                                id="chat-input" 
+                                placeholder="Enter encrypted message..." 
+                                maxlength="500"
+                                rows="1"
+                            ></textarea>
+                            <button id="send-btn" onclick="sendMessage()">
+                                <span class="send-icon">➤</span>
+                            </button>
+                        </div>
+                        <div class="input-footer">
+                            <span id="char-count">0/500</span>
+                            <span class="encryption-label">🔒 AES-256 ENCRYPTED</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     `;
     
-    // Setup input
+    // Auto-resize textarea logic
     const input = $('chat-input');
     const charCount = $('char-count');
     
     if (input) {
+        input.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            if (charCount) {
+                charCount.textContent = `${this.value.length}/500`;
+                charCount.style.color = this.value.length > 450 ? '#ff4444' : '#666';
+            }
+        });
+
         input.addEventListener('keypress', e => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -6026,34 +5973,27 @@ async function renderChat() {
             }
         });
         
-        input.addEventListener('input', () => {
-            if (charCount) {
-                charCount.textContent = `${input.value.length}/500`;
-                charCount.style.color = input.value.length > 450 ? '#ff6b6b' : '#555';
-            }
+        // Mobile Focus Fix: Scroll into view when keyboard pops up
+        input.addEventListener('focus', () => {
+            setTimeout(() => {
+                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
         });
-        
-        input.focus();
     }
     
-    // Mark as read
     markChatRead();
-    
-    // Load messages
     await loadMessages();
-    
-    // Update online count
     await updateOnlineCount();
     
-    // Auto refresh
     if (chatRefreshInterval) clearInterval(chatRefreshInterval);
     chatRefreshInterval = setInterval(() => {
         loadMessages();
         updateOnlineCount();
     }, 5000);
 }
+    
 
-// 👇 THIS WAS MISSING!
+
 async function loadMessages() {
     const container = $('chat-messages');
     if (!container) return;
