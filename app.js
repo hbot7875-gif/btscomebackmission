@@ -12327,7 +12327,7 @@ async function verifyPoliceAccess() {
                                         <div style="color:#ccc; font-size:11px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                                             ${sanitize(m.name || 'Agent')}
                                         </div>
-                                        <div style="color:#444; font-size:9px; font-family:monospace;">${m.agentNo}</div>
+                                        
                                     </div>
                                     <div style="display:flex; gap:4px; flex-shrink:0; margin-left:8px;">
                                         ${hasLastFm ? usernames.map((u, i) => `
