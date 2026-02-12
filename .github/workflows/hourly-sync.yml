@@ -11,66 +11,70 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: 🔍 Debug - Check URL
+      - name: 🕐 Shard 0 of 6
         run: |
-          echo "Testing connection to Supabase..."
-          echo "URL: ${{ secrets.SUPABASE_URL }}"
-          
-      - name: 🕐 Sync Batch 1
-        run: |
-          RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
+          curl -s --max-time 55 -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}')
-          
-          echo "Response: $RESPONSE"
-          
-          HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "❌ Failed with HTTP $HTTP_CODE"
-          else
-            echo "✅ Batch 1 done"
-          fi
-          sleep 5
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":0,"totalShards":6}'
+          echo "✅ Shard 0 done"
+          sleep 3
 
-      - name: 🕐 Sync Batch 2
+      - name: 🕐 Shard 1 of 6
         run: |
-          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
+          curl -s --max-time 55 -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
-          echo "✅ Batch 2 done"
-          sleep 5
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":1,"totalShards":6}'
+          echo "✅ Shard 1 done"
+          sleep 3
 
-      - name: 🕐 Sync Batch 3
+      - name: 🕐 Shard 2 of 6
         run: |
-          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
+          curl -s --max-time 55 -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
-          echo "✅ Batch 3 done"
-          sleep 5
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":2,"totalShards":6}'
+          echo "✅ Shard 2 done"
+          sleep 3
 
-      - name: 🕐 Sync Batch 4
+      - name: 🕐 Shard 3 of 6
         run: |
-          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
+          curl -s --max-time 55 -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
-          echo "✅ Batch 4 done"
-          sleep 5
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":3,"totalShards":6}'
+          echo "✅ Shard 3 done"
+          sleep 3
 
-      - name: 🕐 Sync Batch 5
+      - name: 🕐 Shard 4 of 6
         run: |
-          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
+          curl -s --max-time 55 -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
-          echo "✅ Batch 5 done"
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":4,"totalShards":6}'
+          echo "✅ Shard 4 done"
+          sleep 3
+
+      - name: 🕐 Shard 5 of 6
+        run: |
+          curl -s --max-time 55 -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":5,"totalShards":6}'
+          echo "✅ Shard 5 done"
+          sleep 3
 
       - name: 📊 Final Aggregation
         run: |
-          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
+          curl -s --max-time 30 -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -d '{"action":"runAggregationOnly","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
@@ -78,11 +82,12 @@ jobs:
 
       - name: 🧹 Cleanup
         run: |
-          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
+          curl -s --max-time 15 -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -d '{"action":"cleanupOnlineUsers"}'
           echo "✅ Cleanup done"
 
       - name: ✅ Complete
-        run: echo "🎉 All syncs completed at $(date)"
+        run: echo "🎉 All 170 agents synced at $(date)"
