@@ -1,163 +1,185 @@
-name: ⚡ BTS Mission Hourly Sync (Debug)
+name: ⚡ BTS Mission Hourly Sync
 
 on:
+  schedule:
+    - cron: '0 * * * *'
+  
   workflow_dispatch:
     inputs:
       week:
-        description: 'Week (leave empty for auto)'
+        description: 'Week label (leave empty for auto-detect)'
         required: false
         default: ''
+      total_shards:
+        description: 'Number of shards'
+        required: false
+        default: '5'
+
+env:
+  EDGE_FUNCTION_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  SYNC_ADMIN_KEY: ${{ secrets.SYNC_ADMIN_KEY }}
 
 jobs:
-  debug:
-    name: 🔧 Debug All
+
+  pre-sync:
+    name: 🔍 Pre-Sync Check
+    runs-on: ubuntu-latest
+    outputs:
+      current_week: ${{ steps.check.outputs.week }}
+      total_shards: ${{ steps.check.outputs.shards }}
+      should_sync: ${{ steps.check.outputs.should_sync }}
+    steps:
+      - name: Get Current Week
+        id: check
+        run: |
+          RESPONSE=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+            -H "Content-Type: application/json" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            --max-time 15 \
+            -d '{"action": "getCurrentWeek"}')
+          
+          echo "📡 $RESPONSE"
+          
+          WEEK=$(echo "$RESPONSE" | jq -r '.week // empty')
+          
+          if [ -n "${{ github.event.inputs.week }}" ]; then
+            WEEK="${{ github.event.inputs.week }}"
+          fi
+          
+          SHARDS="${{ github.event.inputs.total_shards || '5' }}"
+          
+          if [ -z "$WEEK" ] || [ "$WEEK" = "Pre-Season" ]; then
+            echo "⏸️ Pre-Season. Skipping."
+            echo "should_sync=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Week: $WEEK | Shards: $SHARDS"
+            echo "should_sync=true" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "week=$WEEK" >> $GITHUB_OUTPUT
+          echo "shards=$SHARDS" >> $GITHUB_OUTPUT
+
+  sync-shard:
+    name: 🔄 Shard ${{ matrix.shard }}/5
+    needs: pre-sync
+    if: needs.pre-sync.outputs.should_sync == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [0, 1, 2, 3, 4]
+      fail-fast: false
+      max-parallel: 5
+    steps:
+      - name: Sync Shard ${{ matrix.shard }}
+        run: |
+          WEEK="${{ needs.pre-sync.outputs.current_week }}"
+          SHARD=${{ matrix.shard }}
+          SHARDS=${{ needs.pre-sync.outputs.total_shards }}
+          
+          echo "🔄 Shard $SHARD/$SHARDS — $WEEK"
+          
+          RESPONSE=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+            -H "Content-Type: application/json" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            --max-time 120 \
+            -d "{
+              \"action\": \"initiateFairSyncShard\",
+              \"adminKey\": \"$SYNC_ADMIN_KEY\",
+              \"week\": \"$WEEK\",
+              \"shard\": $SHARD,
+              \"totalShards\": $SHARDS
+            }")
+          
+          echo "📡 Response: $RESPONSE"
+          
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
+          COMPLETED=$(echo "$RESPONSE" | jq -r '.completed // 0')
+          FAILED=$(echo "$RESPONSE" | jq -r '.failed // 0')
+          AGENTS=$(echo "$RESPONSE" | jq -r '.agentsInShard // 0')
+          
+          echo "┌──────────────────────────────┐"
+          echo "│ Shard $SHARD Results          "
+          echo "│ Agents in shard: $AGENTS      "
+          echo "│ ✅ Completed:    $COMPLETED   "
+          echo "│ ❌ Failed:       $FAILED      "
+          echo "└──────────────────────────────┘"
+          
+          if [ "$SUCCESS" != "true" ]; then
+            echo "❌ FAILED"
+            exit 1
+          fi
+
+  aggregate:
+    name: 📊 Aggregate
+    needs: [pre-sync, sync-shard]
+    if: always() && needs.pre-sync.outputs.should_sync == 'true' && needs.sync-shard.result != 'failure'
     runs-on: ubuntu-latest
     steps:
-      - name: 1️⃣ Check Secrets Exist
+      - name: Wait for DB
+        run: sleep 3
+
+      - name: Run Aggregations
         run: |
-          echo "============================================"
-          echo "CHECKING SECRETS"
-          echo "============================================"
+          WEEK="${{ needs.pre-sync.outputs.current_week }}"
+          echo "📊 Aggregating $WEEK..."
           
-          if [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
-            echo "❌ SUPABASE_ANON_KEY is EMPTY or NOT SET!"
+          RESPONSE=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+            -H "Content-Type: application/json" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            --max-time 60 \
+            -d "{
+              \"action\": \"runAggregationOnly\",
+              \"adminKey\": \"$SYNC_ADMIN_KEY\",
+              \"week\": \"$WEEK\"
+            }")
+          
+          echo "$RESPONSE"
+          
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
+          if [ "$SUCCESS" = "true" ]; then
+            echo "✅ Aggregations done!"
           else
-            echo "✅ SUPABASE_ANON_KEY exists (length: ${#ANON_KEY_CHECK})"
+            echo "⚠️ Aggregation issue"
           fi
+
+  cleanup:
+    name: 🧹 Cleanup
+    needs: [pre-sync, aggregate]
+    if: always() && needs.pre-sync.outputs.should_sync == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove Stale Users
+        run: |
+          RESPONSE=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+            -H "Content-Type: application/json" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            --max-time 15 \
+            -d '{"action": "cleanupOnlineUsers"}')
           
-          if [ -z "${{ secrets.SYNC_ADMIN_KEY }}" ]; then
-            echo "❌ SYNC_ADMIN_KEY is EMPTY or NOT SET!"
+          echo "🧹 Removed $(echo "$RESPONSE" | jq -r '.removed // 0') stale users"
+
+  summary:
+    name: 📋 Summary
+    needs: [pre-sync, sync-shard, aggregate, cleanup]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Final Report
+        run: |
+          echo ""
+          echo "╔═══════════════════════════════════════════╗"
+          echo "║       ⚡ BTS MISSION SYNC REPORT          ║"
+          echo "╠═══════════════════════════════════════════╣"
+          echo "║ 📅 Week:        ${{ needs.pre-sync.outputs.current_week }}"
+          echo "║ 🔀 Shards:      ${{ needs.pre-sync.outputs.total_shards }}"
+          echo "║ 🔄 Sync:        ${{ needs.sync-shard.result }}"
+          echo "║ 📊 Aggregation: ${{ needs.aggregate.result }}"
+          echo "║ 🧹 Cleanup:     ${{ needs.cleanup.result }}"
+          echo "╚═══════════════════════════════════════════╝"
+          
+          if [ "${{ needs.sync-shard.result }}" = "success" ]; then
+            echo "🎉 All 200 agents synced!"
           else
-            echo "✅ SYNC_ADMIN_KEY exists"
+            echo "⚠️ Check shard logs"
           fi
-        env:
-          ANON_KEY_CHECK: ${{ secrets.SUPABASE_ANON_KEY }}
-
-      - name: 2️⃣ Test Basic API (No Auth)
-        run: |
-          echo "============================================"
-          echo "TEST 1: Basic API call without auth"
-          echo "============================================"
-          
-          RESP=$(curl -s -w "\n\nHTTP_CODE:%{http_code}" -X POST \
-            "https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api" \
-            -H "Content-Type: application/json" \
-            -d '{"action":"getCurrentWeek"}')
-          
-          echo "Response:"
-          echo "$RESP"
-          echo ""
-
-      - name: 3️⃣ Test API With Auth
-        env:
-          ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: |
-          echo "============================================"
-          echo "TEST 2: API call WITH auth header"
-          echo "============================================"
-          
-          echo "ANON_KEY first 20 chars: ${ANON_KEY:0:20}..."
-          echo ""
-          
-          RESP=$(curl -s -w "\n\nHTTP_CODE:%{http_code}" -X POST \
-            "https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api" \
-            -H "Content-Type: application/json" \
-            -H "apikey: $ANON_KEY" \
-            -d '{"action":"getCurrentWeek"}')
-          
-          echo "Response:"
-          echo "$RESP"
-          echo ""
-
-      - name: 4️⃣ Test getCurrentWeek
-        env:
-          ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: |
-          echo "============================================"
-          echo "TEST 3: getCurrentWeek"
-          echo "============================================"
-          
-          RESP=$(curl -s -X POST \
-            "https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api" \
-            -H "Content-Type: application/json" \
-            -H "apikey: $ANON_KEY" \
-            -d '{"action":"getCurrentWeek"}')
-          
-          echo "Raw response: $RESP"
-          echo ""
-          
-          WEEK=$(echo "$RESP" | jq -r '.week // "PARSE_ERROR"')
-          echo "Parsed week: $WEEK"
-
-      - name: 5️⃣ Test initiateFairSyncShard
-        env:
-          ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          ADMIN_KEY: ${{ secrets.SYNC_ADMIN_KEY }}
-        run: |
-          echo "============================================"
-          echo "TEST 4: initiateFairSyncShard (Shard 0)"
-          echo "============================================"
-          
-          WEEK="${{ github.event.inputs.week }}"
-          if [ -z "$WEEK" ]; then
-            WEEK="Week 10"
-          fi
-          
-          echo "Week: $WEEK"
-          echo "Admin Key first 5 chars: ${ADMIN_KEY:0:5}..."
-          echo ""
-          
-          # Build JSON manually
-          JSON="{\"action\":\"initiateFairSyncShard\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\",\"shard\":0,\"totalShards\":5}"
-          echo "Request JSON: $JSON"
-          echo ""
-          
-          RESP=$(curl -s -w "\n\nHTTP_CODE:%{http_code}" -X POST \
-            "https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api" \
-            -H "Content-Type: application/json" \
-            -H "apikey: $ANON_KEY" \
-            --max-time 120 \
-            -d "$JSON")
-          
-          echo "Response:"
-          echo "$RESP"
-          echo ""
-          
-          # Try to parse
-          echo "Parsed:"
-          echo "$RESP" | head -n -2 | jq . 2>/dev/null || echo "(Could not parse as JSON)"
-
-      - name: 6️⃣ Test with Hardcoded Key (TEMPORARY DEBUG)
-        run: |
-          echo "============================================"
-          echo "TEST 5: Direct call with your actual anon key"
-          echo "============================================"
-          echo ""
-          echo "⚠️ This test uses NO secrets - just tests if API is reachable"
-          echo ""
-          
-          # Test without any auth first
-          RESP=$(curl -s -X POST \
-            "https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api" \
-            -H "Content-Type: application/json" \
-            -d '{"action":"getCurrentWeek"}')
-          
-          echo "No-auth response: $RESP"
-
-      - name: 7️⃣ Debug Summary
-        run: |
-          echo ""
-          echo "============================================"
-          echo "📋 DEBUG COMPLETE"
-          echo "============================================"
-          echo ""
-          echo "Check the outputs above for:"
-          echo "  1. Are secrets set? (Step 1)"
-          echo "  2. Does API work without auth? (Step 2)"
-          echo "  3. Does API work with auth? (Step 3)"
-          echo "  4. Does getCurrentWeek return valid week? (Step 4)"
-          echo "  5. Does initiateFairSyncShard work? (Step 5)"
-          echo ""
-          echo "If Step 2 works but Step 3 fails → Secret is wrong"
-          echo "If Step 3 works but Step 5 fails → ADMIN_KEY is wrong"
-          echo "If all fail → API URL or function issue"
