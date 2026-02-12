@@ -1,0 +1,94 @@
+name: ⚡ BTS Mission Hourly Sync
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'Week label (leave empty for auto)'
+        required: false
+        default: ''
+
+env:
+  EDGE_FUNCTION_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  SYNC_ADMIN_KEY: ${{ secrets.SYNC_ADMIN_KEY }}
+
+jobs:
+  pre-sync:
+    name: 🔍 Check Week
+    runs-on: ubuntu-latest
+    outputs:
+      week: ${{ steps.get.outputs.week }}
+      sync: ${{ steps.get.outputs.sync }}
+    steps:
+      - id: get
+        run: |
+          RESP=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+            -H "Content-Type: application/json" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -d '{"action":"getCurrentWeek"}')
+          WEEK=$(echo "$RESP" | jq -r '.week')
+          if [ -n "${{ github.event.inputs.week }}" ]; then WEEK="${{ github.event.inputs.week }}"; fi
+          echo "week=$WEEK" >> $GITHUB_OUTPUT
+          if [ "$WEEK" = "Pre-Season" ]; then echo "sync=false" >> $GITHUB_OUTPUT; else echo "sync=true" >> $GITHUB_OUTPUT; fi
+          echo "📅 Week: $WEEK"
+
+  shard:
+    name: 🔄 Shard ${{ matrix.s }}
+    needs: pre-sync
+    if: needs.pre-sync.outputs.sync == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        s: [0, 1, 2, 3, 4]
+      fail-fast: false
+      max-parallel: 5
+    steps:
+      - name: Sync
+        run: |
+          echo "🔄 Shard ${{ matrix.s }} for ${{ needs.pre-sync.outputs.week }}"
+          RESP=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+            -H "Content-Type: application/json" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            --max-time 120 \
+            -d '{
+              "action": "initiateFairSyncShard",
+              "adminKey": "'"$SYNC_ADMIN_KEY"'",
+              "week": "'"${{ needs.pre-sync.outputs.week }}"'",
+              "shard": ${{ matrix.s }},
+              "totalShards": 5
+            }')
+          echo "$RESP" | jq .
+          DONE=$(echo "$RESP" | jq -r '.completed // 0')
+          AGENTS=$(echo "$RESP" | jq -r '.agentsInShard // 0')
+          echo "✅ Shard ${{ matrix.s }}: $DONE/$AGENTS agents synced"
+          if [ "$(echo "$RESP" | jq -r '.success')" != "true" ]; then exit 1; fi
+
+  aggregate:
+    name: 📊 Aggregate
+    needs: [pre-sync, shard]
+    if: always() && needs.pre-sync.outputs.sync == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          sleep 3
+          curl -s -X POST "$EDGE_FUNCTION_URL" \
+            -H "Content-Type: application/json" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -d '{"action":"runAggregationOnly","adminKey":"'"$SYNC_ADMIN_KEY"'","week":"'"${{ needs.pre-sync.outputs.week }}"'"}'
+          echo "✅ Aggregation done"
+
+  cleanup:
+    name: 🧹 Cleanup
+    needs: [pre-sync, aggregate]
+    if: always() && needs.pre-sync.outputs.sync == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -s -X POST "$EDGE_FUNCTION_URL" \
+            -H "Content-Type: application/json" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -d '{"action":"cleanupOnlineUsers"}'
+          echo "✅ Cleanup done"
