@@ -5533,11 +5533,11 @@ async function renderHome() {
             const teamTime = new Date(summary.lastUpdated).getTime();
             const agentTime = STATE.lastUpdated ? new Date(STATE.lastUpdated).getTime() : 0;
             
-            // Only update the display if the Team Summary is NEWER than the Agent Stats
+            
             if (teamTime > agentTime) {
                 STATE.lastUpdated = summary.lastUpdated; 
             }
-            // Always refresh the time display
+            
             updateTime(); 
         }
         
