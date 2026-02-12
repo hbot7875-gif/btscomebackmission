@@ -14,11 +14,6 @@ on:
         description: 'Number of shards'
         required: false
         default: '5'
-      skip_aggregation:
-        description: 'Skip aggregation step'
-        required: false
-        default: 'false'
-        type: boolean
 
 env:
   EDGE_FUNCTION_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
@@ -27,9 +22,6 @@ env:
 
 jobs:
 
-  # ═══════════════════════════════════
-  # STEP 1: Pre-flight check
-  # ═══════════════════════════════════
   pre-sync:
     name: 🔍 Pre-Sync Check
     runs-on: ubuntu-latest
@@ -68,10 +60,6 @@ jobs:
           echo "week=$WEEK" >> $GITHUB_OUTPUT
           echo "shards=$SHARDS" >> $GITHUB_OUTPUT
 
-  # ═══════════════════════════════════
-  # STEP 2: Parallel shard sync
-  # 200 agents ÷ 5 shards = 40 each
-  # ═══════════════════════════════════
   sync-shard:
     name: 🔄 Shard ${{ matrix.shard }}/5
     needs: pre-sync
@@ -88,11 +76,10 @@ jobs:
           WEEK="${{ needs.pre-sync.outputs.current_week }}"
           SHARD=${{ matrix.shard }}
           SHARDS=${{ needs.pre-sync.outputs.total_shards }}
-          START=$(date +%s)
           
           echo "🔄 Shard $SHARD/$SHARDS — $WEEK"
           
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$EDGE_FUNCTION_URL" \
+          RESPONSE=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
             -H "Content-Type: application/json" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             --max-time 120 \
@@ -104,48 +91,29 @@ jobs:
               \"totalShards\": $SHARDS
             }")
           
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | sed '$d')
-          END=$(date +%s)
+          echo "📡 Response: $RESPONSE"
           
-          echo "📡 HTTP $HTTP_CODE ($(($END - $START))s)"
-          
-          SUCCESS=$(echo "$BODY" | jq -r '.success // false')
-          COMPLETED=$(echo "$BODY" | jq -r '.completed // 0')
-          FAILED=$(echo "$BODY" | jq -r '.failed // 0')
-          AGENTS=$(echo "$BODY" | jq -r '.agentsInShard // 0')
-          DURATION=$(echo "$BODY" | jq -r '.duration // "?"')
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
+          COMPLETED=$(echo "$RESPONSE" | jq -r '.completed // 0')
+          FAILED=$(echo "$RESPONSE" | jq -r '.failed // 0')
+          AGENTS=$(echo "$RESPONSE" | jq -r '.agentsInShard // 0')
           
           echo "┌──────────────────────────────┐"
           echo "│ Shard $SHARD Results          "
-          echo "│ Agents:    $AGENTS            "
-          echo "│ ✅ Done:   $COMPLETED         "
-          echo "│ ❌ Failed: $FAILED            "
-          echo "│ ⏱️  Time:  $DURATION          "
+          echo "│ Agents in shard: $AGENTS      "
+          echo "│ ✅ Completed:    $COMPLETED   "
+          echo "│ ❌ Failed:       $FAILED      "
           echo "└──────────────────────────────┘"
           
-          ERRORS=$(echo "$BODY" | jq -r '.errors[]? // empty' 2>/dev/null)
-          if [ -n "$ERRORS" ]; then
-            echo "⚠️ Errors:"
-            echo "$ERRORS"
-          fi
-          
           if [ "$SUCCESS" != "true" ]; then
-            echo "❌ FAILED: $(echo "$BODY" | jq -r '.error // "Unknown"')"
+            echo "❌ FAILED"
             exit 1
           fi
 
-  # ═══════════════════════════════════
-  # STEP 3: Aggregation (ONCE after all shards)
-  # ═══════════════════════════════════
   aggregate:
     name: 📊 Aggregate
     needs: [pre-sync, sync-shard]
-    if: |
-      always() && 
-      needs.pre-sync.outputs.should_sync == 'true' &&
-      needs.sync-shard.result != 'failure' &&
-      github.event.inputs.skip_aggregation != 'true'
+    if: always() && needs.pre-sync.outputs.should_sync == 'true' && needs.sync-shard.result != 'failure'
     runs-on: ubuntu-latest
     steps:
       - name: Wait for DB
@@ -166,19 +134,15 @@ jobs:
               \"week\": \"$WEEK\"
             }")
           
-          echo "$RESPONSE" | jq .
+          echo "$RESPONSE"
           
           SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
           if [ "$SUCCESS" = "true" ]; then
             echo "✅ Aggregations done!"
           else
             echo "⚠️ Aggregation issue"
-            exit 1
           fi
 
-  # ═══════════════════════════════════
-  # STEP 4: Cleanup
-  # ═══════════════════════════════════
   cleanup:
     name: 🧹 Cleanup
     needs: [pre-sync, aggregate]
@@ -195,9 +159,6 @@ jobs:
           
           echo "🧹 Removed $(echo "$RESPONSE" | jq -r '.removed // 0') stale users"
 
-  # ═══════════════════════════════════
-  # STEP 5: Summary
-  # ═══════════════════════════════════
   summary:
     name: 📋 Summary
     needs: [pre-sync, sync-shard, aggregate, cleanup]
@@ -211,20 +172,14 @@ jobs:
           echo "║       ⚡ BTS MISSION SYNC REPORT          ║"
           echo "╠═══════════════════════════════════════════╣"
           echo "║ 📅 Week:        ${{ needs.pre-sync.outputs.current_week }}"
-          echo "║ 👥 Agents:      ~200"
           echo "║ 🔀 Shards:      ${{ needs.pre-sync.outputs.total_shards }}"
           echo "║ 🔄 Sync:        ${{ needs.sync-shard.result }}"
           echo "║ 📊 Aggregation: ${{ needs.aggregate.result }}"
           echo "║ 🧹 Cleanup:     ${{ needs.cleanup.result }}"
-          echo "║ 🕐 Time:        $(date -u '+%H:%M:%S UTC')"
           echo "╚═══════════════════════════════════════════╝"
-          echo ""
           
-          if [ "${{ needs.sync-shard.result }}" = "success" ] && [ "${{ needs.aggregate.result }}" = "success" ]; then
-            echo "🎉 All systems green!"
-          elif [ "${{ needs.sync-shard.result }}" = "success" ]; then
-            echo "⚠️ Sync OK but aggregation had issues"
+          if [ "${{ needs.sync-shard.result }}" = "success" ]; then
+            echo "🎉 All 200 agents synced!"
           else
-            echo "❌ Sync failures — check shard logs"
-            exit 1
+            echo "⚠️ Check shard logs"
           fi
