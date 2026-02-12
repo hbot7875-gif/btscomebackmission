@@ -11,15 +11,12 @@ on:
         default: ''
 
 jobs:
-  pre-sync:
-    name: 🔍 Check Week
+  sync:
+    name: 🔄 Full Sync
     runs-on: ubuntu-latest
-    outputs:
-      week: ${{ steps.get.outputs.week }}
-      sync: ${{ steps.get.outputs.sync }}
     steps:
-      - name: Get Current Week
-        id: get
+      - name: Get Week
+        id: week
         env:
           EDGE_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
           ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -29,95 +26,62 @@ jobs:
             -H "Authorization: Bearer $ANON_KEY" \
             -H "apikey: $ANON_KEY" \
             -d '{"action":"getCurrentWeek"}')
-          
-          echo "Response: $RESP"
-          WEEK=$(echo "$RESP" | jq -r '.week // "Pre-Season"')
-          
+          WEEK=$(echo "$RESP" | jq -r '.week // "Week 10"')
           if [ -n "${{ github.event.inputs.week }}" ]; then 
             WEEK="${{ github.event.inputs.week }}"
           fi
-          
           echo "week=$WEEK" >> $GITHUB_OUTPUT
-          
-          if [ "$WEEK" = "Pre-Season" ] || [ "$WEEK" = "null" ]; then 
-            echo "sync=false" >> $GITHUB_OUTPUT
-          else 
-            echo "sync=true" >> $GITHUB_OUTPUT
-          fi
-          
           echo "📅 Week: $WEEK"
 
-  shard:
-    name: 🔄 Shard ${{ matrix.s }}
-    needs: pre-sync
-    if: needs.pre-sync.outputs.sync == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        s: [0, 1, 2, 3, 4]
-      fail-fast: false
-      max-parallel: 5
-    steps:
-      - name: Sync Shard ${{ matrix.s }}
+      - name: Sync All Agents
         env:
           EDGE_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
           ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           ADMIN_KEY: ${{ secrets.SYNC_ADMIN_KEY }}
-          WEEK: ${{ needs.pre-sync.outputs.week }}
-          SHARD: ${{ matrix.s }}
+          WEEK: ${{ steps.week.outputs.week }}
         run: |
-          echo "🔄 Shard $SHARD for $WEEK"
+          echo "🔄 Starting sync for $WEEK"
           
-          RESP=$(curl -s -X POST "$EDGE_URL" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $ANON_KEY" \
-            -H "apikey: $ANON_KEY" \
-            --max-time 120 \
-            -d "{\"action\":\"initiateFairSyncShard\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\",\"shard\":$SHARD,\"totalShards\":5}")
+          # Run 5 batches sequentially (not parallel)
+          for BATCH in 1 2 3 4 5; do
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📦 Batch $BATCH/5"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            
+            RESP=$(curl -s -X POST "$EDGE_URL" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $ANON_KEY" \
+              -H "apikey: $ANON_KEY" \
+              --max-time 120 \
+              -d "{\"action\":\"initiateFairSync\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\"}")
+            
+            echo "$RESP" | jq -r '"✅ Synced: \(.progress.completed // 0) | ❌ Failed: \(.progress.failed // 0)"'
+            
+            # Small delay between batches
+            sleep 2
+          done
           
-          echo "$RESP" | jq . || echo "$RESP"
-          
-          SUCCESS=$(echo "$RESP" | jq -r '.success // false')
-          DONE=$(echo "$RESP" | jq -r '.completed // 0')
-          AGENTS=$(echo "$RESP" | jq -r '.agentsInShard // 0')
-          
-          echo "✅ Shard $SHARD: $DONE/$AGENTS agents"
-          
-          if [ "$SUCCESS" != "true" ]; then
-            echo "❌ Failed!"
-            exit 1
-          fi
+          echo ""
+          echo "🎉 All batches complete!"
 
-  aggregate:
-    name: 📊 Aggregate
-    needs: [pre-sync, shard]
-    if: always() && needs.pre-sync.outputs.sync == 'true' && needs.shard.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run Aggregations
+      - name: Final Aggregation
         env:
           EDGE_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
           ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           ADMIN_KEY: ${{ secrets.SYNC_ADMIN_KEY }}
-          WEEK: ${{ needs.pre-sync.outputs.week }}
+          WEEK: ${{ steps.week.outputs.week }}
         run: |
-          sleep 3
-          RESP=$(curl -s -X POST "$EDGE_URL" \
+          echo "📊 Running final aggregation..."
+          curl -s -X POST "$EDGE_URL" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $ANON_KEY" \
             -H "apikey: $ANON_KEY" \
-            -d "{\"action\":\"runAggregationOnly\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\"}")
-          
-          echo "$RESP"
-          echo "✅ Aggregation done"
+            -d "{\"action\":\"runAggregationOnly\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\"}"
+          echo ""
+          echo "✅ Aggregation complete!"
 
-  cleanup:
-    name: 🧹 Cleanup
-    needs: [pre-sync, aggregate]
-    if: always() && needs.pre-sync.outputs.sync == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Cleanup Stale Users
+      - name: Cleanup
         env:
           EDGE_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
           ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -127,20 +91,4 @@ jobs:
             -H "Authorization: Bearer $ANON_KEY" \
             -H "apikey: $ANON_KEY" \
             -d '{"action":"cleanupOnlineUsers"}'
-          echo "✅ Cleanup done"
-
-  summary:
-    name: 📋 Summary
-    needs: [pre-sync, shard, aggregate, cleanup]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print Summary
-        run: |
-          echo "╔═══════════════════════════════════════╗"
-          echo "║     ⚡ SYNC COMPLETE                  ║"
-          echo "╠═══════════════════════════════════════╣"
-          echo "║ Week:   ${{ needs.pre-sync.outputs.week }}"
-          echo "║ Shards: ${{ needs.shard.result }}"
-          echo "║ Agg:    ${{ needs.aggregate.result }}"
-          echo "╚═══════════════════════════════════════╝"
+          echo "🧹 Cleanup done!"
