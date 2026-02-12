@@ -1,0 +1,65 @@
+name: ⚡ BTS Mission Hourly Sync
+
+on:
+  schedule:
+    - cron: '5 */2 * * *'
+  workflow_dispatch:
+
+jobs:
+  fair-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 🕐 Sync Batch 1
+        run: |
+          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
+          sleep 3
+
+      - name: 🕐 Sync Batch 2
+        run: |
+          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
+          sleep 3
+
+      - name: 🕐 Sync Batch 3
+        run: |
+          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
+          sleep 3
+
+      - name: 🕐 Sync Batch 4
+        run: |
+          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
+          sleep 3
+
+      - name: 🕐 Sync Batch 5
+        run: |
+          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
+
+      - name: 📊 Final Aggregation
+        run: |
+          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -d '{"action":"runAggregationOnly","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
+
+      - name: 🧹 Cleanup
+        run: |
+          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -d '{"action":"cleanupOnlineUsers"}'
