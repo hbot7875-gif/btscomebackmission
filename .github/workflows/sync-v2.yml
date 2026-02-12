@@ -21,7 +21,7 @@ jobs:
           EDGE_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
           ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          RESP=$(curl -s -X POST "$EDGE_URL" -H "apikey: $ANON_KEY" -d '{"action":"getCurrentWeek"}')
+          RESP=$(curl -s --max-time 15 -X POST "$EDGE_URL" -H "apikey: $ANON_KEY" -d '{"action":"getCurrentWeek"}')
           WEEK=$(echo "$RESP" | jq -r '.week // "Week 10"')
           if [ -n "${{ github.event.inputs.week }}" ]; then WEEK="${{ github.event.inputs.week }}"; fi
           echo "week=$WEEK" >> $GITHUB_OUTPUT
@@ -34,19 +34,36 @@ jobs:
           ADMIN_KEY: ${{ secrets.SYNC_ADMIN_KEY }}
           WEEK: ${{ steps.week.outputs.week }}
         run: |
+          TOTAL_OK=0
+          TOTAL_FAIL=0
+          
           for SHARD in 0 1 2 3 4; do
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "🔄 Syncing Shard $SHARD/5"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             
-            curl -s -X POST "$EDGE_URL" \
+            RESP=$(curl -s --max-time 55 -X POST "$EDGE_URL" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $ANON_KEY" \
               -H "apikey: $ANON_KEY" \
-              -d "{\"action\":\"initiateFairSyncShard\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\",\"shard\":$SHARD,\"totalShards\":5}" | jq .
+              -d "{\"action\":\"initiateFairSyncShard\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\",\"shard\":$SHARD,\"totalShards\":5}")
             
-            sleep 2 # Tiny pause for safety
+            echo "$RESP" | jq .
+            
+            # Track results
+            OK=$(echo "$RESP" | jq -r '.completed // 0')
+            FAIL=$(echo "$RESP" | jq -r '.failed // 0')
+            TOTAL_OK=$((TOTAL_OK + OK))
+            TOTAL_FAIL=$((TOTAL_FAIL + FAIL))
+            
+            echo "✅ Shard $SHARD: $OK synced, $FAIL failed"
+            
+            sleep 2
           done
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📊 TOTAL: $TOTAL_OK synced, $TOTAL_FAIL failed"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: Final Aggregation
         env:
@@ -56,11 +73,11 @@ jobs:
           WEEK: ${{ steps.week.outputs.week }}
         run: |
           echo "📊 Aggregating Results..."
-          curl -s -X POST "$EDGE_URL" \
+          curl -s --max-time 30 -X POST "$EDGE_URL" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $ANON_KEY" \
             -H "apikey: $ANON_KEY" \
-            -d "{\"action\":\"runAggregationOnly\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\"}"
+            -d "{\"action\":\"runAggregationOnly\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\"}" | jq .
           echo "✅ Done"
 
       - name: Cleanup
@@ -68,8 +85,8 @@ jobs:
           EDGE_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
           ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          curl -s -X POST "$EDGE_URL" \
+          curl -s --max-time 10 -X POST "$EDGE_URL" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $ANON_KEY" \
             -H "apikey: $ANON_KEY" \
-            -d '{"action":"cleanupOnlineUsers"}'
+            -d '{"action":"cleanupOnlineUsers"}' | jq .
