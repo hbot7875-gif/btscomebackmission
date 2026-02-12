@@ -395,23 +395,23 @@ function sanitize(str) {
 function formatLastUpdated(dateStr) {
     if (!dateStr) return 'Unknown';
     try {
-        // FIX: Remove the 'Z' or timezone offset from the string so the browser 
-        // treats it as "Local Time" (which your backend already calculated as IST)
-        const cleanDateStr = dateStr.replace('Z', '').replace(/\.\d+/, '').replace(/\+.*$/, '');
+        // 1. Remove Z so browser doesn't convert timezone
+        let cleanStr = dateStr.replace('Z', '').replace(/\+.*$/, '');
         
-        const date = new Date(cleanDateStr);
-        
+        const date = new Date(cleanStr);
         if (isNaN(date.getTime())) return dateStr;
 
-        // Use simple formatting that reflects the string exactly
-        const hours = date.getHours();
+        let hours = date.getHours();
         const minutes = String(date.getMinutes()).padStart(2, '0');
         const ampm = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours % 12 || 12;
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        
         const month = date.toLocaleString('en-US', { month: 'short' });
         const day = date.getDate();
 
-        return `${month} ${day}, ${displayHours}:${minutes} ${ampm}`;
+        // Added "IST" at the end for clarity
+        return `${month} ${day}, ${hours}:${minutes} ${ampm} IST`; 
     } catch (e) { 
         return dateStr; 
     }
@@ -5529,9 +5529,15 @@ async function renderHome() {
             api('getRankings', { week: selectedWeek, limit: 5 }), 
             api('getGoalsProgress', { week: selectedWeek })
         ]);
-        
-        if (summary.lastUpdated) { 
-            STATE.lastUpdated = summary.lastUpdated; 
+         if (summary.lastUpdated) { 
+            const teamTime = new Date(summary.lastUpdated).getTime();
+            const agentTime = STATE.lastUpdated ? new Date(STATE.lastUpdated).getTime() : 0;
+            
+            // Only update the display if the Team Summary is NEWER than the Agent Stats
+            if (teamTime > agentTime) {
+                STATE.lastUpdated = summary.lastUpdated; 
+            }
+            // Always refresh the time display
             updateTime(); 
         }
         
