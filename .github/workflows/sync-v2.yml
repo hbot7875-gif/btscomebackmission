@@ -10,11 +10,6 @@ on:
         required: false
         default: ''
 
-env:
-  EDGE_FUNCTION_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
-  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-  SYNC_ADMIN_KEY: ${{ secrets.SYNC_ADMIN_KEY }}
-
 jobs:
   pre-sync:
     name: 🔍 Check Week
@@ -23,16 +18,27 @@ jobs:
       week: ${{ steps.get.outputs.week }}
       sync: ${{ steps.get.outputs.sync }}
     steps:
-      - id: get
+      - name: Get Current Week
+        id: get
+        env:
+          EDGE_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
+          ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          RESP=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+          RESP=$(curl -s -X POST "$EDGE_URL" \
             -H "Content-Type: application/json" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "apikey: $ANON_KEY" \
             -d '{"action":"getCurrentWeek"}')
-          WEEK=$(echo "$RESP" | jq -r '.week')
-          if [ -n "${{ github.event.inputs.week }}" ]; then WEEK="${{ github.event.inputs.week }}"; fi
+          echo "Response: $RESP"
+          WEEK=$(echo "$RESP" | jq -r '.week // "Pre-Season"')
+          if [ -n "${{ github.event.inputs.week }}" ]; then 
+            WEEK="${{ github.event.inputs.week }}"
+          fi
           echo "week=$WEEK" >> $GITHUB_OUTPUT
-          if [ "$WEEK" = "Pre-Season" ]; then echo "sync=false" >> $GITHUB_OUTPUT; else echo "sync=true" >> $GITHUB_OUTPUT; fi
+          if [ "$WEEK" = "Pre-Season" ] || [ "$WEEK" = "null" ]; then 
+            echo "sync=false" >> $GITHUB_OUTPUT
+          else 
+            echo "sync=true" >> $GITHUB_OUTPUT
+          fi
           echo "📅 Week: $WEEK"
 
   shard:
@@ -46,38 +52,54 @@ jobs:
       fail-fast: false
       max-parallel: 5
     steps:
-      - name: Sync
+      - name: Sync Shard ${{ matrix.s }}
+        env:
+          EDGE_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
+          ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          ADMIN_KEY: ${{ secrets.SYNC_ADMIN_KEY }}
+          WEEK: ${{ needs.pre-sync.outputs.week }}
+          SHARD: ${{ matrix.s }}
         run: |
-          echo "🔄 Shard ${{ matrix.s }} for ${{ needs.pre-sync.outputs.week }}"
-          RESP=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+          echo "🔄 Shard $SHARD for $WEEK"
+          
+          RESP=$(curl -s -X POST "$EDGE_URL" \
             -H "Content-Type: application/json" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "apikey: $ANON_KEY" \
             --max-time 120 \
-            -d '{
-              "action": "initiateFairSyncShard",
-              "adminKey": "'"$SYNC_ADMIN_KEY"'",
-              "week": "'"${{ needs.pre-sync.outputs.week }}"'",
-              "shard": ${{ matrix.s }},
-              "totalShards": 5
-            }')
-          echo "$RESP" | jq .
+            -d "{\"action\":\"initiateFairSyncShard\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\",\"shard\":$SHARD,\"totalShards\":5}")
+          
+          echo "$RESP" | jq . || echo "$RESP"
+          
+          SUCCESS=$(echo "$RESP" | jq -r '.success // false')
           DONE=$(echo "$RESP" | jq -r '.completed // 0')
           AGENTS=$(echo "$RESP" | jq -r '.agentsInShard // 0')
-          echo "✅ Shard ${{ matrix.s }}: $DONE/$AGENTS agents synced"
-          if [ "$(echo "$RESP" | jq -r '.success')" != "true" ]; then exit 1; fi
+          
+          echo "✅ Shard $SHARD: $DONE/$AGENTS agents"
+          
+          if [ "$SUCCESS" != "true" ]; then
+            echo "❌ Failed!"
+            exit 1
+          fi
 
   aggregate:
     name: 📊 Aggregate
     needs: [pre-sync, shard]
-    if: always() && needs.pre-sync.outputs.sync == 'true'
+    if: always() && needs.pre-sync.outputs.sync == 'true' && needs.shard.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      - run: |
+      - name: Run Aggregations
+        env:
+          EDGE_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
+          ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          ADMIN_KEY: ${{ secrets.SYNC_ADMIN_KEY }}
+          WEEK: ${{ needs.pre-sync.outputs.week }}
+        run: |
           sleep 3
-          curl -s -X POST "$EDGE_FUNCTION_URL" \
+          RESP=$(curl -s -X POST "$EDGE_URL" \
             -H "Content-Type: application/json" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -d '{"action":"runAggregationOnly","adminKey":"'"$SYNC_ADMIN_KEY"'","week":"'"${{ needs.pre-sync.outputs.week }}"'"}'
+            -H "apikey: $ANON_KEY" \
+            -d "{\"action\":\"runAggregationOnly\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\"}")
+          echo "$RESP"
           echo "✅ Aggregation done"
 
   cleanup:
@@ -86,9 +108,29 @@ jobs:
     if: always() && needs.pre-sync.outputs.sync == 'true'
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          curl -s -X POST "$EDGE_FUNCTION_URL" \
+      - name: Cleanup Stale Users
+        env:
+          EDGE_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
+          ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          curl -s -X POST "$EDGE_URL" \
             -H "Content-Type: application/json" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "apikey: $ANON_KEY" \
             -d '{"action":"cleanupOnlineUsers"}'
           echo "✅ Cleanup done"
+
+  summary:
+    name: 📋 Summary
+    needs: [pre-sync, shard, aggregate, cleanup]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print Summary
+        run: |
+          echo "╔═══════════════════════════════════════╗"
+          echo "║     ⚡ SYNC COMPLETE                  ║"
+          echo "╠═══════════════════════════════════════╣"
+          echo "║ Week:   ${{ needs.pre-sync.outputs.week }}"
+          echo "║ Shards: ${{ needs.shard.result }}"
+          echo "║ Agg:    ${{ needs.aggregate.result }}"
+          echo "╚═══════════════════════════════════════╝"
