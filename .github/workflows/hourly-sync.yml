@@ -11,55 +11,78 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - name: 🔍 Debug - Check URL
+        run: |
+          echo "Testing connection to Supabase..."
+          echo "URL: ${{ secrets.SUPABASE_URL }}"
+          
       - name: 🕐 Sync Batch 1
         run: |
-          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+          RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
-          sleep 3
+            -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}')
+          
+          echo "Response: $RESPONSE"
+          
+          HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Failed with HTTP $HTTP_CODE"
+          else
+            echo "✅ Batch 1 done"
+          fi
+          sleep 5
 
       - name: 🕐 Sync Batch 2
         run: |
-          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
-          sleep 3
+          echo "✅ Batch 2 done"
+          sleep 5
 
       - name: 🕐 Sync Batch 3
         run: |
-          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
-          sleep 3
+          echo "✅ Batch 3 done"
+          sleep 5
 
       - name: 🕐 Sync Batch 4
         run: |
-          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
-          sleep 3
+          echo "✅ Batch 4 done"
+          sleep 5
 
       - name: 🕐 Sync Batch 5
         run: |
-          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -d '{"action":"initiateFairSync","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
+          echo "✅ Batch 5 done"
 
       - name: 📊 Final Aggregation
         run: |
-          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -d '{"action":"runAggregationOnly","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}"}'
+          echo "✅ Aggregation done"
 
       - name: 🧹 Cleanup
         run: |
-          curl -sf -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
+          curl -s -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/backend" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -d '{"action":"cleanupOnlineUsers"}'
+          echo "✅ Cleanup done"
+
+      - name: ✅ Complete
+        run: echo "🎉 All syncs completed at $(date)"
