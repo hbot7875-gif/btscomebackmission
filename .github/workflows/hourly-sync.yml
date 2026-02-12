@@ -11,67 +11,73 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: 🕐 Shard 0 of 6
+      - name: 🕐 Shard 0
         run: |
-          curl -s --max-time 55 -X POST \
+          RESPONSE=$(curl -s --max-time 55 -X POST \
             "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":0,"totalShards":6}'
-          echo "✅ Shard 0 done"
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":0,"totalShards":6}')
+          echo "Shard 0: $RESPONSE"
+          echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'✅ Shard 0: {d.get(\"completed\",0)}/{d.get(\"agentsInShard\",0)} synced, {d.get(\"failed\",0)} failed, {d.get(\"duration\",\"?\")}') " 2>/dev/null || echo "✅ Shard 0 done"
           sleep 3
 
-      - name: 🕐 Shard 1 of 6
+      - name: 🕐 Shard 1
         run: |
-          curl -s --max-time 55 -X POST \
+          RESPONSE=$(curl -s --max-time 55 -X POST \
             "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":1,"totalShards":6}'
-          echo "✅ Shard 1 done"
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":1,"totalShards":6}')
+          echo "Shard 1: $RESPONSE"
+          echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'✅ Shard 1: {d.get(\"completed\",0)}/{d.get(\"agentsInShard\",0)} synced, {d.get(\"failed\",0)} failed, {d.get(\"duration\",\"?\")}') " 2>/dev/null || echo "✅ Shard 1 done"
           sleep 3
 
-      - name: 🕐 Shard 2 of 6
+      - name: 🕐 Shard 2
         run: |
-          curl -s --max-time 55 -X POST \
+          RESPONSE=$(curl -s --max-time 55 -X POST \
             "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":2,"totalShards":6}'
-          echo "✅ Shard 2 done"
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":2,"totalShards":6}')
+          echo "Shard 2: $RESPONSE"
+          echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'✅ Shard 2: {d.get(\"completed\",0)}/{d.get(\"agentsInShard\",0)} synced, {d.get(\"failed\",0)} failed, {d.get(\"duration\",\"?\")}') " 2>/dev/null || echo "✅ Shard 2 done"
           sleep 3
 
-      - name: 🕐 Shard 3 of 6
+      - name: 🕐 Shard 3
         run: |
-          curl -s --max-time 55 -X POST \
+          RESPONSE=$(curl -s --max-time 55 -X POST \
             "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":3,"totalShards":6}'
-          echo "✅ Shard 3 done"
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":3,"totalShards":6}')
+          echo "Shard 3: $RESPONSE"
+          echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'✅ Shard 3: {d.get(\"completed\",0)}/{d.get(\"agentsInShard\",0)} synced, {d.get(\"failed\",0)} failed, {d.get(\"duration\",\"?\")}') " 2>/dev/null || echo "✅ Shard 3 done"
           sleep 3
 
-      - name: 🕐 Shard 4 of 6
+      - name: 🕐 Shard 4
         run: |
-          curl -s --max-time 55 -X POST \
+          RESPONSE=$(curl -s --max-time 55 -X POST \
             "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":4,"totalShards":6}'
-          echo "✅ Shard 4 done"
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":4,"totalShards":6}')
+          echo "Shard 4: $RESPONSE"
+          echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'✅ Shard 4: {d.get(\"completed\",0)}/{d.get(\"agentsInShard\",0)} synced, {d.get(\"failed\",0)} failed, {d.get(\"duration\",\"?\")}') " 2>/dev/null || echo "✅ Shard 4 done"
           sleep 3
 
-      - name: 🕐 Shard 5 of 6
+      - name: 🕐 Shard 5
         run: |
-          curl -s --max-time 55 -X POST \
+          RESPONSE=$(curl -s --max-time 55 -X POST \
             "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":5,"totalShards":6}'
-          echo "✅ Shard 5 done"
+            -d '{"action":"initiateFairSyncShard","adminKey":"${{ secrets.SYNC_ADMIN_KEY }}","shard":5,"totalShards":6}')
+          echo "Shard 5: $RESPONSE"
+          echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'✅ Shard 5: {d.get(\"completed\",0)}/{d.get(\"agentsInShard\",0)} synced, {d.get(\"failed\",0)} failed, {d.get(\"duration\",\"?\")}') " 2>/dev/null || echo "✅ Shard 5 done"
           sleep 3
 
-      - name: 📊 Final Aggregation
+      - name: 📊 Aggregation
         run: |
           curl -s --max-time 30 -X POST \
             "${{ secrets.SUPABASE_URL }}/functions/v1/spy-battle-api" \
@@ -89,5 +95,5 @@ jobs:
             -d '{"action":"cleanupOnlineUsers"}'
           echo "✅ Cleanup done"
 
-      - name: ✅ Complete
-        run: echo "🎉 All 170 agents synced at $(date)"
+      - name: ✅ Summary
+        run: echo "🎉 All shards completed at $(date)"
