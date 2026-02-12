@@ -3,17 +3,12 @@ name: ⚡ BTS Mission Hourly Sync
 on:
   schedule:
     - cron: '0 * * * *'
-  
   workflow_dispatch:
     inputs:
       week:
-        description: 'Week label (leave empty for auto-detect)'
+        description: 'Week label (leave empty for auto)'
         required: false
         default: ''
-      total_shards:
-        description: 'Number of shards'
-        required: false
-        default: '5'
 
 env:
   EDGE_FUNCTION_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
@@ -21,165 +16,79 @@ env:
   SYNC_ADMIN_KEY: ${{ secrets.SYNC_ADMIN_KEY }}
 
 jobs:
-
   pre-sync:
-    name: 🔍 Pre-Sync Check
+    name: 🔍 Check Week
     runs-on: ubuntu-latest
     outputs:
-      current_week: ${{ steps.check.outputs.week }}
-      total_shards: ${{ steps.check.outputs.shards }}
-      should_sync: ${{ steps.check.outputs.should_sync }}
+      week: ${{ steps.get.outputs.week }}
+      sync: ${{ steps.get.outputs.sync }}
     steps:
-      - name: Get Current Week
-        id: check
+      - id: get
         run: |
-          RESPONSE=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+          RESP=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
             -H "Content-Type: application/json" \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            --max-time 15 \
-            -d '{"action": "getCurrentWeek"}')
-          
-          echo "📡 $RESPONSE"
-          
-          WEEK=$(echo "$RESPONSE" | jq -r '.week // empty')
-          
-          if [ -n "${{ github.event.inputs.week }}" ]; then
-            WEEK="${{ github.event.inputs.week }}"
-          fi
-          
-          SHARDS="${{ github.event.inputs.total_shards || '5' }}"
-          
-          if [ -z "$WEEK" ] || [ "$WEEK" = "Pre-Season" ]; then
-            echo "⏸️ Pre-Season. Skipping."
-            echo "should_sync=false" >> $GITHUB_OUTPUT
-          else
-            echo "✅ Week: $WEEK | Shards: $SHARDS"
-            echo "should_sync=true" >> $GITHUB_OUTPUT
-          fi
-          
+            -d '{"action":"getCurrentWeek"}')
+          WEEK=$(echo "$RESP" | jq -r '.week')
+          if [ -n "${{ github.event.inputs.week }}" ]; then WEEK="${{ github.event.inputs.week }}"; fi
           echo "week=$WEEK" >> $GITHUB_OUTPUT
-          echo "shards=$SHARDS" >> $GITHUB_OUTPUT
+          if [ "$WEEK" = "Pre-Season" ]; then echo "sync=false" >> $GITHUB_OUTPUT; else echo "sync=true" >> $GITHUB_OUTPUT; fi
+          echo "📅 Week: $WEEK"
 
-  sync-shard:
-    name: 🔄 Shard ${{ matrix.shard }}/5
+  shard:
+    name: 🔄 Shard ${{ matrix.s }}
     needs: pre-sync
-    if: needs.pre-sync.outputs.should_sync == 'true'
+    if: needs.pre-sync.outputs.sync == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        shard: [0, 1, 2, 3, 4]
+        s: [0, 1, 2, 3, 4]
       fail-fast: false
       max-parallel: 5
     steps:
-      - name: Sync Shard ${{ matrix.shard }}
+      - name: Sync
         run: |
-          WEEK="${{ needs.pre-sync.outputs.current_week }}"
-          SHARD=${{ matrix.shard }}
-          SHARDS=${{ needs.pre-sync.outputs.total_shards }}
-          
-          echo "🔄 Shard $SHARD/$SHARDS — $WEEK"
-          
-          RESPONSE=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+          echo "🔄 Shard ${{ matrix.s }} for ${{ needs.pre-sync.outputs.week }}"
+          RESP=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
             -H "Content-Type: application/json" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             --max-time 120 \
-            -d "{
-              \"action\": \"initiateFairSyncShard\",
-              \"adminKey\": \"$SYNC_ADMIN_KEY\",
-              \"week\": \"$WEEK\",
-              \"shard\": $SHARD,
-              \"totalShards\": $SHARDS
-            }")
-          
-          echo "📡 Response: $RESPONSE"
-          
-          SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
-          COMPLETED=$(echo "$RESPONSE" | jq -r '.completed // 0')
-          FAILED=$(echo "$RESPONSE" | jq -r '.failed // 0')
-          AGENTS=$(echo "$RESPONSE" | jq -r '.agentsInShard // 0')
-          
-          echo "┌──────────────────────────────┐"
-          echo "│ Shard $SHARD Results          "
-          echo "│ Agents in shard: $AGENTS      "
-          echo "│ ✅ Completed:    $COMPLETED   "
-          echo "│ ❌ Failed:       $FAILED      "
-          echo "└──────────────────────────────┘"
-          
-          if [ "$SUCCESS" != "true" ]; then
-            echo "❌ FAILED"
-            exit 1
-          fi
+            -d '{
+              "action": "initiateFairSyncShard",
+              "adminKey": "'"$SYNC_ADMIN_KEY"'",
+              "week": "'"${{ needs.pre-sync.outputs.week }}"'",
+              "shard": ${{ matrix.s }},
+              "totalShards": 5
+            }')
+          echo "$RESP" | jq .
+          DONE=$(echo "$RESP" | jq -r '.completed // 0')
+          AGENTS=$(echo "$RESP" | jq -r '.agentsInShard // 0')
+          echo "✅ Shard ${{ matrix.s }}: $DONE/$AGENTS agents synced"
+          if [ "$(echo "$RESP" | jq -r '.success')" != "true" ]; then exit 1; fi
 
   aggregate:
     name: 📊 Aggregate
-    needs: [pre-sync, sync-shard]
-    if: always() && needs.pre-sync.outputs.should_sync == 'true' && needs.sync-shard.result != 'failure'
+    needs: [pre-sync, shard]
+    if: always() && needs.pre-sync.outputs.sync == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for DB
-        run: sleep 3
-
-      - name: Run Aggregations
-        run: |
-          WEEK="${{ needs.pre-sync.outputs.current_week }}"
-          echo "📊 Aggregating $WEEK..."
-          
-          RESPONSE=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+      - run: |
+          sleep 3
+          curl -s -X POST "$EDGE_FUNCTION_URL" \
             -H "Content-Type: application/json" \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            --max-time 60 \
-            -d "{
-              \"action\": \"runAggregationOnly\",
-              \"adminKey\": \"$SYNC_ADMIN_KEY\",
-              \"week\": \"$WEEK\"
-            }")
-          
-          echo "$RESPONSE"
-          
-          SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
-          if [ "$SUCCESS" = "true" ]; then
-            echo "✅ Aggregations done!"
-          else
-            echo "⚠️ Aggregation issue"
-          fi
+            -d '{"action":"runAggregationOnly","adminKey":"'"$SYNC_ADMIN_KEY"'","week":"'"${{ needs.pre-sync.outputs.week }}"'"}'
+          echo "✅ Aggregation done"
 
   cleanup:
     name: 🧹 Cleanup
     needs: [pre-sync, aggregate]
-    if: always() && needs.pre-sync.outputs.should_sync == 'true'
+    if: always() && needs.pre-sync.outputs.sync == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Remove Stale Users
-        run: |
-          RESPONSE=$(curl -s -X POST "$EDGE_FUNCTION_URL" \
+      - run: |
+          curl -s -X POST "$EDGE_FUNCTION_URL" \
             -H "Content-Type: application/json" \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            --max-time 15 \
-            -d '{"action": "cleanupOnlineUsers"}')
-          
-          echo "🧹 Removed $(echo "$RESPONSE" | jq -r '.removed // 0') stale users"
-
-  summary:
-    name: 📋 Summary
-    needs: [pre-sync, sync-shard, aggregate, cleanup]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Final Report
-        run: |
-          echo ""
-          echo "╔═══════════════════════════════════════════╗"
-          echo "║       ⚡ BTS MISSION SYNC REPORT          ║"
-          echo "╠═══════════════════════════════════════════╣"
-          echo "║ 📅 Week:        ${{ needs.pre-sync.outputs.current_week }}"
-          echo "║ 🔀 Shards:      ${{ needs.pre-sync.outputs.total_shards }}"
-          echo "║ 🔄 Sync:        ${{ needs.sync-shard.result }}"
-          echo "║ 📊 Aggregation: ${{ needs.aggregate.result }}"
-          echo "║ 🧹 Cleanup:     ${{ needs.cleanup.result }}"
-          echo "╚═══════════════════════════════════════════╝"
-          
-          if [ "${{ needs.sync-shard.result }}" = "success" ]; then
-            echo "🎉 All 200 agents synced!"
-          else
-            echo "⚠️ Check shard logs"
-          fi
+            -d '{"action":"cleanupOnlineUsers"}'
+          echo "✅ Cleanup done"
