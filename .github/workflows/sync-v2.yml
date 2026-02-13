@@ -14,7 +14,7 @@ jobs:
   sync:
     name: 🔄 Safe Sync
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # ← Add workflow timeout
+    timeout-minutes: 15
     steps:
       - name: Get Week
         id: week
@@ -22,7 +22,11 @@ jobs:
           EDGE_URL: https://uspezooqcdrwaqxcqojn.supabase.co/functions/v1/spy-battle-api
           ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          RESP=$(curl -s --max-time 30 -X POST "$EDGE_URL" -H "apikey: $ANON_KEY" -d '{"action":"getCurrentWeek"}')
+          RESP=$(curl -s --max-time 30 -X POST "$EDGE_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $ANON_KEY" \
+            -H "apikey: $ANON_KEY" \
+            -d '{"action":"getCurrentWeek"}')
           WEEK=$(echo "$RESP" | jq -r '.week // "Week 10"')
           if [ -n "${{ github.event.inputs.week }}" ]; then WEEK="${{ github.event.inputs.week }}"; fi
           echo "week=$WEEK" >> $GITHUB_OUTPUT
@@ -74,6 +78,7 @@ jobs:
           echo "📊 Aggregating Results..."
           curl -s --max-time 60 -X POST "$EDGE_URL" \
             -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $ANON_KEY" \
             -H "apikey: $ANON_KEY" \
             -d "{\"action\":\"runAggregationOnly\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\"}" | jq .
           echo "✅ Aggregation Done"
@@ -84,5 +89,7 @@ jobs:
           ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           curl -s --max-time 15 -X POST "$EDGE_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $ANON_KEY" \
             -H "apikey: $ANON_KEY" \
             -d '{"action":"cleanupOnlineUsers"}' | jq .
