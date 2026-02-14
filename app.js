@@ -6797,7 +6797,6 @@ function stopUnreadCheck() {
         unreadCheckInterval = null;
     }
 }
-// ==================== DRAWER (FIXED BADGE SECTION) ====================
 async function renderDrawer() {
     const container = $('drawer-content');
     if (!container) return;
@@ -14070,7 +14069,7 @@ function ensureRoyalBadgeCSS() {
             width: 185px; 
             height: 150px;
             background: #0a0a0c;
-            /* Unique shape that is NOT a rectangle/PC */
+            /* Unique tactical shape */
             clip-path: polygon(15% 0%, 85% 0%, 100% 25%, 100% 75%, 85% 100%, 15% 100%, 0% 75%, 0% 25%);
             display: flex;
             align-items: center;
@@ -14090,7 +14089,10 @@ function ensureRoyalBadgeCSS() {
             z-index: -1;
         }
 
-        .royal-badge-card:hover { transform: scale(1.1) rotateX(5deg); }
+        .royal-badge-card:hover { 
+            transform: scale(1.1) rotateX(5deg); 
+            filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.3));
+        }
 
         .royal-img-wrapper {
             width: calc(100% - 6px);
@@ -14104,21 +14106,20 @@ function ensureRoyalBadgeCSS() {
         .royal-img-wrapper img {
             width: 100%; height: 100%; 
             object-fit: cover; 
-            object-position: center 15%; /* Protects faces by centering on the top half */
+            object-position: center 15%; /* Protects faces in top half */
             filter: brightness(0.9) contrast(1.1);
             transition: transform 0.8s ease;
         }
 
         .royal-badge-card:hover img { transform: scale(1.15); }
 
-        /* GHOST UI - Transparent gradient to ensure faces are visible */
+        /* GHOST UI - Transparent HUD bar */
         .royal-info-bar {
             position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
-            /* Soft gradient so you see clothes/faces through it */
-            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);
             padding: 20px 0 10px;
             text-align: center;
             z-index: 15;
@@ -14141,42 +14142,50 @@ function ensureRoyalBadgeCSS() {
             text-shadow: 0 0 5px #000;
         }
 
-        /* GHOST GLASS RANK TAG - Fully see-through but readable */
+        /* GHOST GLASS RANK TAG - Glassmorphism fixed */
         .royal-rank-tag {
             position: absolute;
             top: 10px;
             right: 25px;
-            /* Frosted glass effect */
             background: rgba(255, 215, 0, 0.1); 
             backdrop-filter: blur(4px); 
             -webkit-backdrop-filter: blur(4px);
-            
             color: var(--royal-gold);
             border: 1px solid rgba(255, 215, 0, 0.3);
-            
             padding: 2px 10px;
             font-size: 11px;
             font-weight: 900;
             border-radius: 4px;
             z-index: 20;
             font-family: 'Orbitron', monospace;
-            
-            /* Text shadow ensures the number is visible even on white hair/backgrounds */
             text-shadow: 0 0 5px rgba(0,0,0,0.5);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
+
+        /* FIXED LASER SCAN - Sharper energy beam */
         .royal-scan {
             position: absolute;
             top: -10%; left: 0; width: 100%; height: 15px;
-            background: linear-gradient(to bottom, transparent, rgba(255, 215, 0, 0.2), transparent);
+            background: linear-gradient(to bottom, 
+                transparent, 
+                rgba(255, 215, 0, 0.4) 50%, 
+                transparent);
             z-index: 10;
             animation: tacticalScan 3s linear infinite;
             pointer-events: none;
+            opacity: 0.6;
         }
-        @keyframes idScan { 0% { background-position: 0 -30px; } 100% { background-position: 0 150px; } }
+
+        @keyframes tacticalScan { 
+            0% { top: -15%; } 
+            100% { top: 115%; } 
+        }
         
         .royal-badge-wrapper { animation: badgeFloat 5s ease-in-out infinite; }
-        @keyframes badgeFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes badgeFloat { 
+            0%, 100% { transform: translateY(0); } 
+            50% { transform: translateY(-6px); } 
+        }
     `;
     document.head.appendChild(style);
 }
