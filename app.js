@@ -13977,131 +13977,179 @@ function ensureRoyalBadgeCSS() {
     style.id = 'royal-badge-styles';
     style.innerHTML = `
         :root {
-            --royal-purple: #7b2cbf;
-            --royal-cyan: #00d4ff;
-            --royal-dark: rgba(13, 13, 20, 0.9);
+            --gold-gradient: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            --royal-shadow: 0 15px 35px rgba(0,0,0,0.8), 0 0 20px rgba(191, 149, 63, 0.2);
+            --spy-purple: #7b2cbf;
         }
 
         .royal-badge-wrapper {
-            perspective: 1200px;
-            padding: 15px;
+            perspective: 1000px;
+            padding: 10px;
             display: inline-block;
         }
 
         .royal-badge-card {
             position: relative;
-            width: 145px;
-            height: 200px;
-            background: var(--royal-dark);
-            border-radius: 2px;
-            border: 1px solid rgba(123, 44, 191, 0.4);
+            width: 150px;
+            height: 210px;
+            background: #0f0f1a;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
             overflow: hidden;
-            transition: all 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             cursor: pointer;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            box-shadow: var(--royal-shadow);
         }
 
+        /* The Premium Floating Effect */
         .royal-badge-card:hover {
-            transform: scale(1.05) rotateY(15deg);
-            border-color: var(--royal-cyan);
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            transform: translateY(-10px) rotateX(5deg) rotateY(5deg);
+            border-color: #ffd700;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.9), 0 0 30px rgba(191, 149, 63, 0.4);
         }
 
-        /* Tech Detail Corners */
-        .royal-badge-card::after {
+        /* Animated Gold Sheen (The "Pro" Touch) */
+        .royal-badge-card::before {
             content: '';
             position: absolute;
-            bottom: 0; right: 0;
-            width: 20px; height: 20px;
-            background: linear-gradient(135deg, transparent 50%, var(--royal-purple) 50%);
-            z-index: 20;
+            top: -150%;
+            left: -150%;
+            width: 300%;
+            height: 300%;
+            background: linear-gradient(
+                45deg,
+                transparent 45%,
+                rgba(255, 255, 255, 0.1) 48%,
+                rgba(255, 255, 255, 0.6) 50%,
+                rgba(255, 255, 255, 0.1) 52%,
+                transparent 55%
+            );
+            transform: rotate(45deg);
+            transition: all 0.6s;
+            z-index: 5;
+            pointer-events: none;
         }
 
-        /* Image Mask */
-        .royal-img-area {
+        .royal-badge-card:hover::before {
+            top: -100%;
+            left: -100%;
+            transition: 0.8s;
+        }
+
+        /* Image Area with Zoom */
+        .royal-img-wrapper {
             width: 100%;
-            height: 155px;
+            height: 160px;
+            overflow: hidden;
             background: #000;
             position: relative;
-            overflow: hidden;
         }
 
-        .royal-img-area img {
+        .royal-img-wrapper img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            filter: grayscale(20%) contrast(1.1);
-            transition: 0.6s ease;
+            transition: transform 1s ease;
+            filter: contrast(1.1) brightness(0.9);
         }
 
-        .royal-badge-card:hover .royal-img-area img {
-            filter: grayscale(0%) contrast(1.2);
-            transform: scale(1.15);
+        .royal-badge-card:hover .royal-img-wrapper img {
+            transform: scale(1.1);
+            filter: contrast(1.2) brightness(1.1);
         }
 
-        /* Modern Rank Tag */
+        /* Cyber Rank Tag */
         .royal-rank-tag {
             position: absolute;
-            top: 10px; right: 10px;
-            background: var(--royal-cyan);
+            top: 12px;
+            right: 12px;
+            background: var(--gold-gradient);
             color: #000;
-            font-family: 'Orbitron', monospace;
-            font-size: 9px;
+            font-family: 'Orbitron', 'Courier New', monospace;
+            font-size: 10px;
             font-weight: 900;
-            padding: 2px 6px;
-            border-radius: 2px;
-            z-index: 25;
-            box-shadow: 0 0 10px var(--royal-cyan);
+            padding: 3px 8px;
+            border-radius: 4px;
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            letter-spacing: 1px;
         }
 
-        /* Bottom Text Module */
-        .royal-meta-bar {
-            height: 45px;
-            padding: 0 10px;
+        /* Bottom Info Bar (Glassmorphism) */
+        .royal-info-bar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 50px;
+            background: rgba(15, 15, 26, 0.9);
+            backdrop-filter: blur(5px);
+            border-top: 1px solid rgba(255, 215, 0, 0.2);
+            padding: 8px 12px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            background: rgba(123, 44, 191, 0.1);
-            border-top: 1px solid rgba(123, 44, 191, 0.2);
-        }
-
-        .royal-meta-title {
-            color: #fff;
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .royal-meta-id {
-            color: var(--royal-cyan);
-            font-size: 8px;
-            font-family: monospace;
-            opacity: 0.8;
-            margin-top: 2px;
-        }
-
-        /* Data Sweep Animation */
-        .royal-glitch-line {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 1px;
-            background: var(--royal-cyan);
-            box-shadow: 0 0 10px var(--royal-cyan);
             z-index: 10;
-            opacity: 0;
-            animation: dataSweep 5s infinite;
         }
 
-        @keyframes dataSweep {
-            0% { top: 0; opacity: 0; }
-            10% { opacity: 1; }
-            50% { top: 100%; opacity: 0; }
+        .royal-title {
+            color: #ffd700;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+        }
+
+        .royal-status {
+            color: #888;
+            font-size: 8px;
+            font-weight: 600;
+            margin-top: 2px;
+            letter-spacing: 1px;
+        }
+
+        /* Tech Brackets (Corners) */
+        .royal-badge-card::after {
+            content: '';
+            position: absolute;
+            inset: 5px;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            pointer-events: none;
+            border-radius: 8px;
+            z-index: 1;
+        }
+
+        /* Decorative Scan Line */
+        .royal-scan {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 215, 0, 0.2);
+            box-shadow: 0 0 10px #ffd700;
+            z-index: 6;
+            animation: royalScanMove 4s linear infinite;
+            opacity: 0.5;
+        }
+
+        @keyframes royalScanMove {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+        
+        /* Floating Animation for the whole badge */
+        @keyframes badgeFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        .royal-badge-wrapper {
+            animation: badgeFloat 6s ease-in-out infinite;
         }
     `;
     document.head.appendChild(style);
 }
-
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
