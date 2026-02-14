@@ -40,7 +40,24 @@ const CONFIG = {
         }
         return pool;
     },
+// ==================== ROYAL/SPECIAL BADGES ===================
+ROYAL_BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/Spl%20badges/',
 
+TOTAL_ROYAL_BADGES: 39, 
+get ROYAL_BADGE_POOL() {
+    const pool = [];
+    for (let i = 1; i <= this.TOTAL_ROYAL_BADGES; i++) {
+        pool.push(`${this.ROYAL_BADGE_REPO_URL}splbadge(${i}).jpg`);
+    }
+    return pool;
+},
+
+ROYAL_BADGES: {
+    TOP_N: 50,
+    STYLE: 'spotlight',
+    BADGE_NAME: 'Royal Collection',
+    DESCRIPTION: 'Awarded to Top 50 Elite Agents'
+},
     // ==================== ALBUM CHALLENGE ====================
     ALBUM_CHALLENGE: {
         REQUIRED_STREAMS: 2,
@@ -5010,6 +5027,7 @@ function initApp() {
     console.log('🚀 Starting App v5.0 with Routing...');
     ensureAppCSS(); 
     ensureStreakCSS(); 
+    ensureRoyalBadgeCSS();
     ensureNamjoonCSS();
     loading(false);
     setupLoginListeners();
@@ -13416,6 +13434,146 @@ function promptDeleteAccount() {
 
 // Export it so HTML can use it
 window.promptDeleteAccount = promptDeleteAccount;
+// ==================== ROYAL BADGE RENDER ====================
+
+function renderRoyalBadgeHTML(badge, style) {
+    const currentStyle = style || CONFIG.ROYAL_BADGES?.STYLE || 'spotlight';
+    const url = badge.imageUrl || '';
+    const rank = badge.rank || '?';
+    const imgError = `this.parentElement.innerHTML='<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:linear-gradient(135deg,#1a1508,#0d0a04);color:#b8860b;font-size:40px;">👑</div>'`;
+    
+    switch (currentStyle) {
+        case 'spotlight':
+            return `
+                <div class="royal-badge-wrapper">
+                    <div class="badge-spotlight" onclick="previewRoyalBadge('${url}', '#${rank}')">
+                        <div class="spotlight-crown">👑</div>
+                        <div class="corner tl"></div>
+                        <div class="corner tr"></div>
+                        <div class="corner bl"></div>
+                        <div class="corner br"></div>
+                        <div class="spotlight-img">
+                            <img src="${url}" onerror="${imgError}" loading="lazy">
+                        </div>
+                        <div class="spotlight-rank">#${rank} ELITE</div>
+                    </div>
+                </div>
+            `;
+        
+        case 'aura':
+            return `
+                <div class="royal-badge-wrapper">
+                    <div class="badge-aura" onclick="previewRoyalBadge('${url}', '#${rank}')">
+                        <div class="aura-glow"></div>
+                        <div class="aura-img">
+                            <img src="${url}" onerror="${imgError}" loading="lazy">
+                            <div class="aura-shine"></div>
+                        </div>
+                        <div class="aura-crown">👑</div>
+                        <div class="aura-rank">#${rank}</div>
+                    </div>
+                </div>
+            `;
+        
+        case 'crown-banner':
+            return `
+                <div class="royal-badge-wrapper">
+                    <div class="badge-crown-banner" onclick="previewRoyalBadge('${url}', '#${rank}')">
+                        <div class="sparkle"></div>
+                        <div class="sparkle"></div>
+                        <div class="sparkle"></div>
+                        <div class="sparkle"></div>
+                        <div class="banner-crown">👑</div>
+                        <div class="banner-img">
+                            <img src="${url}" onerror="${imgError}" loading="lazy">
+                        </div>
+                        <div class="banner-ribbon">
+                            <span class="banner-text">#${rank} ELITE</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        
+        case 'gilded':
+            const cornerSVG = `<svg viewBox="0 0 28 28"><path d="M2 26 L2 10 Q2 2 10 2 L26 2" stroke-linecap="round"/></svg>`;
+            return `
+                <div class="royal-badge-wrapper">
+                    <div class="badge-gilded" onclick="previewRoyalBadge('${url}', '#${rank}')">
+                        <div class="g-corner tl">${cornerSVG}</div>
+                        <div class="g-corner tr">${cornerSVG}</div>
+                        <div class="g-corner bl">${cornerSVG}</div>
+                        <div class="g-corner br">${cornerSVG}</div>
+                        <div class="gilded-img">
+                            <img src="${url}" onerror="${imgError}" loading="lazy">
+                        </div>
+                        <div class="gilded-rank">#${rank}</div>
+                        <div class="gilded-crown">👑</div>
+                    </div>
+                </div>
+            `;
+        
+        case 'throne':
+            return `
+                <div class="royal-badge-wrapper">
+                    <div class="badge-throne" onclick="previewRoyalBadge('${url}', '#${rank}')">
+                        <div class="throne-accent">
+                            <div class="accent-line"></div>
+                            <div class="accent-gem"></div>
+                            <div class="accent-line"></div>
+                        </div>
+                        <div class="throne-frame"></div>
+                        <div class="throne-img">
+                            <img src="${url}" onerror="${imgError}" loading="lazy">
+                        </div>
+                        <div class="throne-plate">
+                            <span class="crown-mini">👑</span>
+                            <span class="plate-text">#${rank} ELITE</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        
+        default:
+            return renderRoyalBadgeHTML(badge, 'spotlight');
+    }
+}
+
+function previewRoyalBadge(url, name) {
+    document.querySelectorAll('.royal-preview-modal').forEach(m => m.remove());
+    
+    const modal = document.createElement('div');
+    modal.className = 'royal-preview-modal';
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.97); z-index: 99999999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        cursor: pointer; backdrop-filter: blur(15px);
+    `;
+    
+    modal.innerHTML = `
+        <div style="position:absolute; width:350px; height:450px; border-radius:50%; background:radial-gradient(ellipse, rgba(255,215,0,0.15) 0%, transparent 60%); filter:blur(30px); pointer-events:none;"></div>
+        
+        <div style="position:relative; width:280px; max-width:85vw; aspect-ratio:3/4; border-radius:12px; overflow:hidden; box-shadow: 0 0 0 2px rgba(255,215,0,0.5), 0 25px 80px rgba(0,0,0,0.8), 0 0 60px rgba(255,215,0,0.15);">
+            <img src="${url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#1a1508;color:#ffd700;font-size:80px;\\'>👑</div>'">
+        </div>
+        
+        <div style="margin-top:25px; text-align:center;">
+            <div style="display:inline-flex; align-items:center; gap:8px; background:linear-gradient(135deg, rgba(255,215,0,0.15), rgba(184,134,11,0.1)); border:1px solid rgba(255,215,0,0.3); padding:8px 20px; border-radius:25px;">
+                <span style="font-size:20px;">👑</span>
+                <span style="color:#ffd700; font-size:14px; font-weight:800; letter-spacing:2px;">${sanitize(name)} ELITE</span>
+            </div>
+            <div style="color:#b8860b; font-size:11px; margin-top:10px; letter-spacing:2px; text-transform:uppercase;">Royal Collection • Top 50</div>
+        </div>
+        
+        <button onclick="this.closest('.royal-preview-modal').remove()" style="margin-top:30px; padding:14px 50px; background:linear-gradient(135deg, #b8860b, #daa520); border:none; border-radius:30px; color:#000; font-weight:800; font-size:13px; cursor:pointer;">Close</button>
+    `;
+    
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+}
+
+window.previewRoyalBadge = previewRoyalBadge;
+
 
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
