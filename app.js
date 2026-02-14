@@ -28,7 +28,7 @@ const CONFIG = {
 
     // ==================== BADGE SYSTEM ====================
     BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/lvl1badges/',
-    TOTAL_BADGE_IMAGES: 60,
+    TOTAL_BADGE_IMAGES: 64,
     EXCLUDE_BADGES: [],
 
     get BADGE_POOL() {
@@ -41,12 +41,13 @@ const CONFIG = {
         return pool;
     },
 // ==================== ROYAL/SPECIAL BADGES ===================
-ROYAL_BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/main/Spl%20badges/',
+ROYAL_BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/2dbbd3fd9f3ef65a80236784f7db5b7a1e3c20c4/Spl%20badges/',
 
 TOTAL_ROYAL_BADGES: 39, 
 get ROYAL_BADGE_POOL() {
     const pool = [];
     for (let i = 1; i <= this.TOTAL_ROYAL_BADGES; i++) {
+        // Filenames in that folder are "splbadge(1).jpg", "splbadge(2).jpg", etc.
         pool.push(`${this.ROYAL_BADGE_REPO_URL}splbadge(${i}).jpg`);
     }
     return pool;
