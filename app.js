@@ -518,23 +518,32 @@ function isWeekCompleted(selectedWeek) {
     const startDateStr = CONFIG.WEEK_DATES[selectedWeek];
     if (!startDateStr) return false;
     
-    const start = new Date(startDateStr);
-    // Week ends 7 days after start
-    const end = new Date(start.getTime() + (7 * 24 * 60 * 60 * 1000) - 1);
+    // Split string to avoid UTC shift (Year, Month-1, Day)
+    const parts = startDateStr.split('-');
+    const start = new Date(parts[0], parts[1] - 1, parts[2]);
     
-    return new Date() > end;
+    // Set end to exactly 7 days later at 00:00:00 local time
+    const end = new Date(start.getTime() + (7 * 24 * 60 * 60 * 1000));
+    
+    return new Date() >= end;
 }
 
 function getDaysRemaining(weekLabel) {
     const startDateStr = CONFIG.WEEK_DATES[weekLabel];
     if (!startDateStr) return 0;
     
-    const start = new Date(startDateStr);
-    const end = new Date(start.getTime() + (7 * 24 * 60 * 60 * 1000) - 1);
+    const parts = startDateStr.split('-');
+    const start = new Date(parts[0], parts[1] - 1, parts[2]);
+    const end = new Date(start.getTime() + (7 * 24 * 60 * 60 * 1000));
     
     const now = new Date();
-    const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-    return diff > 0 ? diff : 0;
+    // Calculate difference in milliseconds
+    const diffMs = end - now;
+    
+    // Convert to days and use Math.ceil to show "1" until the very last second
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 0 ? diffDays : 0;
 }
 
 function getPriorityBadge(priority) {
