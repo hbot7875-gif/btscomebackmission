@@ -1018,7 +1018,8 @@ async function checkNotifications() {
             checkNewMissions(),
             checkNewSongOfDay(),
             checkNewSOTDResults(),
-            checkNewResultsRelease()
+            checkNewResultsRelease(),
+            checkRoyalAward()
         ]);
         
         const notifications = [];
@@ -1076,6 +1077,30 @@ async function checkNotifications() {
     } finally {
         STATE.isCheckingNotifications = false;
     }
+}
+async function checkRoyalAward() {
+    // ONLY trigger if the week is actually over
+    if (!isWeekCompleted(STATE.week)) return null;
+
+    const rank = parseInt(STATE.data?.rank);
+    const week = STATE.week;
+    const storageKey = `royal_awarded_${week}_${STATE.agentNo}`;
+
+    if (rank > 0 && rank <= CONFIG.ROYAL_BADGES.TOP_N && !localStorage.getItem(storageKey)) {
+        localStorage.setItem(storageKey, 'true');
+
+        return {
+            type: 'royal_badge',
+            icon: '👑',
+            title: 'ELITE STATUS ACHIEVED!',
+            message: `The mission is over! You secured Rank #${rank} globally. Your Royal Badge has been issued.`,
+            priority: 'high',
+            action: () => loadPage('drawer'),
+            actionText: 'View Royal Badge',
+            id: `royal_${week}`
+        };
+    }
+    return null;
 }
 
 // ==================== INDIVIDUAL CHECK FUNCTIONS ====================
@@ -6831,21 +6856,42 @@ async function renderDrawer() {
         const album2xBadge = getAlbum2xBadgeForWeek(STATE.agentNo, STATE.data, STATE.week);
         if (album2xBadge) allSpecialBadges.push(album2xBadge);
     }
-    
-    const seenBadges = new Set();
-    const uniqueSpecialBadges = allSpecialBadges.filter(b => {
-        const key = `${b.name}_${b.week}`;
-        if (seenBadges.has(key)) return false;
-        seenBadges.add(key);
-        return true;
-    });
-    
-    const totalBadgeCount = uniqueSpecialBadges.length + allXpBadges.length;
-    const currentWeekXP = parseInt(stats.totalXP) || 0;
-    const currentWeekTracks = parseInt(stats.trackScrobbles) || 0;
-    const currentWeekAlbums = parseInt(stats.albumScrobbles) || 0;
 
-    // --- LOGIC FOR EXPAND/COLLAPSE ---
+    // ===== SEPARATE SPECIAL VS ROYAL =====
+    const standardSpecialBadges = [];
+    const royalBadges = [];
+
+    // Filter unique standard special badges (Winners, Album 2X, etc.)
+    const seenBadges = new Set();
+    allSpecialBadges.forEach(b => {
+        const key = `${b.name}_${b.week}`;
+        if (!seenBadges.has(key)) {
+            seenBadges.add(key);
+            standardSpecialBadges.push(b);
+        }
+    });
+
+    // --- CALCULATE ROYAL BADGE (Only when week is completed) ---
+    if (isWeekCompleted(STATE.week)) {
+        const rank = parseInt(STATE.data?.rank);
+        if (rank > 0 && rank <= (CONFIG.ROYAL_BADGES?.TOP_N || 50)) {
+            const royalPool = CONFIG.ROYAL_BADGE_POOL;
+            const badgeIndex = (rank - 1) % royalPool.length;
+            
+            royalBadges.push({
+                imageUrl: royalPool[badgeIndex],
+                rank: rank,
+                name: 'ELITE ACCESS KEY',
+                week: STATE.week,
+                type: 'royal'
+            });
+        }
+    }
+    
+    const totalBadgeCount = royalBadges.length + standardSpecialBadges.length + allXpBadges.length;
+    const currentWeekXP = parseInt(stats.totalXP) || 0;
+
+    // --- LOGIC FOR EXPAND/COLLAPSE XP BADGES ---
     const VISIBLE_LIMIT = 12;
     const visibleXpBadges = allXpBadges.slice(0, VISIBLE_LIMIT);
     const hiddenXpBadges = allXpBadges.slice(VISIBLE_LIMIT);
@@ -6857,7 +6903,7 @@ async function renderDrawer() {
                 <div style="width: 90px; height: 90px; border-radius: 50%; margin: 0 auto 15px; border: 3px solid ${teamColor(team)}; overflow: hidden; background: ${teamColor(team)}22; display: flex; align-items: center; justify-content: center; font-size: 36px; box-shadow: 0 0 20px ${teamColor(team)}44;">
                     ${teamPfp(team) ? `<img src="${teamPfp(team)}" style="width:100%;height:100%;object-fit:cover;">` : (profile.name || 'A')[0].toUpperCase()}
                 </div>
-                <h2 style="color: #fff; margin: 0 0 5px 0; font-size: 20px;">${sanitize(profile.name || 'Agent')}</h2>
+                <h2 style="color: #fff; margin: 0 0 5px 0; font-size: 20px;">${safeSanitize(profile.name || 'Agent')}</h2>
                 <p style="color: ${teamColor(team)}; margin: 0 0 8px 0; font-weight: 600;">Team ${team}</p>
                 <p style="color: #666; margin: 0; font-size: 11px;">Agent ID: ${STATE.agentNo}</p>
                 ${isAdmin ? `<div style="margin-top: 12px; padding: 6px 14px; background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block;">👑 ADMIN</div>` : ''}
@@ -6896,7 +6942,7 @@ async function renderDrawer() {
                 </div>
             </div>
         </div>
-        
+
         <!-- Current Week Stats -->
         <div class="card" style="margin-bottom: 20px; border-color: #7b2cbf;">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
@@ -6920,53 +6966,70 @@ async function renderDrawer() {
                 </div>
             </div>
         </div>
+
+        <!-- ===== ROYAL ACCESS KEYS (Puzzle Section) ===== -->
+        ${royalBadges.length > 0 ? `
+        <div class="card" style="border: 2px solid #ffd700; background: linear-gradient(145deg, #1a1508, #0a0a0f); margin-bottom: 20px; overflow: hidden;">
+            <div class="card-header" style="background: rgba(255, 215, 0, 0.1); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: #ffd700; margin: 0; font-size: 13px; letter-spacing: 1px;">🔐 ROYAL ACCESS KEYS</h3>
+                <span style="font-size: 10px; color: #ffd700; font-weight: bold;">UNLOCKED</span>
+            </div>
+            <div class="card-body" style="padding: 20px;">
+                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px;">
+                    ${royalBadges.map(b => renderRoyalBadgeHTML(b)).join('')}
+                </div>
+                <div style="margin-top: 15px; text-align: center; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px dashed rgba(255,215,0,0.2);">
+                    <p style="color: #aaa; font-size: 10px; margin: 0;">
+                        Keep this safe for future missions.
+                    </p>
+                </div>
+            </div>
+        </div>
+        ` : ''}
         
-        <!-- ===== BADGE COLLECTION ===== -->
+        <!-- ===== SPECIAL ACHIEVEMENTS ===== -->
         <div class="card" style="margin-bottom: 20px;">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0;">🎖️ Badge Collection</h3>
-                <span style="color: #ffd700; font-size: 11px; font-weight: 600;">${totalBadgeCount} earned</span>
+                <h3 style="margin: 0;">🎖️ Special Achievements</h3>
+                <span style="color: #c56cf0; font-size: 11px;">${standardSpecialBadges.length} earned</span>
             </div>
             <div class="card-body">
-                ${totalBadgeCount > 0 ? `
-                    <!-- Special Badges -->
-                    ${uniqueSpecialBadges.length > 0 ? `
-                        <div style="margin-bottom: 20px;">
-                            <div style="color: #888; font-size: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">✨ Special Badges</div>
-                            <div class="badge-grid">
-                                ${uniqueSpecialBadges.map(b => renderBadgeHTML(b)).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                    
-                    <!-- XP Badges -->
-                    ${allXpBadges.length > 0 ? `
-                        <div>
-                            <div style="color: #888; font-size: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">⭐ XP Badges</div>
-                            
-                            <!-- Visible Badges -->
-                            <div class="badge-grid">
-                                ${visibleXpBadges.map(b => renderBadgeHTML(b)).join('')}
-                            </div>
+                ${standardSpecialBadges.length > 0 ? `
+                    <div class="badge-grid">
+                        ${standardSpecialBadges.map(b => renderBadgeHTML(b)).join('')}
+                    </div>
+                ` : `
+                    <p style="text-align:center; color:#666; font-size:12px;">No special badges earned yet.</p>
+                `}
+            </div>
+        </div>
 
-                            <!-- Hidden Badges Container -->
-                            ${hiddenXpBadges.length > 0 ? `
-                                <div id="hidden-xp-badges" class="hidden-badges-container" style="display: none;">
-                                    <div class="badge-grid" style="margin-top: 10px;">
-                                        ${hiddenXpBadges.map(b => renderBadgeHTML(b)).join('')}
-                                    </div>
-                                </div>
-                                
-                                <button onclick="toggleHiddenBadges(this)" class="btn-secondary" style="width: 100%; margin-top: 12px; padding: 10px; font-size: 12px; background:rgba(255,255,255,0.05);">
-                                    View All Badges →
-                                </button>
-                            ` : ''}
+        <!-- ===== XP BADGES ===== -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">⭐ XP Progress Badges</h3>
+                <span style="color: #7b2cbf; font-size: 11px;">${allXpBadges.length} earned</span>
+            </div>
+            <div class="card-body">
+                ${allXpBadges.length > 0 ? `
+                    <div class="badge-grid">
+                        ${visibleXpBadges.map(b => renderBadgeHTML(b)).join('')}
+                    </div>
+
+                    ${hiddenXpBadges.length > 0 ? `
+                        <div id="hidden-xp-badges" class="hidden-badges-container" style="display: none;">
+                            <div class="badge-grid" style="margin-top: 10px;">
+                                ${hiddenXpBadges.map(b => renderBadgeHTML(b)).join('')}
+                            </div>
                         </div>
+                        
+                        <button onclick="toggleHiddenBadges(this)" class="btn-secondary" style="width: 100%; margin-top: 12px; padding: 10px; font-size: 12px; background:rgba(255,255,255,0.05);">
+                            View All Badges (${allXpBadges.length}) →
+                        </button>
                     ` : ''}
                 ` : `
-                    <div style="text-align: center; padding: 25px 15px;">
-                        <div style="font-size: 36px; margin-bottom: 10px;">🔒</div>
-                        <p style="color: #888; margin: 0; font-size: 12px;">Earn <strong style="color: #ffd700;">50 XP</strong> to unlock your first badge!</p>
+                    <div style="text-align: center; padding: 15px;">
+                        <p style="color: #666; margin: 0; font-size: 12px;">Reach 50 XP to unlock your first progression badge!</p>
                     </div>
                 `}
             </div>
@@ -6989,29 +7052,42 @@ async function renderDrawer() {
         
         <!-- Quick Actions -->
         <div class="card" style="margin-bottom: 20px;">
-            <div class="card-header"><h3 style="margin: 0;">⚡ Quick Actions</h3></div>
             <div class="card-body" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                 <button onclick="loadPage('profile')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">👤 Profile</button>
                 <button onclick="loadPage('rankings')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">🏆 Rankings</button>
                 <button onclick="loadPage('goals')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">🎯 Goals</button>
-                <button onclick="loadPage('secret-missions')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">🕵️ Missions</button>
-                <button onclick="loadPage('playlists')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">🎵 Playlists</button>
-                <button onclick="loadPage('team-level')" class="btn-secondary" style="padding: 12px 8px; font-size: 10px;">📊 Teams</button>
             </div>
         </div>
         
-        ${isAdmin ? `<div class="card" style="border-color: #ffd700; margin-bottom: 20px;"><div class="card-header" style="background: rgba(255,215,0,0.05);"><h3 style="margin: 0; color: #ffd700;">👑 Admin Controls</h3></div><div class="card-body"><button onclick="showAdminPanel()" class="btn-primary" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; font-weight: bold; font-size: 13px;">🎛️ Open Mission Control</button></div></div>` : ''}
+        <!-- Admin Controls -->
+        ${isAdmin ? `
+        <div class="card" style="border-color: #ffd700; margin-bottom: 20px;">
+            <div class="card-header" style="background: rgba(255,215,0,0.05);">
+                <h3 style="margin: 0; color: #ffd700;">👑 Admin Controls</h3>
+            </div>
+            <div class="card-body">
+                <button onclick="showAdminPanel()" class="btn-primary" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; font-weight: bold; font-size: 13px;">🎛️ Open Mission Control</button>
+            </div>
+        </div>
+        ` : ''}
         
         <div style="text-align: center; padding: 15px; color: #888; font-size: 10px;">
-            <p style="margin: 0;">BTS Spy Battle v5.0</p>
+            <p style="margin: 0;">BTS Spy Battle v6.0</p>
             <p style="margin: 4px 0 0 0;">💜 Fighting! 💜</p>
         </div>
     `;
     
+    // Update local notification state
     const currentXPStats = parseInt(stats.totalXP) || 0;
     STATE.lastChecked.badges = Math.floor(currentXPStats / 50);
     STATE.lastChecked.album2xBadge = album2xStatus.passed || false;
     saveNotificationState();
+}
+
+// Helper to handle potential missing sanitize function
+function safeSanitize(str) {
+    if (typeof sanitize === 'function') return sanitize(str);
+    return str || '';
 }
 // ==================== PROFILE (FIXED ORDER: LEAVE & RETIRE AT BOTTOM) ====================
 async function renderProfile() {
@@ -13917,20 +13993,18 @@ function renderRoyalBadgeHTML(badge) {
     
     return `
         <div class="royal-badge-wrapper">
-            <div class="royal-badge-card" onclick="previewRoyalBadge('${url}', 'RANK #${rank}')">
-                <!-- Top Seal -->
+            <div class="royal-badge-card" onclick="previewRoyalBadge('${url}', 'ELITE KEY #${rank}')">
+                <!-- Digital Rank Signature -->
                 <div class="royal-rank-tag">#${rank}</div>
                 
                 <div class="royal-img-wrapper">
-                    <!-- Laser Line -->
                     <div class="royal-scan"></div>
-                    
                     <img src="${url}" alt="Elite Agent" loading="lazy">
                     
-                    <!-- Glass Info Bar -->
+                    <!-- Ghost HUD Text -->
                     <div class="royal-info-bar">
-                        <div class="royal-title">ELITE AGENT</div>
-                        <div class="royal-status">ROYAL ACCESS</div>
+                        <div class="royal-title">SECRET KEY</div>
+                        <div class="royal-status">UNLOCKED</div>
                     </div>
                 </div>
             </div>
@@ -13982,29 +14056,28 @@ function ensureRoyalBadgeCSS() {
         :root {
             --royal-gold: #ffd700;
             --royal-border: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-            --royal-bg: #0a0a0c;
         }
 
         .royal-badge-wrapper {
-            padding: 20px;
+            padding: 10px;
             display: inline-block;
-            perspective: 1200px;
+            perspective: 1000px;
         }
 
-        /* 1. WIDE TACTICAL FRAME - Set to 190x150 to accommodate Wide & Portrait without cutting faces */
+        /* WIDE TACTICAL SHIELD - Prevents cutting people in 538x343 wide photos */
         .royal-badge-card {
             position: relative;
-            width: 190px; 
+            width: 185px; 
             height: 150px;
-            background: var(--royal-bg);
-            /* Octagon shape adjusted to be less aggressive on the sides */
+            background: #0a0a0c;
+            /* Unique shape that is NOT a rectangle/PC */
             clip-path: polygon(15% 0%, 85% 0%, 100% 25%, 100% 75%, 85% 100%, 15% 100%, 0% 75%, 0% 25%);
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
 
         .royal-badge-card::before {
@@ -14017,46 +14090,36 @@ function ensureRoyalBadgeCSS() {
             z-index: -1;
         }
 
-        /* CARD ZOOM: Smooth zoom out effect */
-        .royal-badge-card:hover {
-            transform: scale(1.1) rotateX(5deg);
-            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
-        }
+        .royal-badge-card:hover { transform: scale(1.1) rotateX(5deg); }
 
-        /* 2. IMAGE CONTAINER - Object-fit cover ensures no stretching */
         .royal-img-wrapper {
             width: calc(100% - 6px);
             height: calc(100% - 6px);
-            background: #000;
             clip-path: polygon(15% 0%, 85% 0%, 100% 25%, 100% 75%, 85% 100%, 15% 100%, 0% 75%, 0% 25%);
+            background: #000;
             overflow: hidden;
             position: relative;
         }
 
         .royal-img-wrapper img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center 15%; /* Keeps faces prioritized in the top half */
-            transition: transform 0.6s ease;
+            width: 100%; height: 100%; 
+            object-fit: cover; 
+            object-position: center 15%; /* Protects faces by centering on the top half */
             filter: brightness(0.9) contrast(1.1);
+            transition: transform 0.8s ease;
         }
 
-        /* Subtle Image Zoom */
-        .royal-badge-card:hover img {
-            transform: scale(1.1);
-            filter: brightness(1.1);
-        }
+        .royal-badge-card:hover img { transform: scale(1.15); }
 
-        /* 3. TRANSPARENT GHOST INFO BAR - No solid box to avoid covering faces */
+        /* GHOST UI - Transparent gradient to ensure faces are visible */
         .royal-info-bar {
             position: absolute;
-            bottom: 12px;
+            bottom: 0;
             left: 0;
             width: 100%;
-            /* Pure Transparent background with very light gradient */
-            background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
-            padding: 5px 0;
+            /* Soft gradient so you see clothes/faces through it */
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+            padding: 20px 0 10px;
             text-align: center;
             z-index: 15;
             pointer-events: none;
@@ -14068,61 +14131,54 @@ function ensureRoyalBadgeCSS() {
             font-weight: 900;
             letter-spacing: 2px;
             text-transform: uppercase;
-            /* Text glow for readability without needing a solid box */
-            text-shadow: 0 0 5px #000, 0 0 10px rgba(123, 44, 191, 0.8);
+            text-shadow: 0 0 10px rgba(0,0,0,1);
         }
 
         .royal-status {
             color: var(--royal-gold);
             font-size: 7px;
             font-weight: 700;
-            letter-spacing: 1px;
             text-shadow: 0 0 5px #000;
-            opacity: 0.9;
         }
 
-        /* Rank Tag - Small and out of the way */
+        /* GHOST GLASS RANK TAG - Fully see-through but readable */
         .royal-rank-tag {
             position: absolute;
-            top: 8px;
+            top: 10px;
             right: 25px;
-            background: rgba(0,0,0,0.7);
+            /* Frosted glass effect */
+            background: rgba(255, 215, 0, 0.1); 
+            backdrop-filter: blur(4px); 
+            -webkit-backdrop-filter: blur(4px);
+            
             color: var(--royal-gold);
-            border: 1px solid var(--royal-gold);
-            padding: 1px 8px;
-            font-size: 9px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            
+            padding: 2px 10px;
+            font-size: 11px;
             font-weight: 900;
-            border-radius: 3px;
+            border-radius: 4px;
             z-index: 20;
-            font-family: 'Orbitron', sans-serif;
+            font-family: 'Orbitron', monospace;
+            
+            /* Text shadow ensures the number is visible even on white hair/backgrounds */
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
-        /* Scan Line - Made thinner and lighter */
         .royal-scan {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 1px;
-            background: rgba(255, 215, 0, 0.4);
-            box-shadow: 0 0 8px var(--royal-gold);
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 0%, rgba(255, 215, 0, 0.1) 50%, transparent 100%);
+            background-size: 100% 30px;
             z-index: 10;
             animation: idScan 4s linear infinite;
+            pointer-events: none;
         }
-
-        @keyframes idScan {
-            0% { top: 0%; }
-            100% { top: 100%; }
-        }
-
-        @keyframes vaultFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
-        }
-
-        .royal-badge-wrapper {
-            animation: vaultFloat 5s ease-in-out infinite;
-        }
+        @keyframes idScan { 0% { background-position: 0 -30px; } 100% { background-position: 0 150px; } }
+        
+        .royal-badge-wrapper { animation: badgeFloat 5s ease-in-out infinite; }
+        @keyframes badgeFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
     `;
     document.head.appendChild(style);
 }
