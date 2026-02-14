@@ -10492,3 +10492,473 @@ function ensureStreakCSS() {
     .comm-toggle-bar { margin-bottom: 6px; }
     .comm-btn { padding: 6px; }
 }
+// ==================== ROYAL BADGE CSS ====================
+
+function ensureRoyalBadgeCSS() {
+    if (document.getElementById('royal-badge-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'royal-badge-styles';
+    style.textContent = `
+
+    /* ===== STYLE 1: SPOTLIGHT ===== */
+    .badge-spotlight {
+        position: relative;
+        width: 130px;
+        height: 170px;
+        cursor: pointer;
+        transition: all 0.4s ease;
+    }
+    .badge-spotlight:hover { transform: scale(1.05) translateY(-5px); }
+    .badge-spotlight::before {
+        content: '';
+        position: absolute;
+        inset: -8px;
+        border-radius: 14px;
+        background: radial-gradient(ellipse at center, rgba(255,215,0,0.4) 0%, rgba(184,134,11,0.2) 40%, transparent 70%);
+        opacity: 0.6;
+        filter: blur(8px);
+        transition: all 0.4s;
+        z-index: -1;
+    }
+    .badge-spotlight:hover::before { opacity: 1; inset: -15px; filter: blur(12px); }
+    .badge-spotlight .spotlight-img {
+        width: 100%; height: 100%;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 0 0 1px rgba(255,215,0,0.3), 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .badge-spotlight .spotlight-img img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s, filter 0.3s;
+    }
+    .badge-spotlight:hover .spotlight-img img { transform: scale(1.05); filter: brightness(1.1) contrast(1.05); }
+    .badge-spotlight .spotlight-img::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.3) 100%);
+        pointer-events: none;
+    }
+    .badge-spotlight .corner {
+        position: absolute;
+        width: 20px; height: 20px;
+        border: 2px solid #ffd700;
+        z-index: 2;
+    }
+    .badge-spotlight .corner.tl { top: 4px; left: 4px; border-right: none; border-bottom: none; border-radius: 4px 0 0 0; }
+    .badge-spotlight .corner.tr { top: 4px; right: 4px; border-left: none; border-bottom: none; border-radius: 0 4px 0 0; }
+    .badge-spotlight .corner.bl { bottom: 4px; left: 4px; border-right: none; border-top: none; border-radius: 0 0 0 4px; }
+    .badge-spotlight .corner.br { bottom: 4px; right: 4px; border-left: none; border-top: none; border-radius: 0 0 4px 0; }
+    .badge-spotlight .spotlight-crown {
+        position: absolute;
+        top: -14px; left: 50%;
+        transform: translateX(-50%);
+        font-size: 22px;
+        z-index: 3;
+        filter: drop-shadow(0 2px 8px rgba(255,215,0,0.6));
+        animation: crownFloat 3s ease-in-out infinite;
+    }
+    @keyframes crownFloat {
+        0%, 100% { transform: translateX(-50%) translateY(0); }
+        50% { transform: translateX(-50%) translateY(-4px); }
+    }
+    .badge-spotlight .spotlight-rank {
+        position: absolute;
+        bottom: -10px; left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #1a1a2e, #0a0a0f);
+        border: 1px solid #ffd700;
+        color: #ffd700;
+        font-size: 10px; font-weight: 800;
+        padding: 4px 14px;
+        border-radius: 15px;
+        white-space: nowrap;
+        letter-spacing: 1px;
+        z-index: 3;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    /* ===== STYLE 2: AURA ===== */
+    .badge-aura {
+        position: relative;
+        width: 130px; height: 170px;
+        cursor: pointer;
+        transition: all 0.4s ease;
+    }
+    .badge-aura:hover { transform: scale(1.06); }
+    .badge-aura::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 12px;
+        background: conic-gradient(from 0deg, #ffd700, #ffaa00, #b8860b, #daa520, #ffd700, #ffaa00, #b8860b, #daa520, #ffd700);
+        animation: auraRotate 4s linear infinite;
+        z-index: -2;
+    }
+    .badge-aura::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 10px;
+        background: #0a0a0f;
+        z-index: -1;
+    }
+    @keyframes auraRotate { to { transform: rotate(360deg); } }
+    .badge-aura .aura-glow {
+        position: absolute;
+        inset: -20px;
+        border-radius: 20px;
+        background: radial-gradient(ellipse, rgba(255,215,0,0.15) 0%, transparent 70%);
+        animation: auraPulse 2s ease-in-out infinite;
+        z-index: -3;
+        pointer-events: none;
+    }
+    @keyframes auraPulse {
+        0%, 100% { opacity: 0.5; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.1); }
+    }
+    .badge-aura .aura-img {
+        width: 100%; height: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+    }
+    .badge-aura .aura-img img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s;
+    }
+    .badge-aura:hover .aura-img img { transform: scale(1.08); }
+    .badge-aura .aura-shine {
+        position: absolute;
+        top: 0; left: -100%;
+        width: 50%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        animation: auraSweep 3s ease-in-out infinite;
+        z-index: 2;
+        pointer-events: none;
+    }
+    @keyframes auraSweep {
+        0%, 100% { left: -100%; }
+        50% { left: 150%; }
+    }
+    .badge-aura .aura-rank {
+        position: absolute;
+        bottom: 8px; left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.8);
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255,215,0,0.5);
+        color: #ffd700;
+        font-size: 9px; font-weight: 800;
+        padding: 4px 12px;
+        border-radius: 12px;
+        letter-spacing: 1px;
+        z-index: 3;
+    }
+    .badge-aura .aura-crown {
+        position: absolute;
+        top: 6px; left: 50%;
+        transform: translateX(-50%);
+        font-size: 18px;
+        z-index: 3;
+        filter: drop-shadow(0 0 8px rgba(255,215,0,0.8));
+    }
+
+    /* ===== STYLE 3: CROWN BANNER ===== */
+    .badge-crown-banner {
+        position: relative;
+        width: 130px; height: 175px;
+        cursor: pointer;
+        transition: all 0.4s ease;
+    }
+    .badge-crown-banner:hover { transform: translateY(-8px); }
+    .badge-crown-banner .banner-img {
+        position: absolute;
+        top: 12px; left: 0; right: 0; bottom: 25px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,215,0,0.2);
+    }
+    .badge-crown-banner .banner-img img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: all 0.4s;
+    }
+    .badge-crown-banner:hover .banner-img img { transform: scale(1.05); filter: brightness(1.1); }
+    .badge-crown-banner .banner-img::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 40%;
+        background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+        pointer-events: none;
+    }
+    .badge-crown-banner .banner-crown {
+        position: absolute;
+        top: -5px; left: 50%;
+        transform: translateX(-50%);
+        font-size: 30px;
+        z-index: 5;
+        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+        animation: crownBounce 2s ease-in-out infinite;
+    }
+    @keyframes crownBounce {
+        0%, 100% { transform: translateX(-50%) translateY(0) rotate(-3deg); }
+        50% { transform: translateX(-50%) translateY(-5px) rotate(3deg); }
+    }
+    .badge-crown-banner .banner-ribbon {
+        position: absolute;
+        bottom: 0; left: 50%;
+        transform: translateX(-50%);
+        width: 120%; height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 4;
+    }
+    .badge-crown-banner .banner-ribbon::before {
+        content: '';
+        position: absolute;
+        width: 100%; height: 100%;
+        background: linear-gradient(135deg, #b8860b, #daa520, #b8860b);
+        clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    }
+    .badge-crown-banner .banner-text {
+        position: relative;
+        color: #1a0f00;
+        font-size: 10px; font-weight: 900;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+    }
+    .badge-crown-banner .sparkle {
+        position: absolute;
+        width: 4px; height: 4px;
+        background: #ffd700;
+        border-radius: 50%;
+        animation: sparkle 2s ease-in-out infinite;
+        z-index: 6;
+    }
+    .badge-crown-banner .sparkle:nth-child(2) { top: 5px; left: 20%; animation-delay: 0.3s; }
+    .badge-crown-banner .sparkle:nth-child(3) { top: 8px; right: 25%; animation-delay: 0.6s; }
+    .badge-crown-banner .sparkle:nth-child(4) { top: 15px; left: 15%; animation-delay: 0.9s; }
+    @keyframes sparkle {
+        0%, 100% { opacity: 0; transform: scale(0); }
+        50% { opacity: 1; transform: scale(1.5); }
+    }
+
+    /* ===== STYLE 4: GILDED ===== */
+    .badge-gilded {
+        position: relative;
+        width: 130px; height: 170px;
+        cursor: pointer;
+        transition: all 0.4s ease;
+    }
+    .badge-gilded:hover { transform: scale(1.05); }
+    .badge-gilded::before {
+        content: '';
+        position: absolute;
+        inset: -10px;
+        border-radius: 16px;
+        background: radial-gradient(ellipse, rgba(255,215,0,0.2) 0%, transparent 70%);
+        opacity: 0;
+        transition: opacity 0.4s;
+        z-index: -1;
+    }
+    .badge-gilded:hover::before { opacity: 1; }
+    .badge-gilded .gilded-img {
+        width: 100%; height: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .badge-gilded .gilded-img img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: all 0.5s;
+    }
+    .badge-gilded:hover .gilded-img img { transform: scale(1.08); filter: brightness(1.08) saturate(1.1); }
+    .badge-gilded .g-corner {
+        position: absolute;
+        width: 28px; height: 28px;
+        z-index: 3;
+        pointer-events: none;
+    }
+    .badge-gilded .g-corner svg {
+        width: 100%; height: 100%;
+        fill: none;
+        stroke: #ffd700;
+        stroke-width: 2;
+        filter: drop-shadow(0 0 3px rgba(255,215,0,0.5));
+    }
+    .badge-gilded .g-corner.tl { top: 0; left: 0; }
+    .badge-gilded .g-corner.tr { top: 0; right: 0; transform: scaleX(-1); }
+    .badge-gilded .g-corner.bl { bottom: 0; left: 0; transform: scaleY(-1); }
+    .badge-gilded .g-corner.br { bottom: 0; right: 0; transform: scale(-1); }
+    .badge-gilded .gilded-crown {
+        position: absolute;
+        bottom: 8px; left: 50%;
+        transform: translateX(-50%);
+        font-size: 16px;
+        z-index: 4;
+        filter: drop-shadow(0 0 6px rgba(255,215,0,0.8));
+    }
+    .badge-gilded .gilded-rank {
+        position: absolute;
+        top: 8px; right: 8px;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(4px);
+        color: #ffd700;
+        font-size: 9px; font-weight: 800;
+        padding: 3px 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,215,0,0.4);
+        z-index: 4;
+    }
+
+    /* ===== STYLE 5: THRONE ===== */
+    .badge-throne {
+        position: relative;
+        width: 125px; height: 180px;
+        cursor: pointer;
+        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        perspective: 1000px;
+    }
+    .badge-throne:hover { transform: translateY(-10px) rotateX(5deg); }
+    .badge-throne .throne-frame {
+        position: absolute;
+        inset: 0;
+        border: 2px solid;
+        border-image: linear-gradient(180deg, #ffd700, #b8860b, #ffd700) 1;
+        border-radius: 6px;
+        z-index: 2;
+        pointer-events: none;
+    }
+    .badge-throne .throne-img {
+        position: absolute;
+        top: 3px; left: 3px; right: 3px; bottom: 35px;
+        border-radius: 4px 4px 0 0;
+        overflow: hidden;
+    }
+    .badge-throne .throne-img img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: all 0.5s;
+    }
+    .badge-throne:hover .throne-img img { transform: scale(1.06); filter: brightness(1.1); }
+    .badge-throne .throne-img::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, transparent 40%, rgba(255,215,0,0.08) 50%, transparent 60%);
+        z-index: 1;
+        pointer-events: none;
+    }
+    .badge-throne .throne-plate {
+        position: absolute;
+        bottom: 3px; left: 3px; right: 3px;
+        height: 30px;
+        background: linear-gradient(180deg, #1a1508, #0d0a04);
+        border-radius: 0 0 4px 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border-top: 1px solid rgba(255,215,0,0.3);
+    }
+    .badge-throne .throne-plate .crown-mini { font-size: 12px; }
+    .badge-throne .throne-plate .plate-text {
+        color: #ffd700;
+        font-size: 10px; font-weight: 800;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        text-shadow: 0 0 8px rgba(255,215,0,0.4);
+    }
+    .badge-throne .throne-accent {
+        position: absolute;
+        top: -8px; left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        z-index: 3;
+    }
+    .badge-throne .throne-accent .accent-line {
+        width: 20px; height: 2px;
+        background: linear-gradient(90deg, transparent, #ffd700, transparent);
+    }
+    .badge-throne .throne-accent .accent-gem {
+        width: 8px; height: 8px;
+        background: radial-gradient(circle at 30% 30%, #ffd700, #b8860b);
+        clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+        box-shadow: 0 0 8px rgba(255,215,0,0.6);
+    }
+
+    /* ===== SHARED GRID ===== */
+    .royal-badge-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 30px 20px;
+        padding: 20px 10px;
+        justify-items: center;
+    }
+    .royal-badge-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+    }
+    @media (max-width: 360px) {
+        .royal-badge-grid { grid-template-columns: repeat(2, 1fr); gap: 20px 15px; }
+        .badge-spotlight, .badge-aura, .badge-crown-banner, .badge-gilded, .badge-throne { width: 110px; height: 145px; }
+        .badge-throne { height: 160px; }
+    }
+
+    /* ===== ADMIN HEADER ===== */
+    .royal-section-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 20px;
+        background: linear-gradient(135deg, rgba(184,134,11,0.12), rgba(184,134,11,0.04));
+        border: 1px solid rgba(184,134,11,0.25);
+        border-radius: 14px;
+        margin-bottom: 25px;
+    }
+    .royal-section-header .crown-icon {
+        font-size: 36px;
+        animation: crownBob 2.5s ease-in-out infinite;
+    }
+    @keyframes crownBob {
+        0%, 100% { transform: translateY(0) rotate(-5deg); }
+        50% { transform: translateY(-4px) rotate(5deg); }
+    }
+    .royal-divider {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin: 30px 0;
+    }
+    .royal-divider::before, .royal-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #b8860b, transparent);
+    }
+    .royal-divider span {
+        color: #b8860b;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+    }
+    `;
+    
+    document.head.appendChild(style);
+}
