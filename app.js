@@ -14165,14 +14165,12 @@ function ensureRoyalBadgeCSS() {
             text-shadow: 0 0 5px rgba(0,0,0,0.5);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-
         .royal-scan {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, transparent 0%, rgba(255, 215, 0, 0.1) 50%, transparent 100%);
-            background-size: 100% 30px;
+            top: -10%; left: 0; width: 100%; height: 15px;
+            background: linear-gradient(to bottom, transparent, rgba(255, 215, 0, 0.2), transparent);
             z-index: 10;
-            animation: idScan 4s linear infinite;
+            animation: tacticalScan 3s linear infinite;
             pointer-events: none;
         }
         @keyframes idScan { 0% { background-position: 0 -30px; } 100% { background-position: 0 150px; } }
