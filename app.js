@@ -13917,16 +13917,19 @@ function renderRoyalBadgeHTML(badge) {
     return `
         <div class="royal-badge-wrapper">
             <div class="royal-badge-card" onclick="previewRoyalBadge('${url}', 'RANK #${rank}')">
-                <!-- Rank ID Tag -->
-                <div class="royal-rank-tag">#${rank} ELITE</div>
+                <!-- Data Scan Line -->
+                <div class="royal-scan"></div>
+                
+                <!-- Rank Tag -->
+                <div class="royal-rank-tag">#${rank}</div>
                 
                 <div class="royal-img-wrapper">
-                    <div class="royal-scan"></div>
                     <img src="${url}" alt="Elite Agent" loading="lazy">
                     
-                    <!-- Side Tech HUD -->
+                    <!-- Tech ID Bar -->
                     <div class="royal-info-bar">
-                        <div class="royal-title">OPERATIVE</div>
+                        <div class="royal-title">ELITE OPERATIVE</div>
+                        <div class="royal-status">ROYAL ACCESS</div>
                     </div>
                 </div>
             </div>
@@ -13977,140 +13980,154 @@ function ensureRoyalBadgeCSS() {
     style.innerHTML = `
         :root {
             --royal-gold: #ffd700;
+            --royal-metal: #1a1a2e;
             --royal-border: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-            --royal-bg: #0a0a0c;
+            --cyber-cyan: #00d4ff;
         }
 
         .royal-badge-wrapper {
-            padding: 20px;
+            padding: 15px;
             display: inline-block;
             perspective: 1000px;
         }
 
-        /* WIDE OCTAGON SHAPE (Fits 538x343 perfectly) */
+        /* The Universal Card Frame */
         .royal-badge-card {
             position: relative;
-            width: 200px;  /* Made wider */
-            height: 140px; /* Made shorter */
-            background: var(--royal-bg);
-            /* Shape: Wide Octagon */
-            clip-path: polygon(15% 0%, 85% 0%, 100% 20%, 100% 80%, 85% 100%, 15% 100%, 0% 80%, 0% 20%);
+            width: 155px;
+            height: 210px;
+            background: #050508;
+            border-radius: 12px;
+            /* Shield-Octagon Shape */
+            clip-path: polygon(10% 0%, 90% 0%, 100% 10%, 100% 90%, 50% 100%, 0% 90%, 0% 10%);
+            transition: all 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+            cursor: pointer;
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.4s cubic-bezier(0.2, 1, 0.3, 1);
-            cursor: pointer;
         }
 
-        /* Metallic Frame */
+        /* Gold Metallic Bevel */
         .royal-badge-card::before {
             content: '';
             position: absolute;
             inset: 0;
             background: var(--royal-border);
-            padding: 3px; 
-            clip-path: polygon(15% 0%, 85% 0%, 100% 20%, 100% 80%, 85% 100%, 15% 100%, 0% 80%, 0% 20%);
+            padding: 3px; /* Border thickness */
+            clip-path: polygon(10% 0%, 90% 0%, 100% 10%, 100% 90%, 50% 100%, 0% 90%, 0% 10%);
             z-index: -1;
         }
 
         .royal-badge-card:hover {
-            transform: scale(1.05) rotateX(10deg);
-            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.4));
+            transform: translateY(-10px) rotateY(10deg);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
         }
 
-        /* Image Mask */
+        /* The Image Window (Handles both Portrait & Wide) */
         .royal-img-wrapper {
             width: calc(100% - 6px);
             height: calc(100% - 6px);
-            clip-path: polygon(15% 0%, 85% 0%, 100% 20%, 100% 80%, 85% 100%, 15% 100%, 0% 80%, 0% 20%);
             background: #000;
-            overflow: hidden;
+            clip-path: polygon(10% 0%, 90% 0%, 100% 10%, 100% 90%, 50% 100%, 0% 90%, 0% 10%);
             position: relative;
+            overflow: hidden;
         }
 
         .royal-img-wrapper img {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* This prevents stretching! */
-            transition: 0.6s ease;
-            filter: brightness(0.8) contrast(1.2);
+            /* 🔥 THIS IS THE KEY FIX: */
+            object-fit: cover; 
+            object-position: center;
+            /* Wide pics (538x343) will crop perfectly at the sides,
+               Portrait pics will fill top to bottom. No stretching! */
+            filter: grayscale(20%) brightness(0.9) contrast(1.1);
+            transition: 0.8s ease;
         }
 
         .royal-badge-card:hover img {
-            filter: brightness(1) contrast(1.1);
-            transform: scale(1.05);
+            filter: grayscale(0%) brightness(1.1);
+            transform: scale(1.15); /* Digital Zoom effect */
         }
 
-        /* Top-Left Rank Tag (ID Style) */
+        /* Floating Rank Tag */
         .royal-rank-tag {
             position: absolute;
-            top: 12px;
-            left: 12px;
-            background: var(--royal-gold);
+            top: 15px;
+            right: 15px;
+            background: var(--royal-border);
             color: #000;
-            padding: 1px 8px;
-            font-size: 9px;
+            font-size: 10px;
             font-weight: 900;
-            font-family: 'Orbitron', monospace;
-            border-radius: 2px;
+            padding: 2px 6px;
+            border-radius: 4px;
             z-index: 20;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-            text-transform: uppercase;
-        }
-
-        /* Side Bar Tech Detail */
-        .royal-info-bar {
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            height: 60%;
-            width: 40px;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(8px);
-            border-left: 2px solid var(--royal-gold);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 15;
-            padding: 5px;
-        }
-
-        .royal-title {
-            color: var(--royal-gold);
-            font-size: 7px;
-            font-weight: 900;
-            writing-mode: vertical-rl; /* Text goes vertical */
-            text-orientation: mixed;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            font-family: 'Orbitron', sans-serif;
             letter-spacing: 1px;
         }
 
-        /* Scanning Laser Line (Horizontal) */
+        /* Glassmorphism Bottom Info */
+        .royal-info-bar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 18px;
+            z-index: 15;
+        }
+
+        .royal-title {
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--cyber-cyan);
+        }
+
+        .royal-status {
+            color: var(--royal-gold);
+            font-size: 8px;
+            font-weight: 600;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+
+        /* Data Scan Glitch Line */
         .royal-scan {
             position: absolute;
             top: 0;
-            left: -100%;
+            left: 0;
             width: 100%;
-            height: 100%;
-            background: linear-gradient(to right, transparent, rgba(255, 215, 0, 0.1), transparent);
+            height: 2px;
+            background: var(--cyber-cyan);
+            box-shadow: 0 0 15px var(--cyber-cyan);
             z-index: 10;
-            animation: idScan 3s infinite;
+            opacity: 0.5;
+            animation: tacticalScan 4s linear infinite;
         }
 
-        @keyframes idScan {
-            0% { left: -100%; }
-            100% { left: 100%; }
+        @keyframes tacticalScan {
+            0% { top: 0; opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { top: 100%; opacity: 0; }
         }
 
-        /* 3D Floating Effect */
-        @keyframes idFloat {
-            0%, 100% { transform: translateY(0) rotateZ(0deg); }
-            50% { transform: translateY(-5px) rotateZ(1deg); }
-        }
-
-        .royal-badge-wrapper {
-            animation: idFloat 5s ease-in-out infinite;
+        /* Cyber Corner Indicators */
+        .royal-badge-card::after {
+            content: '';
+            position: absolute;
+            inset: 10px;
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 5;
         }
     `;
     document.head.appendChild(style);
