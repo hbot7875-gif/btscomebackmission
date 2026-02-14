@@ -3766,6 +3766,16 @@ async function setTodaysSong() {
     }
 }
 
+// ==================== ADMIN ASSETS WITH ROYAL BADGE PREVIEW ====================
+
+// Preview state (add this BEFORE the function)
+if (typeof window._royalPreviewState === 'undefined') {
+    window._royalPreviewState = {
+        currentImageIndex: 0,
+        selectedStyle: CONFIG.ROYAL_BADGES?.STYLE || 'spotlight'
+    };
+}
+
 function renderAdminAssets() {
     const container = document.getElementById('admin-tab-assets');
     if (!container) {
@@ -3773,55 +3783,331 @@ function renderAdminAssets() {
         return;
     }
     
+    // Load royal badge CSS
+    ensureRoyalBadgeCSS();
+    
     const badges = CONFIG.BADGE_POOL || [];
+    const royalBadges = CONFIG.ROYAL_BADGE_POOL || [];
+    const allStyles = ['spotlight', 'aura', 'crown-banner', 'gilded', 'throne'];
+    const state = window._royalPreviewState;
     
-    console.log('🎖️ Rendering badge pool:', badges.length, 'badges');
+    console.log('🎖️ Rendering badge pools:', badges.length, 'standard,', royalBadges.length, 'royal');
     
-    if (badges.length === 0) {
-        container.innerHTML = `
-            <div style="text-align:center;padding:60px 20px;">
-                <div style="font-size:64px;margin-bottom:20px;">🎖️</div>
-                <h3 style="color:#fff;margin-bottom:10px;">No Badges Configured</h3>
-                <p style="color:#888;">Add badge URLs to CONFIG.BADGE_POOL in config.js</p>
-            </div>
-        `;
-        return;
-    }
+    const currentImage = royalBadges[state.currentImageIndex] || '';
+    const totalImages = royalBadges.length;
     
     container.innerHTML = `
-        <div style="margin-bottom:20px;">
-            <h4 style="color:#ffd700;margin-bottom:5px;">🎖️ Badge Pool Preview (${badges.length} badges)</h4>
-            <p style="color:#888;font-size:12px;">This is exactly how agents will see their badges. Click any badge to preview full size.</p>
+        <!-- ==================== ROYAL BADGES SECTION ==================== -->
+        <div class="royal-section-header">
+            <div class="crown-icon">👑</div>
+            <div style="flex:1;">
+                <h3 style="margin:0; color:#ffd700; font-size:16px;">Royal Badge Preview</h3>
+                <p style="margin:4px 0 0; color:#b8860b; font-size:11px;">
+                    Preview all styles • ${totalImages} images loaded • Top ${CONFIG.ROYAL_BADGES?.TOP_N || 50} rankers
+                </p>
+            </div>
+            <div style="
+                padding: 6px 12px;
+                background: ${state.selectedStyle ? 'rgba(0,255,136,0.15)' : 'rgba(255,68,68,0.15)'};
+                border: 1px solid ${state.selectedStyle ? 'rgba(0,255,136,0.3)' : 'rgba(255,68,68,0.3)'};
+                border-radius: 8px;
+                font-size: 10px;
+                color: ${state.selectedStyle ? '#00ff88' : '#ff6b6b'};
+                font-weight: 600;
+            ">
+                LIVE: ${state.selectedStyle?.toUpperCase().replace('-', ' ') || 'SPOTLIGHT'}
+            </div>
         </div>
         
-        <div class="badges-showcase" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:20px;padding:10px;">
-            ${badges.map((url, index) => `
-                <div class="badge-showcase-item" onclick="previewAsset('${url}', ${index + 1})" 
-                     style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:15px 10px;
-                            background:linear-gradient(145deg,rgba(26,26,46,0.8),rgba(18,18,26,0.9));
-                            border-radius:12px;border:1px solid rgba(123,44,191,0.2);cursor:pointer;transition:all 0.3s;">
-                    <div class="badge-circle holographic" style="width:70px;height:70px;">
-                        <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" 
-                             onerror="this.style.display='none';this.parentElement.innerHTML='❓';">
+        ${royalBadges.length > 0 ? `
+            <!-- Image Selector -->
+            <div style="
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                padding: 15px;
+                background: rgba(0,0,0,0.3);
+                border-radius: 12px;
+                margin-bottom: 20px;
+            ">
+                <button onclick="prevRoyalImage()" style="
+                    width: 44px; height: 44px;
+                    border-radius: 50%;
+                    border: 1px solid #ffd700;
+                    background: rgba(255,215,0,0.1);
+                    color: #ffd700;
+                    font-size: 18px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='rgba(255,215,0,0.25)'" 
+                   onmouseout="this.style.background='rgba(255,215,0,0.1)'">◀</button>
+                
+                <div style="flex:1; text-align:center;">
+                    <div style="
+                        width: 90px;
+                        height: 115px;
+                        margin: 0 auto 10px;
+                        border-radius: 10px;
+                        overflow: hidden;
+                        border: 2px solid #ffd700;
+                        box-shadow: 0 4px 25px rgba(255,215,0,0.25);
+                    ">
+                        <img src="${currentImage}" style="width:100%;height:100%;object-fit:cover;" 
+                             onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#1a1508;color:#ffd700;font-size:32px;\\'>👑</div>'">
                     </div>
-                    <div style="margin-top:10px;font-weight:600;color:#ffd700;font-size:12px;">Level ${index + 1}</div>
-                    <div style="font-size:10px;color:#888;margin-top:2px;">Badge #${index + 1}</div>
+                    <div style="color:#fff; font-size:15px; font-weight:700;">Image ${state.currentImageIndex + 1} / ${totalImages}</div>
+                    <div style="color:#666; font-size:10px; margin-top:3px; word-break:break-all; max-width:200px; margin:3px auto 0;">
+                        ${currentImage.split('/').pop()?.substring(0, 25) || 'royal.jpg'}${currentImage.split('/').pop()?.length > 25 ? '...' : ''}
+                    </div>
                 </div>
-            `).join('')}
+                
+                <button onclick="nextRoyalImage()" style="
+                    width: 44px; height: 44px;
+                    border-radius: 50%;
+                    border: 1px solid #ffd700;
+                    background: rgba(255,215,0,0.1);
+                    color: #ffd700;
+                    font-size: 18px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='rgba(255,215,0,0.25)'" 
+                   onmouseout="this.style.background='rgba(255,215,0,0.1)'">▶</button>
+            </div>
+            
+            <!-- All 5 Styles Side by Side -->
+            <div style="
+                color: #888;
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                margin-bottom: 15px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            ">
+                <span>🎨 Compare All Styles</span>
+                <div style="flex:1; height:1px; background:linear-gradient(90deg, #333, transparent);"></div>
+            </div>
+            
+            <div style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+                gap: 20px;
+                padding: 20px;
+                background: rgba(0,0,0,0.25);
+                border-radius: 16px;
+                margin-bottom: 25px;
+            ">
+                ${allStyles.map(styleName => `
+                    <div style="
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 18px 12px;
+                        background: ${state.selectedStyle === styleName ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.02)'};
+                        border: 2px solid ${state.selectedStyle === styleName ? '#ffd700' : 'rgba(255,255,255,0.08)'};
+                        border-radius: 14px;
+                        transition: all 0.3s;
+                        cursor: pointer;
+                    " onclick="selectRoyalStyle('${styleName}')"
+                       onmouseenter="if('${state.selectedStyle}' !== '${styleName}') this.style.borderColor='rgba(255,215,0,0.4)'"
+                       onmouseleave="if('${state.selectedStyle}' !== '${styleName}') this.style.borderColor='rgba(255,255,255,0.08)'">
+                        
+                        <!-- Style Name -->
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                            font-size: 11px;
+                            font-weight: 700;
+                            color: ${state.selectedStyle === styleName ? '#ffd700' : '#888'};
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                        ">
+                            ${state.selectedStyle === styleName ? '✓' : '○'}
+                            ${styleName.replace('-', ' ')}
+                        </div>
+                        
+                        <!-- Badge Preview -->
+                        <div style="transform: scale(0.82); transform-origin: center; margin: 5px 0;">
+                            ${renderRoyalBadgeHTML({ imageUrl: currentImage, rank: 7 }, styleName)}
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div style="display: flex; gap: 6px;">
+                            <button onclick="event.stopPropagation(); previewRoyalFullscreen('${currentImage}', '${styleName}')" style="
+                                padding: 7px 12px;
+                                background: rgba(123,44,191,0.2);
+                                border: 1px solid rgba(123,44,191,0.4);
+                                border-radius: 6px;
+                                color: #7b2cbf;
+                                font-size: 10px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                            " onmouseover="this.style.background='rgba(123,44,191,0.35)'" 
+                               onmouseout="this.style.background='rgba(123,44,191,0.2)'">🔍 Preview</button>
+                            
+                            ${state.selectedStyle !== styleName ? `
+                                <button onclick="event.stopPropagation(); setLiveRoyalStyle('${styleName}')" style="
+                                    padding: 7px 12px;
+                                    background: rgba(0,255,136,0.15);
+                                    border: 1px solid rgba(0,255,136,0.4);
+                                    border-radius: 6px;
+                                    color: #00ff88;
+                                    font-size: 10px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    transition: all 0.2s;
+                                " onmouseover="this.style.background='rgba(0,255,136,0.3)'" 
+                                   onmouseout="this.style.background='rgba(0,255,136,0.15)'">✓ Use</button>
+                            ` : `
+                                <span style="
+                                    padding: 7px 12px;
+                                    background: rgba(255,215,0,0.2);
+                                    border: 1px solid rgba(255,215,0,0.4);
+                                    border-radius: 6px;
+                                    color: #ffd700;
+                                    font-size: 10px;
+                                    font-weight: 700;
+                                ">🏆 LIVE</span>
+                            `}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <!-- Thumbnail Grid -->
+            <div style="
+                color: #888;
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            ">
+                <span>📁 All Royal Images (${totalImages})</span>
+                <div style="flex:1; height:1px; background:linear-gradient(90deg, #333, transparent);"></div>
+            </div>
+            
+            <div style="
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+                gap: 8px;
+                padding: 12px;
+                background: rgba(0,0,0,0.2);
+                border-radius: 12px;
+                max-height: 280px;
+                overflow-y: auto;
+            ">
+                ${royalBadges.map((url, i) => `
+                    <div onclick="jumpToRoyalImage(${i})" style="
+                        aspect-ratio: 3/4;
+                        border-radius: 6px;
+                        overflow: hidden;
+                        border: 2px solid ${i === state.currentImageIndex ? '#ffd700' : 'transparent'};
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        box-shadow: ${i === state.currentImageIndex ? '0 0 12px rgba(255,215,0,0.35)' : 'none'};
+                    " onmouseenter="if(${i} !== ${state.currentImageIndex}) this.style.borderColor='rgba(255,215,0,0.5)'"
+                       onmouseleave="if(${i} !== ${state.currentImageIndex}) this.style.borderColor='transparent'">
+                        <img src="${url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy"
+                             onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#1a1508;color:#b8860b;font-size:18px;\\'>❓</div>'">
+                    </div>
+                `).join('')}
+            </div>
+            
+            <!-- How It Works -->
+            <div style="margin-top:20px; padding:15px; background:rgba(184,134,11,0.08); border:1px solid rgba(184,134,11,0.2); border-radius:10px;">
+                <h5 style="color:#ffd700; margin:0 0 10px; font-size:13px;">👑 How Royal Badges Work</h5>
+                <ul style="color:#888; font-size:12px; margin:0; padding-left:18px; line-height:1.8;">
+                    <li>Top <strong style="color:#ffd700;">${CONFIG.ROYAL_BADGES?.TOP_N || 50}</strong> agents by overall XP get a Royal Badge</li>
+                    <li>Each agent gets a unique badge based on their rank</li>
+                    <li>Style can be changed anytime from this panel</li>
+                </ul>
+            </div>
+        ` : `
+            <!-- No Royal Badges Configured -->
+            <div style="
+                text-align: center;
+                padding: 50px 20px;
+                background: rgba(184,134,11,0.05);
+                border: 2px dashed rgba(184,134,11,0.3);
+                border-radius: 16px;
+            ">
+                <div style="font-size: 56px; margin-bottom: 18px;">👑</div>
+                <h3 style="color: #ffd700; margin: 0 0 10px;">No Royal Badges Configured</h3>
+                <p style="color: #888; font-size: 12px; margin: 0 0 15px; line-height:1.6;">
+                    Upload images to GitHub and add them to CONFIG.
+                </p>
+                <div style="
+                    background: #0a0a0f;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    text-align: left;
+                    font-family: monospace;
+                    font-size: 11px;
+                    color: #00ff88;
+                    max-width: 350px;
+                    margin: 0 auto;
+                    border: 1px solid #222;
+                ">
+                    <div style="color:#666;">// Add to CONFIG:</div>
+                    <div>ROYAL_BADGE_REPO_URL: '...',</div>
+                    <div>TOTAL_ROYAL_BADGES: 20,</div>
+                </div>
+            </div>
+        `}
+        
+        <!-- ==================== DIVIDER ==================== -->
+        <div class="royal-divider" style="margin-top: 35px;">
+            <span>STANDARD XP BADGES</span>
         </div>
         
-        <div style="margin-top:25px;padding:15px;background:#1a1a2e;border-radius:8px;border:1px solid #333;">
-            <h5 style="color:#fff;margin-bottom:10px;">ℹ️ How Badge Assignment Works</h5>
-            <ul style="color:#888;font-size:12px;margin:0;padding-left:20px;line-height:1.8;">
-                <li>Agents earn 1 badge for every <strong style="color:#ffd700;">100 XP</strong></li>
-                <li>Badges have the <strong style="color:#7b2cbf;">holographic spinning effect</strong></li>
-                <li>Each agent gets unique badges based on their Agent ID + Level</li>
-                <li>Add more badge URLs in <code style="background:#0a0a0f;padding:2px 6px;border-radius:4px;color:#00ff88;">CONFIG.BADGE_POOL</code></li>
-            </ul>
-        </div>
+        <!-- ==================== STANDARD BADGES (Your Original Code) ==================== -->
+        ${badges.length === 0 ? `
+            <div style="text-align:center;padding:50px 20px;">
+                <div style="font-size:56px;margin-bottom:18px;">🎖️</div>
+                <h3 style="color:#fff;margin-bottom:10px;">No Standard Badges Configured</h3>
+                <p style="color:#888;font-size:12px;">Add badge URLs to CONFIG.BADGE_POOL</p>
+            </div>
+        ` : `
+            <div style="margin-bottom:18px;">
+                <h4 style="color:#7b2cbf;margin-bottom:5px;">🎖️ Standard Badge Pool (${badges.length} badges)</h4>
+                <p style="color:#888;font-size:12px;">Holographic style • Earned every 50 XP • Click to preview</p>
+            </div>
+            
+            <div class="badges-showcase" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:18px;padding:10px;">
+                ${badges.map((url, index) => `
+                    <div class="badge-showcase-item" onclick="previewAsset('${url}', ${index + 1})" 
+                         style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 8px;
+                                background:linear-gradient(145deg,rgba(26,26,46,0.8),rgba(18,18,26,0.9));
+                                border-radius:12px;border:1px solid rgba(123,44,191,0.2);cursor:pointer;transition:all 0.3s;">
+                        <div class="badge-circle holographic" style="width:65px;height:65px;">
+                            <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" 
+                                 onerror="this.style.display='none';this.parentElement.innerHTML='❓';">
+                        </div>
+                        <div style="margin-top:10px;font-weight:600;color:#ffd700;font-size:12px;">Level ${index + 1}</div>
+                        <div style="font-size:9px;color:#666;margin-top:2px;">50 XP Badge</div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div style="margin-top:22px;padding:15px;background:#1a1a2e;border-radius:10px;border:1px solid #333;">
+                <h5 style="color:#fff;margin-bottom:10px;font-size:13px;">ℹ️ How Standard Badges Work</h5>
+                <ul style="color:#888;font-size:12px;margin:0;padding-left:18px;line-height:1.8;">
+                    <li>Agents earn 1 badge for every <strong style="color:#ffd700;">50 XP</strong></li>
+                    <li>Badges have the <strong style="color:#7b2cbf;">holographic spinning effect</strong></li>
+                    <li>Each agent gets unique badges based on Agent ID + Level</li>
+                </ul>
+            </div>
+        `}
     `;
     
-    // Add hover effect
+    // Add hover effects for standard badges
     container.querySelectorAll('.badge-showcase-item').forEach(item => {
         item.onmouseenter = function() {
             this.style.transform = 'translateY(-5px)';
@@ -3835,6 +4121,194 @@ function renderAdminAssets() {
         };
     });
 }
+
+// ==================== ROYAL BADGE PREVIEW CONTROLS ====================
+
+function prevRoyalImage() {
+    const royalBadges = CONFIG.ROYAL_BADGE_POOL || [];
+    if (royalBadges.length === 0) return;
+    
+    window._royalPreviewState.currentImageIndex--;
+    if (window._royalPreviewState.currentImageIndex < 0) {
+        window._royalPreviewState.currentImageIndex = royalBadges.length - 1;
+    }
+    renderAdminAssets();
+}
+
+function nextRoyalImage() {
+    const royalBadges = CONFIG.ROYAL_BADGE_POOL || [];
+    if (royalBadges.length === 0) return;
+    
+    window._royalPreviewState.currentImageIndex++;
+    if (window._royalPreviewState.currentImageIndex >= royalBadges.length) {
+        window._royalPreviewState.currentImageIndex = 0;
+    }
+    renderAdminAssets();
+}
+
+function jumpToRoyalImage(index) {
+    window._royalPreviewState.currentImageIndex = index;
+    renderAdminAssets();
+}
+
+function selectRoyalStyle(styleName) {
+    window._royalPreviewState.selectedStyle = styleName;
+    renderAdminAssets();
+}
+
+function setLiveRoyalStyle(styleName) {
+    window._royalPreviewState.selectedStyle = styleName;
+    if (CONFIG.ROYAL_BADGES) {
+        CONFIG.ROYAL_BADGES.STYLE = styleName;
+    }
+    showToast(`✅ Royal badge style set to "${styleName.replace('-', ' ').toUpperCase()}"`, 'success');
+    renderAdminAssets();
+}
+
+function previewRoyalFullscreen(imageUrl, styleName) {
+    document.querySelectorAll('.royal-fullscreen-preview').forEach(m => m.remove());
+    
+    const modal = document.createElement('div');
+    modal.className = 'royal-fullscreen-preview';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.97);
+        z-index: 99999999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(20px);
+        animation: fadeIn 0.3s ease;
+    `;
+    
+    modal.innerHTML = `
+        <style>
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        </style>
+        
+        <!-- Close -->
+        <button onclick="this.closest('.royal-fullscreen-preview').remove()" style="
+            position: absolute;
+            top: 20px; right: 20px;
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            font-size: 26px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        ">×</button>
+        
+        <!-- Style Label -->
+        <div style="
+            position: absolute;
+            top: 25px; left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(184,134,11,0.15));
+            border: 1px solid rgba(255,215,0,0.4);
+            padding: 10px 24px;
+            border-radius: 25px;
+            color: #ffd700;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        ">
+            ${styleName.replace('-', ' ')} Style
+        </div>
+        
+        <!-- Ambient Glow -->
+        <div style="
+            position: absolute;
+            width: 400px; height: 500px;
+            background: radial-gradient(ellipse, rgba(255,215,0,0.12) 0%, transparent 65%);
+            filter: blur(40px);
+            pointer-events: none;
+        "></div>
+        
+        <!-- Scaled Badge -->
+        <div style="transform: scale(1.9); transform-origin: center;">
+            ${renderRoyalBadgeHTML({ imageUrl: imageUrl, rank: 7 }, styleName)}
+        </div>
+        
+        <!-- Bottom Actions -->
+        <div style="
+            position: absolute;
+            bottom: 35px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        ">
+            <div style="display: flex; gap: 12px;">
+                <button onclick="setLiveRoyalStyle('${styleName}'); this.closest('.royal-fullscreen-preview').remove();" style="
+                    padding: 14px 35px;
+                    background: linear-gradient(135deg, #00ff88, #00cc6a);
+                    border: none;
+                    border-radius: 28px;
+                    color: #000;
+                    font-weight: 800;
+                    font-size: 14px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    box-shadow: 0 4px 20px rgba(0,255,136,0.3);
+                ">
+                    ✓ Use This Style
+                </button>
+                
+                <button onclick="this.closest('.royal-fullscreen-preview').remove()" style="
+                    padding: 14px 35px;
+                    background: rgba(255,255,255,0.1);
+                    border: 1px solid rgba(255,255,255,0.25);
+                    border-radius: 28px;
+                    color: #fff;
+                    font-weight: 600;
+                    font-size: 14px;
+                    cursor: pointer;
+                ">
+                    Close
+                </button>
+            </div>
+            
+            <div style="color: #555; font-size: 11px;">
+                Press ESC or tap outside to close
+            </div>
+        </div>
+    `;
+    
+    // Close on background click
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+    };
+    
+    // Close on ESC
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+    
+    document.body.appendChild(modal);
+}
+
+// Export to window for onclick handlers
+window.prevRoyalImage = prevRoyalImage;
+window.nextRoyalImage = nextRoyalImage;
+window.jumpToRoyalImage = jumpToRoyalImage;
+window.selectRoyalStyle = selectRoyalStyle;
+window.setLiveRoyalStyle = setLiveRoyalStyle;
+window.previewRoyalFullscreen = previewRoyalFullscreen;
 
 function previewAsset(url, index) {
     // Remove existing preview
