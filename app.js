@@ -13977,121 +13977,126 @@ function ensureRoyalBadgeCSS() {
     style.id = 'royal-badge-styles';
     style.innerHTML = `
         :root {
-            --gold-primary: #ffd700;
-            --gold-glow: rgba(255, 215, 0, 0.3);
-            --royal-bg: rgba(10, 10, 15, 0.95);
+            --royal-purple: #7b2cbf;
+            --royal-cyan: #00d4ff;
+            --royal-dark: rgba(13, 13, 20, 0.9);
         }
 
         .royal-badge-wrapper {
-            perspective: 1000px;
-            padding: 10px;
+            perspective: 1200px;
+            padding: 15px;
             display: inline-block;
         }
 
         .royal-badge-card {
             position: relative;
-            width: 140px;
-            height: 190px;
-            background: var(--royal-bg);
-            border: 1px solid rgba(255, 215, 0, 0.2);
-            border-radius: 4px;
+            width: 145px;
+            height: 200px;
+            background: var(--royal-dark);
+            border-radius: 2px;
+            border: 1px solid rgba(123, 44, 191, 0.4);
             overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.5s cubic-bezier(0.2, 1, 0.3, 1);
             cursor: pointer;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
         }
 
         .royal-badge-card:hover {
-            transform: translateY(-8px) rotateY(10deg);
-            border-color: var(--gold-primary);
-            box-shadow: 0 15px 35px rgba(255, 215, 0, 0.25);
+            transform: scale(1.05) rotateY(15deg);
+            border-color: var(--royal-cyan);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
         }
 
-        /* Top Accent Bar */
-        .royal-badge-card::before {
+        /* Tech Detail Corners */
+        .royal-badge-card::after {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--gold-primary), transparent);
-            z-index: 10;
+            bottom: 0; right: 0;
+            width: 20px; height: 20px;
+            background: linear-gradient(135deg, transparent 50%, var(--royal-purple) 50%);
+            z-index: 20;
         }
 
-        /* Image Container */
-        .royal-img-wrapper {
+        /* Image Mask */
+        .royal-img-area {
             width: 100%;
-            height: 145px;
-            position: relative;
+            height: 155px;
             background: #000;
+            position: relative;
             overflow: hidden;
         }
 
-        .royal-img-wrapper img {
+        .royal-img-area img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0.85;
-            transition: 0.5s;
+            filter: grayscale(20%) contrast(1.1);
+            transition: 0.6s ease;
         }
 
-        .royal-badge-card:hover .royal-img-wrapper img {
-            opacity: 1;
-            transform: scale(1.1);
+        .royal-badge-card:hover .royal-img-area img {
+            filter: grayscale(0%) contrast(1.2);
+            transform: scale(1.15);
         }
 
-        /* Corner Rank Tag */
+        /* Modern Rank Tag */
         .royal-rank-tag {
             position: absolute;
-            top: 0; left: 0;
-            background: var(--gold-primary);
+            top: 10px; right: 10px;
+            background: var(--royal-cyan);
             color: #000;
-            font-size: 10px;
+            font-family: 'Orbitron', monospace;
+            font-size: 9px;
             font-weight: 900;
-            padding: 3px 10px;
-            z-index: 15;
-            font-family: 'Orbitron', sans-serif;
-            clip-path: polygon(0 0, 100% 0, 85% 100%, 0% 100%);
+            padding: 2px 6px;
+            border-radius: 2px;
+            z-index: 25;
+            box-shadow: 0 0 10px var(--royal-cyan);
         }
 
-        /* Professional Labeling */
-        .royal-info-bar {
+        /* Bottom Text Module */
+        .royal-meta-bar {
             height: 45px;
+            padding: 0 10px;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
-            background: linear-gradient(to bottom, rgba(255,255,255,0.05), transparent);
-            border-top: 1px solid rgba(255, 215, 0, 0.1);
+            background: rgba(123, 44, 191, 0.1);
+            border-top: 1px solid rgba(123, 44, 191, 0.2);
         }
 
-        .royal-title {
-            color: var(--gold-primary);
-            font-size: 9px;
-            font-weight: 800;
-            letter-spacing: 2px;
+        .royal-meta-title {
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
             text-transform: uppercase;
         }
 
-        .royal-status {
-            color: #ffffff;
+        .royal-meta-id {
+            color: var(--royal-cyan);
             font-size: 8px;
-            opacity: 0.5;
-            letter-spacing: 1px;
+            font-family: monospace;
+            opacity: 0.8;
             margin-top: 2px;
         }
 
-        /* Encrypted Scanline Animation */
-        .royal-scan {
+        /* Data Sweep Animation */
+        .royal-glitch-line {
             position: absolute;
-            top: -100%; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, transparent, rgba(255, 215, 0, 0.05), transparent);
-            animation: scanAnim 4s linear infinite;
-            pointer-events: none;
-            z-index: 5;
+            top: 0; left: 0;
+            width: 100%; height: 1px;
+            background: var(--royal-cyan);
+            box-shadow: 0 0 10px var(--royal-cyan);
+            z-index: 10;
+            opacity: 0;
+            animation: dataSweep 5s infinite;
         }
 
-        @keyframes scanAnim {
-            0% { top: -100%; }
-            100% { top: 100%; }
+        @keyframes dataSweep {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            50% { top: 100%; opacity: 0; }
         }
     `;
     document.head.appendChild(style);
