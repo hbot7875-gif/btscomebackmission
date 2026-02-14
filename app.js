@@ -13982,54 +13982,52 @@ function ensureRoyalBadgeCSS() {
             --royal-gold: #ffd700;
             --royal-border: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
             --royal-bg: #0a0a0c;
-            --zoom-speed: 0.6s;
         }
 
         .royal-badge-wrapper {
             padding: 20px;
             display: inline-block;
-            perspective: 1000px;
+            perspective: 1200px;
         }
 
-        /* 1. WIDER TACTICAL SHAPE (Prevents cutting off people in group shots) */
+        /* 1. WIDE TACTICAL FRAME - Set to 190x150 to accommodate Wide & Portrait without cutting faces */
         .royal-badge-card {
             position: relative;
-            width: 175px;  /* Increased width to fit 2-person shots */
-            height: 175px; /* Square-ish ratio is safer for wide images */
+            width: 190px; 
+            height: 150px;
             background: var(--royal-bg);
-            /* Shape: Balanced Octagon */
-            clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
+            /* Octagon shape adjusted to be less aggressive on the sides */
+            clip-path: polygon(15% 0%, 85% 0%, 100% 25%, 100% 75%, 85% 100%, 15% 100%, 0% 75%, 0% 25%);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform var(--zoom-speed) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
         }
 
-        /* Gold Bevel Frame */
         .royal-badge-card::before {
             content: '';
             position: absolute;
             inset: 0;
             background: var(--royal-border);
-            padding: 4px; /* Thicker border for "Pro" look */
-            clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
+            padding: 3px; 
+            clip-path: polygon(15% 0%, 85% 0%, 100% 25%, 100% 75%, 85% 100%, 15% 100%, 0% 75%, 0% 25%);
             z-index: -1;
         }
 
-        /* CARD ZOOM (Zooming the whole badge out towards the user) */
+        /* CARD ZOOM: Smooth zoom out effect */
         .royal-badge-card:hover {
-            transform: scale(1.15) rotateY(5deg);
-            z-index: 100;
+            transform: scale(1.1) rotateX(5deg);
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
         }
 
-        /* 2. IMAGE CONTAINER */
+        /* 2. IMAGE CONTAINER - Object-fit cover ensures no stretching */
         .royal-img-wrapper {
-            width: calc(100% - 8px);
-            height: calc(100% - 8px);
+            width: calc(100% - 6px);
+            height: calc(100% - 6px);
             background: #000;
-            clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
+            clip-path: polygon(15% 0%, 85% 0%, 100% 25%, 100% 75%, 85% 100%, 15% 100%, 0% 75%, 0% 25%);
             overflow: hidden;
             position: relative;
         }
@@ -14037,92 +14035,92 @@ function ensureRoyalBadgeCSS() {
         .royal-img-wrapper img {
             width: 100%;
             height: 100%;
-            /* 🔥 OBJECT-FIT FIX: */
-            object-fit: cover; 
-            object-position: center 20%; /* Keeps heads in frame */
-            transition: transform 0.8s ease-out;
-            filter: brightness(0.8) contrast(1.1);
-            transform: scale(1); /* Initial state: Full view */
+            object-fit: cover;
+            object-position: center 15%; /* Keeps faces prioritized in the top half */
+            transition: transform 0.6s ease;
+            filter: brightness(0.9) contrast(1.1);
         }
 
-        /* INTERNAL ZOOM (Careful zoom to not cut off the left person) */
-        .royal-badge-card:hover .royal-img-wrapper img {
-            transform: scale(1.18); /* Reduced from 1.35 to save the sides of the pic */
-            filter: brightness(1.1) contrast(1.2);
+        /* Subtle Image Zoom */
+        .royal-badge-card:hover img {
+            transform: scale(1.1);
+            filter: brightness(1.1);
         }
 
-        /* Tech Scan Line */
-        .royal-scan {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: var(--royal-gold);
-            box-shadow: 0 0 15px var(--royal-gold);
-            z-index: 10;
-            opacity: 0.3;
-            animation: tacticalScan 4s linear infinite;
-        }
-
-        @keyframes tacticalScan {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
-
-        /* Rank Tag (Floating Ribbon Style) */
-        .royal-rank-tag {
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--royal-border);
-            color: #000;
-            padding: 2px 15px;
-            font-size: 10px;
-            font-weight: 900;
-            font-family: 'Orbitron', sans-serif;
-            clip-path: polygon(0 0, 100% 0, 85% 100%, 15% 100%);
-            z-index: 25;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-
-        /* Glass HUD Bar */
+        /* 3. TRANSPARENT GHOST INFO BAR - No solid box to avoid covering faces */
         .royal-info-bar {
             position: absolute;
-            bottom: 15px;
-            width: 70%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 215, 0, 0.3);
+            bottom: 12px;
+            left: 0;
+            width: 100%;
+            /* Pure Transparent background with very light gradient */
+            background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
             padding: 5px 0;
             text-align: center;
-            z-index: 20;
-            border-radius: 2px;
-            transform: skewX(-10deg); /* Modern tactical look */
+            z-index: 15;
+            pointer-events: none;
         }
 
         .royal-title {
             color: #fff;
             font-size: 8px;
-            font-weight: 800;
-            letter-spacing: 1px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            /* Text glow for readability without needing a solid box */
+            text-shadow: 0 0 5px #000, 0 0 10px rgba(123, 44, 191, 0.8);
         }
 
         .royal-status {
             color: var(--royal-gold);
             font-size: 7px;
-            font-weight: bold;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px #000;
+            opacity: 0.9;
         }
 
-        /* Floating Animation */
-        @keyframes badgeFloat {
+        /* Rank Tag - Small and out of the way */
+        .royal-rank-tag {
+            position: absolute;
+            top: 8px;
+            right: 25px;
+            background: rgba(0,0,0,0.7);
+            color: var(--royal-gold);
+            border: 1px solid var(--royal-gold);
+            padding: 1px 8px;
+            font-size: 9px;
+            font-weight: 900;
+            border-radius: 3px;
+            z-index: 20;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Scan Line - Made thinner and lighter */
+        .royal-scan {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: rgba(255, 215, 0, 0.4);
+            box-shadow: 0 0 8px var(--royal-gold);
+            z-index: 10;
+            animation: idScan 4s linear infinite;
+        }
+
+        @keyframes idScan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+
+        @keyframes vaultFloat {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-5px); }
         }
 
         .royal-badge-wrapper {
-            animation: badgeFloat 5s ease-in-out infinite;
+            animation: vaultFloat 5s ease-in-out infinite;
         }
     `;
     document.head.appendChild(style);
