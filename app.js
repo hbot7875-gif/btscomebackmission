@@ -1088,30 +1088,49 @@ async function checkNotifications() {
     }
 }
 async function checkRoyalAward() {
-    // ONLY trigger if the week is actually over
-    if (!isWeekCompleted(STATE.week)) return null;
+    if (!STATE.weeks || STATE.weeks.length === 0) return null;
 
-    const rank = parseInt(STATE.data?.rank);
-    const week = STATE.week;
-    const storageKey = `royal_awarded_${week}_${STATE.agentNo}`;
+    // 1. Only check PREVIOUS week (not current)
+    const currentIdx = STATE.weeks.indexOf(STATE.week);
+    if (currentIdx <= 0) return null; // No previous week exists
 
-    if (rank > 0 && rank <= CONFIG.ROYAL_BADGES.TOP_N && !localStorage.getItem(storageKey)) {
-        localStorage.setItem(storageKey, 'true');
+    const previousWeek = STATE.weeks[currentIdx - 1];
 
-        return {
-            type: 'royal_badge',
-            icon: '👑',
-            title: 'ELITE STATUS ACHIEVED!',
-            message: `The mission is over! You secured Rank #${rank} globally. Your Royal Badge has been issued.`,
-            priority: 'high',
-            action: () => loadPage('drawer'),
-            actionText: 'View Royal Badge',
-            id: `royal_${week}`
-        };
+    // Skip if the week isn't finished yet
+    if (!isWeekCompleted(previousWeek)) return null;
+
+    const storageKey = `royal_awarded_${previousWeek}_${STATE.agentNo}`;
+    
+    // Skip if already seen
+    if (localStorage.getItem(storageKey)) return null;
+
+    try {
+        // Fetch previous week's rank
+        const res = await api('getDashboardData', { week: previousWeek });
+        const rank = parseInt(res.agent?.rank);
+
+        if (rank > 0 && rank <= (CONFIG.ROYAL_BADGES?.TOP_N || 50)) {
+            // Mark as seen
+            localStorage.setItem(storageKey, 'true');
+            
+            // Show the popup directly
+            showRoyalAwardModal(rank, previousWeek);
+            
+            return {
+                type: 'royal_badge',
+                icon: '👑',
+                title: 'Royal Badge Earned!',
+                message: `You got Rank #${rank} in ${previousWeek}!`,
+                priority: 'high',
+                id: `royal_${previousWeek}`
+            };
+        }
+    } catch (e) {
+        console.warn(`Royal check failed for ${previousWeek}`, e);
     }
+    
     return null;
 }
-
 // ==================== INDIVIDUAL CHECK FUNCTIONS ====================
 
 async function checkNewBadges() {
