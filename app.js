@@ -3796,11 +3796,7 @@ async function renderAdminSOTD() {
     `;
 
     container.innerHTML = html;
-} catch (e) {
-        container.innerHTML = `<div class="error-text">Failed to load SOTD data: ${e.message}</div>`;
-    }
 }
-
 async function submitAdminSOTD() {
     const title = document.getElementById('admin-sotd-title').value.trim();
     const artist = document.getElementById('admin-sotd-artist').value.trim();
