@@ -6884,7 +6884,8 @@ async function renderDrawer() {
         const rank = parseInt(STATE.data?.rank);
         if (rank > 0 && rank <= (CONFIG.ROYAL_BADGES?.TOP_N || 50)) {
             const royalPool = CONFIG.ROYAL_BADGE_POOL;
-            const badgeIndex = (rank - 1) % royalPool.length;
+            const weekSeed = (STATE.week || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const badgeIndex = (rank - 1 + weekSeed) % royalPool.length;
             
             royalBadges.push({
                 imageUrl: royalPool[badgeIndex],
@@ -14198,6 +14199,79 @@ function ensureRoyalBadgeCSS() {
     `;
     document.head.appendChild(style);
 }
+function showRoyalAwardModal(rank, week) {
+    // 1. Clean up existing modals
+    document.querySelectorAll('.royal-award-overlay').forEach(el => el.remove());
+
+    // 2. Get the specific badge image
+    const royalPool = CONFIG.ROYAL_BADGE_POOL;
+    const weekSeed = (week || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const badgeIndex = (rank - 1 + weekSeed) % royalPool.length;
+    const imageUrl = royalPool[badgeIndex];
+
+    // 3. Create Overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'royal-award-overlay';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.9); z-index: 1000000;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(10px); animation: fadeIn 0.3s ease;
+    `;
+
+    overlay.innerHTML = `
+        <div style="
+            background: linear-gradient(145deg, #1a1a2e, #0a0a0f);
+            border: 2px solid #ffd700;
+            border-radius: 16px;
+            padding: 20px;
+            width: 85%;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.25);
+        ">
+            <div style="color: #ffd700; font-size: 9px; font-weight: 800; letter-spacing: 3px; margin-bottom: 10px;">
+                🏆 TOP 50 AGENT
+            </div>
+
+            <h2 style="color: #fff; font-size: 16px; margin: 0 0 15px 0; font-weight: 800;">
+                ROYAL BADGE EARNED!
+            </h2>
+
+            <!-- Badge (Smaller Scale) -->
+            <div style="transform: scale(0.9); margin-bottom: 15px; display: inline-block;">
+                ${renderRoyalBadgeHTML({ imageUrl: imageUrl, rank: rank, week: week })}
+            </div>
+
+            <p style="color: #aaa; font-size: 11px; margin: 0 0 15px 0; line-height: 1.5;">
+                You finished <strong style="color:#ffd700;">Rank #${rank}</strong> in ${week || 'last week'}!
+            </p>
+
+            <button onclick="this.closest('.royal-award-overlay').remove()" style="
+                width: 100%; padding: 12px;
+                background: linear-gradient(135deg, #ffd700, #ffaa00);
+                border: none; border-radius: 10px;
+                color: #000; font-weight: 800; font-size: 12px;
+                cursor: pointer;
+            ">
+                COLLECT BADGE
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // 4. Confetti
+    if (typeof confetti === 'function') {
+        confetti({
+            particleCount: 100,
+            spread: 60,
+            origin: { y: 0.6 },
+            colors: ['#ffd700', '#ffffff', '#7b2cbf']
+        });
+    }
+}
+
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
