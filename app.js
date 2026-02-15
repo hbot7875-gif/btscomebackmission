@@ -43,7 +43,7 @@ const CONFIG = {
 // ==================== ROYAL/SPECIAL BADGES ===================
 ROYAL_BADGE_REPO_URL: 'https://raw.githubusercontent.com/hbot7875-gif/btscomebackmission/2dbbd3fd9f3ef65a80236784f7db5b7a1e3c20c4/Spl%20badges/',
 
-TOTAL_ROYAL_BADGES: 39, 
+TOTAL_ROYAL_BADGES: 49, 
 get ROYAL_BADGE_POOL() {
     const pool = [];
     for (let i = 1; i <= this.TOTAL_ROYAL_BADGES; i++) {
