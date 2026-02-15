@@ -3713,75 +3713,90 @@ async function renderAdminSOTD() {
 
     container.innerHTML = '<div class="loading-text">⏳ Fetching current SOTD...</div>';
 
-    try {
-        // Fetch current song to show status
-        const res = await api('getSongOfDay');
-        const current = res.success && res.song ? res.song : null;
+    let current = null;
 
-        let html = `
-            <div class="card" style="border-color: #7b2cbf; background: rgba(123, 44, 191, 0.05); margin-bottom: 20px;">
-                <div class="card-header"><h3>🎵 Set Song of the Day</h3></div>
-                <div class="card-body">
-                    
-                    <!-- Current Status Block -->
-                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #555;">
-                        <div style="font-size: 11px; color: #888; margin-bottom: 5px;">CURRENT STATUS (${new Date().toLocaleDateString()})</div>
-                        ${current ? `
-                            <div style="color: #fff; font-weight: bold;">${current.title}</div>
-                            <div style="color: #aaa; font-size: 12px;">${current.artist} • ${current.xpReward} XP</div>
-                            <div style="color: #7b2cbf; font-size: 11px; margin-top: 4px;">ID: ${current.youtubeId}</div>
-                        ` : `
-                            <div style="color: #ff6b6b;">⚠️ No song set for today!</div>
-                        `}
+    try {
+        // Attempt to get the song
+        const res = await api('getSongOfDay');
+        if (res.success && res.song) {
+            current = res.song;
+        }
+    } catch (e) {
+        // ✅ FIX: If the error is just "No song set", ignore it and let the form render empty.
+        // Only show actual network/system errors.
+        if (e.message && (e.message.includes('No song set') || e.message.includes('Admin needs'))) {
+            console.log("No song set yet - rendering empty form.");
+        } else {
+            container.innerHTML = `<div class="error-text">System Error: ${e.message}</div>`;
+            return;
+        }
+    }
+
+    // Render the form (current will be null if no song exists, which is fine)
+    let html = `
+        <div class="card" style="border-color: #7b2cbf; background: rgba(123, 44, 191, 0.05); margin-bottom: 20px;">
+            <div class="card-header"><h3>🎵 Set Song of the Day</h3></div>
+            <div class="card-body">
+                
+                <!-- Current Status Block -->
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #555;">
+                    <div style="font-size: 11px; color: #888; margin-bottom: 5px;">CURRENT STATUS (${new Date().toLocaleDateString()})</div>
+                    ${current ? `
+                        <div style="color: #fff; font-weight: bold;">${current.title}</div>
+                        <div style="color: #aaa; font-size: 12px;">${current.artist} • ${current.xpReward} XP</div>
+                        <div style="color: #7b2cbf; font-size: 11px; margin-top: 4px;">ID: ${current.youtubeId}</div>
+                    ` : `
+                        <div style="color: #ff6b6b; font-weight:bold;">⚠️ No song set for today!</div>
+                        <div style="color: #888; font-size:11px;">Fill the form below to start the game.</div>
+                    `}
+                </div>
+
+                <!-- Input Form -->
+                <div style="display: grid; gap: 12px;">
+                    <div>
+                        <label style="color:#aaa; font-size:11px;">Song Title</label>
+                        <input type="text" id="admin-sotd-title" class="form-input" placeholder="e.g. Run BTS" value="${current ? current.title : ''}">
                     </div>
 
-                    <!-- Input Form -->
-                    <div style="display: grid; gap: 12px;">
-                        <div>
-                            <label style="color:#aaa; font-size:11px;">Song Title</label>
-                            <input type="text" id="admin-sotd-title" class="form-input" placeholder="e.g. Run BTS" value="${current ? current.title : ''}">
-                        </div>
+                    <div>
+                        <label style="color:#aaa; font-size:11px;">Artist</label>
+                        <input type="text" id="admin-sotd-artist" class="form-input" placeholder="e.g. BTS" value="${current ? current.artist : 'BTS'}">
+                    </div>
 
-                        <div>
-                            <label style="color:#aaa; font-size:11px;">Artist</label>
-                            <input type="text" id="admin-sotd-artist" class="form-input" placeholder="e.g. BTS" value="${current ? current.artist : 'BTS'}">
-                        </div>
+                    <div>
+                        <label style="color:#aaa; font-size:11px;">YouTube Link or ID</label>
+                        <input type="text" id="admin-sotd-link" class="form-input" placeholder="Paste full YouTube URL here..." value="${current ? current.youtubeId : ''}">
+                        <div style="font-size:10px; color:#666; margin-top:4px;">System will auto-extract the 11-char ID.</div>
+                    </div>
 
-                        <div>
-                            <label style="color:#aaa; font-size:11px;">YouTube Link or ID</label>
-                            <input type="text" id="admin-sotd-link" class="form-input" placeholder="Paste full YouTube URL here..." value="${current ? current.youtubeId : ''}">
-                            <div style="font-size:10px; color:#666; margin-top:4px;">System will auto-extract the 11-char ID.</div>
-                        </div>
+                    <div>
+                        <label style="color:#aaa; font-size:11px;">Hint for Agents</label>
+                        <textarea id="admin-sotd-hint" class="form-input" style="min-height: 60px;" placeholder="e.g. Released in 2022...">${current ? current.hint : ''}</textarea>
+                    </div>
 
-                        <div>
-                            <label style="color:#aaa; font-size:11px;">Hint for Agents</label>
-                            <textarea id="admin-sotd-hint" class="form-input" style="min-height: 60px;" placeholder="e.g. Released in 2022...">${current ? current.hint : ''}</textarea>
-                        </div>
+                    <div>
+                        <label style="color:#aaa; font-size:11px;">XP Reward</label>
+                        <input type="number" id="admin-sotd-xp" class="form-input" value="${current ? current.xpReward : '1'}">
+                    </div>
 
-                        <div>
-                            <label style="color:#aaa; font-size:11px;">XP Reward</label>
-                            <input type="number" id="admin-sotd-xp" class="form-input" value="${current ? current.xpReward : '1'}">
-                        </div>
-
-                        <button onclick="submitAdminSOTD()" class="btn-primary" style="margin-top: 10px; background: linear-gradient(135deg, #7b2cbf, #5a1f99);">
-                            💾 Save Song of the Day
+                    <button onclick="submitAdminSOTD()" class="btn-primary" style="margin-top: 10px; background: linear-gradient(135deg, #7b2cbf, #5a1f99);">
+                        ${current ? '💾 Update Song' : '🚀 Publish New Song'}
+                    </button>
+                    
+                    <!-- Finalize Button -->
+                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                        <p style="color: #888; font-size: 11px; margin-bottom: 10px;">End of day? Broadcast winner results.</p>
+                        <button onclick="finalizeSOTDResults()" class="btn-secondary" style="width: 100%; border-color: #ffd700; color: #ffd700;">
+                            🏆 Finalize & Broadcast Results
                         </button>
-                        
-                        <!-- Finalize Button -->
-                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
-                            <p style="color: #888; font-size: 11px; margin-bottom: 10px;">End of day? Broadcast winner results.</p>
-                            <button onclick="finalizeSOTDResults()" class="btn-secondary" style="width: 100%; border-color: #ffd700; color: #ffd700;">
-                                🏆 Finalize & Broadcast Results
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
-        container.innerHTML = html;
-
-    } catch (e) {
+    container.innerHTML = html;
+} catch (e) {
         container.innerHTML = `<div class="error-text">Failed to load SOTD data: ${e.message}</div>`;
     }
 }
