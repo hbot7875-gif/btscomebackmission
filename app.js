@@ -1088,62 +1088,42 @@ async function checkNotifications() {
     }
 }
 async function checkRoyalAward() {
-    if (!STATE.weeks || STATE.weeks.length === 0) {
-        console.log("🕵️ Royal Check: No weeks available in state.");
-        return null;
-    }
+    if (!STATE.weeks || STATE.weeks.length === 0) return null;
 
-    // 1. Find the Previous Week relative to the one being viewed
     const currentIdx = STATE.weeks.indexOf(STATE.week);
-    if (currentIdx <= 0) {
-        console.log("🕵️ Royal Check: Currently at the start of history. No previous week to check.");
-        return null;
-    }
+    const previousWeek = STATE.weeks[currentIdx - 1] || (STATE.week === 'Week 11' ? 'Week 10' : null);
 
-    const previousWeek = STATE.weeks[currentIdx - 1];
-    console.log(`🕵️ Royal Check: Investigating ${previousWeek}...`);
+    if (!previousWeek || !isWeekCompleted(previousWeek)) return null;
 
-    // 2. Check if that week is actually finished
-    if (!isWeekCompleted(previousWeek)) {
-        console.log(`🕵️ Royal Check: ${previousWeek} is not officially completed yet.`);
-        return null;
-    }
-
-    // 3. Check if we've already shown this trophy
     const storageKey = `royal_awarded_${previousWeek}_${STATE.agentNo}`;
-    if (localStorage.getItem(storageKey)) {
-        console.log(`🕵️ Royal Check: Trophy for ${previousWeek} already collected.`);
-        return null;
-    }
+    if (localStorage.getItem(storageKey)) return null;
 
     try {
-        // 4. Ask the server for the Agent's specific rank for that week
-        console.log(`🕵️ Royal Check: Fetching final rank for ${previousWeek}...`);
         const res = await api('getDashboardData', { week: previousWeek });
         const rank = parseInt(res.agent?.rank);
 
-        console.log(`🕵️ Royal Check: Result for ${previousWeek} - Rank #${rank}`);
-
         if (rank > 0 && rank <= (CONFIG.ROYAL_BADGES?.TOP_N || 50)) {
-            // Found a winner!
+            
+            // 🔥 DIRECT TRIGGER: Show the big modal immediately
+            // This happens as soon as the background check finishes
+            showRoyalAwardModal(rank, previousWeek);
+            
+            // Also mark as seen so it doesn't repeat
+            localStorage.setItem(storageKey, 'true');
+
+            // Return the notification just as a backup/log
             return {
                 type: 'royal_badge',
                 icon: '👑',
-                title: 'ELITE STATUS ACHIEVED!',
-                message: `You secured Rank #${rank} globally in ${previousWeek}. Your Royal Badge has been issued.`,
+                title: 'ELITE STATUS!',
+                message: `Rank #${rank} in ${previousWeek}`,
                 priority: 'high',
-                id: `royal_${previousWeek}`,
-                action: () => {
-                    localStorage.setItem(storageKey, 'true'); // Save seen status
-                    showRoyalAwardModal(rank, previousWeek); // Show the big modal
-                },
-                actionText: 'Claim Badge'
+                id: `royal_${previousWeek}`
             };
         }
     } catch (e) {
-        console.warn(`🕵️ Royal check failed for ${previousWeek}`, e);
+        console.warn("Royal check background fetch failed", e);
     }
-    
     return null;
 }
 // ==================== INDIVIDUAL CHECK FUNCTIONS ====================
@@ -1478,9 +1458,9 @@ async function checkNewResultsRelease() {
 }
 async function checkNewSongOfDay() {
     try {
-        const data = await api('getSongOfDay', {});
+        const data = await api('getSongOfDay', {}).catch(() => ({ success: false }));
         
-        if (!data.success || !data.song) return null;
+        if (!data || !data.success || !data.song) return null;
         
         const today = new Date().toDateString();
         const lastCheckedDate = STATE.lastChecked.songOfDay;
