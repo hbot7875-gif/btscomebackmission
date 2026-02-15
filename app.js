@@ -2507,6 +2507,7 @@ function showAdminPanel() {
             <button type="button" class="admin-tab active" data-tab="create">Create Mission</button>
             <button type="button" class="admin-tab" data-tab="active">Active</button>
             <button type="button" class="admin-tab" data-tab="confirm">📋 Confirm</button>
+            <button type="button" class="admin-tab" data-tab="sotd">🎵 SOTD</button>
             <button type="button" class="admin-tab" data-tab="debug">🔧 Diagnostics</button>
             <button type="button" class="admin-tab" data-tab="system">⚙️ System</button>
             <button type="button" class="admin-tab" data-tab="leaves">🛑 On Leave</button> 
@@ -2517,6 +2518,7 @@ function showAdminPanel() {
             <div id="admin-tab-create" class="admin-tab-content active"></div>
             <div id="admin-tab-active" class="admin-tab-content"></div>
             <div id="admin-tab-confirm" class="admin-tab-content"></div>
+            <div id="admin-tab-sotd" class="admin-tab-content"></div>
             <div id="admin-tab-debug" class="admin-tab-content"></div>
             <div id="admin-tab-system" class="admin-tab-content"></div>
             <div id="admin-tab-leaves" class="admin-tab-content"></div>
@@ -2593,6 +2595,9 @@ function switchAdminTab(tabName) {
         case 'confirm':                    
             renderWeekConfirmation();
             break;
+        case 'sotd': 
+            renderAdminSOTD(); 
+            break; 
         case 'debug': 
             renderAdminDebugTab(); 
             break;
@@ -3700,6 +3705,159 @@ async function renderWeekConfirmation() {
         container.innerHTML = `<div class="error-state"><p>❌ Failed to load data</p><button class="btn-secondary" onclick="renderWeekConfirmation()">Retry</button></div>`;
     }
 }
+// ==================== ADMIN SOTD FUNCTIONS ====================
+
+async function renderAdminSOTD() {
+    const container = document.getElementById('admin-tab-sotd');
+    if (!container) return;
+
+    container.innerHTML = '<div class="loading-text">⏳ Fetching current SOTD...</div>';
+
+    try {
+        // Fetch current song to show status
+        const res = await api('getSongOfDay');
+        const current = res.success && res.song ? res.song : null;
+
+        let html = `
+            <div class="card" style="border-color: #7b2cbf; background: rgba(123, 44, 191, 0.05); margin-bottom: 20px;">
+                <div class="card-header"><h3>🎵 Set Song of the Day</h3></div>
+                <div class="card-body">
+                    
+                    <!-- Current Status Block -->
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #555;">
+                        <div style="font-size: 11px; color: #888; margin-bottom: 5px;">CURRENT STATUS (${new Date().toLocaleDateString()})</div>
+                        ${current ? `
+                            <div style="color: #fff; font-weight: bold;">${current.title}</div>
+                            <div style="color: #aaa; font-size: 12px;">${current.artist} • ${current.xpReward} XP</div>
+                            <div style="color: #7b2cbf; font-size: 11px; margin-top: 4px;">ID: ${current.youtubeId}</div>
+                        ` : `
+                            <div style="color: #ff6b6b;">⚠️ No song set for today!</div>
+                        `}
+                    </div>
+
+                    <!-- Input Form -->
+                    <div style="display: grid; gap: 12px;">
+                        <div>
+                            <label style="color:#aaa; font-size:11px;">Song Title</label>
+                            <input type="text" id="admin-sotd-title" class="form-input" placeholder="e.g. Run BTS" value="${current ? current.title : ''}">
+                        </div>
+
+                        <div>
+                            <label style="color:#aaa; font-size:11px;">Artist</label>
+                            <input type="text" id="admin-sotd-artist" class="form-input" placeholder="e.g. BTS" value="${current ? current.artist : 'BTS'}">
+                        </div>
+
+                        <div>
+                            <label style="color:#aaa; font-size:11px;">YouTube Link or ID</label>
+                            <input type="text" id="admin-sotd-link" class="form-input" placeholder="Paste full YouTube URL here..." value="${current ? current.youtubeId : ''}">
+                            <div style="font-size:10px; color:#666; margin-top:4px;">System will auto-extract the 11-char ID.</div>
+                        </div>
+
+                        <div>
+                            <label style="color:#aaa; font-size:11px;">Hint for Agents</label>
+                            <textarea id="admin-sotd-hint" class="form-input" style="min-height: 60px;" placeholder="e.g. Released in 2022...">${current ? current.hint : ''}</textarea>
+                        </div>
+
+                        <div>
+                            <label style="color:#aaa; font-size:11px;">XP Reward</label>
+                            <input type="number" id="admin-sotd-xp" class="form-input" value="${current ? current.xpReward : '1'}">
+                        </div>
+
+                        <button onclick="submitAdminSOTD()" class="btn-primary" style="margin-top: 10px; background: linear-gradient(135deg, #7b2cbf, #5a1f99);">
+                            💾 Save Song of the Day
+                        </button>
+                        
+                        <!-- Finalize Button -->
+                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                            <p style="color: #888; font-size: 11px; margin-bottom: 10px;">End of day? Broadcast winner results.</p>
+                            <button onclick="finalizeSOTDResults()" class="btn-secondary" style="width: 100%; border-color: #ffd700; color: #ffd700;">
+                                🏆 Finalize & Broadcast Results
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+
+    } catch (e) {
+        container.innerHTML = `<div class="error-text">Failed to load SOTD data: ${e.message}</div>`;
+    }
+}
+
+async function submitAdminSOTD() {
+    const title = document.getElementById('admin-sotd-title').value.trim();
+    const artist = document.getElementById('admin-sotd-artist').value.trim();
+    const rawLink = document.getElementById('admin-sotd-link').value.trim();
+    const hint = document.getElementById('admin-sotd-hint').value.trim();
+    const xp = document.getElementById('admin-sotd-xp').value;
+
+    if (!title || !rawLink || !hint) {
+        showToast('❌ Please fill all required fields', 'error');
+        return;
+    }
+
+    // Extract ID using your existing helper function
+    const youtubeId = extractYouTubeId(rawLink);
+    if (!youtubeId) {
+        showToast('❌ Invalid YouTube URL', 'error');
+        return;
+    }
+
+    loading(true);
+
+    try {
+        const res = await api('setSongOfDay', {
+            agentNo: STATE.agentNo,
+            sessionToken: STATE.adminSession, // Ensure admin session is passed
+            title: title,
+            artist: artist || 'BTS',
+            youtubeId: youtubeId,
+            hint: hint,
+            xpReward: parseInt(xp) || 1
+        });
+
+        if (res.success) {
+            showToast('✅ Song of the Day updated!', 'success');
+            renderAdminSOTD(); // Refresh form
+        } else {
+            showToast('❌ ' + res.error, 'error');
+        }
+    } catch (e) {
+        showToast('System Error: ' + e.message, 'error');
+    } finally {
+        loading(false);
+    }
+}
+
+async function finalizeSOTDResults() {
+    if (!confirm("⚠️ Are you sure you want to finalize today's results?\n\nThis will calculate the winning team and add an activity feed item.")) return;
+
+    loading(true);
+    try {
+        const res = await api('finalizeSOTD', {
+            agentNo: STATE.agentNo,
+            sessionToken: STATE.adminSession
+        });
+
+        if (res.success) {
+            showToast('🏆 Results finalized and broadcasted!', 'success');
+        } else {
+            showToast('❌ ' + res.error, 'error');
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        loading(false);
+    }
+}
+
+// Make globally available
+window.renderAdminSOTD = renderAdminSOTD;
+window.submitAdminSOTD = submitAdminSOTD;
+window.finalizeSOTDResults = finalizeSOTDResults;
+
 async function smartUpdateStatus(teamName, field, value) {
     // 1. Get the token from storage (Safety net if page was refreshed)
     const token = STATE.adminSession || localStorage.getItem('adminSession');
