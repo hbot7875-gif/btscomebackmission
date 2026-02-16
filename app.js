@@ -15087,6 +15087,123 @@ window.switchHypeTab = switchHypeTab;
 window.loadHypeFeed = loadHypeFeed;
 window.deleteHypeItem = deleteHypeItem;;
 
+async function renderArirangVault() {
+    const container = document.getElementById('arirang-vault-content');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div style="text-align:center; padding:40px 20px;">
+            
+            <!-- VAULT ICON -->
+            <div style="font-size:80px; margin-bottom:20px; opacity:0.8;">🔒</div>
+            
+            <!-- TITLE -->
+            <h1 style="color:#ffd700; font-size:24px; margin:0 0 10px 0; letter-spacing:2px;">
+                ARIRANG VAULT
+            </h1>
+            
+            <p style="color:#888; font-size:13px; margin:0 0 30px 0;">
+                Resource Allocation Unit
+            </p>
+            
+            <!-- COMING SOON BOX -->
+            <div style="
+                background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(0,0,0,0));
+                border: 1px dashed #ffd700;
+                border-radius: 16px;
+                padding: 30px 20px;
+                margin-bottom: 25px;
+            ">
+                <div style="color:#ffd700; font-size:14px; font-weight:bold; margin-bottom:10px;">
+                    🚧 UNDER CONSTRUCTION
+                </div>
+                <p style="color:#aaa; font-size:12px; line-height:1.6; margin:0;">
+                    The Vault will open soon to provide Spotify/Apple Music/YouTube Premium support for agents who need it, so our collective streaming impact becomes even stronger
+                
+                </p>
+            </div>
+            
+            <!-- MISSION STATS -->
+            <div style="
+                background: rgba(255,255,255,0.03);
+                border: 1px solid #333;
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 25px;
+            ">
+                <div style="color:#fff; font-size:13px; font-weight:bold; margin-bottom:15px;">
+                    📊 Current Mission Status
+                </div>
+                <div style="display:flex; justify-content:space-around; text-align:center;">
+                    <div>
+                        <div style="color:#00ff88; font-size:24px; font-weight:bold;">160+</div>
+                        <div style="color:#666; font-size:10px;">AGENTS</div>
+                    </div>
+                    <div>
+                        <div style="color:#7b2cbf; font-size:24px; font-weight:bold;">4</div>
+                        <div style="color:#666; font-size:10px;">TEAMS</div>
+                    </div>
+                    <div>
+                        <div style="color:#ffd700; font-size:24px; font-weight:bold;">∞</div>
+                        <div style="color:#666; font-size:10px;">POTENTIAL</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- WHAT'S COMING -->
+            <div style="text-align:left; padding:15px; background:rgba(0,255,136,0.05); border-radius:10px; margin-bottom:20px;">
+                <div style="color:#00ff88; font-size:11px; font-weight:bold; margin-bottom:8px;">
+                    🎯 VAULT MISSION (Coming Soon)
+                </div>
+                <ul style="color:#aaa; font-size:11px; line-height:1.8; margin:0; padding-left:20px;">
+                    <li>Fund Premium accounts for agents in need</li>
+                    <li>Open and transparent tracking for everyone</li>
+                </ul>
+            </div>
+            
+            <!-- NOTIFY ME -->
+            <div style="
+                background: rgba(123,44,191,0.1);
+                border: 1px solid rgba(123,44,191,0.3);
+                border-radius: 10px;
+                padding: 15px;
+                margin-bottom: 25px;
+            ">
+                <div style="color:#7b2cbf; font-size:12px; margin-bottom:5px;">
+                    💬 Want to help when it launches?
+                </div>
+                <div style="color:#888; font-size:11px;">
+                    Stay active in the mission. We'll announce in the chat!
+                </div>
+            </div>
+            
+            <!-- BACK BUTTON -->
+            <button onclick="loadPage('home')" style="
+                width: 100%;
+                padding: 14px;
+                background: rgba(255,255,255,0.05);
+                border: 1px solid #333;
+                border-radius: 10px;
+                color: #888;
+                font-size: 13px;
+                cursor: pointer;
+                transition: all 0.2s;
+            " onmouseover="this.style.borderColor='#ffd700'; this.style.color='#fff';" 
+               onmouseout="this.style.borderColor='#333'; this.style.color='#888';">
+                ← Return to Mission Control
+            </button>
+            
+            <!-- FOOTER -->
+            <div style="margin-top:30px; color:#444; font-size:10px; line-height:1.6;">
+                Fan-run initiative. Not affiliated with HYBE/BigHit.<br>
+                Streaming manually helps just as much! 💜
+            </div>
+        </div>
+    `;
+}
+
+window.renderArirangVault = renderArirangVault;
+
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
 
