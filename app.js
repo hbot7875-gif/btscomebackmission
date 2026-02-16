@@ -14652,13 +14652,13 @@ async function renderArirangHype() {
                 }
             </style>
 
-            <!-- 💡 TACTICAL BRIEF -->
+            <!-- 💡 HQ IDEA -->
             <div class="hype-card" style="border-left: 4px solid #ffd700; background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(0,0,0,0));">
                 <div class="hype-card-body" style="display:flex; align-items:flex-start; gap:12px;">
                     <span style="font-size:28px;">💡</span>
                     <div style="flex:1;">
                         <div style="color:#ffd700; font-size:10px; font-weight:800; letter-spacing:1.5px; margin-bottom:6px;">
-                            TACTICAL BRIEF
+                            HQ IDEA
                         </div>
                         <div style="color:#fff; font-size:14px; line-height:1.5;">
                             "${sanitize(dailyStrategy)}"
