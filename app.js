@@ -14490,71 +14490,255 @@ async function renderArirangHype() {
                 id: a.id,
                 text: a.data.idea,
                 author: a.data.author || 'Anonymous Agent',
-                agentNo: a.agentNo // Keep for delete logic only, NOT displayed
+                agentNo: a.agentNo
             }));
 
         // ── 3. Random Daily Strategy ──
-        const allIdeaTexts = [...baseStrategies, ...communityStrategies.map(c => c.text)];
         const dailyStrategy = baseStrategies[Math.floor(Math.random() * baseStrategies.length)];
 
         // ── 4. Render Full UI ──
         container.innerHTML = `
-            <!-- 💡 HYPE PROTOCOL -->
-            <div class="card" style="border-left: 4px solid #ffd700; background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(0,0,0,0)); margin-bottom: 20px;">
-                <div class="card-body" style="padding: 15px; display:flex; align-items:flex-start; gap:12px;">
-                    <span style="font-size:24px;">💡</span>
-                    <div>
-                        <div style="color:#ffd700; font-size:10px; font-weight:800; letter-spacing:1px; margin-bottom:4px;">TACTICAL BRIEF</div>
-                        <div style="color:#fff; font-size:13px; line-height:1.4;">"${sanitize(dailyStrategy)}"</div>
-                        <button onclick="renderArirangHype()" style="background:none; border:none; color:#888; font-size:10px; margin-top:5px; cursor:pointer; text-decoration:underline;">
-                            🎲 Shuffle
+            <!-- 🎨 SCOPED STYLES FOR HYPE FORCE -->
+            <style>
+                .hype-nav {
+                    display: flex;
+                    gap: 10px;
+                    margin-bottom: 20px;
+                    background: rgba(255,255,255,0.05);
+                    padding: 6px;
+                    border-radius: 12px;
+                }
+                .hype-nav-btn {
+                    flex: 1;
+                    padding: 12px 16px;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    background: transparent;
+                    color: #888;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    font-size: 13px;
+                    transition: all 0.3s ease;
+                    text-align: center;
+                }
+                .hype-nav-btn:hover {
+                    color: #fff;
+                    background: rgba(255,255,255,0.1);
+                }
+                .hype-nav-btn.active {
+                    background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                    color: #fff !important;
+                    border-color: #7b2cbf;
+                    box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
+                }
+                .hype-card {
+                    background: #12121a;
+                    border-radius: 12px;
+                    margin-bottom: 15px;
+                    overflow: hidden;
+                }
+                .hype-card-header {
+                    background: rgba(123,44,191,0.1);
+                    padding: 12px 15px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                }
+                .hype-card-body {
+                    padding: 15px;
+                }
+                .hype-input {
+                    width: 100%;
+                    padding: 12px 15px;
+                    background: #0a0a0f;
+                    border: 1px solid #333;
+                    border-radius: 8px;
+                    color: #fff;
+                    font-size: 14px;
+                    outline: none;
+                    transition: border-color 0.3s ease;
+                }
+                .hype-input:focus {
+                    border-color: #7b2cbf;
+                }
+                .hype-input::placeholder {
+                    color: #555;
+                }
+                .hype-btn-primary {
+                    width: 100%;
+                    padding: 14px;
+                    background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                    border: none;
+                    border-radius: 10px;
+                    color: #fff;
+                    font-weight: 800;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+                .hype-btn-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(123, 44, 191, 0.4);
+                }
+                .hype-btn-primary:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+                .hype-signal-card {
+                    background: rgba(255,255,255,0.02);
+                    border: 1px solid rgba(255,255,255,0.05);
+                    border-left: 3px solid #00ff88;
+                    border-radius: 10px;
+                    padding: 12px 15px;
+                    margin-bottom: 10px;
+                    transition: all 0.3s ease;
+                }
+                .hype-signal-card:hover {
+                    background: rgba(255,255,255,0.04);
+                }
+                .hype-boost-btn {
+                    background: #00ff88;
+                    color: #000;
+                    font-weight: 800;
+                    font-size: 11px;
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    text-decoration: none;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                    box-shadow: 0 0 15px rgba(0,255,136,0.3);
+                    transition: all 0.3s ease;
+                    white-space: nowrap;
+                    flex-shrink: 0;
+                }
+                .hype-boost-btn:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 0 25px rgba(0,255,136,0.5);
+                }
+                .hype-idea-card {
+                    padding: 12px 15px;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    line-height: 1.5;
+                    margin-bottom: 8px;
+                }
+                .hype-idea-hq {
+                    background: rgba(255,255,255,0.03);
+                    border-left: 2px solid #444;
+                    color: #aaa;
+                }
+                .hype-idea-community {
+                    background: rgba(255,215,0,0.05);
+                    border-left: 2px solid #ffd700;
+                    color: #ddd;
+                }
+                .hype-delete-btn {
+                    background: none;
+                    border: none;
+                    color: #ff4444;
+                    font-size: 10px;
+                    cursor: pointer;
+                    opacity: 0.5;
+                    transition: opacity 0.2s ease;
+                    padding: 4px 8px;
+                }
+                .hype-delete-btn:hover {
+                    opacity: 1;
+                }
+            </style>
+
+            <!-- 💡 TACTICAL BRIEF -->
+            <div class="hype-card" style="border-left: 4px solid #ffd700; background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(0,0,0,0));">
+                <div class="hype-card-body" style="display:flex; align-items:flex-start; gap:12px;">
+                    <span style="font-size:28px;">💡</span>
+                    <div style="flex:1;">
+                        <div style="color:#ffd700; font-size:10px; font-weight:800; letter-spacing:1.5px; margin-bottom:6px;">
+                            TACTICAL BRIEF
+                        </div>
+                        <div style="color:#fff; font-size:14px; line-height:1.5;">
+                            "${sanitize(dailyStrategy)}"
+                        </div>
+                        <button onclick="renderArirangHype()" style="
+                            background: none; 
+                            border: none; 
+                            color: #666; 
+                            font-size: 11px; 
+                            margin-top: 8px; 
+                            cursor: pointer; 
+                            padding: 4px 0;
+                            transition: color 0.2s ease;
+                        " onmouseover="this.style.color='#ffd700'" onmouseout="this.style.color='#666'">
+                            🎲 Shuffle Strategy
                         </button>
                     </div>
                 </div>
             </div>
 
             <!-- 📡 BOOST STATION -->
-            <div class="card" style="border: 1px solid #7b2cbf; background: #12121a; margin-bottom:25px;">
-                <div class="card-header" style="background: rgba(123,44,191,0.1); display:flex; justify-content:space-between; align-items:center;">
-                    <h3 style="color:#fff; margin:0;">📡 BOOST STATION</h3>
-                    <span style="font-size:10px; background:#7b2cbf; color:#fff; padding:2px 6px; border-radius:4px;">LIVE</span>
+            <div class="hype-card" style="border: 1px solid #7b2cbf;">
+                <div class="hype-card-header">
+                    <h3 style="color:#fff; margin:0; font-size:15px; font-weight:700;">
+                        📡 BOOST STATION
+                    </h3>
+                    <span style="font-size:10px; background:#7b2cbf; color:#fff; padding:3px 8px; border-radius:4px; font-weight:600;">
+                        LIVE
+                    </span>
                 </div>
-                <div class="card-body" style="padding: 15px;">
-                    <p style="color:#ccc; font-size:12px; margin-bottom:15px;">
-                        Paste your post or reel link. The entire mission base will be notified to engage immediately.
+                <div class="hype-card-body">
+                    <p style="color:#999; font-size:12px; margin:0 0 15px 0; line-height:1.5;">
+                        Drop your post or reel link. The entire squad will be notified to engage.
                     </p>
 
                     <!-- WARNING -->
-                    <div style="background:rgba(255,0,0,0.1); border:1px dashed #ff4444; padding:10px; border-radius:8px; margin-bottom:15px;">
-                        <div style="color:#ff4444; font-weight:bold; font-size:11px;">⚠️ PROTOCOL WARNING</div>
-                        <p style="color:#aaa; font-size:10px; margin-top:2px; line-height:1.3;">
-                            <strong>BTS Comeback content ONLY.</strong> Irrelevant links will be removed.
+                    <div style="
+                        background: rgba(255,68,68,0.08); 
+                        border: 1px dashed rgba(255,68,68,0.4); 
+                        padding: 12px; 
+                        border-radius: 8px; 
+                        margin-bottom: 15px;
+                    ">
+                        <div style="color:#ff4444; font-weight:700; font-size:11px; margin-bottom:4px;">
+                            ⚠️ PROTOCOL WARNING
+                        </div>
+                        <p style="color:#888; font-size:10px; margin:0; line-height:1.4;">
+                            <strong style="color:#aaa;">BTS Comeback content ONLY.</strong> Off-topic links will be removed.
                         </p>
                     </div>
 
-                    <!-- INPUTS -->
-                    <div style="display:flex; flex-direction:column; gap:10px;">
-                        <input type="text" id="hype-link" placeholder="Paste Link (Instagram / TikTok / X)..." 
-                            class="form-input" style="width:100%; background:#0a0a0f; border-color:#333;">
+                    <!-- INPUT -->
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        <input type="text" id="hype-link" placeholder="Paste Link (Instagram / TikTok / X / YouTube)..." 
+                            class="hype-input">
                         
-                        <button id="boost-btn" onclick="submitHypeLink()" class="btn-primary" 
-                            style="width:100%; background:linear-gradient(135deg, #7b2cbf, #5a1f99); font-weight:800; border:none; padding:14px;">
+                        <button id="boost-btn" onclick="submitHypeLink()" class="hype-btn-primary">
                             ⚡ BROADCAST SIGNAL
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- TABS -->
-            <div class="guide-nav" style="margin-bottom:15px;">
-                <button class="guide-nav-btn active" data-hype-tab="signals" onclick="switchHypeTab('signals')">🔥 Active Signals</button>
-                <button class="guide-nav-btn" data-hype-tab="ideas" onclick="switchHypeTab('ideas')">📂 Idea Bank</button>
+            <!-- 🔥 TABS -->
+            <div class="hype-nav">
+                <button class="hype-nav-btn active" data-hype-tab="signals" onclick="switchHypeTab('signals')">
+                    🔥 Live Signals
+                </button>
+                <button class="hype-nav-btn" data-hype-tab="ideas" onclick="switchHypeTab('ideas')">
+                    📂 Strategy Vault
+                </button>
             </div>
             
             <!-- PANEL: ACTIVE SIGNALS -->
             <div id="hype-signals-panel">
                 <div id="hype-feed-container">
-                    <div class="loading-text" style="text-align:center; padding:20px;">Scanning frequencies...</div>
+                    <div style="text-align:center; padding:30px; color:#555;">
+                        <div style="font-size:24px; margin-bottom:10px;">📡</div>
+                        Scanning frequencies...
+                    </div>
                 </div>
             </div>
 
@@ -14562,15 +14746,25 @@ async function renderArirangHype() {
             <div id="hype-ideas-panel" style="display:none;">
                 
                 <!-- Idea Submission -->
-                <div class="card" style="border: 1px dashed #444; background: rgba(255,255,255,0.02); margin-bottom:15px;">
-                    <div class="card-body" style="padding: 15px;">
-                        <h4 style="color:#fff; margin:0 0 8px 0; font-size:13px;">🧠 Suggest a Strategy</h4>
-                        <div style="display:flex; gap:8px;">
-                            <input type="text" id="new-strategy-input" placeholder="E.g. Comment on viral reels with..." 
-                                class="form-input" style="flex:1; background:#0a0a0f; font-size:12px;">
+                <div class="hype-card" style="border: 1px dashed #333; background: rgba(255,255,255,0.02);">
+                    <div class="hype-card-body">
+                        <h4 style="color:#fff; margin:0 0 12px 0; font-size:14px; font-weight:600;">
+                            🧠 Suggest a Strategy
+                        </h4>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="new-strategy-input" placeholder="E.g. Comment on viral reels with BTS hooks..." 
+                                class="hype-input" style="flex:1;">
                             <button id="add-idea-btn" onclick="submitHypeIdea()" style="
-                                background: #333; color: #fff; border: 1px solid #555; 
-                                border-radius: 8px; padding: 0 15px; font-weight: bold; cursor: pointer;">
+                                background: #333; 
+                                color: #fff; 
+                                border: 1px solid #555; 
+                                border-radius: 8px; 
+                                padding: 12px 20px; 
+                                font-weight: 700; 
+                                cursor: pointer;
+                                transition: all 0.2s ease;
+                                white-space: nowrap;
+                            " onmouseover="this.style.background='#444'" onmouseout="this.style.background='#333'">
                                 ADD
                             </button>
                         </div>
@@ -14578,11 +14772,13 @@ async function renderArirangHype() {
                 </div>
 
                 <!-- Ideas List -->
-                <div id="ideas-list" style="display:flex; flex-direction:column; gap:8px;">
-                    <!-- HQ Protocols (Fixed) -->
+                <div id="ideas-list" style="margin-top:15px;">
+                    <!-- HQ Protocols -->
                     ${baseStrategies.map(idea => `
-                        <div style="padding:12px; background:rgba(255,255,255,0.03); border-radius:8px; border-left:2px solid #444; color:#aaa; font-size:12px;">
-                            <span style="display:block; font-size:9px; color:#555; margin-bottom:2px;">📋 HQ Ideas</span>
+                        <div class="hype-idea-card hype-idea-hq">
+                            <span style="display:block; font-size:9px; color:#555; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">
+                                📋 HQ Protocol
+                            </span>
                             "${sanitize(idea)}"
                         </div>
                     `).join('')}
@@ -14591,18 +14787,16 @@ async function renderArirangHype() {
                     ${communityStrategies.length > 0 ? communityStrategies.map(item => {
                         const canDelete = item.agentNo === STATE.agentNo || STATE.agentNo === 'AGENT000';
                         return `
-                            <div style="padding:12px; background:rgba(255,215,0,0.05); border-radius:8px; border-left:2px solid #ffd700; color:#ddd; font-size:12px;" id="idea-${item.id}">
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div class="hype-idea-card hype-idea-community" id="idea-${item.id}">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
                                     <div style="flex:1;">
-                                        <span style="display:block; font-size:9px; color:#ffd700; margin-bottom:2px;">
-                                            💡 ${sanitize(item.author).toUpperCase()}
+                                        <span style="display:block; font-size:9px; color:#ffd700; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">
+                                            💡 ${sanitize(item.author)}
                                         </span>
                                         "${sanitize(item.text)}"
                                     </div>
                                     ${canDelete ? `
-                                        <button onclick="deleteHypeItem(${item.id}, 'idea')" 
-                                            style="background:none; border:none; color:#ff4444; font-size:10px; cursor:pointer; opacity:0.5; margin-left:8px;"
-                                            onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">
+                                        <button onclick="deleteHypeItem(${item.id}, 'idea')" class="hype-delete-btn">
                                             ✕
                                         </button>
                                     ` : ''}
@@ -14610,8 +14804,9 @@ async function renderArirangHype() {
                             </div>
                         `;
                     }).join('') : `
-                        <div style="text-align:center; padding:20px; color:#555; font-size:12px;">
-                            No community ideas yet. Be the first to contribute!
+                        <div style="text-align:center; padding:30px; color:#444; font-size:13px;">
+                            <div style="font-size:24px; margin-bottom:8px;">🧠</div>
+                            No community ideas yet. Be the first!
                         </div>
                     `}
                 </div>
@@ -14623,7 +14818,20 @@ async function renderArirangHype() {
 
     } catch (e) {
         console.error('Hype Force error:', e);
-        container.innerHTML = '<p class="error-text" style="text-align:center; padding:30px; color:#ff4444;">⚠️ Connection Lost. Try refreshing.</p>';
+        container.innerHTML = `
+            <div style="text-align:center; padding:40px; color:#ff4444;">
+                <div style="font-size:32px; margin-bottom:10px;">⚠️</div>
+                <p style="margin:0 0 15px 0;">Connection Lost</p>
+                <button onclick="renderArirangHype()" style="
+                    background: #333;
+                    color: #fff;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                ">Try Again</button>
+            </div>
+        `;
     }
 }
 
@@ -14671,23 +14879,24 @@ async function submitHypeLink() {
 
         const result = await api('broadcastActivity', {
             type: 'priority_alert',
-            agentNo: STATE.agentNo, // Used for backend tracking only
+            agentNo: STATE.agentNo,
             data: {
                 title: 'BOOST REQUESTED',
                 message: 'New Intel Dropped! Engage Immediately.',
                 link: link,
-                author: agentName,  // ✅ NAME displayed, not ID
+                author: agentName,
                 team: agentTeam
             }
         });
 
         if (result.success) {
-            showToast('✅ SIGNAL BROADCASTED TO ALL AGENTS!', 'success');
+            showToast('✅ SIGNAL BROADCASTED!', 'success');
             linkInput.value = '';
-            setTimeout(loadHypeFeed, 1000);
+            setTimeout(loadHypeFeed, 800);
 
+            // Confetti effect if available
             if (typeof confetti === 'function') {
-                confetti({ particleCount: 80, origin: { y: 0.7 } });
+                confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
             }
         } else {
             throw new Error(result.error || 'Broadcast failed');
@@ -14695,7 +14904,7 @@ async function submitHypeLink() {
 
     } catch (e) {
         console.error('Boost error:', e);
-        showToast('❌ Transmission Error: ' + (e.message || 'Try again.'), 'error');
+        showToast('❌ ' + (e.message || 'Transmission failed. Try again.'), 'error');
     } finally {
         btn.disabled = false;
         btn.innerHTML = '⚡ BROADCAST SIGNAL';
@@ -14713,7 +14922,7 @@ async function submitHypeIdea() {
         return; 
     }
     if (idea.length < 10) { 
-        showToast('❌ Idea too short (min 10 chars).', 'error'); 
+        showToast('❌ Too short! Min 10 characters.', 'error'); 
         return; 
     }
 
@@ -14725,10 +14934,10 @@ async function submitHypeIdea() {
 
         const result = await api('broadcastActivity', {
             type: 'strategy_intel',
-            agentNo: STATE.agentNo, // Backend tracking only
+            agentNo: STATE.agentNo,
             data: {
                 idea: idea,
-                author: agentName  // ✅ NAME displayed, not ID
+                author: agentName
             }
         });
 
@@ -14736,16 +14945,17 @@ async function submitHypeIdea() {
             showToast('✅ Strategy added!', 'success');
             input.value = '';
 
+            // Refresh and switch to ideas tab
             setTimeout(async () => {
                 await renderArirangHype();
-                setTimeout(() => switchHypeTab('ideas'), 150);
-            }, 800);
+                setTimeout(() => switchHypeTab('ideas'), 100);
+            }, 600);
         } else {
             throw new Error(result.error || 'Failed');
         }
     } catch (e) {
         console.error('Idea submit error:', e);
-        showToast('❌ Error uploading intel.', 'error');
+        showToast('❌ ' + (e.message || 'Failed to add idea.'), 'error');
     } finally {
         btn.disabled = false;
         btn.innerText = 'ADD';
@@ -14767,8 +14977,10 @@ async function loadHypeFeed() {
 
         if (hypeLinks.length === 0) {
             container.innerHTML = `
-                <div style="text-align:center; padding:30px; border:1px dashed #333; border-radius:10px; color:#666;">
-                    📡 No active signals. Be the first to drop one!
+                <div style="text-align:center; padding:40px; border:1px dashed #333; border-radius:12px; color:#555;">
+                    <div style="font-size:28px; margin-bottom:10px;">📡</div>
+                    <p style="margin:0; font-size:13px;">No active signals yet.</p>
+                    <p style="margin:5px 0 0 0; font-size:11px; color:#444;">Be the first to drop one!</p>
                 </div>
             `;
             return;
@@ -14777,53 +14989,55 @@ async function loadHypeFeed() {
         container.innerHTML = hypeLinks.map(item => {
             const data = item.data;
             const safeLink = sanitize(data.link);
-            const safeAuthor = sanitize(data.author || 'Agent');  // ✅ NAME only
+            const safeAuthor = sanitize(data.author || 'Agent');
             const safeTeam = sanitize(data.team || 'Unknown');
-            
-            // Check if current user can delete (their own post OR admin)
             const canDelete = item.agentNo === STATE.agentNo || STATE.agentNo === 'AGENT000';
 
             return `
-                <div class="card" style="margin-bottom:10px; border-left:3px solid #00ff88;" id="hype-item-${item.id}">
-                    <div class="card-body" style="padding:12px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-                            <div style="overflow:hidden; flex:1; min-width:0;">
-                                <div style="font-size:10px; color:#888; display:flex; flex-wrap:wrap; gap:6px; margin-bottom:2px;">
-                                    <span>${formatTime(item.timestamp)}</span>
-                                    <span>•</span>
-                                    <span style="color:${teamColor(safeTeam)}">${safeTeam}</span>
-                                </div>
-                                <div style="font-size:13px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                    ${safeAuthor} requesting engagement
-                                </div>
+                <div class="hype-signal-card" id="hype-item-${item.id}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                        <div style="flex:1; min-width:0; overflow:hidden;">
+                            <div style="font-size:10px; color:#666; display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
+                                <span>${formatTime(item.timestamp)}</span>
+                                <span style="color:#444;">•</span>
+                                <span style="color:${teamColor(safeTeam)}">${safeTeam}</span>
                             </div>
-                            <a href="${safeLink}" target="_blank" rel="noopener noreferrer"
-                               style="
-                                    background: #00ff88; color: #000; font-weight: 800; font-size: 11px;
-                                    padding: 8px 16px; border-radius: 20px; text-decoration: none;
-                                    white-space: nowrap; flex-shrink: 0;
-                               ">
-                               ⚡ BOOST
-                            </a>
+                            <div style="font-size:13px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                ${safeAuthor} requesting engagement
+                            </div>
                         </div>
-                        
-                        ${canDelete ? `
-                            <div style="margin-top:8px; padding-top:8px; border-top:1px solid #222; display:flex; justify-content:flex-end;">
-                                <button onclick="deleteHypeItem(${item.id}, 'signal')" 
-                                    style="background:none; border:none; color:#ff4444; font-size:10px; cursor:pointer; opacity:0.5;"
-                                    onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">
-                                    🗑️ Remove
-                                </button>
-                            </div>
-                        ` : ''}
+                        <a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="hype-boost-btn">
+                            ⚡ ENGAGE
+                        </a>
                     </div>
+                    
+                    ${canDelete ? `
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05); display:flex; justify-content:flex-end;">
+                            <button onclick="deleteHypeItem(${item.id}, 'signal')" class="hype-delete-btn">
+                                🗑️ Remove
+                            </button>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }).join('');
 
     } catch (e) {
         console.error('Feed error:', e);
-        container.innerHTML = '<p style="text-align:center; color:#ff4444; padding:20px;">⚠️ Signal Lost. Tap refresh to retry.</p>';
+        container.innerHTML = `
+            <div style="text-align:center; padding:30px; color:#ff4444;">
+                <p style="margin:0 0 10px 0;">⚠️ Signal Lost</p>
+                <button onclick="loadHypeFeed()" style="
+                    background: #333;
+                    color: #fff;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 12px;
+                ">🔄 Retry</button>
+            </div>
+        `;
     }
 }
 
@@ -14833,7 +15047,10 @@ async function deleteHypeItem(activityId, type) {
     if (!confirm(confirmMsg)) return;
 
     const itemEl = document.getElementById(type === 'signal' ? `hype-item-${activityId}` : `idea-${activityId}`);
-    if (itemEl) itemEl.style.opacity = '0.5';
+    if (itemEl) {
+        itemEl.style.opacity = '0.5';
+        itemEl.style.pointerEvents = 'none';
+    }
 
     try {
         const result = await api('deleteActivity', {
@@ -14851,21 +15068,24 @@ async function deleteHypeItem(activityId, type) {
             }
             showToast('✅ Removed', 'success');
         } else {
-            throw new Error(result.error);
+            throw new Error(result.error || 'Delete failed');
         }
     } catch (e) {
-        if (itemEl) itemEl.style.opacity = '1';
+        if (itemEl) {
+            itemEl.style.opacity = '1';
+            itemEl.style.pointerEvents = 'auto';
+        }
         showToast('❌ ' + (e.message || 'Failed to remove'), 'error');
     }
 }
 
-// ── EXPORTS ──
+// ── GLOBAL EXPORTS ──
 window.renderArirangHype = renderArirangHype;
 window.submitHypeLink = submitHypeLink;
 window.submitHypeIdea = submitHypeIdea;
 window.switchHypeTab = switchHypeTab;
 window.loadHypeFeed = loadHypeFeed;
-window.deleteHypeItem = deleteHypeItem;
+window.deleteHypeItem = deleteHypeItem;;
 
 // ==================== EXPORTS & INIT ====================
 document.addEventListener('DOMContentLoaded', initApp);
