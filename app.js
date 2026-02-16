@@ -5595,7 +5595,7 @@ async function renderPageByRoute(pageName) {
         'chat', 'playlists', 'gc-links', 'helper-roles', 'song-of-day', 'sotd',
         'secret-missions', 'announcements', 'drawer', 'goals', 'rankings', 
         'team-level', 'summary', 'comparison', 'album2x', 'profile', 'namjoon', 
-        'streaming-tips', 'guide', 'attendance' 
+        'streaming-tips', 'guide', 'attendance',
         'arirang-hype', 'arirang-vault'
     ];
 
