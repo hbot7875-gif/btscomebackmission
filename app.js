@@ -14714,6 +14714,11 @@ async function renderArirangHype() {
                     <div style="display:flex; flex-direction:column; gap:12px;">
                         <input type="text" id="hype-link" placeholder="Paste Link (Instagram / TikTok / X / YouTube)..." 
                             class="hype-input">
+                    <!-- ✅ AGENT ID CONFIRMATION INPUT -->
+                    <input type="text" id="hype-agent-confirm" 
+                       placeholder="Type your Agent ID to confirm (e.g. AGENT001)" 
+                       class="hype-input" 
+                       style="text-transform: uppercase; font-family: monospace;">
                         
                         <button id="boost-btn" onclick="submitHypeLink()" class="hype-btn-primary">
                             ⚡ BROADCAST SIGNAL
@@ -14852,14 +14857,28 @@ function switchHypeTab(tab) {
 // ── SUBMIT BOOST LINK ──
 async function submitHypeLink() {
     const linkInput = document.getElementById('hype-link');
+    const agentConfirmInput = document.getElementById('hype-agent-confirm');
     const btn = document.getElementById('boost-btn');
 
     const link = (linkInput?.value || '').trim();
+    const agentConfirm = (agentConfirmInput?.value || '').trim().toUpperCase();
 
-    // Validation
+    // Validation: Link
     if (!link) { 
         showToast('❌ Paste a link first!', 'error'); 
         return; 
+    }
+
+    // Validation: Agent ID
+    if (!agentConfirm) {
+        showToast('❌ Enter your Agent ID to confirm!', 'error');
+        return;
+    }
+
+    // Validation: Agent ID must match logged-in user
+    if (agentConfirm !== STATE.agentNo) {
+        showToast('⛔ ACCESS DENIED: Agent ID mismatch!', 'error');
+        return;
     }
 
     // Domain Whitelist
@@ -14892,6 +14911,7 @@ async function submitHypeLink() {
         if (result.success) {
             showToast('✅ SIGNAL BROADCASTED!', 'success');
             linkInput.value = '';
+            agentConfirmInput.value = '';  // Clear the confirmation too
             setTimeout(loadHypeFeed, 800);
 
             // Confetti effect if available
