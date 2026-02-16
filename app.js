@@ -5491,7 +5491,7 @@ const PAGE_TO_ROUTE = {
     'guide': 'guide',
     'namjoon': 'namjoon',
     'streaming-tips': 'streaming-tips',
-    'attendance': 'attendance'
+    'attendance': 'attendance',
     'login': 'login',
     'arirang-hype': 'arirang-hype',
     'arirang-vault': 'arirang-vault'
