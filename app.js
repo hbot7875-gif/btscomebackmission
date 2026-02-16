@@ -5646,7 +5646,7 @@ async function renderPageByRoute(pageName) {
             case 'guide': await renderGuidePage(); break; 
             case 'attendance': await renderAttendance(); break; 
             case 'arirang-hype': await renderArirangHype(); break;
-            case 'arirang-hype': await renderArirangHype(); break;
+            case 'arirang-vault': await renderArirangVault(); break;
         }
     } catch (e) {
         console.error('Page render error:', e);
