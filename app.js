@@ -5889,8 +5889,15 @@ async function loadDashboard() {
             console.warn('⚠️ Streak sync failed:', streakErr);
         }
 
-        const currentPage = ROUTER.initialized ? STATE.page : 'home';
-        await loadPage(currentPage); 
+        const currentRoute = getCurrentRoute();
+        let targetPage = getPageFromRoute(currentRoute);
+        if (targetPage === 'login') targetPage = 'home';
+
+        ROUTER.initialized = true;
+        ROUTER.lastRoute = currentRoute;
+        STATE.page = targetPage;
+        console.log(`🔄 Restoring session on page: ${targetPage}`);
+        await loadPage(targetPage); 
         
         setTimeout(() => {
             if (typeof initStreakTracker === 'function') initStreakTracker();
