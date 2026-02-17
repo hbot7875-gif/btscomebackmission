@@ -14397,7 +14397,7 @@ function showRoyalAwardModal(rank, week) {
         });
     }
 }
-// ==================== ARIRANG HYPE FORCE (MOBILE FIXED) ====================
+// ==================== ARIRANG HYPE FORCE (MOBILE NUCLEAR FIX) ====================
 
 async function renderArirangHype() {
     const container = document.getElementById('arirang-hype-content');
@@ -14405,15 +14405,15 @@ async function renderArirangHype() {
 
     // ── 1. Base Strategies (HQ Protocols) ──
     const baseStrategies = [
-        "Comment under 10 non-fan viral reels using a clever BTS-related hook.",
-        "Make a transition using trending audio + quick BTS comeback flash.",
+        "Comment under 10 non-fan viral reels with a BTS hook.",
+        "Make a transition reel with trending audio + BTS flash.",
         "Post a 'If you don't stan BTS yet, watch this' reel.",
-        "Share a short theory about the comeback concept to spark comments.",
-        "Create a 'Send this to someone who needs to hear this' type edit.",
-        "Edit a compilation of previous eras leading to this one."
+        "Share a theory about the comeback concept.",
+        "Create a 'Send this to someone' type edit.",
+        "Edit a compilation of previous eras."
     ];
 
-    container.innerHTML = '<div class="loading-text" style="text-align:center; padding:30px;">📡 Decrypting Intel...</div>';
+    container.innerHTML = '<div style="text-align:center; padding:30px; color:#888;">📡 Decrypting Intel...</div>';
 
     try {
         // ── 2. Fetch Community Ideas ──
@@ -14425,7 +14425,7 @@ async function renderArirangHype() {
             .map(a => ({
                 id: a.id,
                 text: a.data.idea,
-                author: a.data.author || 'Anonymous Agent',
+                author: a.data.author || 'Agent',
                 agentNo: a.agentNo
             }));
 
@@ -14434,113 +14434,63 @@ async function renderArirangHype() {
 
         // ── 4. Render Full UI ──
         container.innerHTML = `
-            <!-- 🎨 MOBILE-OPTIMIZED STYLES -->
             <style>
-                /* ═══════════════════════════════════════ */
-                /* CRITICAL: Prevent horizontal scroll    */
-                /* ═══════════════════════════════════════ */
+                /* ══════════════════════════════════════════════════ */
+                /* NUCLEAR RESET - PREVENT ALL HORIZONTAL OVERFLOW   */
+                /* ══════════════════════════════════════════════════ */
+                #arirang-hype-content,
+                #arirang-hype-content *,
+                #arirang-hype-content *::before,
+                #arirang-hype-content *::after {
+                    box-sizing: border-box !important;
+                }
+                
                 #arirang-hype-content {
+                    width: 100% !important;
+                    max-width: 100% !important;
                     overflow-x: hidden !important;
-                    max-width: 100% !important;
-                    box-sizing: border-box !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
                 }
                 
-                #arirang-hype-content * {
-                    box-sizing: border-box !important;
-                    max-width: 100% !important;
-                }
-
-                /* ═══════════════════════════════════════ */
-                /* TAB NAVIGATION                          */
-                /* ═══════════════════════════════════════ */
-                .hype-nav {
-                    display: flex;
-                    gap: 8px;
-                    margin-bottom: 16px;
-                    background: rgba(255,255,255,0.05);
-                    padding: 5px;
-                    border-radius: 12px;
+                .hype-wrapper {
                     width: 100%;
-                }
-                
-                .hype-nav-btn {
-                    flex: 1;
-                    padding: 10px 8px;
-                    border: 1px solid rgba(255,255,255,0.1);
-                    background: transparent;
-                    color: #888;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-weight: 600;
-                    font-size: 12px;
-                    transition: all 0.3s ease;
-                    text-align: center;
-                    white-space: nowrap;
+                    max-width: 100%;
                     overflow: hidden;
-                    text-overflow: ellipsis;
-                }
-                
-                .hype-nav-btn:hover {
-                    color: #fff;
-                    background: rgba(255,255,255,0.1);
-                }
-                
-                .hype-nav-btn.active {
-                    background: linear-gradient(135deg, #7b2cbf, #5a1f99);
-                    color: #fff !important;
-                    border-color: #7b2cbf;
-                    box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
+                    padding: 0 2px;
                 }
 
-                /* ═══════════════════════════════════════ */
-                /* CARDS                                   */
-                /* ═══════════════════════════════════════ */
+                /* ══════════════════════════════════════════════════ */
+                /* CARDS                                              */
+                /* ══════════════════════════════════════════════════ */
                 .hype-card {
-                    background: #12121a;
+                    background: #151520;
                     border-radius: 12px;
-                    margin-bottom: 15px;
-                    overflow: hidden;
+                    margin-bottom: 12px;
                     width: 100%;
-                }
-                
-                .hype-card-header {
-                    background: rgba(123,44,191,0.1);
-                    padding: 12px 15px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    border-bottom: 1px solid rgba(255,255,255,0.05);
-                    gap: 10px;
-                }
-                
-                .hype-card-header h3 {
-                    margin: 0;
-                    font-size: 14px;
-                    font-weight: 700;
-                    color: #fff;
-                    white-space: nowrap;
                     overflow: hidden;
-                    text-overflow: ellipsis;
                 }
                 
                 .hype-card-body {
-                    padding: 15px;
+                    padding: 14px;
                 }
 
-                /* ═══════════════════════════════════════ */
-                /* INPUTS                                  */
-                /* ═══════════════════════════════════════ */
+                /* ══════════════════════════════════════════════════ */
+                /* INPUTS - CRITICAL FIX                              */
+                /* ══════════════════════════════════════════════════ */
                 .hype-input {
+                    display: block;
                     width: 100% !important;
-                    padding: 12px 15px;
-                    background: #0a0a0f;
+                    max-width: 100% !important;
+                    padding: 12px;
+                    background: #0d0d12;
                     border: 1px solid #333;
                     border-radius: 8px;
                     color: #fff;
                     font-size: 14px;
                     outline: none;
-                    transition: border-color 0.3s ease;
-                    box-sizing: border-box !important;
+                    -webkit-appearance: none;
+                    appearance: none;
                 }
                 
                 .hype-input:focus {
@@ -14548,63 +14498,79 @@ async function renderArirangHype() {
                 }
                 
                 .hype-input::placeholder {
-                    color: #555;
+                    color: #666;
+                    font-size: 13px;
                 }
 
-                /* ═══════════════════════════════════════ */
-                /* PRIMARY BUTTON                          */
-                /* ═══════════════════════════════════════ */
-                .hype-btn-primary {
+                /* ══════════════════════════════════════════════════ */
+                /* BUTTONS                                            */
+                /* ══════════════════════════════════════════════════ */
+                .hype-btn {
+                    display: block;
                     width: 100%;
-                    padding: 14px 10px;
-                    background: linear-gradient(135deg, #7b2cbf, #5a1f99);
+                    padding: 14px;
+                    background: linear-gradient(135deg, #7b2cbf, #5a189a);
                     border: none;
                     border-radius: 10px;
                     color: #fff;
-                    font-weight: 800;
-                    font-size: 13px;
+                    font-weight: 700;
+                    font-size: 14px;
                     cursor: pointer;
-                    transition: all 0.3s ease;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
+                    text-align: center;
+                }
+                
+                .hype-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+
+                /* ══════════════════════════════════════════════════ */
+                /* TABS                                               */
+                /* ══════════════════════════════════════════════════ */
+                .hype-tabs {
+                    display: flex;
+                    gap: 8px;
+                    margin-bottom: 12px;
+                    width: 100%;
+                }
+                
+                .hype-tab {
+                    flex: 1;
+                    padding: 10px 5px;
+                    background: #1a1a25;
+                    border: 1px solid #333;
+                    border-radius: 8px;
+                    color: #888;
+                    font-size: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    text-align: center;
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
                 }
                 
-                .hype-btn-primary:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(123, 44, 191, 0.4);
-                }
-                
-                .hype-btn-primary:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                    transform: none;
+                .hype-tab.active {
+                    background: #7b2cbf;
+                    border-color: #7b2cbf;
+                    color: #fff;
                 }
 
-                /* ═══════════════════════════════════════ */
-                /* SIGNAL CARDS                            */
-                /* ═══════════════════════════════════════ */
-                .hype-signal-card {
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.05);
+                /* ══════════════════════════════════════════════════ */
+                /* SIGNAL CARDS                                       */
+                /* ══════════════════════════════════════════════════ */
+                .hype-signal {
+                    background: #1a1a25;
                     border-left: 3px solid #00ff88;
-                    border-radius: 10px;
+                    border-radius: 8px;
                     padding: 12px;
                     margin-bottom: 10px;
-                    transition: all 0.3s ease;
                     width: 100%;
                     overflow: hidden;
                 }
                 
-                .hype-signal-card:hover {
-                    background: rgba(255,255,255,0.04);
-                }
-                
-                .hype-signal-content {
+                .hype-signal-row {
                     display: flex;
-                    justify-content: space-between;
                     align-items: center;
                     gap: 10px;
                     width: 100%;
@@ -14619,110 +14585,87 @@ async function renderArirangHype() {
                 .hype-signal-meta {
                     font-size: 10px;
                     color: #666;
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 4px;
-                    margin-bottom: 4px;
+                    margin-bottom: 3px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
                 }
                 
-                .hype-signal-author {
+                .hype-signal-name {
                     font-size: 13px;
-                    font-weight: 700;
+                    font-weight: 600;
                     color: #fff;
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
                 }
-
-                /* ═══════════════════════════════════════ */
-                /* BOOST BUTTON                            */
-                /* ═══════════════════════════════════════ */
-                .hype-boost-btn {
+                
+                .hype-engage-btn {
+                    flex-shrink: 0;
                     background: #00ff88;
                     color: #000;
                     font-weight: 800;
-                    font-size: 10px;
-                    padding: 8px 12px;
+                    font-size: 11px;
+                    padding: 8px 14px;
                     border-radius: 20px;
                     text-decoration: none;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 4px;
-                    box-shadow: 0 0 15px rgba(0,255,136,0.3);
-                    transition: all 0.3s ease;
                     white-space: nowrap;
-                    flex-shrink: 0;
-                    min-width: 70px;
-                }
-                
-                .hype-boost-btn:hover {
-                    transform: scale(1.05);
-                    box-shadow: 0 0 25px rgba(0,255,136,0.5);
                 }
 
-                /* ═══════════════════════════════════════ */
-                /* IDEA CARDS                              */
-                /* ═══════════════════════════════════════ */
-                .hype-idea-card {
-                    padding: 12px;
-                    border-radius: 8px;
-                    font-size: 12px;
-                    line-height: 1.5;
-                    margin-bottom: 8px;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
-                    width: 100%;
-                }
-                
-                .hype-idea-hq {
-                    background: rgba(255,255,255,0.03);
+                /* ══════════════════════════════════════════════════ */
+                /* IDEA CARDS                                         */
+                /* ══════════════════════════════════════════════════ */
+                .hype-idea {
+                    background: #1a1a25;
                     border-left: 2px solid #444;
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin-bottom: 8px;
+                    font-size: 12px;
                     color: #aaa;
+                    line-height: 1.5;
+                    word-break: break-word;
+                    overflow-wrap: break-word;
                 }
                 
-                .hype-idea-community {
-                    background: rgba(255,215,0,0.05);
-                    border-left: 2px solid #ffd700;
-                    color: #ddd;
+                .hype-idea.community {
+                    border-left-color: #ffd700;
+                    background: rgba(255, 215, 0, 0.05);
                 }
                 
-                .hype-idea-content {
+                .hype-idea-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: flex-start;
                     gap: 8px;
+                    margin-bottom: 6px;
                 }
                 
-                .hype-idea-text {
-                    flex: 1;
-                    min-width: 0;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
+                .hype-idea-label {
+                    font-size: 9px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    color: #666;
                 }
-
-                /* ═══════════════════════════════════════ */
-                /* DELETE BUTTON                           */
-                /* ═══════════════════════════════════════ */
-                .hype-delete-btn {
+                
+                .hype-idea.community .hype-idea-label {
+                    color: #ffd700;
+                }
+                
+                .hype-delete {
                     background: none;
                     border: none;
                     color: #ff4444;
-                    font-size: 12px;
+                    font-size: 14px;
                     cursor: pointer;
-                    opacity: 0.5;
-                    transition: opacity 0.2s ease;
-                    padding: 4px 8px;
-                    flex-shrink: 0;
-                }
-                
-                .hype-delete-btn:hover {
-                    opacity: 1;
+                    padding: 0;
+                    line-height: 1;
+                    opacity: 0.6;
                 }
 
-                /* ═══════════════════════════════════════ */
-                /* IDEA SUBMISSION ROW                     */
-                /* ═══════════════════════════════════════ */
+                /* ══════════════════════════════════════════════════ */
+                /* IDEA FORM                                          */
+                /* ══════════════════════════════════════════════════ */
                 .hype-idea-form {
                     display: flex;
                     gap: 8px;
@@ -14737,272 +14680,158 @@ async function renderArirangHype() {
                 .hype-idea-form button {
                     flex-shrink: 0;
                     padding: 12px 16px;
+                    background: #333;
+                    border: 1px solid #555;
+                    border-radius: 8px;
+                    color: #fff;
+                    font-weight: 700;
+                    cursor: pointer;
                 }
 
-                /* ═══════════════════════════════════════ */
-                /* WARNING BOX                             */
-                /* ═══════════════════════════════════════ */
+                /* ══════════════════════════════════════════════════ */
+                /* WARNING BOX                                        */
+                /* ══════════════════════════════════════════════════ */
                 .hype-warning {
-                    background: rgba(255,68,68,0.08);
-                    border: 1px dashed rgba(255,68,68,0.4);
-                    padding: 12px;
+                    background: rgba(255, 50, 50, 0.1);
+                    border: 1px dashed #ff4444;
                     border-radius: 8px;
-                    margin-bottom: 15px;
-                }
-                
-                .hype-warning-title {
-                    color: #ff4444;
-                    font-weight: 700;
+                    padding: 10px;
+                    margin-bottom: 12px;
                     font-size: 11px;
-                    margin-bottom: 4px;
-                }
-                
-                .hype-warning-text {
-                    color: #888;
-                    font-size: 10px;
-                    margin: 0;
+                    color: #ff6666;
                     line-height: 1.4;
                 }
 
-                /* ═══════════════════════════════════════ */
-                /* HQ IDEA CARD                            */
-                /* ═══════════════════════════════════════ */
-                .hype-hq-idea {
-                    display: flex;
-                    align-items: flex-start;
-                    gap: 12px;
+                /* ══════════════════════════════════════════════════ */
+                /* DELETE FOOTER                                      */
+                /* ══════════════════════════════════════════════════ */
+                .hype-signal-footer {
+                    margin-top: 8px;
+                    padding-top: 8px;
+                    border-top: 1px solid #222;
+                    text-align: right;
                 }
                 
-                .hype-hq-icon {
-                    font-size: 24px;
-                    flex-shrink: 0;
-                }
-                
-                .hype-hq-content {
-                    flex: 1;
-                    min-width: 0;
-                }
-                
-                .hype-hq-label {
-                    color: #ffd700;
-                    font-size: 10px;
-                    font-weight: 800;
-                    letter-spacing: 1.5px;
-                    margin-bottom: 6px;
-                }
-                
-                .hype-hq-text {
-                    color: #fff;
-                    font-size: 14px;
-                    line-height: 1.5;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
-                }
-
-                /* ═══════════════════════════════════════ */
-                /* RESPONSIVE ADJUSTMENTS                  */
-                /* ═══════════════════════════════════════ */
-                @media (max-width: 400px) {
-                    .hype-nav-btn {
-                        font-size: 11px;
-                        padding: 8px 6px;
-                    }
-                    
-                    .hype-boost-btn {
-                        font-size: 9px;
-                        padding: 6px 10px;
-                        min-width: 60px;
-                    }
-                    
-                    .hype-btn-primary {
-                        font-size: 12px;
-                        padding: 12px 8px;
-                    }
-                    
-                    .hype-card-body {
-                        padding: 12px;
-                    }
-                    
-                    .hype-signal-card {
-                        padding: 10px;
-                    }
+                .hype-signal-footer button {
+                    background: none;
+                    border: none;
+                    color: #ff4444;
+                    font-size: 11px;
+                    cursor: pointer;
+                    opacity: 0.7;
                 }
             </style>
 
-            <!-- 💡 HQ IDEA -->
-            <div class="hype-card" style="border-left: 4px solid #ffd700; background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(0,0,0,0));">
-                <div class="hype-card-body">
-                    <div class="hype-hq-idea">
-                        <span class="hype-hq-icon">💡</span>
-                        <div class="hype-hq-content">
-                            <div class="hype-hq-label">HQ IDEA</div>
-                            <div class="hype-hq-text">"${sanitize(dailyStrategy)}"</div>
-                            <button onclick="renderArirangHype()" style="
-                                background: none; 
-                                border: none; 
-                                color: #666; 
-                                font-size: 11px; 
-                                margin-top: 8px; 
-                                cursor: pointer; 
-                                padding: 4px 0;
-                                transition: color 0.2s ease;
-                            " onmouseover="this.style.color='#ffd700'" onmouseout="this.style.color='#666'">
-                                🎲 New Idea
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 📡 BOOST STATION -->
-            <div class="hype-card" style="border: 1px solid #7b2cbf;">
-                <div class="hype-card-header">
-                    <h3>📡 BOOST STATION</h3>
-                    <span style="font-size: 10px; background: #7b2cbf; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600; flex-shrink: 0;">
-                        LIVE
-                    </span>
-                </div>
-                <div class="hype-card-body">
-                    <p style="color: #999; font-size: 12px; margin: 0 0 15px 0; line-height: 1.5;">
-                        Drop your post or reel link. The entire squad will be notified.
-                    </p>
-
-                    <!-- WARNING -->
-                    <div class="hype-warning">
-                        <div class="hype-warning-title">⚠️ PROTOCOL WARNING</div>
-                        <p class="hype-warning-text">
-                            <strong style="color: #aaa;">BTS Comeback content ONLY.</strong> Off-topic links will be removed.
-                        </p>
-                    </div>
-
-                    <!-- INPUTS -->
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <input type="text" id="hype-link" 
-                            placeholder="Paste Link (Instagram / TikTok / X)..." 
-                            class="hype-input">
-                        
-                        <input type="text" id="hype-agent-confirm" 
-                            placeholder="Type your Agent ID (e.g. AGENT001)" 
-                            class="hype-input" 
-                            style="text-transform: uppercase; font-family: monospace; letter-spacing: 1px;">
-                        
-                        <button id="boost-btn" onclick="submitHypeLink()" class="hype-btn-primary">
-                            ⚡ BROADCAST SIGNAL
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 🔥 TABS -->
-            <div class="hype-nav">
-                <button class="hype-nav-btn active" data-hype-tab="signals" onclick="switchHypeTab('signals')">
-                    🔥 Live Signals
-                </button>
-                <button class="hype-nav-btn" data-hype-tab="ideas" onclick="switchHypeTab('ideas')">
-                    📂 Strategy Vault
-                </button>
-            </div>
+            <div class="hype-wrapper">
             
-            <!-- PANEL: ACTIVE SIGNALS -->
-            <div id="hype-signals-panel">
-                <div id="hype-feed-container">
-                    <div style="text-align: center; padding: 30px; color: #555;">
-                        <div style="font-size: 24px; margin-bottom: 10px;">📡</div>
-                        Scanning frequencies...
-                    </div>
-                </div>
-            </div>
-
-            <!-- PANEL: IDEA BANK -->
-            <div id="hype-ideas-panel" style="display: none;">
-                
-                <!-- Idea Submission -->
-                <div class="hype-card" style="border: 1px dashed #333; background: rgba(255,255,255,0.02);">
+                <!-- 💡 HQ IDEA -->
+                <div class="hype-card" style="border-left: 3px solid #ffd700;">
                     <div class="hype-card-body">
-                        <h4 style="color: #fff; margin: 0 0 12px 0; font-size: 14px; font-weight: 600;">
-                            🧠 Suggest a Strategy
-                        </h4>
-                        <div class="hype-idea-form">
-                            <input type="text" id="new-strategy-input" 
-                                placeholder="E.g. Comment on viral reels..." 
-                                class="hype-input">
-                            <button id="add-idea-btn" onclick="submitHypeIdea()" style="
-                                background: #333; 
-                                color: #fff; 
-                                border: 1px solid #555; 
-                                border-radius: 8px; 
-                                font-weight: 700; 
-                                cursor: pointer;
-                                transition: all 0.2s ease;
-                                white-space: nowrap;
-                            " onmouseover="this.style.background='#444'" onmouseout="this.style.background='#333'">
-                                ADD
-                            </button>
+                        <div style="display:flex; gap:10px; align-items:flex-start;">
+                            <span style="font-size:22px;">💡</span>
+                            <div style="flex:1; min-width:0;">
+                                <div style="color:#ffd700; font-size:10px; font-weight:700; margin-bottom:4px;">HQ IDEA</div>
+                                <div style="color:#fff; font-size:13px; line-height:1.5; word-break:break-word;">"${sanitize(dailyStrategy)}"</div>
+                                <button onclick="renderArirangHype()" style="background:none; border:none; color:#666; font-size:11px; margin-top:6px; cursor:pointer; padding:0;">
+                                    🎲 New Idea
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Ideas List -->
-                <div id="ideas-list" style="margin-top: 15px;">
-                    <!-- HQ Protocols -->
-                    ${baseStrategies.map(idea => `
-                        <div class="hype-idea-card hype-idea-hq">
-                            <span style="display: block; font-size: 9px; color: #555; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                📋 HQ Protocol
-                            </span>
-                            <div style="word-wrap: break-word; overflow-wrap: break-word;">
-                                "${sanitize(idea)}"
-                            </div>
-                        </div>
-                    `).join('')}
+                <!-- 📡 BOOST STATION -->
+                <div class="hype-card" style="border: 1px solid #7b2cbf;">
+                    <div style="background:rgba(123,44,191,0.15); padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:#fff; font-size:14px; font-weight:700;">📡 BOOST STATION</span>
+                        <span style="background:#7b2cbf; color:#fff; font-size:9px; padding:3px 8px; border-radius:4px; font-weight:600;">LIVE</span>
+                    </div>
+                    <div class="hype-card-body">
+                        <p style="color:#888; font-size:12px; margin:0 0 12px 0; line-height:1.4;">
+                            Drop your post link. Squad will be notified to engage.
+                        </p>
 
-                    <!-- Community Ideas -->
-                    ${communityStrategies.length > 0 ? communityStrategies.map(item => {
-                        const canDelete = item.agentNo === STATE.agentNo || STATE.agentNo === 'AGENT000';
-                        return `
-                            <div class="hype-idea-card hype-idea-community" id="idea-${item.id}">
-                                <div class="hype-idea-content">
-                                    <div class="hype-idea-text">
-                                        <span style="display: block; font-size: 9px; color: #ffd700; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                            💡 ${sanitize(item.author)}
-                                        </span>
-                                        "${sanitize(item.text)}"
-                                    </div>
-                                    ${canDelete ? `
-                                        <button onclick="deleteHypeItem(${item.id}, 'idea')" class="hype-delete-btn">
-                                            ✕
-                                        </button>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        `;
-                    }).join('') : `
-                        <div style="text-align: center; padding: 30px; color: #444; font-size: 13px;">
-                            <div style="font-size: 24px; margin-bottom: 8px;">🧠</div>
-                            No community ideas yet. Be the first!
+                        <div class="hype-warning">
+                            ⚠️ <strong>BTS Comeback content ONLY.</strong> Off-topic = removed.
                         </div>
-                    `}
+
+                        <div style="display:flex; flex-direction:column; gap:10px;">
+                            <input type="text" id="hype-link" placeholder="Paste link (Insta/TikTok/X)..." class="hype-input">
+                            <input type="text" id="hype-agent-confirm" placeholder="Your Agent ID (e.g. AGENT001)" class="hype-input" style="text-transform:uppercase; font-family:monospace;">
+                            <button id="boost-btn" onclick="submitHypeLink()" class="hype-btn">⚡ BROADCAST</button>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- TABS -->
+                <div class="hype-tabs">
+                    <button class="hype-tab active" data-hype-tab="signals" onclick="switchHypeTab('signals')">🔥 Signals</button>
+                    <button class="hype-tab" data-hype-tab="ideas" onclick="switchHypeTab('ideas')">📂 Ideas</button>
+                </div>
+                
+                <!-- SIGNALS PANEL -->
+                <div id="hype-signals-panel">
+                    <div id="hype-feed-container">
+                        <div style="text-align:center; padding:30px; color:#666;">
+                            📡 Scanning...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IDEAS PANEL -->
+                <div id="hype-ideas-panel" style="display:none;">
+                    
+                    <!-- Submit Idea -->
+                    <div class="hype-card">
+                        <div class="hype-card-body">
+                            <div style="color:#fff; font-size:13px; font-weight:600; margin-bottom:10px;">🧠 Add Strategy</div>
+                            <div class="hype-idea-form">
+                                <input type="text" id="new-strategy-input" placeholder="Your idea..." class="hype-input">
+                                <button id="add-idea-btn" onclick="submitHypeIdea()">ADD</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ideas List -->
+                    <div id="ideas-list" style="margin-top:12px;">
+                        ${baseStrategies.map(idea => `
+                            <div class="hype-idea">
+                                <div class="hype-idea-label">📋 HQ</div>
+                                <div>"${sanitize(idea)}"</div>
+                            </div>
+                        `).join('')}
+
+                        ${communityStrategies.length > 0 ? communityStrategies.map(item => {
+                            const canDelete = item.agentNo === STATE.agentNo || STATE.agentNo === 'AGENT000';
+                            return `
+                                <div class="hype-idea community" id="idea-${item.id}">
+                                    <div class="hype-idea-header">
+                                        <div class="hype-idea-label">💡 ${sanitize(item.author)}</div>
+                                        ${canDelete ? `<button class="hype-delete" onclick="deleteHypeItem(${item.id}, 'idea')">✕</button>` : ''}
+                                    </div>
+                                    <div>"${sanitize(item.text)}"</div>
+                                </div>
+                            `;
+                        }).join('') : `
+                            <div style="text-align:center; padding:25px; color:#555; font-size:12px;">
+                                🧠 No community ideas yet.
+                            </div>
+                        `}
+                    </div>
+                </div>
+            
             </div>
         `;
 
-        // Load the signals feed
         loadHypeFeed();
 
     } catch (e) {
         console.error('Hype Force error:', e);
         container.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #ff4444;">
-                <div style="font-size: 32px; margin-bottom: 10px;">⚠️</div>
-                <p style="margin: 0 0 15px 0;">Connection Lost</p>
-                <button onclick="renderArirangHype()" style="
-                    background: #333;
-                    color: #fff;
-                    border: none;
-                    padding: 10px 20px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                ">Try Again</button>
+            <div style="text-align:center; padding:40px; color:#ff4444;">
+                ⚠️ Connection Lost
+                <br><br>
+                <button onclick="renderArirangHype()" style="background:#333; color:#fff; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">Retry</button>
             </div>
         `;
     }
@@ -15031,34 +14860,29 @@ async function submitHypeLink() {
     const link = (linkInput?.value || '').trim();
     const agentConfirm = (agentConfirmInput?.value || '').trim().toUpperCase();
 
-    // Validation: Link
     if (!link) { 
-        showToast('❌ Paste a link first!', 'error'); 
+        showToast('❌ Paste a link!', 'error'); 
         return; 
     }
 
-    // Validation: Agent ID
     if (!agentConfirm) {
-        showToast('❌ Enter your Agent ID to confirm!', 'error');
+        showToast('❌ Enter Agent ID!', 'error');
         return;
     }
 
-    // Validation: Agent ID must match logged-in user
     if (agentConfirm !== STATE.agentNo) {
-        showToast('⛔ ACCESS DENIED: Agent ID mismatch!', 'error');
+        showToast('⛔ Agent ID mismatch!', 'error');
         return;
     }
 
-    // Domain Whitelist
     const allowed = ['instagram.com', 'tiktok.com', 'twitter.com', 'x.com', 'youtube.com', 'youtu.be', 'weverse.io'];
     if (!allowed.some(d => link.includes(d))) {
-        showToast('❌ Invalid link. Use Instagram, TikTok, X, YouTube, or Weverse.', 'error');
+        showToast('❌ Invalid link!', 'error');
         return;
     }
 
-    // UI Lock
     btn.disabled = true;
-    btn.innerHTML = '📡 TRANSMITTING...';
+    btn.innerHTML = '📡 SENDING...';
 
     try {
         const agentName = STATE.data?.profile?.name || STATE.data?.agent?.profile?.name || 'Agent';
@@ -15069,7 +14893,7 @@ async function submitHypeLink() {
             agentNo: STATE.agentNo,
             data: {
                 title: 'BOOST REQUESTED',
-                message: 'New Intel Dropped! Engage Immediately.',
+                message: 'Engage!',
                 link: link,
                 author: agentName,
                 team: agentTeam
@@ -15077,24 +14901,23 @@ async function submitHypeLink() {
         });
 
         if (result.success) {
-            showToast('✅ SIGNAL BROADCASTED!', 'success');
+            showToast('✅ Broadcasted!', 'success');
             linkInput.value = '';
             agentConfirmInput.value = '';
             setTimeout(loadHypeFeed, 800);
 
             if (typeof confetti === 'function') {
-                confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
+                confetti({ particleCount: 60, spread: 60, origin: { y: 0.7 } });
             }
         } else {
-            throw new Error(result.error || 'Broadcast failed');
+            throw new Error(result.error || 'Failed');
         }
 
     } catch (e) {
-        console.error('Boost error:', e);
-        showToast('❌ ' + (e.message || 'Transmission failed. Try again.'), 'error');
+        showToast('❌ ' + (e.message || 'Error'), 'error');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '⚡ BROADCAST SIGNAL';
+        btn.innerHTML = '⚡ BROADCAST';
     }
 }
 
@@ -15105,11 +14928,11 @@ async function submitHypeIdea() {
     const idea = (input?.value || '').trim();
 
     if (!idea) { 
-        showToast('❌ Enter an idea!', 'error'); 
+        showToast('❌ Enter idea!', 'error'); 
         return; 
     }
     if (idea.length < 10) { 
-        showToast('❌ Too short! Min 10 characters.', 'error'); 
+        showToast('❌ Too short!', 'error'); 
         return; 
     }
 
@@ -15129,7 +14952,7 @@ async function submitHypeIdea() {
         });
 
         if (result.success) {
-            showToast('✅ Strategy added!', 'success');
+            showToast('✅ Added!', 'success');
             input.value = '';
 
             setTimeout(async () => {
@@ -15140,15 +14963,14 @@ async function submitHypeIdea() {
             throw new Error(result.error || 'Failed');
         }
     } catch (e) {
-        console.error('Idea submit error:', e);
-        showToast('❌ ' + (e.message || 'Failed to add idea.'), 'error');
+        showToast('❌ ' + (e.message || 'Error'), 'error');
     } finally {
         btn.disabled = false;
         btn.innerText = 'ADD';
     }
 }
 
-// ── LOAD SIGNAL FEED (MOBILE OPTIMIZED) ──
+// ── LOAD SIGNAL FEED ──
 async function loadHypeFeed() {
     const container = document.getElementById('hype-feed-container');
     if (!container) return;
@@ -15163,10 +14985,9 @@ async function loadHypeFeed() {
 
         if (hypeLinks.length === 0) {
             container.innerHTML = `
-                <div style="text-align: center; padding: 40px; border: 1px dashed #333; border-radius: 12px; color: #555;">
-                    <div style="font-size: 28px; margin-bottom: 10px;">📡</div>
-                    <p style="margin: 0; font-size: 13px;">No active signals yet.</p>
-                    <p style="margin: 5px 0 0 0; font-size: 11px; color: #444;">Be the first to drop one!</p>
+                <div style="text-align:center; padding:30px; border:1px dashed #333; border-radius:10px; color:#555;">
+                    📡 No signals yet.<br>
+                    <span style="font-size:11px; color:#444;">Be the first!</span>
                 </div>
             `;
             return;
@@ -15180,28 +15001,19 @@ async function loadHypeFeed() {
             const canDelete = item.agentNo === STATE.agentNo || STATE.agentNo === 'AGENT000';
 
             return `
-                <div class="hype-signal-card" id="hype-item-${item.id}">
-                    <div class="hype-signal-content">
+                <div class="hype-signal" id="hype-item-${item.id}">
+                    <div class="hype-signal-row">
                         <div class="hype-signal-info">
                             <div class="hype-signal-meta">
-                                <span>${formatTime(item.timestamp)}</span>
-                                <span style="color: #444;">•</span>
-                                <span style="color: ${teamColor(safeTeam)};">${safeTeam}</span>
+                                ${formatTime(item.timestamp)} · <span style="color:${teamColor(safeTeam)}">${safeTeam}</span>
                             </div>
-                            <div class="hype-signal-author">
-                                ${safeAuthor} requesting engagement
-                            </div>
+                            <div class="hype-signal-name">${safeAuthor}</div>
                         </div>
-                        <a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="hype-boost-btn">
-                            ⚡ ENGAGE
-                        </a>
+                        <a href="${safeLink}" target="_blank" rel="noopener" class="hype-engage-btn">⚡ GO</a>
                     </div>
-                    
                     ${canDelete ? `
-                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: flex-end;">
-                            <button onclick="deleteHypeItem(${item.id}, 'signal')" class="hype-delete-btn">
-                                🗑️ Remove
-                            </button>
+                        <div class="hype-signal-footer">
+                            <button onclick="deleteHypeItem(${item.id}, 'signal')">🗑️ Remove</button>
                         </div>
                     ` : ''}
                 </div>
@@ -15209,19 +15021,11 @@ async function loadHypeFeed() {
         }).join('');
 
     } catch (e) {
-        console.error('Feed error:', e);
         container.innerHTML = `
-            <div style="text-align: center; padding: 30px; color: #ff4444;">
-                <p style="margin: 0 0 10px 0;">⚠️ Signal Lost</p>
-                <button onclick="loadHypeFeed()" style="
-                    background: #333;
-                    color: #fff;
-                    border: none;
-                    padding: 8px 16px;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-size: 12px;
-                ">🔄 Retry</button>
+            <div style="text-align:center; padding:20px; color:#ff4444;">
+                ⚠️ Error
+                <br>
+                <button onclick="loadHypeFeed()" style="margin-top:10px; background:#333; color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Retry</button>
             </div>
         `;
     }
@@ -15229,14 +15033,10 @@ async function loadHypeFeed() {
 
 // ── DELETE HYPE ITEM ──
 async function deleteHypeItem(activityId, type) {
-    const confirmMsg = type === 'signal' ? 'Remove this signal?' : 'Remove this idea?';
-    if (!confirm(confirmMsg)) return;
+    if (!confirm('Remove this?')) return;
 
     const itemEl = document.getElementById(type === 'signal' ? `hype-item-${activityId}` : `idea-${activityId}`);
-    if (itemEl) {
-        itemEl.style.opacity = '0.5';
-        itemEl.style.pointerEvents = 'none';
-    }
+    if (itemEl) itemEl.style.opacity = '0.5';
 
     try {
         const result = await api('deleteActivity', {
@@ -15246,26 +15046,18 @@ async function deleteHypeItem(activityId, type) {
         });
 
         if (result.success) {
-            if (itemEl) {
-                itemEl.style.transition = 'all 0.3s ease';
-                itemEl.style.transform = 'translateX(100%)';
-                itemEl.style.opacity = '0';
-                setTimeout(() => itemEl.remove(), 300);
-            }
+            if (itemEl) itemEl.remove();
             showToast('✅ Removed', 'success');
         } else {
-            throw new Error(result.error || 'Delete failed');
+            throw new Error(result.error);
         }
     } catch (e) {
-        if (itemEl) {
-            itemEl.style.opacity = '1';
-            itemEl.style.pointerEvents = 'auto';
-        }
-        showToast('❌ ' + (e.message || 'Failed to remove'), 'error');
+        if (itemEl) itemEl.style.opacity = '1';
+        showToast('❌ Failed', 'error');
     }
 }
 
-// ── GLOBAL EXPORTS ──
+// ── EXPORTS ──
 window.renderArirangHype = renderArirangHype;
 window.submitHypeLink = submitHypeLink;
 window.submitHypeIdea = submitHypeIdea;
