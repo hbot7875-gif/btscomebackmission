@@ -1152,7 +1152,7 @@ async function checkNewBadges() {
                 icon: '🎖️',
                 title: `${newBadges} New Badge${newBadges > 1 ? 's' : ''} Earned!`,
                 message: `You reached ${currentBadgeCount * 50} XP!`,
-                action: () => loadPage('drawer'),
+                action: () => ('drawer'),
                 actionText: 'View Badges',
                 week: STATE.week,
                 id: `badge_${currentBadgeCount}`
@@ -1171,7 +1171,7 @@ async function checkNewBadges() {
                 icon: '✨',
                 title: `${CONFIG.ALBUM_CHALLENGE?.CHALLENGE_NAME || '2X'} Master!`,
                 message: `You completed the Album Challenge!`,
-                action: () => loadPage('drawer'),
+                action: () => ('drawer'),
                 actionText: 'View Badge',
                 priority: 'high',
                 week: STATE.week,
@@ -1221,7 +1221,7 @@ async function checkNewAnnouncements() {
             icon: '📢',
             title: 'New Announcement!',
             message: latest.title || 'New message from HQ',
-            action: () => loadPage('announcements'),
+            action: () => ('announcements'),
             actionText: 'Read Now',
             priority: latest.priority === 'high' ? 'high' : 'normal',
             week: STATE.week,
@@ -1267,7 +1267,7 @@ async function checkNewPlaylists() {
             icon: '🎵',
             title: 'New Playlist Added!',
             message: `${unseen.length} new playlist${unseen.length > 1 ? 's' : ''} available!`,
-            action: () => loadPage('playlists'),
+            action: () => ('playlists'),
             actionText: 'View Playlists',
             week: STATE.week,
             id: `playlist_${Date.now()}`
@@ -1335,7 +1335,7 @@ async function checkNewMissions() {
                     icon: '💀',
                     title: 'Mission Failed',
                     message: `Team ${team} failed: ${mission.title || 'Secret Mission'}. 0 XP awarded.`,
-                    action: () => loadPage('secret-missions'),
+                    action: () => ('secret-missions'),
                     actionText: 'View Details',
                     priority: 'high', // Force popup
                     week: STATE.week,
@@ -1349,7 +1349,7 @@ async function checkNewMissions() {
                     icon: '🎉',
                     title: `+${xpAwarded} XP Earned!`,
                     message: `${team} completed: ${mission.title || 'Secret Mission'}`,
-                    action: () => loadPage('secret-missions'),
+                    action: () => ('secret-missions'),
                     actionText: 'View Missions',
                     priority: 'high', // Force popup
                     week: STATE.week,
@@ -1378,7 +1378,7 @@ async function checkNewMissions() {
                     icon: '🎯',
                     title: 'Mission Assigned to YOU!',
                     message: mission.title || 'New classified mission',
-                    action: () => loadPage('secret-missions'),
+                    action: () => ('secret-missions'),
                     actionText: 'View Mission',
                     priority: 'high',
                     week: STATE.week,
@@ -1392,7 +1392,7 @@ async function checkNewMissions() {
                 icon: '🕵️',
                 title: 'New Team Mission!',
                 message: newMission?.title || 'Your team has a secret mission!',
-                action: () => loadPage('secret-missions'),
+                action: () => ('secret-missions'),
                 actionText: 'View Missions',
                 week: STATE.week,
                 id: newMission?.id
@@ -1443,7 +1443,7 @@ async function checkNewResultsRelease() {
                 priority: 'high', // ⚠️ Forces the Popup
                 action: () => {
                     STATE.week = targetWeek;
-                    loadPage('summary');
+                    ('summary');
                 },
                 actionText: 'View Winner',
                 id: `release_${targetWeek}`
@@ -1484,7 +1484,7 @@ async function checkNewSongOfDay() {
                 action: () => {
                     STATE.lastChecked.songOfDay = today;
                     saveNotificationState();
-                    loadPage('song-of-day');
+                    ('song-of-day');
                 },
                 actionText: 'Play Now',
                 week: STATE.week,
@@ -1708,7 +1708,7 @@ function checkWeekResults() {
             const weekSelect = document.getElementById('week-select');
             if (weekSelect) weekSelect.value = previousWeek;
             if (typeof markResultsSeen === 'function') markResultsSeen(previousWeek);
-            loadPage('summary');
+            ('summary');
         },
         actionText: 'View Results',
         priority: 'high',
@@ -5635,6 +5635,8 @@ function initRouter() {
 async function loadPage(page) {
     const route = getRouteFromPage(page);
     
+    localStorage.setItem('lastActivePage', page);
+    
     if (!ROUTER.initialized) {
         STATE.page = page;
         await renderPageByRoute(page);
@@ -5889,12 +5891,17 @@ async function loadDashboard() {
             console.warn('⚠️ Streak sync failed:', streakErr);
         }
 
-        const currentRoute = getCurrentRoute();
-        let targetPage = getPageFromRoute(currentRoute);
-        if (targetPage === 'login') targetPage = 'home';
+        const currentHash = getCurrentRoute(); 
+        const savedPage = localStorage.getItem('lastActivePage');
+        let targetPage = 'home'; // Default
+
+        if (currentHash && currentHash !== 'login') {
+            targetPage = getPageFromRoute(currentHash);
+        } else if (savedPage && savedPage !== 'login') {
+            targetPage = savedPage;
+        }
 
         ROUTER.initialized = true;
-        ROUTER.lastRoute = currentRoute;
         STATE.page = targetPage;
         console.log(`🔄 Restoring session on page: ${targetPage}`);
         await loadPage(targetPage); 
