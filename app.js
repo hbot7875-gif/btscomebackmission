@@ -2977,7 +2977,8 @@ function renderAdminMissionCard(mission) {
                         const tColor = teamColor(team);
                         
                         return `
-                            <div onclick="adminApproveMissionForTeam('${mission.id || mission.mission_id}', '${team}')" 
+                            <div onclick="adminApproveMissionForTeam('${mission.mission_id || mission.id}', '${team}')"
+ 
                                  style="
                                     flex: 1;
                                     min-width: 140px;
