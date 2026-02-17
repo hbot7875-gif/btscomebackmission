@@ -5911,7 +5911,7 @@ async function loadDashboard() {
             if (typeof updateActivityFeedUI === 'function') {
                 updateActivityFeedUI();
                 if (window.activityInterval) clearInterval(window.activityInterval);
-                window.activityInterval = setInterval(updateActivityFeedUI, 60000);
+                window.activityInterval = setInterval(updateActivityFeedUI, 300000);
             }
             if (typeof setupNotificationChecks === 'function') setupNotificationChecks();
             
@@ -6431,7 +6431,7 @@ let onlineCount = 0;
 function startHeartbeat() {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     sendHeartbeat();
-    heartbeatInterval = setInterval(sendHeartbeat, 30000);
+    heartbeatInterval = setInterval(sendHeartbeat, 120000);
 }
 
 async function sendHeartbeat() {
@@ -6711,7 +6711,7 @@ async function renderChat() {
     chatRefreshInterval = setInterval(() => {
         loadMessages(false);
         updateOnlineCount();
-    }, 5000);
+    }, 2000);
 }
 
 // ==================== FREQUENCY SWITCH ====================
