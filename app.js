@@ -2816,6 +2816,10 @@ async function createTeamMission() {
             document.getElementById('xp-reward').value = '5';
             document.querySelectorAll('input[name="target-teams"]').forEach(cb => cb.checked = false);
             document.getElementById('select-all-teams').checked = false;
+        if (STATE.lastChecked) {
+            STATE.lastChecked._missionBaselineSet = true; 
+            STATE.lastChecked.seenMissionIds = []; 
+         }
             
             // Switch to active tab
             setTimeout(() => {
