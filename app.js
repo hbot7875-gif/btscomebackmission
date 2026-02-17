@@ -2077,7 +2077,7 @@ function setupNotificationChecks() {
     setInterval(() => {
         console.log('⏰ Periodic notification check...');
         checkNotifications();
-    }, 3 * 60 * 1000); // 3 minutes
+    }, 60 * 1000); 
     
     // ✅ Check when user returns to tab
     document.addEventListener('visibilitychange', () => {
