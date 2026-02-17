@@ -2910,10 +2910,14 @@ async function loadActiveTeamMissions() {
     }
 }
 function renderAdminMissionCard(mission) {
-    const targetTeams = mission.targetTeams || [];
-    const completedTeams = mission.completedTeams || [];
+    // 🔧 FIX: Check for both camelCase AND snake_case property names
+    const targetTeams = mission.targetTeams || mission.target_teams || [];
+    const completedTeams = mission.completedTeams || mission.completed_teams || [];
+    const goalTarget = mission.goalTarget || mission.goal_target || 100;
+    const xpReward = mission.xpReward || mission.xp_reward || 5;
+    
     const progress = mission.progress || {};
-    const missionType = CONFIG.MISSION_TYPES?.[mission.type] || { icon: '🎯', name: 'Mission' };
+    const missionType = CONFIG.MISSION_TYPES?.[mission.type] || CONFIG.MISSION_TYPES?.[mission.mission_type] || { icon: '🎯', name: 'Mission' };
     
     const allCompleted = targetTeams.length > 0 && targetTeams.every(t => completedTeams.includes(t));
     
@@ -2941,7 +2945,7 @@ function renderAdminMissionCard(mission) {
                 <div style="flex:1;">
                     <div style="font-weight:600;color:#fff;font-size:14px;">${sanitize(mission.title)}</div>
                     <div style="color:#888;font-size:11px;margin-top:3px;">
-                        ${missionType.name} • Goal: ${mission.goalTarget || 100} • +${mission.xpReward || 5} XP
+                        ${missionType.name} • Goal: ${goalTarget} • +${xpReward} XP
                     </div>
                     ${mission.briefing ? `
                         <div style="color:#aaa;font-size:11px;margin-top:6px;line-height:1.4;">
@@ -2959,26 +2963,21 @@ function renderAdminMissionCard(mission) {
                 ">${completedTeams.length}/${targetTeams.length} Done</div>
             </div>
             
-            <!-- Per-Team Status -->
-            <div style="
-                background: rgba(0,0,0,0.2);
-                border-radius: 10px;
-                padding: 12px;
-                margin-bottom: 12px;
-            ">
+            <!-- Per-Team Status (CLICK HERE TRIGGERS MODAL) -->
+            <div style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
                 <div style="color:#888;font-size:10px;text-transform:uppercase;margin-bottom:10px;letter-spacing:1px;">
-                    Team Status (Click to Approve)
+                    Tap Team to Manage
                 </div>
                 
                 <div style="display:flex;flex-wrap:wrap;gap:8px;">
                     ${targetTeams.map(team => {
                         const isCompleted = completedTeams.includes(team);
                         const teamProgress = progress[team] || 0;
-                        const progressPct = mission.goalTarget ? Math.min(100, (teamProgress / mission.goalTarget) * 100) : 0;
+                        const progressPct = goalTarget ? Math.min(100, (teamProgress / goalTarget) * 100) : 0;
                         const tColor = teamColor(team);
                         
                         return `
-                            <div onclick="${isCompleted ? '' : `adminApproveMissionForTeam('${mission.id}', '${team}')`}" 
+                            <div onclick="adminApproveMissionForTeam('${mission.id || mission.mission_id}', '${team}')" 
                                  style="
                                     flex: 1;
                                     min-width: 140px;
@@ -2986,41 +2985,26 @@ function renderAdminMissionCard(mission) {
                                     background: ${isCompleted ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.03)'};
                                     border: 1px solid ${isCompleted ? 'rgba(0,255,136,0.3)' : tColor + '44'};
                                     border-radius: 8px;
-                                    cursor: ${isCompleted ? 'default' : 'pointer'};
+                                    cursor: pointer;
                                     transition: all 0.2s;
-                                    ${!isCompleted ? 'hover: { background: rgba(123,44,191,0.1); }' : ''}
                                  "
-                                 ${!isCompleted ? `onmouseenter="this.style.background='rgba(123,44,191,0.15)';this.style.borderColor='${tColor}';" onmouseleave="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='${tColor}44';"` : ''}>
+                                 onmouseenter="this.style.background='rgba(123,44,191,0.15)'" 
+                                 onmouseleave="this.style.background='${isCompleted ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.03)'}'">
                                 
-                                <!-- Team Name & Status -->
                                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                                     <div style="display:flex;align-items:center;gap:6px;">
                                         ${teamPfp(team) ? `<img src="${teamPfp(team)}" style="width:18px;height:18px;border-radius:50%;">` : ''}
                                         <span style="color:${tColor};font-weight:600;font-size:11px;">${team}</span>
                                     </div>
-                                    <span style="font-size:14px;">${isCompleted ? '✅' : '⏳'}</span>
+                                    <span style="font-size:14px;">${isCompleted ? '✅' : '⚙️'}</span>
                                 </div>
                                 
-                                <!-- Progress Bar -->
-                                <div style="
-                                    height: 4px;
-                                    background: rgba(255,255,255,0.1);
-                                    border-radius: 2px;
-                                    overflow: hidden;
-                                    margin-bottom: 4px;
-                                ">
-                                    <div style="
-                                        height: 100%;
-                                        width: ${progressPct}%;
-                                        background: ${isCompleted ? '#00ff88' : tColor};
-                                        border-radius: 2px;
-                                    "></div>
+                                <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-bottom: 4px;">
+                                    <div style="height: 100%; width: ${progressPct}%; background: ${isCompleted ? '#00ff88' : tColor};"></div>
                                 </div>
                                 
-                                <!-- Progress Text -->
                                 <div style="font-size:10px;color:#888;">
-                                    ${teamProgress} / ${mission.goalTarget || 100}
-                                    ${isCompleted ? '<span style="color:#00ff88;margin-left:5px;">Approved</span>' : ''}
+                                    ${isCompleted ? 'Status: Approved' : 'Click to Approve/Fail'}
                                 </div>
                             </div>
                         `;
@@ -3028,64 +3012,11 @@ function renderAdminMissionCard(mission) {
                 </div>
             </div>
             
-            <!-- Action Buttons -->
+            <!-- Bottom Buttons -->
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button type="button" onclick="adminRefreshMissionProgress('${mission.id}')" 
-                        style="
-                            flex: 1;
-                            min-width: 100px;
-                            background: rgba(0,150,255,0.15);
-                            border: 1px solid rgba(0,150,255,0.3);
-                            color: #00aaff;
-                            padding: 8px 12px;
-                            border-radius: 6px;
-                            cursor: pointer;
-                            font-size: 11px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 5px;
-                        ">
-                    🔄 Refresh Progress
-                </button>
-                
-                <button type="button" onclick="adminApproveAllTeams('${mission.id}')" 
-                        style="
-                            flex: 1;
-                            min-width: 100px;
-                            background: rgba(0,170,85,0.15);
-                            border: 1px solid rgba(0,170,85,0.3);
-                            color: #00ff88;
-                            padding: 8px 12px;
-                            border-radius: 6px;
-                            cursor: pointer;
-                            font-size: 11px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 5px;
-                        ">
-                    ✓ Approve All
-                </button>
-                
-                <button type="button" onclick="adminCancelMission('${mission.id}')" 
-                        style="
-                            flex: 1;
-                            min-width: 100px;
-                            background: rgba(170,51,51,0.15);
-                            border: 1px solid rgba(170,51,51,0.3);
-                            color: #ff6b6b;
-                            padding: 8px 12px;
-                            border-radius: 6px;
-                            cursor: pointer;
-                            font-size: 11px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 5px;
-                        ">
-                    ✕ Cancel Mission
-                </button>
+                <button onclick="adminRefreshMissionProgress('${mission.id || mission.mission_id}')" class="btn-secondary" style="flex:1;font-size:11px;">🔄 Refresh</button>
+                <button onclick="adminApproveAllTeams('${mission.id || mission.mission_id}')" class="btn-secondary" style="flex:1;font-size:11px;color:#00ff88;">✅ Approve All</button>
+                <button onclick="adminCancelMission('${mission.id || mission.mission_id}')" class="btn-secondary" style="flex:1;font-size:11px;color:#ff6b6b;">✕ Cancel</button>
             </div>
         </div>
     `;
