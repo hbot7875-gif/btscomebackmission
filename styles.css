@@ -10962,3 +10962,34 @@ function ensureRoyalBadgeCSS() {
     
     document.head.appendChild(style);
 }
+   /* ══════════════════════════════════════════════════ */
+/* GLOBAL MOBILE OVERFLOW FIX                         */
+/* ══════════════════════════════════════════════════ */
+html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+}
+
+.page, 
+.pages-wrapper,
+.main-content {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+}
+
+#page-arirang-hype {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+    padding: 15px !important;
+}
+
+#arirang-hype-content {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+/* Fix input zoom on iOS */
+input, textarea, select {
+    font-size: 16px !important;
+}
