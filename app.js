@@ -10054,10 +10054,12 @@ async function renderSOTD() {
     const container = document.getElementById('sotd-content');
     if (!container) return;
 
-    // Mark notification as seen
+    // ✅ FIX: Mark SOTD notification as seen when page loads
     if (STATE.lastChecked) {
         STATE.lastChecked.songOfDay = new Date().toDateString();
         saveNotificationState();
+        
+        // Remove from local notification list immediately
         if (STATE.notifications) {
             STATE.notifications = STATE.notifications.filter(n => n.type !== 'sotd');
             updateNotificationBadge();
@@ -10068,23 +10070,20 @@ async function renderSOTD() {
     container.innerHTML = `
         <div style="text-align:center;padding:60px 20px;">
             <div style="font-size:40px;margin-bottom:15px;">🎬</div>
-            <p style="color:#888;">Loading Song of the Day...</p>
+            <p style="color:#888;">Loading Song of the Day & Results...</p>
         </div>
     `;
 
     try {
-        // Fetch both current song AND yesterday's results
+        // Fetch Current Song AND Latest Results
         const [songData, resultsData] = await Promise.all([
             api('getSongOfDay', { agentNo: STATE.agentNo }),
-            api('getLatestSOTDResult').catch(err => {
-                console.warn('No previous results:', err);
-                return { success: false };
-            })
+            api('getLatestSOTDResult').catch(() => ({ success: false }))
         ]);
 
-        // 🔍 DEBUG - Check what we're getting
-        console.log('🎬 Today\'s Song:', songData);
-        console.log('📊 Yesterday\'s Results:', resultsData);
+        // 🔍 DEBUG - remove after testing
+        console.log('🎬 Song Data:', songData);
+        console.log('📊 Results Data:', resultsData);
 
         const today = new Date();
         const dateDisplay = today.toLocaleDateString('en-US', { 
@@ -10092,312 +10091,176 @@ async function renderSOTD() {
         });
         const todayStr = today.toDateString();
 
-        let html = '';
-
-        // ═══════════════════════════════════════════
-        // SECTION 1: HEADER
-        // ═══════════════════════════════════════════
-        html += `
+        // --- Build Main Content ---
+        let html = `
             <div class="card" style="background:linear-gradient(135deg, #ff000015, #ff000008);border-color:#ff000033;margin-bottom:16px;">
                 <div class="card-body" style="text-align:center;padding:25px;">
                     <div style="font-size:50px;margin-bottom:12px;">🎬</div>
                     <h2 style="color:#fff;margin:0 0 8px;font-size:20px;">Song of the Day</h2>
-                    <div style="display:inline-block;padding:8px 18px;background:rgba(255,255,255,0.1);border-radius:20px;">
+                    <div style="display:inline-block;padding:8px 18px;background:rgba(255,255,255,0.1);border-radius:20px;margin-bottom:8px;">
                         <span style="color:#fff;font-size:13px;">📅 ${dateDisplay}</span>
                     </div>
                 </div>
             </div>
         `;
 
-        // ═══════════════════════════════════════════
-        // SECTION 2: TODAY'S CHALLENGE
-        // ═══════════════════════════════════════════
+        // --- Current Song Logic ---
         if (songData?.success && songData?.song) {
-            html += renderTodaySOTD(songData.song, todayStr);
-        } else {
+            const song = songData.song;
+            const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + todayStr;
+            const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + todayStr;
+            let attempts = parseInt(localStorage.getItem(attemptsKey) || '0');
+            let wasCorrect = localStorage.getItem(correctKey) === 'true';
+
+            const maxAttempts = 2;
+            const remaining = Math.max(0, maxAttempts - attempts);
+            const canAnswer = !wasCorrect && attempts < maxAttempts;
+
+            // Only show hint if they haven't answered yet
+            if (canAnswer) {
+                html += `
+                    <div class="card" style="margin-bottom:16px;">
+                        <div class="card-header"><h3>💡 Today's Hint</h3></div>
+                        <div class="card-body" style="text-align:center;padding:25px;">
+                            <div style="font-size:18px;color:#ffd700;font-style:italic;padding:18px;background:rgba(255,215,0,0.08);border:1px dashed rgba(255,215,0,0.3);border-radius:12px;line-height:1.6;">
+                                "${sanitize(song.hint || 'Listen carefully...')}"
+                            </div>
+                            <div style="margin-top:15px;padding:10px 20px;background:rgba(0,255,136,0.1);border-radius:20px;display:inline-block;">
+                                <span style="color:#00ff88;font-size:14px;font-weight:600;">🎁 +${song.xpReward || 1} XP</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
             html += `
-                <div class="card" style="margin-bottom:16px;">
-                    <div class="card-body" style="text-align:center;padding:40px 20px;">
-                        <div style="font-size:50px;margin-bottom:15px;">🎵</div>
-                        <h3 style="color:#fff;margin:0 0 10px;">No Song Yet!</h3>
-                        <p style="color:#888;margin:0;">Today's Song of the Day hasn't been set.<br>Check back later!</p>
+                <div class="card" style="border-color:${!canAnswer ? (wasCorrect ? '#00ff88' : '#ff4444') : '#7b2cbf'}; margin-bottom: 25px;">
+                    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                        <h3 style="margin:0;">${canAnswer ? '🔗 Submit Answer' : '📋 Result'}</h3>
+                        ${canAnswer ? `<span style="padding:5px 12px;background:rgba(0,255,136,0.1);border-radius:15px;color:#00ff88;font-size:11px;font-weight:600;">🎯 ${remaining} Left</span>` : ''}
+                    </div>
+                    <div class="card-body" style="padding:25px;">
+                        ${canAnswer ? `
+                            <input type="text" id="sotd-answer-input" placeholder="Paste YouTube link here..." style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:10px;padding:14px;color:#fff;margin-bottom:15px;">
+                            <button id="sotd-submit-btn" onclick="submitSOTDAnswer()" style="width:100%;padding:14px;background:linear-gradient(135deg, #ff0000, #cc0000);border:none;border-radius:10px;color:#fff;font-weight:bold;cursor:pointer;">▶️ Submit Answer</button>
+                        ` : `
+                            <div style="text-align:center;">
+                                <div style="font-size:40px;margin-bottom:10px;">${wasCorrect ? '🎉' : '😔'}</div>
+                                <div style="color:${wasCorrect ? '#00ff88' : '#ff6b6b'};font-size:18px;font-weight:bold;">${wasCorrect ? 'Correct!' : 'Out of Attempts'}</div>
+                                <div style="margin-top:10px;padding:12px;background:rgba(255,255,255,0.05);border-radius:10px;">
+                                    <div style="color:#fff;font-weight:bold;">${sanitize(song.title)}</div>
+                                </div>
+
+                                <!-- 🔴 YOUTUBE STREAM BOX -->
+                                ${song.youtubeId ? `
+                                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                        <p style="color:#aaa; font-size:12px; margin-bottom:12px;">Now go give it a stream! 💜</p>
+                                        <a href="https://www.youtube.com/watch?v=${song.youtubeId}" target="_blank" style="
+                                            display: flex; align-items: center; justify-content: center; gap: 10px;
+                                            width: 100%; padding: 14px;
+                                            background: linear-gradient(135deg, #ff0000, #cc0000);
+                                            color: #fff; border-radius: 10px;
+                                            text-decoration: none; font-weight: bold; font-size: 14px;
+                                            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);
+                                            transition: transform 0.2s;
+                                        " onactive="this.style.transform='scale(0.98)'">
+                                            <span style="font-size:18px;">▶️</span> Watch on YouTube
+                                        </a>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `}
                     </div>
                 </div>
             `;
         }
 
-        // ═══════════════════════════════════════════
-        // SECTION 3: YESTERDAY'S RESULTS
-        // ═══════════════════════════════════════════
-        html += renderYesterdayResults(resultsData);
+        // --- Previous Results Section ---
+        // ✅ FIX: Check for correct data structure (data is at root level, NOT under .result)
+        if (resultsData?.success && resultsData?.song) {
+            // ✅ FIX: Access data directly from resultsData (not resultsData.result)
+            const res = resultsData;
+            
+            let resDate = 'Yesterday';
+            try {
+                resDate = new Date(res.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } catch(e) {
+                console.warn('Date parse error:', e);
+            }
+            
+            const winnerColor = teamColor(res.winner);
 
-        // Back button
-        html += `
+            // ✅ FIX: Get song title correctly (song is object with {title, artist})
+            const songTitle = typeof res.song === 'object' ? (res.song.title || 'Unknown') : res.song;
+
+            // ✅ FIX: Mark Results notification as seen if visible here
+            try {
+                const resultKey = 'sotd_result_seen_' + new Date(res.date).toDateString();
+                localStorage.setItem(resultKey, 'true');
+            } catch(e) {}
+
+            html += `
+                <div class="card" style="border: 1px solid rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.02);">
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="margin:0; color:#ffd700;">🏆 Previous Results</h3>
+                        <span style="font-size:11px; color:#888;">${resDate}</span>
+                    </div>
+                    <div class="card-body" style="padding: 15px;">
+                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px; padding:10px; background:rgba(255,255,255,0.03); border-radius:10px;">
+                            <div style="font-size:24px;">👑</div>
+                            <div style="flex:1;">
+                                <div style="font-size:11px; color:#888; text-transform:uppercase;">Daily Winner</div>
+                                <div style="color:${winnerColor}; font-weight:bold; font-size:16px;">${res.winner || 'No winner'}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:11px; color:#888;">Song Reveal</div>
+                                <div style="color:#fff; font-size:12px; font-weight:600;">${sanitize(songTitle)}</div>
+                            </div>
+                        </div>
+
+                        <!-- Mini Scoreboard -->
+                        <!-- ✅ FIX: Access teams correctly from res.teams['Team Name'].correct -->
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                            ${[
+                                { name: 'Indigo', val: res.teams?.['Team Indigo']?.correct || 0, color: teamColor('Team Indigo') },
+                                { name: 'Echo', val: res.teams?.['Team Echo']?.correct || 0, color: teamColor('Team Echo') },
+                                { name: 'Agust D', val: res.teams?.['Team Agust D']?.correct || 0, color: teamColor('Team Agust D') },
+                                { name: 'JITB', val: res.teams?.['Team JITB']?.correct || 0, color: teamColor('Team JITB') }
+                            ].map(t => `
+                                <div style="display:flex; justify-content:space-between; padding:6px 10px; background:rgba(0,0,0,0.2); border-radius:6px; border-left:3px solid ${t.color};">
+                                    <span style="font-size:11px; color:#aaa;">${t.name}</span>
+                                    <span style="font-size:11px; color:#fff; font-weight:bold;">${t.val}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // ✅ NEW: Show message when no previous results
+            html += `
+                <div class="card" style="opacity:0.6;">
+                    <div class="card-body" style="text-align:center;padding:25px;">
+                        <div style="font-size:30px;margin-bottom:10px;">📊</div>
+                        <p style="color:#888;margin:0;">No previous results available yet.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html + `
             <button onclick="loadPage('home')" class="btn-secondary" style="width:100%;margin-top:16px;padding:14px;">
                 ← Back to Home
             </button>
         `;
 
-        container.innerHTML = html;
-
     } catch (e) {
         console.error('SOTD Error:', e);
-        container.innerHTML = `
-            <div class="card">
-                <div class="card-body" style="text-align:center;padding:40px;">
-                    <div style="font-size:40px;margin-bottom:15px;">❌</div>
-                    <p style="color:#ff6b6b;">Failed to load Song of the Day</p>
-                    <button onclick="renderSOTD()" class="btn-secondary" style="margin-top:15px;">🔄 Retry</button>
-                </div>
-            </div>
-        `;
+        container.innerHTML = `<div class="card"><div class="card-body error-text">Failed to load Song of the Day.</div></div>`;
     }
 }
 
-
-// ═══════════════════════════════════════════════════════════════
-// RENDER TODAY'S SOTD (Hint + Answer Box)
-// ═══════════════════════════════════════════════════════════════
-function renderTodaySOTD(song, todayStr) {
-    const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + todayStr;
-    const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + todayStr;
-    const attempts = parseInt(localStorage.getItem(attemptsKey) || '0');
-    const wasCorrect = localStorage.getItem(correctKey) === 'true';
-
-    const maxAttempts = 2;
-    const remaining = Math.max(0, maxAttempts - attempts);
-    const canAnswer = !wasCorrect && attempts < maxAttempts;
-
-    let html = '';
-
-    // Show hint only if can still answer
-    if (canAnswer) {
-        html += `
-            <div class="card" style="margin-bottom:16px;">
-                <div class="card-header"><h3>💡 Today's Hint</h3></div>
-                <div class="card-body" style="text-align:center;padding:25px;">
-                    <div style="font-size:18px;color:#ffd700;font-style:italic;padding:18px;background:rgba(255,215,0,0.08);border:1px dashed rgba(255,215,0,0.3);border-radius:12px;line-height:1.6;">
-                        "${sanitize(song.hint || 'Listen carefully...')}"
-                    </div>
-                    <div style="margin-top:15px;padding:10px 20px;background:rgba(0,255,136,0.1);border-radius:20px;display:inline-block;">
-                        <span style="color:#00ff88;font-size:14px;font-weight:600;">🎁 +${song.xpReward || 1} XP</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    // Answer/Result box
-    const borderColor = !canAnswer ? (wasCorrect ? '#00ff88' : '#ff4444') : '#7b2cbf';
-    
-    html += `
-        <div class="card" style="border-color:${borderColor}; margin-bottom:20px;">
-            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                <h3 style="margin:0;">${canAnswer ? '🔗 Submit Answer' : '📋 Your Result'}</h3>
-                ${canAnswer ? `<span style="padding:5px 12px;background:rgba(0,255,136,0.1);border-radius:15px;color:#00ff88;font-size:11px;font-weight:600;">🎯 ${remaining} Left</span>` : ''}
-            </div>
-            <div class="card-body" style="padding:25px;">
-                ${canAnswer ? `
-                    <input type="text" id="sotd-answer-input" 
-                        placeholder="Paste YouTube link here..." 
-                        style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:10px;padding:14px;color:#fff;margin-bottom:15px;box-sizing:border-box;">
-                    <button id="sotd-submit-btn" onclick="submitSOTDAnswer()" 
-                        style="width:100%;padding:14px;background:linear-gradient(135deg, #ff0000, #cc0000);border:none;border-radius:10px;color:#fff;font-weight:bold;cursor:pointer;">
-                        ▶️ Submit Answer
-                    </button>
-                ` : `
-                    <div style="text-align:center;">
-                        <div style="font-size:40px;margin-bottom:10px;">${wasCorrect ? '🎉' : '😔'}</div>
-                        <div style="color:${wasCorrect ? '#00ff88' : '#ff6b6b'};font-size:18px;font-weight:bold;">
-                            ${wasCorrect ? 'Correct!' : 'Out of Attempts'}
-                        </div>
-                        <div style="margin-top:10px;padding:12px;background:rgba(255,255,255,0.05);border-radius:10px;">
-                            <div style="color:#fff;font-weight:bold;">${sanitize(song.title)}</div>
-                        </div>
-                        ${song.youtubeId ? `
-                            <div style="margin-top:20px;padding-top:15px;border-top:1px solid rgba(255,255,255,0.1);">
-                                <p style="color:#aaa;font-size:12px;margin-bottom:12px;">Now go give it a stream! 💜</p>
-                                <a href="https://www.youtube.com/watch?v=${song.youtubeId}" target="_blank" rel="noopener" 
-                                    style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:linear-gradient(135deg, #ff0000, #cc0000);color:#fff;border-radius:10px;text-decoration:none;font-weight:bold;box-sizing:border-box;">
-                                    <span style="font-size:18px;">▶️</span> Watch on YouTube
-                                </a>
-                            </div>
-                        ` : ''}
-                    </div>
-                `}
-            </div>
-        </div>
-    `;
-
-    return html;
-}
-
-
-// ═══════════════════════════════════════════════════════════════
-// RENDER YESTERDAY'S RESULTS - THE KEY FIX!
-// ═══════════════════════════════════════════════════════════════
-function renderYesterdayResults(resultsData) {
-    
-    // 🔍 Debug log
-    console.log('📊 Rendering yesterday results:', resultsData);
-
-    // ❌ Case 1: API call failed or returned error
-    if (!resultsData || !resultsData.success) {
-        return `
-            <div class="card" style="opacity:0.6;margin-bottom:16px;">
-                <div class="card-body" style="text-align:center;padding:30px;">
-                    <div style="font-size:30px;margin-bottom:10px;">📊</div>
-                    <p style="color:#888;margin:0;">No previous results available</p>
-                    <p style="color:#666;font-size:11px;margin-top:5px;">Results appear after the first day!</p>
-                </div>
-            </div>
-        `;
-    }
-
-    // ❌ Case 2: Success but no song data (no SOTD was set yesterday)
-    if (!resultsData.song) {
-        return `
-            <div class="card" style="opacity:0.6;margin-bottom:16px;">
-                <div class="card-body" style="text-align:center;padding:30px;">
-                    <div style="font-size:30px;margin-bottom:10px;">📭</div>
-                    <p style="color:#888;margin:0;">No SOTD was set yesterday</p>
-                </div>
-            </div>
-        `;
-    }
-
-    // ✅ Case 3: We have valid results!
-    // Data structure from backend:
-    // {
-    //   success: true,
-    //   date: "2025-01-15",
-    //   song: { title: "Dynamite", artist: "BTS" },
-    //   teams: { "Team Indigo": { correct: 5, xp: 5, pfp: "..." }, ... },
-    //   winner: "Team Indigo",
-    //   totalParticipants: 12
-    // }
-
-    const date = resultsData.date;
-    const song = resultsData.song;
-    const teams = resultsData.teams || {};
-    const winner = resultsData.winner;
-    const totalParticipants = resultsData.totalParticipants || 0;
-
-    // Format date nicely
-    let dateDisplay = 'Yesterday';
-    try {
-        const d = new Date(date + 'T00:00:00');
-        dateDisplay = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    } catch (e) {
-        console.warn('Date format error:', e);
-    }
-
-    // Get song info
-    const songTitle = typeof song === 'object' ? (song.title || 'Unknown') : song;
-    const songArtist = typeof song === 'object' ? (song.artist || 'BTS') : 'BTS';
-
-    // Winner color
-    const winnerColor = winner ? teamColor(winner) : '#888';
-
-    // Build team stats array
-    const teamStats = [
-        { name: 'Indigo', full: 'Team Indigo', data: teams['Team Indigo'] },
-        { name: 'Echo', full: 'Team Echo', data: teams['Team Echo'] },
-        { name: 'Agust D', full: 'Team Agust D', data: teams['Team Agust D'] },
-        { name: 'JITB', full: 'Team JITB', data: teams['Team JITB'] }
-    ].map(t => ({
-        name: t.name,
-        fullName: t.full,
-        correct: t.data?.correct || 0,
-        xp: t.data?.xp || 0,
-        color: teamColor(t.full),
-        isWinner: t.full === winner
-    })).sort((a, b) => b.correct - a.correct); // Sort by correct answers
-
-    // Calculate totals
-    const totalXP = teamStats.reduce((sum, t) => sum + t.xp, 0);
-
-    return `
-        <div class="card" style="border:1px solid rgba(255,215,0,0.3);background:linear-gradient(135deg, rgba(255,215,0,0.05), transparent);margin-bottom:16px;">
-            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,215,0,0.2);">
-                <h3 style="margin:0;color:#ffd700;">🏆 Yesterday's Results</h3>
-                <span style="font-size:11px;color:#888;background:rgba(255,255,255,0.05);padding:4px 10px;border-radius:10px;">${dateDisplay}</span>
-            </div>
-            <div class="card-body" style="padding:15px;">
-                
-                <!-- Winner Banner -->
-                ${winner ? `
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;padding:14px;background:linear-gradient(135deg, ${winnerColor}20, ${winnerColor}05);border-radius:12px;border:1px solid ${winnerColor}40;">
-                        <div style="font-size:32px;">👑</div>
-                        <div style="flex:1;">
-                            <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;">Daily Winner</div>
-                            <div style="color:${winnerColor};font-weight:bold;font-size:18px;">${winner}</div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="font-size:24px;color:#ffd700;font-weight:bold;">${teams[winner]?.correct || 0}</div>
-                            <div style="font-size:10px;color:#888;">correct</div>
-                        </div>
-                    </div>
-                ` : `
-                    <div style="text-align:center;padding:15px;margin-bottom:15px;background:rgba(255,255,255,0.03);border-radius:10px;">
-                        <div style="font-size:24px;margin-bottom:5px;">🤝</div>
-                        <div style="color:#888;font-size:13px;">No winner yesterday</div>
-                    </div>
-                `}
-
-                <!-- Song Reveal -->
-                <div style="text-align:center;padding:12px;margin-bottom:15px;background:rgba(255,255,255,0.03);border-radius:10px;">
-                    <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:6px;">🎵 The Song Was</div>
-                    <div style="color:#fff;font-size:15px;font-weight:bold;">${sanitize(songTitle)}</div>
-                    <div style="color:#888;font-size:11px;margin-top:2px;">${sanitize(songArtist)}</div>
-                </div>
-
-                <!-- Team Scoreboard -->
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-                    ${teamStats.map(t => `
-                        <div style="
-                            display:flex;
-                            justify-content:space-between;
-                            align-items:center;
-                            padding:10px 12px;
-                            background:${t.isWinner ? `linear-gradient(135deg, ${t.color}25, ${t.color}08)` : 'rgba(0,0,0,0.25)'};
-                            border-radius:8px;
-                            border-left:3px solid ${t.color};
-                            ${t.isWinner ? `box-shadow:0 0 15px ${t.color}20;` : ''}
-                        ">
-                            <div>
-                                <span style="font-size:12px;color:${t.isWinner ? t.color : '#aaa'};font-weight:${t.isWinner ? 'bold' : 'normal'};">
-                                    ${t.isWinner ? '👑 ' : ''}${t.name}
-                                </span>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:6px;">
-                                <span style="font-size:14px;color:#fff;font-weight:bold;">${t.correct}</span>
-                                <span style="font-size:9px;color:#666;">✓</span>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-
-                <!-- Summary Stats -->
-                <div style="display:flex;justify-content:center;gap:30px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);">
-                    <div style="text-align:center;">
-                        <div style="font-size:20px;color:#ffd700;font-weight:bold;">${totalParticipants}</div>
-                        <div style="font-size:10px;color:#888;">Participants</div>
-                    </div>
-                    <div style="text-align:center;">
-                        <div style="font-size:20px;color:#00ff88;font-weight:bold;">${totalXP}</div>
-                        <div style="font-size:10px;color:#888;">XP Awarded</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-
-// ═══════════════════════════════════════════════════════════════
-// SUBMIT ANSWER
-// ═══════════════════════════════════════════════════════════════
+// ==================== SUBMIT SOTD ANSWER ====================
 async function submitSOTDAnswer() {
     const input = document.getElementById('sotd-answer-input');
     const btn = document.getElementById('sotd-submit-btn');
@@ -10410,11 +10273,12 @@ async function submitSOTDAnswer() {
         input.focus();
         return;
     }
-
+    
     const today = new Date().toDateString();
     const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + today;
     const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + today;
     
+    // Check if already done
     if (localStorage.getItem(correctKey) === 'true') {
         showToast('Already answered correctly!', 'info');
         renderSOTD();
@@ -10443,19 +10307,23 @@ async function submitSOTDAnswer() {
         
         console.log('🎬 Submit result:', result);
         
-        const newAttempts = result.attempts || (currentAttempts + 1);
+        // Increment attempts
+        const newAttempts = currentAttempts + 1;
         localStorage.setItem(attemptsKey, String(newAttempts));
         
         if (result.correct) {
             localStorage.setItem(correctKey, 'true');
             showToast('🎉 Correct! +' + (result.xpAwarded || 1) + ' XP!', 'success');
-            
             if (typeof confetti === 'function') {
                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             }
         } else {
             const left = 2 - newAttempts;
-            showToast(left > 0 ? `❌ Wrong! ${left} chance left.` : '❌ Wrong! No more chances.', 'error');
+            if (left > 0) {
+                showToast(`❌ Wrong! ${left} chance left.`, 'error');
+            } else {
+                showToast('❌ Wrong! No more chances today.', 'error');
+            }
         }
         
         setTimeout(() => renderSOTD(), 1000);
@@ -10472,15 +10340,10 @@ async function submitSOTDAnswer() {
     }
 }
 
-function sanitize(str) {
-    if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
+window.extractYouTubeId = extractYouTubeId;
+window.submitSOTDAnswer = submitSOTDAnswer;    
 
+// ==================== RESET SOTD (DEBUG) ====================
 function resetSOTDProgress() {
     const today = new Date().toDateString();
     localStorage.removeItem('sotd_attempts_' + STATE.agentNo + '_' + today);
@@ -10488,12 +10351,6 @@ function resetSOTDProgress() {
     showToast('Progress reset!', 'success');
     renderSOTD();
 }
-
-// Expose to window
-window.renderSOTD = renderSOTD;
-window.submitSOTDAnswer = submitSOTDAnswer;
-window.resetSOTDProgress = resetSOTDProgress;
-
 // ==================== STREAMING TIPS PAGE ====================
 async function renderStreamingTips() {
     const page = document.getElementById('page-streaming-tips');
