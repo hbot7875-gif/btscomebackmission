@@ -10088,13 +10088,14 @@ async function renderSOTD() {
 
         // --- Build Main Content ---
         let html = `
+        <div style="color:#ff4444; font-size:10px; font-weight:bold; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;">
+                        ⚠️ GHOST PROTOCOL: AGENTS ON LEAVE EARN 0 XP
+                    </div>
             <div class="card" style="background:linear-gradient(135deg, #ff000015, #ff000008);border-color:#ff000033;margin-bottom:16px;">
                 <div class="card-body" style="text-align:center;padding:25px;">
                     <div style="font-size:50px;margin-bottom:12px;">🎬</div>
                     <h2 style="color:#fff;margin:0 0 8px;font-size:20px;">Song of the Day</h2>
-                     <div style="color:#ff4444; font-size:10px; font-weight:bold; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;">
-                        ⚠️ GHOST PROTOCOL: AGENTS ON LEAVE EARN 0 XP
-                    </div>
+                     
 
                 
                     <div style="display:inline-block;padding:8px 18px;background:rgba(255,255,255,0.1);border-radius:20px;margin-bottom:8px;">
