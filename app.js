@@ -206,7 +206,7 @@ const ACTIVITY_CONFIG = {
         },
         'goal_completed': {
             icon: '🎯',
-            template: (data) => `<strong style="color:${teamColor(data.team)}">${data.team}</strong> completed <strong class="highlight">${data.goal}</strong>!`,
+            template: (data) => `<strong style="color:${(data.team)}">${data.team}</strong> completed <strong class="highlight">${data.goal}</strong>!`,
             color: '#00ff88'
         },
         'album2x_completed': {
@@ -216,7 +216,7 @@ const ACTIVITY_CONFIG = {
         },
         'team_surge': {
             icon: '⚡',
-            template: (data) => `<strong style="color:${teamColor(data.team)}">${data.team}</strong> is on fire! <strong class="highlight">${data.streams}</strong> streams in the last hour!`,
+            template: (data) => `<strong style="color:${(data.team)}">${data.team}</strong> is on fire! <strong class="highlight">${data.streams}</strong> streams in the last hour!`,
             color: '#ff4081'
         },
         'rank_change': {
@@ -232,7 +232,7 @@ const ACTIVITY_CONFIG = {
                 const isFail = title.includes('(Failed)');
                 const color = isFail ? '#ff4444' : '#00ff88'; // Red for fail, Green for success
                 const action = isFail ? 'failed' : 'completed';
-                return `<strong style="color:${teamColor(data.team)}">${data.team}</strong> ${action}: <strong style="color:${color}">${title}</strong>`;
+                return `<strong style="color:${(data.team)}">${data.team}</strong> ${action}: <strong style="color:${color}">${title}</strong>`;
             },
             color: '#9c27b0'
         }
@@ -378,7 +378,7 @@ const STATE = {
 };
 // ==================== HELPERS ====================
 const $ = id => document.getElementById(id);
-const teamColor = team => CONFIG.TEAMS[team]?.color || '#7b2cbf';
+const  = team => CONFIG.TEAMS[team]?.color || '#7b2cbf';
 const teamPfp = team => CONFIG.TEAM_PFPS[team] || '';
 const getTeamMemberCount = team => STATE.allAgents?.filter(a => a.team === team).length || 0;
 
@@ -1564,7 +1564,7 @@ function showSOTDResultModal(result) {
         backdrop-filter: blur(8px); animation: fadeIn 0.4s ease;
     `;
 
-    const winnerColor = teamColor(result.winner);
+    const winnerColor = (result.winner);
 
     // Helper to get score from result object keys
     const scores = [
@@ -1628,7 +1628,7 @@ function showSOTDResultModal(result) {
                             display: flex; justify-content: space-between; align-items: center;
                             padding: 8px 12px;
                             background: ${t.name === result.winner ? winnerColor + '22' : 'rgba(255,255,255,0.03)'};
-                            border-left: 3px solid ${teamColor(t.name)};
+                            border-left: 3px solid ${(t.name)};
                             border-radius: 6px;
                         ">
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -2660,7 +2660,7 @@ function renderCreateMissionForm() {
                     ${Object.keys(teams).map(team => `
                         <label class="team-checkbox">
                             <input type="checkbox" name="target-teams" value="${team}"> 
-                            <span style="color:${teamColor(team)}">${team}</span>
+                            <span style="color:${(team)}">${team}</span>
                         </label>
                     `).join('')}
                 </div>
@@ -2974,7 +2974,7 @@ function renderAdminMissionCard(mission) {
                         const isCompleted = completedTeams.includes(team);
                         const teamProgress = progress[team] || 0;
                         const progressPct = goalTarget ? Math.min(100, (teamProgress / goalTarget) * 100) : 0;
-                        const tColor = teamColor(team);
+                        const tColor = (team);
                         
                         return `
                             <div onclick="adminApproveMissionForTeam('${mission.mission_id || mission.id}', '${team}')"
@@ -3045,7 +3045,7 @@ function adminApproveMissionForTeam(missionId, teamName) {
         <div class="confirm-box" onclick="event.stopPropagation()">
             <h3 style="color:#fff;margin:0 0 10px;">Manage Team Status</h3>
             <p style="color:#888;font-size:13px;margin-bottom:20px;">
-                Action for <strong style="color:${teamColor(teamName)}">${teamName}</strong>
+                Action for <strong style="color:${(teamName)}">${teamName}</strong>
             </p>
             
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
@@ -3118,8 +3118,8 @@ async function loadLeavesAdmin() {
                 ${agents.map(a => `
                     <div style="
                         background: #1a1a2e;
-                        border: 1px solid ${teamColor(a.team)}44;
-                        border-left: 3px solid ${teamColor(a.team)};
+                        border: 1px solid ${(a.team)}44;
+                        border-left: 3px solid ${(a.team)};
                         padding: 12px;
                         border-radius: 8px;
                         display: flex;
@@ -3388,7 +3388,7 @@ async function adminCompleteMission(id) {
                 ${remainingTeams.map(team => `
                     <div class="team-option" onclick="executeTeamApproval('${id}', '${team}'); this.closest('.admin-team-select-modal').remove();">
                         ${teamPfp(team) ? `<img src="${teamPfp(team)}" style="width:24px;height:24px;border-radius:50%;">` : ''}
-                        <span style="color:${teamColor(team)};font-weight:600;">${team}</span>
+                        <span style="color:${(team)};font-weight:600;">${team}</span>
                         <span style="margin-left:auto;color:#888;font-size:11px;">
                             ${mission.progress?.[team] || 0}/${mission.goalTarget || 100}
                         </span>
@@ -3542,7 +3542,7 @@ async function renderWeekConfirmation() {
 
         teamList.forEach(teamName => {
             const info = teams[teamName] || {};
-            const tColor = teamColor(teamName);
+            const tColor = (teamName);
             
             // Check status
             const attStatus = info.attendanceConfirmed; // true, false, or null
@@ -5275,25 +5275,25 @@ async function updateActivityFeedUI() {
 
                 // --- 🎯 TEAM GOALS ---
                 case 'goal_completed':
-                    tColor = teamColor(data.team);
+                    tColor = (data.team);
                     icon = data.type === 'album2x' ? '✨' : (data.type === 'album' ? '💿' : '🎵');
                     text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> completed <span class="activity-highlight">${sanitize(data.goal)}</span>!`;
                     break;
 
                 case 'goal_almost':
                     icon = '🚨';
-                    text = `<strong style="color:${teamColor(data.team)}">${sanitize(data.team)}</strong> is at <span style="color:#ff4444; font-weight:bold;">${data.percent}%</span> on ${sanitize(data.goal)}! Push!`;
+                    text = `<strong style="color:${(data.team)}">${sanitize(data.team)}</strong> is at <span style="color:#ff4444; font-weight:bold;">${data.percent}%</span> on ${sanitize(data.goal)}! Push!`;
                     break;
 
                 // --- 👑 WINNERS & LEADERS ---
                 case 'sotd_winner':
-                    tColor = teamColor(data.team);
+                    tColor = (data.team);
                     icon = '🧠';
                     text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> cracked the code for <span class="activity-highlight">${sanitize(data.song)}</span>!`;
                     break;
 
                 case 'leader_update':
-                    tColor = teamColor(data.team);
+                    tColor = (data.team);
                     icon = '👑';
                     text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> is currently leading the battle with ${fmt(data.xp)} XP!`;
                     break;
@@ -5311,7 +5311,7 @@ async function updateActivityFeedUI() {
 
                 // --- 🕵️ SECRET MISSIONS ---
                 case 'secret_mission':
-                    tColor = teamColor(data.team);
+                    tColor = (data.team);
                     const isFail = (data.title || '').includes('(Failed)');
                     icon = isFail ? '💀' : '🕵️';
                     text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> ${isFail ? 'failed' : 'completed'}: <span class="activity-highlight">${sanitize(data.title)}</span>`;
@@ -5326,7 +5326,7 @@ async function updateActivityFeedUI() {
                 
                 // --- 🚀 SURGES ---
                 case 'team_surge':
-                    tColor = teamColor(data.team);
+                    tColor = (data.team);
                     icon = '🚀';
                     text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> is surging! <span class="activity-highlight">${fmt(data.streams)} streams/hr</span>`;
                     break;
@@ -6001,7 +6001,7 @@ function loadAllWeeksData() {
 function setupDashboard() {
     const p = STATE.data?.profile;
     if (p) {
-        const color = teamColor(p.team);
+        const color = (p.team);
         const pfp = teamPfp(p.team);
         const initial = (p.name || 'A')[0].toUpperCase();
         ['agent', 'profile'].forEach(prefix => {
@@ -6222,13 +6222,13 @@ async function renderHome() {
                 ${btsCountdownHtml}
                 ${refreshNotice}
                 <div id="streak-widget-container"></div>
-                <div class="card quick-stats-card" style="border-color:${teamColor(team)}40;background:linear-gradient(135deg, ${teamColor(team)}11, var(--bg-card));">
+                <div class="card quick-stats-card" style="border-color:${(team)}40;background:linear-gradient(135deg, ${(team)}11, var(--bg-card));">
                     <div class="card-body">
                         <div class="quick-header">
-                            ${teamPfp(team) ? `<img src="${teamPfp(team)}" class="quick-pfp" style="border-color:${teamColor(team)}">` : ''}
+                            ${teamPfp(team) ? `<img src="${teamPfp(team)}" class="quick-pfp" style="border-color:${(team)}">` : ''}
                             <div class="quick-info">
                                 <div class="quick-name">Welcome, ${sanitize(agentName)}!</div>
-                                <div class="quick-team" style="color:${teamColor(team)}">${team} • Rank #${STATE.data?.rank || 'N/A'}</div>
+                                <div class="quick-team" style="color:${(team)}">${team} • Rank #${STATE.data?.rank || 'N/A'}</div>
                             </div>
                         </div>
                         <div class="quick-stats-grid">
@@ -6357,7 +6357,7 @@ async function renderHome() {
 
                 return `
                 <div class="rank-item ${isMe ? 'highlight' : ''}" 
-                     style="border-left: 3px solid ${teamColor(r.team)}; cursor:pointer;"
+                     style="border-left: 3px solid ${(r.team)}; cursor:pointer;"
                      onclick="loadPage('rankings')">
                     <div class="rank-num ${rankClass}">${rankContent}</div>
                     <div class="rank-info">
@@ -6365,7 +6365,7 @@ async function renderHome() {
                             ${displayName}
                             ${isMe ? '<span class="you-badge">YOU</span>' : ''}
                         </div>
-                        <div class="rank-team" style="color:${teamColor(r.team)}">
+                        <div class="rank-team" style="color:${(r.team)}">
                             ${displayTeam}
                         </div>
                     </div>
@@ -6392,11 +6392,11 @@ async function renderHome() {
                     return `
                         <div class="standing-item ${t === team ? 'my-team' : ''}" 
                              onclick="loadPage('team-level')" 
-                             style="--team-color:${teamColor(t)}">
+                             style="--team-color:${(t)}">
                             <div class="standing-rank">${i+1}</div>
                             ${teamPfp(t) ? `<img src="${teamPfp(t)}" class="standing-pfp">` : ''}
                             <div class="standing-info">
-                                <div class="standing-name" style="color:${teamColor(t)}">${t}</div>
+                                <div class="standing-name" style="color:${(t)}">${t}</div>
                                 <div class="standing-xp">${fmt(td.teamXP)} XP</div>
                                 <div class="standing-members">👥 ${getTeamMemberCount(t)} agents</div>
                             </div>
@@ -6549,14 +6549,14 @@ async function showOnlineUsers() {
                     padding:10px 12px;
                     background:rgba(255,255,255,0.05);
                     border-radius:8px;
-                    border-left: 3px solid ${teamColor(u.team)};
+                    border-left: 3px solid ${(u.team)};
                 ">
                     <span style="width:8px;height:8px;background:#00ff88;border-radius:50%;flex-shrink:0;"></span>
                     <span style="color:#fff;font-size:13px;flex:1;">@${sanitize(u.username)}</span>
                     <span style="
                         font-size:9px;
-                        color:${teamColor(u.team)};
-                        background:${teamColor(u.team)}22;
+                        color:${(u.team)};
+                        background:${(u.team)}22;
                         padding:3px 8px;
                         border-radius:10px;
                     ">${sanitize(u.team?.replace('Team ', '') || '')}</span>
@@ -6604,7 +6604,7 @@ async function renderChat() {
                     <span class="btn-icon">🌐</span> ALL FREQ
                 </button>
                 <button class="comm-btn ${STATE.chatMode === 'team' ? 'active' : ''}" 
-                        style="--team-glow: ${teamColor(team)}"
+                        style="--team-glow: ${(team)}"
                         onclick="switchChatMode('team')">
                     <span class="btn-icon">🔒</span> ${team.replace('Team ', '').toUpperCase()}
                 </button>
@@ -6651,7 +6651,7 @@ async function renderChat() {
                 <!-- Input -->
                 <div class="chat-input-area-pro">
                     <div class="input-container-inner">
-                        <div class="user-tag" style="color:${teamColor(team)}">
+                        <div class="user-tag" style="color:${(team)}">
                             ${sanitize(myUsername)}
                         </div>
                         <div class="input-row">
@@ -6781,7 +6781,7 @@ async function loadMessages(fullReload = false) {
             return `
                 <div class="msg-wrapper ${isMe ? 'me' : 'other'}">
                     <div class="msg-meta">
-                        <span class="msg-user" style="color:${teamColor(msg.team)}">@${sanitize(msg.username)}</span>
+                        <span class="msg-user" style="color:${(msg.team)}">@${sanitize(msg.username)}</span>
                         <span class="msg-team-tag">${sanitize(msg.team?.replace('Team ', '') || '')}</span>
                     </div>
                     <div class="msg-bubble">${sanitize(msg.message)}</div>
@@ -7047,13 +7047,13 @@ async function renderDrawer() {
 
     container.innerHTML = `
         <!-- Agent Profile Card -->
-        <div class="card" style="border-color: ${teamColor(team)}; margin-bottom: 20px; overflow: hidden;">
-            <div style="background: linear-gradient(135deg, ${teamColor(team)}33, transparent); padding: 30px; text-align: center;">
-                <div style="width: 90px; height: 90px; border-radius: 50%; margin: 0 auto 15px; border: 3px solid ${teamColor(team)}; overflow: hidden; background: ${teamColor(team)}22; display: flex; align-items: center; justify-content: center; font-size: 36px; box-shadow: 0 0 20px ${teamColor(team)}44;">
+        <div class="card" style="border-color: ${(team)}; margin-bottom: 20px; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, ${(team)}33, transparent); padding: 30px; text-align: center;">
+                <div style="width: 90px; height: 90px; border-radius: 50%; margin: 0 auto 15px; border: 3px solid ${(team)}; overflow: hidden; background: ${(team)}22; display: flex; align-items: center; justify-content: center; font-size: 36px; box-shadow: 0 0 20px ${(team)}44;">
                     ${teamPfp(team) ? `<img src="${teamPfp(team)}" style="width:100%;height:100%;object-fit:cover;">` : (profile.name || 'A')[0].toUpperCase()}
                 </div>
                 <h2 style="color: #fff; margin: 0 0 5px 0; font-size: 20px;">${safeSanitize(profile.name || 'Agent')}</h2>
-                <p style="color: ${teamColor(team)}; margin: 0 0 8px 0; font-weight: 600;">Team ${team}</p>
+                <p style="color: ${(team)}; margin: 0 0 8px 0; font-weight: 600;">Team ${team}</p>
                 <p style="color: #666; margin: 0; font-size: 11px;">Agent ID: ${STATE.agentNo}</p>
                 ${isAdmin ? `<div style="margin-top: 12px; padding: 6px 14px; background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block;">👑 ADMIN</div>` : ''}
             </div>
@@ -7759,7 +7759,7 @@ async function renderGoals() {
                 <div class="card">
                     <div class="card-header">
                         <h3>🎵 Track Goals</h3>
-                        <span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span>
+                        <span class="team-badge" style="background:${(team)}22;color:${(team)}">${team}</span>
                     </div>
                     <div class="card-body">
             `;
@@ -7795,7 +7795,7 @@ async function renderGoals() {
                 <div class="card">
                     <div class="card-header">
                         <h3>💿 Album Goals</h3>
-                        <span class="team-badge" style="background:${teamColor(team)}22;color:${teamColor(team)}">${team}</span>
+                        <span class="team-badge" style="background:${(team)}22;color:${(team)}">${team}</span>
                     </div>
                     <div class="card-body">
             `;
@@ -7844,7 +7844,7 @@ async function renderAlbum2x() {
     const allTeamTracks = CONFIG.getTeamAlbumTracksForWeek(currentWeek);
     const teamTracks = allTeamTracks[team] || [];
     const albumName = CONFIG.TEAMS[team]?.album || team;
-    const currentTeamColor = CONFIG.TEAMS[team]?.color || '#7b2cbf';
+    const current = CONFIG.TEAMS[team]?.color || '#7b2cbf';
     
     // Show loading state
     container.innerHTML = `
@@ -7926,9 +7926,9 @@ async function renderAlbum2x() {
     
     // === UI LOGIC FOR STATUS ===
     let statusBadgeHTML = '';
-    let statusBorderColor = currentTeamColor;
+    let statusBorderColor = current;
     let mainIcon = myPassed ? '🎉' : '⏳';
-    let progressBarColor = myPassed ? '#00ff88' : currentTeamColor;
+    let progressBarColor = myPassed ? '#00ff88' : current;
 
     if (isUserExempt) {
         // 👻 EXEMPT UI
@@ -8049,7 +8049,7 @@ async function renderAlbum2x() {
                             <span style="color:#fff;">${passedMembers.length}/${totalMembers} completed</span>
                         </div>
                         <div style="background:#222;border-radius:8px;height:8px;overflow:hidden;">
-                            <div style="height:100%;width:${totalMembers ? (passedMembers.length/totalMembers)*100 : 0}%;background:${teamAllComplete ? '#00ff88' : currentTeamColor};transition:width 0.3s;"></div>
+                            <div style="height:100%;width:${totalMembers ? (passedMembers.length/totalMembers)*100 : 0}%;background:${teamAllComplete ? '#00ff88' : current};transition:width 0.3s;"></div>
                         </div>
                     </div>
                     
@@ -8108,7 +8108,7 @@ async function renderRankings() {
     if (!container) return;
     
     const myTeam = STATE.data?.profile?.team || 'Team';
-    const tColor = teamColor(myTeam);
+    const tColor = (myTeam);
     
     container.innerHTML = `
         ${renderGuide('rankings')}
@@ -8149,7 +8149,7 @@ async function switchRankingTab(tab) {
         
         teamTab.classList.add('active'); 
         const myTeam = STATE.data?.profile?.team;
-        const tColor = teamColor(myTeam);
+        const tColor = (myTeam);
         teamTab.style.background = tColor + '22'; // low opacity background
     }
     
@@ -10470,20 +10470,6 @@ async function submitSOTDAnswer() {
             btn.style.opacity = '1';
         }
     }
-}
-
-
-// ═══════════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════════
-function teamColor(teamName) {
-    const colors = {
-        'Team Indigo': '#6366f1',
-        'Team Echo': '#22c55e', 
-        'Team Agust D': '#f43f5e',
-        'Team JITB': '#f59e0b'
-    };
-    return colors[teamName] || '#888888';
 }
 
 function sanitize(str) {
