@@ -5331,6 +5331,12 @@ async function updateActivityFeedUI() {
                     text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> is surging! <span class="activity-highlight">${fmt(data.streams)} streams/hr</span>`;
                     break;
 
+               case 'mission_success':
+                    icon = '📡';
+                    text = `<span style="color:#ff4444; font-weight:800; animation: blinkLive 0.8s infinite;">[HQ OVERRIDE]</span> HQ to Agents: The target took the bait. I repeat, the target took the bait. <span style="color:#00ff88; font-weight:bold;">Operation Rage Bait is successful.</span>`;
+                    break;
+                    
+
                 default: return '';
             }
 
