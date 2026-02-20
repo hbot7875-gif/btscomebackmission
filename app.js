@@ -10067,31 +10067,18 @@ async function markMissionComplete(missionId) {
 }
 window.markMissionComplete = markMissionComplete;
 async function renderSOTD() {
-    // 1. Define the 'today' object first
-    const today = new Date(); 
-    
-    // 2. Define your strings using that object
-    const todayStr = today.toDateString(); 
-    const dateDisplay = today.toLocaleDateString('en-US', { 
-        weekday: 'long', month: 'long', day: 'numeric' 
-    });
-    
     const container = document.getElementById('sotd-content');
     if (!container) return;
 
-    // ✅ FIX: Mark SOTD notification as seen when page loads
     if (STATE.lastChecked) {
         STATE.lastChecked.songOfDay = new Date().toDateString();
         saveNotificationState();
-        
-        // Remove from local notification list immediately
         if (STATE.notifications) {
             STATE.notifications = STATE.notifications.filter(n => n.type !== 'sotd');
             updateNotificationBadge();
         }
     }
 
-    // Show loading
     container.innerHTML = `
         <div style="text-align:center;padding:60px 20px;">
             <div style="font-size:40px;margin-bottom:15px;">🎬</div>
@@ -10100,15 +10087,16 @@ async function renderSOTD() {
     `;
 
     try {
-        // Fetch Current Song AND Latest Results
         const [songData, resultsData] = await Promise.all([
             api('getSongOfDay', { agentNo: STATE.agentNo }),
             api('getLatestSOTDResult').catch(() => ({ success: false }))
         ]);
+
+        // ✅ FIX: Only declare dateDisplay once
         const todayKST = getKSTDateString();
         const dateDisplay = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}))
                             .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-        // 1. ADD THE RESET NOTICE HERE
+
         const resetNotice = `
             <div style="background: rgba(123, 44, 191, 0.1); border: 1px solid rgba(123, 44, 191, 0.3); border-radius: 10px; padding: 10px; margin-bottom: 16px; text-align: center;">
                 <span style="color: #c9a0ff; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">
@@ -10116,14 +10104,12 @@ async function renderSOTD() {
                 </span>
             </div>
         `;
-        // --- Build Main Content ---
+
         let html = `
             <div style="color:#ff4444; font-size:10px; font-weight:bold; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;">
                 ⚠️ GHOST PROTOCOL: AGENTS ON LEAVE EARN 0 XP
             </div>
-            
             ${resetNotice}
-
             <div class="card" style="background:linear-gradient(135deg, #ff000015, #ff000008);border-color:#ff000033;margin-bottom:16px;">
                 <div class="card-body" style="text-align:center;padding:25px;">
                     <div style="font-size:50px;margin-bottom:12px;">🎬</div>
@@ -10135,7 +10121,6 @@ async function renderSOTD() {
             </div>
         `;
 
-        // --- Current Song Logic ---
         if (songData?.success && songData?.song) {
             const song = songData.song;
             const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + todayKST;
@@ -10147,7 +10132,6 @@ async function renderSOTD() {
             const remaining = Math.max(0, maxAttempts - attempts);
             const canAnswer = !wasCorrect && attempts < maxAttempts;
 
-            // Only show hint if they haven't answered yet
             if (canAnswer) {
                 html += `
                     <div class="card" style="margin-bottom:16px;">
@@ -10181,20 +10165,10 @@ async function renderSOTD() {
                                 <div style="margin-top:10px;padding:12px;background:rgba(255,255,255,0.05);border-radius:10px;">
                                     <div style="color:#fff;font-weight:bold;">${sanitize(song.title)}</div>
                                 </div>
-
-                                <!-- 🔴 YOUTUBE STREAM BOX -->
                                 ${song.youtubeId ? `
                                     <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
                                         <p style="color:#aaa; font-size:12px; margin-bottom:12px;">Now go give it a stream! 💜</p>
-                                        <a href="https://www.youtube.com/watch?v=${song.youtubeId}" target="_blank" style="
-                                            display: flex; align-items: center; justify-content: center; gap: 10px;
-                                            width: 100%; padding: 14px;
-                                            background: linear-gradient(135deg, #ff0000, #cc0000);
-                                            color: #fff; border-radius: 10px;
-                                            text-decoration: none; font-weight: bold; font-size: 14px;
-                                            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);
-                                            transition: transform 0.2s;
-                                        " onactive="this.style.transform='scale(0.98)'">
+                                        <a href="https://www.youtube.com/watch?v=${song.youtubeId}" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; background: linear-gradient(135deg, #ff0000, #cc0000); color: #fff; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 14px; box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);">
                                             <span style="font-size:18px;">▶️</span> Watch on YouTube
                                         </a>
                                     </div>
@@ -10206,61 +10180,43 @@ async function renderSOTD() {
             `;
         }
 
-        // --- Previous Results Section ---
-// FIX: Check for 'winner' directly, not 'result'
-if (resultsData?.success && resultsData?.winner) {
-    const res = resultsData; // Use the data directly
-    const dateParts = res.date.split('-'); // [2026, 02, 20]
-    const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-    
-    // Convert YYYY-MM-DD to "Feb 18"
-    // We append "T00:00:00" to ensure it treats it as local/date-only 
-    // and doesn't shift due to timezone conversion
-    const resDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const winnerColor = teamColor(res.winner);
+        if (resultsData?.success && resultsData?.winner) {
+            const res = resultsData;
+            const dateParts = res.date.split('-');
+            const resultDateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            const resDate = resultDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const winnerColor = teamColor(res.winner);
 
-    // ✅ FIX: Mark Results notification as seen
-    const resultKey = 'sotd_result_seen_' + new Date(res.date).toDateString();
-    localStorage.setItem(resultKey, 'true');
-
-    html += `
-        <div class="card" style="border: 1px solid rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.02);">
-            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; color:#ffd700;">🏆 Latest Mission Result</h3>
-                <span style="font-size:11px; color:#888;">${resDate}</span>
-            </div>
-            <div class="card-body" style="padding: 15px;">
-                <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px; padding:10px; background:rgba(255,255,255,0.03); border-radius:10px;">
-                    <div style="font-size:24px;">👑</div>
-                    <div style="flex:1;">
-                        <div style="font-size:11px; color:#888; text-transform:uppercase;">Daily Winner</div>
-                        <div style="color:${winnerColor}; font-weight:bold; font-size:16px;">${res.winner || 'TBD'}</div>
+            html += `
+                <div class="card" style="border: 1px solid rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.02);">
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="margin:0; color:#ffd700;">🏆 Latest Mission Result</h3>
+                        <span style="font-size:11px; color:#888;">${resDate}</span>
                     </div>
-                    <div style="text-align:right;">
-                        <div style="font-size:11px; color:#888;">Song Reveal</div>
-                        <div style="color:#fff; font-size:12px; font-weight:600;">${sanitize(res.song?.title || '???')}</div>
-                    </div>
-                </div>
-
-                <!-- Mini Scoreboard -->
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-                    ${[
-                        { name: 'Indigo', val: res.teams?.['Team Indigo']?.correct || res['Team Indigo']?.correct || 0, color: teamColor('Team Indigo') },
-                        { name: 'Echo', val: res.teams?.['Team Echo']?.correct || res['Team Echo']?.correct || 0, color: teamColor('Team Echo') },
-                        { name: 'Agust D', val: res.teams?.['Team Agust D']?.correct || res['Team Agust D']?.correct || 0, color: teamColor('Team Agust D') },
-                        { name: 'JITB', val: res.teams?.['Team JITB']?.correct || res['Team JITB']?.correct || 0, color: teamColor('Team JITB') }
-                    ].map(t => `
-                        <div style="display:flex; justify-content:space-between; padding:6px 10px; background:rgba(0,0,0,0.2); border-radius:6px; border-left:3px solid ${t.color};">
-                            <span style="font-size:11px; color:#aaa;">${t.name}</span>
-                            <span style="font-size:11px; color:#fff; font-weight:bold;">${t.val}</span>
+                    <div class="card-body" style="padding: 15px;">
+                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px; padding:10px; background:rgba(255,255,255,0.03); border-radius:10px;">
+                            <div style="font-size:24px;">👑</div>
+                            <div style="flex:1;">
+                                <div style="font-size:11px; color:#888; text-transform:uppercase;">Daily Winner</div>
+                                <div style="color:${winnerColor}; font-weight:bold; font-size:16px;">${res.winner || 'TBD'}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:11px; color:#888;">Song Reveal</div>
+                                <div style="color:#fff; font-size:12px; font-weight:600;">${sanitize(res.song?.title || '???')}</div>
+                            </div>
                         </div>
-                    `).join('')}
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                            ${['Team Indigo', 'Team Echo', 'Team Agust D', 'Team JITB'].map(team => `
+                                <div style="display:flex; justify-content:space-between; padding:6px 10px; background:rgba(0,0,0,0.2); border-radius:6px; border-left:3px solid ${teamColor(team)};">
+                                    <span style="font-size:11px; color:#aaa;">${team.replace('Team ', '')}</span>
+                                    <span style="font-size:11px; color:#fff; font-weight:bold;">${res.teams?.[team]?.correct || 0}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    `;
-}// --- Previous Results Section ---
-       
+            `;
+        }
 
         container.innerHTML = html + `
             <button onclick="loadPage('home')" class="btn-secondary" style="width:100%;margin-top:16px;padding:14px;">
@@ -10270,10 +10226,9 @@ if (resultsData?.success && resultsData?.winner) {
 
     } catch (e) {
         console.error('SOTD Error:', e);
-        container.innerHTML = `<div class="card"><div class="card-body error-text">Failed to load Song of the Day.</div></div>`;
+        container.innerHTML = `<div class="card"><div class="card-body error-text">Failed to load SOTD: ${e.message}</div></div>`;
     }
-}
-
+}   
 // ==================== SUBMIT SOTD ANSWER ====================
 async function submitSOTDAnswer() {
     const input = document.getElementById('sotd-answer-input');
@@ -10288,11 +10243,11 @@ async function submitSOTDAnswer() {
         return;
     }
     
-    const today = getKSTToDateString(); 
+    // ✅ FIX: Consistently use todayKST
+    const todayKST = getKSTDateString(); 
     const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + todayKST;
     const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + todayKST;
     
-    // Check if already done
     if (localStorage.getItem(correctKey) === 'true') {
         showToast('Already answered correctly!', 'info');
         renderSOTD();
@@ -10306,7 +10261,6 @@ async function submitSOTDAnswer() {
         return;
     }
     
-    // Disable button
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '⏳ Checking...';
@@ -10319,9 +10273,6 @@ async function submitSOTDAnswer() {
             answer: answer
         });
         
-        console.log('🎬 Submit result:', result);
-        
-        // Increment attempts
         const newAttempts = currentAttempts + 1;
         localStorage.setItem(attemptsKey, String(newAttempts));
         
@@ -10345,7 +10296,6 @@ async function submitSOTDAnswer() {
     } catch (e) {
         console.error('Submit error:', e);
         showToast('Error: ' + e.message, 'error');
-        
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '▶️ Submit Answer';
