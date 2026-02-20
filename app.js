@@ -5588,8 +5588,8 @@ async function renderPageByRoute(pageName) {
             case 'gc-links': await renderGCLinks(); break;
             case 'helper-roles': await renderHelperRoles(); break;
             case 'chat': await renderChat(); break;
-            case 'sotd': await renderSOTD(); break;
-            case 'song-of-day': await renderSOTD(); break; 
+            case 'sotd': await (); break;
+            case 'song-of-day': await (); break; 
             case 'streaming-tips': await renderStreamingTips(); break;
             case 'namjoon': await renderNamjoonBrain(); break;
             case 'guide': await renderGuidePage(); break; 
@@ -10063,6 +10063,12 @@ async function markMissionComplete(missionId) {
 }
 window.markMissionComplete = markMissionComplete;
 async function renderSOTD() {
+    const today = new Date(); 
+    const todayStr = today.toDateString(); 
+    const dateDisplay = today.toLocaleDateString('en-US', { 
+        weekday: 'long', month: 'long', day: 'numeric' 
+    });
+    
     const container = document.getElementById('sotd-content');
     if (!container) return;
 
@@ -10092,13 +10098,6 @@ async function renderSOTD() {
             api('getSongOfDay', { agentNo: STATE.agentNo }),
             api('getLatestSOTDResult').catch(() => ({ success: false }))
         ]);
-
-        const todayStr = getKSTToDateString(); 
-        const dateDisplay = today.toLocaleDateString('en-US', { 
-            weekday: 'long', month: 'long', day: 'numeric' 
-        });
-        const todayStr = today.toDateString();
-
         // --- Build Main Content ---
         let html = `
         <div style="color:#ff4444; font-size:10px; font-weight:bold; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;">
