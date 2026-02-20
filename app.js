@@ -409,6 +409,17 @@ function sanitize(str) {
     if (!str) return '';
     return String(str).replace(/[<>\"'&]/g, char => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;' })[char] || char);
 }
+function getKSTDateString() {
+    const kstDate = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+    const y = kstDate.getFullYear();
+    const m = String(kstDate.getMonth() + 1).padStart(2, '0');
+    const d = String(kstDate.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function getKSTToDateString() {
+    return new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"})).toDateString();
+}
 
 function formatLastUpdated(dateStr) {
     if (!dateStr) return 'Unknown';
@@ -1459,39 +1470,35 @@ async function checkNewResultsRelease() {
 async function checkNewSongOfDay() {
     try {
         const data = await api('getSongOfDay', {}).catch(() => ({ success: false }));
-        
         if (!data || !data.success || !data.song) return null;
         
-        const today = new Date().toDateString();
+        // Use KST instead of local date
+        const todayKST = getKSTDateString(); 
         const lastCheckedDate = STATE.lastChecked.songOfDay;
         
-        const storageKey = 'song_answered_' + STATE.agentNo + '_' + today;
+        const storageKey = 'song_answered_' + STATE.agentNo + '_' + todayKST;
         const alreadyAnswered = localStorage.getItem(storageKey);
         
         if (alreadyAnswered) {
-            STATE.lastChecked.songOfDay = today;
+            STATE.lastChecked.songOfDay = todayKST;
             return null;
         }
         
-        // ✅ NEW CHECK: Explicitly check if we already dismissed this specific ID today
-        const notifId = `sotd_${today}`;
-        if (lastCheckedDate !== today) {
+        if (lastCheckedDate !== todayKST) {
             return {
                 type: 'sotd',
                 icon: '🎬',
                 title: 'Song of the Day!',
                 message: 'New song puzzle - guess it for XP!',
                 action: () => {
-                    STATE.lastChecked.songOfDay = today;
+                    STATE.lastChecked.songOfDay = todayKST;
                     saveNotificationState();
-                    ('song-of-day');
+                    loadPage('song-of-day');
                 },
                 actionText: 'Play Now',
-                week: STATE.week,
-                id: notifId
+                id: `sotd_${todayKST}`
             };
         }
-        
         return null;
     } catch (e) {
         return null;
@@ -10086,7 +10093,7 @@ async function renderSOTD() {
             api('getLatestSOTDResult').catch(() => ({ success: false }))
         ]);
 
-        const today = new Date();
+        const todayStr = getKSTToDateString(); 
         const dateDisplay = today.toLocaleDateString('en-US', { 
             weekday: 'long', month: 'long', day: 'numeric' 
         });
@@ -10263,7 +10270,7 @@ async function submitSOTDAnswer() {
         return;
     }
     
-    const today = new Date().toDateString();
+    const today = getKSTToDateString(); 
     const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + today;
     const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + today;
     
