@@ -10216,7 +10216,6 @@ if (resultsData?.success && resultsData?.winner) {
     // Convert YYYY-MM-DD to "Feb 18"
     // We append "T00:00:00" to ensure it treats it as local/date-only 
     // and doesn't shift due to timezone conversion
-    const dateObj = new Date(res.date + "T00:00:00");
     const resDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const winnerColor = teamColor(res.winner);
 
