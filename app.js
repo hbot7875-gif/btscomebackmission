@@ -10138,8 +10138,8 @@ async function renderSOTD() {
         // --- Current Song Logic ---
         if (songData?.success && songData?.song) {
             const song = songData.song;
-            const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + todayStr;
-            const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + todayStr;
+            const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + todayKST;
+            const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + todayKST;
             let attempts = parseInt(localStorage.getItem(attemptsKey) || '0');
             let wasCorrect = localStorage.getItem(correctKey) === 'true';
 
@@ -10289,8 +10289,8 @@ async function submitSOTDAnswer() {
     }
     
     const today = getKSTToDateString(); 
-    const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + today;
-    const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + today;
+    const attemptsKey = 'sotd_attempts_' + STATE.agentNo + '_' + todayKST;
+    const correctKey = 'sotd_correct_' + STATE.agentNo + '_' + todayKST;
     
     // Check if already done
     if (localStorage.getItem(correctKey) === 'true') {
