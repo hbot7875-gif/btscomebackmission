@@ -10210,6 +10210,8 @@ async function renderSOTD() {
 // FIX: Check for 'winner' directly, not 'result'
 if (resultsData?.success && resultsData?.winner) {
     const res = resultsData; // Use the data directly
+    const dateParts = res.date.split('-'); // [2026, 02, 20]
+    const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
     
     // Convert YYYY-MM-DD to "Feb 18"
     // We append "T00:00:00" to ensure it treats it as local/date-only 
@@ -10225,7 +10227,7 @@ if (resultsData?.success && resultsData?.winner) {
     html += `
         <div class="card" style="border: 1px solid rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.02);">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; color:#ffd700;">🏆 Yesterday's Winner</h3>
+                <h3 style="margin:0; color:#ffd700;">🏆 Latest Mission Result</h3>
                 <span style="font-size:11px; color:#888;">${resDate}</span>
             </div>
             <div class="card-body" style="padding: 15px;">
