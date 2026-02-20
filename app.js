@@ -3653,7 +3653,7 @@ async function renderWeekConfirmation() {
 async function renderAdminSOTD() {
     const container = document.getElementById('admin-tab-sotd');
     if (!container) return;
-
+    const todayKST = getKSTDateString(); 
     container.innerHTML = '<div class="loading-text">⏳ Fetching current SOTD...</div>';
 
     let current = null;
@@ -3681,19 +3681,20 @@ async function renderAdminSOTD() {
             <div class="card-header"><h3>🎵 Set Song of the Day</h3></div>
             <div class="card-body">
                 
-                <!-- Current Status Block -->
+                <!-- ✅ FIXED: Now clearly shows the Korea Mission Date -->
                 <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #555;">
-                    <div style="font-size: 11px; color: #888; margin-bottom: 5px;">CURRENT STATUS (${new Date().toLocaleDateString()})</div>
+                    <div style="font-size: 11px; color: #888; margin-bottom: 5px; letter-spacing: 1px;">
+                        MISSION STATUS (KOREA DATE: ${todayKST})
+                    </div>
                     ${current ? `
                         <div style="color: #fff; font-weight: bold;">${current.title}</div>
                         <div style="color: #aaa; font-size: 12px;">${current.artist} • ${current.xpReward} XP</div>
                         <div style="color: #7b2cbf; font-size: 11px; margin-top: 4px;">ID: ${current.youtubeId}</div>
                     ` : `
-                        <div style="color: #ff6b6b; font-weight:bold;">⚠️ No song set for today!</div>
+                        <div style="color: #ff6b6b; font-weight:bold;">⚠️ No song set for this KST date!</div>
                         <div style="color: #888; font-size:11px;">Fill the form below to start the game.</div>
                     `}
                 </div>
-
                 <!-- Input Form -->
                 <div style="display: grid; gap: 12px;">
                     <div>
@@ -3911,6 +3912,7 @@ async function setTodaysSong() {
         const result = await api('setSongOfDay', {
             agentNo: STATE.agentNo,
             sessionToken: STATE.adminSession,
+            date: getKSTDateString(), 
             title,
             youtubeId,
             hint,
