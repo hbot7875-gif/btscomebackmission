@@ -5588,8 +5588,8 @@ async function renderPageByRoute(pageName) {
             case 'gc-links': await renderGCLinks(); break;
             case 'helper-roles': await renderHelperRoles(); break;
             case 'chat': await renderChat(); break;
-            case 'sotd': await (); break;
-            case 'song-of-day': await (); break; 
+            case 'sotd': await renderSOTD(); break;
+            case 'song-of-day': await renderSOTD(); break;
             case 'streaming-tips': await renderStreamingTips(); break;
             case 'namjoon': await renderNamjoonBrain(); break;
             case 'guide': await renderGuidePage(); break; 
@@ -10063,7 +10063,10 @@ async function markMissionComplete(missionId) {
 }
 window.markMissionComplete = markMissionComplete;
 async function renderSOTD() {
+    // 1. Define the 'today' object first
     const today = new Date(); 
+    
+    // 2. Define your strings using that object
     const todayStr = today.toDateString(); 
     const dateDisplay = today.toLocaleDateString('en-US', { 
         weekday: 'long', month: 'long', day: 'numeric' 
