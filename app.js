@@ -3654,13 +3654,12 @@ async function renderAdminSOTD() {
     const container = document.getElementById('admin-tab-sotd');
     if (!container) return;
     const todayKST = getKSTDateString(); 
-    container.innerHTML = '<div class="loading-text">⏳ Fetching current SOTD...</div>';
+    container.innerHTML = '<div class="loading-text">📡 Accessing KST Database...</div>';
 
     let current = null;
 
     try {
-        // Attempt to get the song
-        const res = await api('getSongOfDay');
+        const res = await api('getSongOfDay', { date: todayKST });
         if (res.success && res.song) {
             current = res.song;
         }
@@ -3763,9 +3762,12 @@ async function submitAdminSOTD() {
     loading(true);
 
     try {
+        const targetDate = getKSTDateString();
+        
         const res = await api('setSongOfDay', {
             agentNo: STATE.agentNo,
-            sessionToken: STATE.adminSession, // Ensure admin session is passed
+            sessionToken: STATE.adminSession,
+            date: targetDate,// Ensure admin session is passed
             title: title,
             artist: artist || 'BTS',
             youtubeId: youtubeId,
@@ -3775,7 +3777,7 @@ async function submitAdminSOTD() {
 
         if (res.success) {
             showToast('✅ Song of the Day updated!', 'success');
-            renderAdminSOTD(); // Refresh form
+            setTimeout(() => renderAdminSOTD(), 500);
         } else {
             showToast('❌ ' + res.error, 'error');
         }
@@ -10103,18 +10105,29 @@ async function renderSOTD() {
             api('getSongOfDay', { agentNo: STATE.agentNo }),
             api('getLatestSOTDResult').catch(() => ({ success: false }))
         ]);
+        const todayKST = getKSTDateString();
+        const dateDisplay = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"}))
+                            .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        // 1. ADD THE RESET NOTICE HERE
+        const resetNotice = `
+            <div style="background: rgba(123, 44, 191, 0.1); border: 1px solid rgba(123, 44, 191, 0.3); border-radius: 10px; padding: 10px; margin-bottom: 16px; text-align: center;">
+                <span style="color: #c9a0ff; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">
+                    📡 MISSION PROTOCOL: SOTD resets at 8:30 PM IST (Midnight KST)
+                </span>
+            </div>
+        `;
         // --- Build Main Content ---
         let html = `
-        <div style="color:#ff4444; font-size:10px; font-weight:bold; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;">
-                        ⚠️ GHOST PROTOCOL: AGENTS ON LEAVE EARN 0 XP
-                    </div>
+            <div style="color:#ff4444; font-size:10px; font-weight:bold; margin-bottom:12px; letter-spacing:1px; text-transform:uppercase;">
+                ⚠️ GHOST PROTOCOL: AGENTS ON LEAVE EARN 0 XP
+            </div>
+            
+            ${resetNotice}
+
             <div class="card" style="background:linear-gradient(135deg, #ff000015, #ff000008);border-color:#ff000033;margin-bottom:16px;">
                 <div class="card-body" style="text-align:center;padding:25px;">
                     <div style="font-size:50px;margin-bottom:12px;">🎬</div>
                     <h2 style="color:#fff;margin:0 0 8px;font-size:20px;">Song of the Day</h2>
-                     
-
-                
                     <div style="display:inline-block;padding:8px 18px;background:rgba(255,255,255,0.1);border-radius:20px;margin-bottom:8px;">
                         <span style="color:#fff;font-size:13px;">📅 ${dateDisplay}</span>
                     </div>
