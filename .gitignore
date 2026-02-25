@@ -676,14 +676,19 @@ function renderGuide(pageName) {
 
 // ==================== API ====================
 async function api(action, params = {}) {
-    console.log('📡 Supabase Request:', action, params);
+    console.log('📡 Request:', action);
+    // 1. Start a safety timer. If the API doesn't answer in 10s, kill the loader.
+    const safetyTimer = setTimeout(() => {
+        loading(false); 
+    }, 10000);
 
     try {
         const res = await fetch(CONFIG.API_URL, { 
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                '': `Bearer ${CONFIG.SUPABASE_KEY}`
+                'apikey': CONFIG.SUPABASE_KEY, // Ensure this matches your setup
+                'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}`
             },
             body: JSON.stringify({
                 action,
@@ -693,19 +698,21 @@ async function api(action, params = {}) {
             })
         });
         
-        const data = await res.json();
-        
-        if (data.error) throw new Error(data.error);
+        clearTimeout(safetyTimer); // Request finished, stop the safety timer
 
-        // Keep your timestamp logic
-        if (data.lastUpdated) { 
-            STATE.lastUpdated = data.lastUpdated; 
-            updateTime(); 
+        if (!res.ok) {
+            // This is where cached 502/429 errors land
+            throw new Error(`Server Error: ${res.status}`);
         }
+
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
         
         return data;
     } catch (e) {
-        console.error('API Network Error:', e);
+        clearTimeout(safetyTimer);
+        loading(false); // 2. CRITICAL: Hide the spinner if an error happens!
+        console.error('API Error:', e);
         throw e;
     }
 }
