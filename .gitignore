@@ -401,6 +401,17 @@ function loading(show) {
     STATE.isLoading = show;
     const el = $('loading');
     if (el) el.classList.toggle('active', show);
+
+    // NUCLEAR SAFETY: If it's still loading after 10 seconds, force hide it.
+    if (show) {
+        if (window.loadingTimeout) clearTimeout(window.loadingTimeout);
+        window.loadingTimeout = setTimeout(() => {
+            console.warn("Safety timeout hit: Force hiding loader");
+            const loader = $('loading');
+            if (loader) loader.classList.remove('active');
+            STATE.isLoading = false;
+        }, 10000); 
+    }
 }
 
 function fmt(n) { return Number(n || 0).toLocaleString(); }
