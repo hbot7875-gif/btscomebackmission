@@ -16,7 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     
     <!-- CSS -->
-    <link rel="stylesheet" href="styles.css?v=5.1">
+    <link rel="stylesheet" href="styles.css?v=5.3">
 </head>
 <body>
 
@@ -113,7 +113,7 @@
                         <div class="pulse-dot"></div>
                         <span>SYSTEM ONLINE</span>
                     </div>
-                    <div class="version-info">v5.0 | Hopetracker</div>
+                    <div class="version-info">v5.3 | HopeTracker</div>
                 </div>
             </div>
         </div>
@@ -277,13 +277,17 @@
                     </a>
                 </div>
 
-                <!-- ARIRANG -->
-                <div class="nav-section">
-                    <span class="nav-section-title">ARIRANG</span>
+                <!-- ==================== ARIRANG SPECIAL SECTION ==================== -->
+                <div class="nav-section nav-section-arirang">
+                    <span class="nav-section-title">
+                        <span class="arirang-title-icon">💜</span> ROAD TO ARIRANG
+                    </span>
 
-                    <a href="#" class="nav-link" data-page="arirang-road">
-                        <span class="nav-icon">🎁</span>
-                        <span class="nav-text">Road to Arirang</span>
+                    <!-- ⚡ OPERATION: ARIRANG PROTOCOL - FEATURED LINK -->
+                    <a href="#" class="nav-link nav-link-featured nav-link-arirang" data-page="operation-defuse">
+                        <span class="nav-icon nav-icon-charging">⚡</span>
+                        <span class="nav-text">ARIRANG Protocol</span>
+                        <span class="nav-badge nav-badge-charging">CHARGING</span>
                     </a>
                     
                     <a href="#" class="nav-link" data-page="arirang-hype">
@@ -336,6 +340,10 @@
                             <button type="button" class="refresh-btn" onclick="loadPage('home')" title="Refresh Data">🔄</button>
                         </div>
                     </div>
+                    
+                    <!-- ARIRANG PROTOCOL HOME WIDGET PLACEHOLDER -->
+                    <div id="arirang-home-widget-container"></div>
+                    
                     <div class="quick-stats-section"></div>
                     <div class="section-header">
                         <h2>📋 Active Missions</h2>
@@ -584,6 +592,41 @@
                     </div>
                 </section>
 
+                <!-- ==================== OPERATION: ARIRANG PROTOCOL ==================== -->
+                <section id="page-operation-defuse" class="page">
+                    <div class="page-header arirang-page-header">
+                        <div class="page-title-section">
+                            <div class="arirang-title-badge">
+                                <span class="atb-icon">⚡</span>
+                                <span class="atb-label">SPECIAL OPS</span>
+                            </div>
+                            <h1>Operation: ARIRANG</h1>
+                            <p class="page-subtitle">Global Album Preparation Protocol</p>
+                        </div>
+                        <div class="page-actions">
+                            <button type="button" class="refresh-btn arirang-refresh" onclick="renderArirangProtocol()" title="Refresh">
+                                <span class="refresh-icon">🔄</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="operation-defuse-content">
+                        <!-- Content loaded dynamically by renderArirangProtocol() -->
+                        <div class="arirang-loading-placeholder">
+                            <div class="loading-bomb-visual">
+                                <div class="loading-sphere">
+                                    <div class="loading-fill"></div>
+                                    <span class="loading-logo">⟭⟬</span>
+                                </div>
+                                <div class="loading-handle"></div>
+                            </div>
+                            <p class="loading-text">Initializing ARIRANG Protocol...</p>
+                            <div class="loading-progress">
+                                <div class="loading-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- ARIRANG HYPE FORCE -->
                 <section id="page-arirang-hype" class="page">
                     <div class="page-header">
@@ -690,6 +733,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <!-- ==================== APP SCRIPT ==================== -->
-    <script src="app.js?v=5.1"></script>
+    <script src="app.js?v=5.3"></script>
 </body>
 </html>
