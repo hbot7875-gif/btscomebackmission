@@ -2550,6 +2550,7 @@ function showAdminPanel() {
             <button type="button" class="admin-tab" data-tab="active">Active</button>
             <button type="button" class="admin-tab" data-tab="confirm">📋 Confirm</button>
             <button type="button" class="admin-tab" data-tab="sotd">🎵 SOTD</button>
+            <button type="button" class="admin-tab" data-tab="arirang">🎆 Arirang Ops</button>
             <button type="button" class="admin-tab" data-tab="debug">🔧 Diagnostics</button>
             <button type="button" class="admin-tab" data-tab="system">⚙️ System</button>
             <button type="button" class="admin-tab" data-tab="leaves">🛑 On Leave</button> 
@@ -2561,6 +2562,7 @@ function showAdminPanel() {
             <div id="admin-tab-active" class="admin-tab-content"></div>
             <div id="admin-tab-confirm" class="admin-tab-content"></div>
             <div id="admin-tab-sotd" class="admin-tab-content"></div>
+            <div id="admin-tab-arirang" class="admin-tab-content"></div>
             <div id="admin-tab-debug" class="admin-tab-content"></div>
             <div id="admin-tab-system" class="admin-tab-content"></div>
             <div id="admin-tab-leaves" class="admin-tab-content"></div>
@@ -2640,6 +2642,9 @@ function switchAdminTab(tabName) {
         case 'sotd': 
             renderAdminSOTD(); 
             break; 
+       case 'arirang':
+            renderAdminArirangTab();
+            break;
         case 'debug': 
             renderAdminDebugTab(); 
             break;
@@ -3556,6 +3561,81 @@ async function loadMissionHistory() {
         `; 
     }
 }
+async function renderAdminArirangTab() {
+    const container = document.getElementById('admin-tab-arirang');
+    if (!container) return;
+    const todayKST = getKSTDateString();
+
+    container.innerHTML = '<div class="loading-text">📡 Intercepting Protocol Data...</div>';
+
+    let currentStats = { total_streams: 0, target: 10000 };
+    try {
+        const data = await api('getArirangStatus', { agentNo: STATE.agentNo });
+        if (data.todayChallenge) {
+            currentStats.total_streams = data.todayChallenge.collectiveStreams;
+            currentStats.target = data.todayChallenge.targetStreams;
+        }
+    } catch(e) {}
+
+    container.innerHTML = `
+        <div class="card" style="border-color: #e879f9; background: rgba(232, 121, 249, 0.05);">
+            <div class="card-header"><h3>🎆 Arirang Daily Target</h3></div>
+            <div class="card-body">
+                <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px; margin-bottom:20px; border:1px dashed #e879f9;">
+                    <div style="font-size:10px; color:#aaa; margin-bottom:5px;">CURRENT STATUS (${todayKST})</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="color:#fff; font-size:18px; font-weight:bold;">${fmt(currentStats.total_streams)}</div>
+                            <div style="color:#666; font-size:10px;">TOTAL STREAMS</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="color:#e879f9; font-size:18px; font-weight:bold;">${fmt(currentStats.target)}</div>
+                            <div style="color:#666; font-size:10px;">CURRENT GOAL</div>
+                        </div>
+                    </div>
+                </div>
+
+                <label style="color:#aaa; font-size:11px;">SET NEW TEAM GOAL (STREAMS)</label>
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <input type="number" id="new-arirang-target" class="form-input" value="${currentStats.target}" style="flex:1;">
+                    <button onclick="submitArirangTarget()" class="btn-primary" style="background:#e879f9; color:#000;">
+                        Update
+                    </button>
+                </div>
+                <p style="color:#555; font-size:10px; margin-top:10px;">
+                    Note: Changing this will instantly recalculate if the team goal is "Met" for today.
+                </p>
+            </div>
+        </div>
+    `;
+}
+
+async function submitArirangTarget() {
+    const val = document.getElementById('new-arirang-target').value;
+    if (!val || val < 1) return;
+
+    loading(true);
+    try {
+        const res = await api('updateArirangDailyStats', {
+            adminKey: 'BTSSYNC2024', // Ensure this matches your backend env key
+            date: getKSTDateString(),
+            streams: 0, // We aren't adding streams, just updating target
+            newTarget: val
+        });
+
+        if (res.success) {
+            showToast(`✅ Daily target updated to ${fmt(val)}`, 'success');
+            renderAdminArirangTab();
+        }
+    } catch(e) {
+        showToast("Error: " + e.message, 'error');
+    } finally {
+        loading(false);
+    }
+}
+
+window.renderAdminArirangTab = renderAdminArirangTab;
+window.submitArirangTarget = submitArirangTarget;
 async function renderWeekConfirmation() {
     const container = document.getElementById('admin-tab-confirm');
     if (!container) return;
