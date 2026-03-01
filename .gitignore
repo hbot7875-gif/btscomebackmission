@@ -16254,6 +16254,32 @@ async function showArirangLeaderboard() {
         
         const modal = document.createElement('div');
         modal.className = 'arirang-lb-modal';
+
+        // Security logic: Map names and block Agent IDs from appearing
+        const listHTML = (data.leaderboard || []).map((agent, i) => {
+            const tColor = teamColor(agent.team);
+
+            // 🔒 SECURITY CHECK: If name is missing OR starts with "AGENT", hide it.
+            let displayName = agent.name ? sanitize(agent.name) : 'Classified Agent';
+            if (displayName.toUpperCase().startsWith('AGENT')) {
+                displayName = 'Classified Agent';
+            }
+
+            return `
+                <div class="lb-entry" style="--team-color:${tColor}">
+                    <span class="lb-rank ${i < 3 ? 'top' + (i+1) : ''}">${i + 1}</span>
+                    <div class="lb-info">
+                        <span class="lb-name" style="color: #fff; font-weight: 700;">${displayName}</span>
+                        <span class="lb-team">${sanitize(agent.team || 'Unknown')}</span>
+                    </div>
+                    <div class="lb-stats">
+                        <span class="lb-phases">${agent.phasesCharged || 0} ⚡</span>
+                        <span class="lb-xp">${agent.xpEarned || 0} XP</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
         modal.innerHTML = `
             <div class="modal-bg" onclick="this.parentElement.remove()"></div>
             <div class="lb-panel">
@@ -16262,19 +16288,10 @@ async function showArirangLeaderboard() {
                     <button onclick="this.closest('.arirang-lb-modal').remove()">✕</button>
                 </div>
                 <div class="lb-body">
-                    ${data.leaderboard?.length > 0 ? data.leaderboard.map((agent, i) => `
-                        <div class="lb-entry" style="--team-color:${teamColor(agent.team)}">
-                            <span class="lb-rank ${i < 3 ? 'top' + (i+1) : ''}">${i + 1}</span>
-                            <div class="lb-info">
-                                <span class="lb-name">${sanitize(agent.name)}</span>
-                                <span class="lb-team">${sanitize(agent.team)}</span>
-                            </div>
-                            <div class="lb-stats">
-                                <span class="lb-phases">${agent.phasesCharged} ⚡</span>
-                                <span class="lb-xp">${agent.xpEarned} XP</span>
-                            </div>
-                        </div>
-                    `).join('') : `<div class="lb-empty"><span>🔮</span><p>No agents charging yet.</p></div>`}
+                    ${listHTML || `<div class="lb-empty"><span>🔮</span><p>No agents charging yet.</p></div>`}
+                </div>
+                <div style="padding: 10px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05);">
+                    <p style="color: #444; font-size: 9px; margin: 0;">Mystery is key. IDs are hidden for security. 💜</p>
                 </div>
             </div>
         `;
@@ -16282,10 +16299,10 @@ async function showArirangLeaderboard() {
         requestAnimationFrame(() => modal.classList.add('show'));
     } catch (e) {
         loading(false);
+        console.error("Leaderboard Error:", e);
         showToast('Could not load leaderboard', 'error');
     }
 }
-
 // =============================================
 // DAILY WAVE — IMMERSIVE SURPRISE EXPERIENCE
 // =============================================
