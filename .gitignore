@@ -10893,6 +10893,47 @@ async function renderActivityLog(displayArea) {
         displayArea.innerHTML = '<p class="error-text">Failed to load mission logs.</p>';
     }
 }
+async function renderActivityLog(displayArea) {
+    displayArea.innerHTML = '<div class="loading-text" style="text-align:center; padding:20px;">📂 Decrypting Mission Logs...</div>';
+    try {
+        const response = await api('getActivityFeed', { limit: 50 });
+        const activities = response.activities || [];
+        
+        if (activities.length === 0) {
+            displayArea.innerHTML = '<div class="card"><div class="card-body" style="text-align:center; color:#888;">No recent activity recorded in logs.</div></div>';
+            return;
+        }
+
+        let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+        activities.forEach(act => {
+            const data = act.data || {};
+            let text = '';
+            let icon = '⚡';
+
+            if(act.type === 'goal_completed') { text = `<strong>${data.team}</strong> completed goal: <strong>${data.goal}</strong>!`; icon = '🎯'; }
+            else if(act.type === 'streak_update') { text = `<strong>${data.name}</strong> reached a <strong style="color:#ff6b35;">${data.streak}-day</strong> streak!`; icon = '🔥'; }
+            else if(act.type === 'secret_mission') { text = `<strong>${data.team}</strong> finished classified task: ${data.title}`; icon = '🕵️'; }
+            else if(act.type === 'xp_milestone') { text = `<strong>${data.name}</strong> reached <strong>${data.xp} XP</strong> milestone!`; icon = '⭐'; }
+            else if(act.type === 'sotd_winner') { text = `<strong>${data.team}</strong> solved the Song of the Day!`; icon = '🧠'; }
+            else if(act.type === 'team_surge') { text = `<strong>${data.team}</strong> is on fire! ${data.streams} streams in the last hour!`; icon = '🚀'; }
+            else if(act.type === 'priority_alert') { text = `<strong style="color:#00d4ff;">PRIORITY:</strong> ${data.title}<br>${data.message || ''}`; icon = '🚨'; } // Fixed Priority Alert
+            else return;
+
+            html += `
+                <div class="card" style="padding:15px; margin:0; border-left:3px solid #7b2cbf; background: rgba(255,255,255,0.02);">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span style="font-size:20px;">${icon}</span>
+                        <div style="font-size:13px; color:#ccc; line-height:1.4;">${text}</div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        displayArea.innerHTML = html;
+    } catch (e) {
+        displayArea.innerHTML = '<p class="error-text">Failed to load mission logs.</p>';
+    }
+}
 
 // ==================== JOURNALIST ACTION ====================
 async function submitJournalistNews() {
@@ -16553,6 +16594,7 @@ function renderArirangHomeWidget(data) {
         </div>
     `;
 }
+
 
 // =============================================
 // STYLES
