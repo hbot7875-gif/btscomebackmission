@@ -15376,7 +15376,7 @@ let _dailyWaveActive = false;
 // =============================================
 const _WAVE_SONGS = [
     { day: 1, id: 'spring-day', title: 'Spring Day', artist: 'BTS', album: 'You Never Walk Alone', era: '🌸', bpm: 107, color: '#e879f9', wave: 'slow-sway', spotifyId: '4upRoEWkMWhhMfEgPZMFRP', lyric: '"보고 싶다"', lyricEn: '"I miss you"' },
-    { day: 2, id: 'epiphany', title: 'Epiphany', artist: 'Jin', album: 'LOVE YOURSELF 結 Answer', era: '🪞', bpm: 72, color: '#c084fc', wave: 'slow-sway', spotifyId: '6L88EH68XwlaXwvChlTS41', lyric: '"I'm the one I should love in this world"', lyricEn: '"I'm the one I should love in this world"' },
+    { day: 2, id: 'epiphany', title: 'Epiphany', artist: 'Jin', album: 'LOVE YOURSELF 結 Answer', era: '🪞', bpm: 72, color: '#c084fc', wave: 'slow-sway', spotifyId: '6L88EH68XwlaXwvChlTS41', lyric: `"I'm the one I should love in this world"`, lyricEn: `"I'm the one I should love in this world"` },
     { day: 3, id: 'magic-shop', title: 'Magic Shop', artist: 'BTS', album: 'LOVE YOURSELF 轉 Tear', era: '✨', bpm: 80, color: '#818cf8', wave: 'stars', spotifyId: '5V3aHSCRAH3D1VfIHwtnSU', lyric: '"너의 마법 상점을 열어"', lyricEn: '"Open your magic shop"' },
     { day: 4, id: 'euphoria', title: 'Euphoria', artist: 'Jungkook', album: 'LOVE YOURSELF 結 Answer', era: '🌊', bpm: 100, color: '#a78bfa', wave: 'ocean', spotifyId: '1hVmh3AKJuTxZ2ypBLmhZ2', lyric: '"너는 내 삶에 다시 빛을"', lyricEn: '"You brought light back into my life"' },
     { day: 5, id: 'film-out', title: 'Film Out', artist: 'BTS', album: 'BTS, THE BEST', era: '🎬', bpm: 72, color: '#94a3b8', wave: 'slow-sway', spotifyId: '3P3UA61WRQqwCXaoFOTENd', lyric: '"지워야 될 내 맘이"', lyricEn: '"My heart that should be erased"' },
