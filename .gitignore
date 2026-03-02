@@ -16567,29 +16567,53 @@ function setBombColor(color) {
 // HOME WIDGET
 // =============================================
 function renderArirangHomeWidget(data) {
-    const pct = data?.stats?.percentComplete || 0;
-    const nextAlbum = data?.nextPhase?.albums?.[0] || 'Loading...';
+    // 1. Overall Protocol Stats
+    const overallPct = data?.stats?.percentComplete || 0;
     const phasesCharged = data?.stats?.phasesCharged || 0;
-    const total = data?.stats?.totalPhases || 20;
+    const totalPhases = data?.stats?.totalPhases || 20;
+
+    // 2. Daily Team Goal Stats (New)
+    const teamStreams = data?.todayChallenge?.collectiveStreams || 0;
+    const teamTarget = data?.todayChallenge?.targetStreams || 10000;
+    const dailyPct = Math.min(100, Math.round((teamStreams / teamTarget) * 100));
+    
+    // 3. Time Remaining (New)
+    const timeRemaining = data?.timeRemaining || '--';
+
     return `
         <div class="arirang-home-widget" onclick="loadPage('operation-defuse')">
+            <!-- Left: Charging Bomb Icon -->
             <div class="widget-bomb-charge">
-                <div class="widget-sphere-charge" style="--charge-pct:${pct}">
-                    <div class="widget-fill" style="height:${pct}%"></div>
+                <div class="widget-sphere-charge" style="--charge-pct:${overallPct}">
+                    <div class="widget-fill" style="height:${overallPct}%"></div>
                     <span class="widget-logo">⟭⟬</span>
                 </div>
                 <div class="widget-handle-c"></div>
             </div>
+
+            <!-- Center: Mission Info -->
             <div class="widget-info">
                 <div class="widget-header">
                     <span class="widget-title">OPERATION: ARIRANG</span>
-                    <span class="widget-live-dot"></span>
+                    <span class="widget-timer">⏱ ${timeRemaining}</span>
                 </div>
-                <div class="widget-progress-bar">
-                    <div class="widget-progress-fill" style="width:${pct}%"></div>
+                
+                <!-- Daily Team Progress (New Section) -->
+                <div class="widget-daily-section">
+                    <div class="widget-daily-bar">
+                        <div class="widget-daily-fill" style="width:${dailyPct}%"></div>
+                    </div>
+                    <div class="widget-daily-label">
+                        Team Goal: <strong>${fmt(teamStreams)}</strong> / ${fmt(teamTarget)}
+                    </div>
                 </div>
-                <div class="widget-sub">${phasesCharged}/${total} phases • Next: ${sanitize(nextAlbum)}</div>
+
+                <div class="widget-sub">
+                    Protocol: ${phasesCharged}/${totalPhases} Phases Charged
+                </div>
             </div>
+
+            <!-- Right: Arrow -->
             <span class="widget-arrow">→</span>
         </div>
     `;
@@ -17009,22 +17033,22 @@ function addArirangStyles() {
         .action-subtitle { font-size:11px; color:#666; }
         .action-arrow { font-size:18px; color:#555; }
         
-        /* HOME WIDGET */
-        .arirang-home-widget { display:flex; align-items:center; gap:12px; padding:15px; background:linear-gradient(135deg,rgba(168,85,247,0.08),rgba(124,58,237,0.03)); border:1px solid rgba(168,85,247,0.2); border-radius:12px; margin-bottom:15px; cursor:pointer; transition:all 0.3s; }
+       /* HOME WIDGET */
+        .arirang-home-widget { display:flex; align-items:center; gap:12px; padding:15px; background:linear-gradient(135deg,rgba(168,85,247,0.08),rgba(124,58,237,0.03)); border:1px solid rgba(168,85,247,0.2); border-radius:12px; margin-bottom:15px; cursor:pointer; transition:all 0.3s; position:relative; overflow:hidden; }
         .arirang-home-widget:hover { border-color:rgba(168,85,247,0.4); transform:translateY(-2px); }
-        .widget-bomb-charge { display:flex; flex-direction:column; align-items:center; }
+        .widget-bomb-charge { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
         .widget-sphere-charge { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(76,29,149,0.2)); border:1px solid rgba(168,85,247,0.4); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
-        .widget-fill { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(0deg,rgba(168,85,247,0.6),rgba(124,58,237,0.2)); transition:height 0.5s; }
-        .widget-logo { font-size:14px; color:#a855f7; position:relative; z-index:1; }
-        .widget-handle-c { width:12px; height:16px; background:linear-gradient(180deg,#2a2a2a,#1a1a1a); border-radius:0 0 4px 4px; margin-top:-4px; }
-        .widget-info { flex:1; }
-        .widget-header { display:flex; align-items:center; gap:8px; }
-        .widget-title { font-size:12px; font-weight:700; color:#a855f7; letter-spacing:0.5px; }
-        .widget-live-dot { width:6px; height:6px; background:#a855f7; border-radius:50%; animation:blink 2s ease-in-out infinite; }
-        .widget-progress-bar { height:3px; background:rgba(168,85,247,0.1); border-radius:10px; overflow:hidden; margin:4px 0; }
-        .widget-progress-fill { height:100%; background:linear-gradient(90deg,#7c3aed,#a855f7); border-radius:10px; transition:width 0.5s; }
-        .widget-sub { font-size:10px; color:#666; }
-        .widget-arrow { font-size:16px; color:#555; }
+        .widget-fill { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(0deg,rgba(232,121,249,0.6),rgba(168,85,247,0.3)); transition:height 0.5s; }
+        .widget-logo { font-size:14px; color:#fff; position:relative; z-index:1; text-shadow:0 0 8px rgba(168,85,247,0.8); }
+        .widget-handle-c { width:12px; height:16px; background:linear-gradient(180deg,#2a2a2a,#1a1a2a); border-radius:0 0 4px 4px; margin-top:-4px; }
+        .widget-info { flex:1; min-width:0; }
+        .widget-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+        .widget-title { font-size:11px; font-weight:800; color:#a855f7; letter-spacing:1px; }
+        .widget-timer { font-size:10px; color:#ffd700; font-weight:700; background:rgba(255,215,0,0.1); padding:2px 6px; border-radius:4px; }
+        .widget-progress-bar { height:4px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden; margin:8px 0; }
+        .widget-progress-fill { height:100%; background:linear-gradient(90deg,#7c3aed,#e879f9); border-radius:10px; transition:width 1s ease-in-out; box-shadow: 0 0 10px rgba(168,85,247,0.4); }
+        .widget-sub { font-size:9px; color:#666; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; display:flex; align-items:center; }
+        .widget-arrow { font-size:16px; color:#444; margin-left:5px; }
         
         /* MODALS */
         .phase-detail-modal,.arirang-badge-modal,.arirang-lb-modal { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; transition:opacity 0.3s; }
