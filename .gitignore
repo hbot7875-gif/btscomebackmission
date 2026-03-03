@@ -17295,14 +17295,13 @@ function addDailyWaveStyles() {
         .dw-badge-text { font-size:10px; font-weight:700; color:#fff; letter-spacing:1.5px; }
         .dw-close { background:rgba(255,255,255,0.1); border:none; color:#fff; width:40px; height:40px; border-radius:50%; font-size:20px; cursor:pointer; transition:all 0.2s; backdrop-filter:blur(10px); }
         .dw-close:hover { background:rgba(255,255,255,0.2); transform:scale(1.1); }
-        .dw-main { position:relative; z-index:10; flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px 240px; }
-        .dw-info { text-align:center; margin-bottom:20px; transform:translateY(20px); opacity:0; animation:dw-fade-up 0.8s forwards 0.2s; }
+        .dw-main { position:relative; z-index:10; flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content: flex-start; padding:60px 20px 240px; }        .dw-info { text-align:center; margin-bottom:20px; transform:translateY(20px); opacity:0; animation:dw-fade-up 0.8s forwards 0.2s; }
         .dw-era { font-size:40px; display:block; margin-bottom:8px; text-shadow:0 0 30px var(--theme-color); animation:dw-era-pulse 3s ease-in-out infinite; }
         @keyframes dw-era-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
         .dw-title { font-size:28px; font-weight:800; color:#fff; margin:0; letter-spacing:-0.5px; text-shadow:0 0 20px rgba(0,0,0,0.5); }
         .dw-artist { font-size:13px; color:rgba(255,255,255,0.6); margin-top:6px; }
         @keyframes dw-fade-up { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-        .dw-stage { position:relative; width:100%; height:240px; display:flex; align-items:center; justify-content:center; }
+        .dw-stage { position:relative; width:100%; height:210px; display:flex; align-items:center; justify-content:center; margin-bottom: 10px; }
         .dw-ambient-light { position:absolute; width:250px; height:250px; border-radius:50%; background:var(--theme-color); filter:blur(100px); opacity:0.25; animation:dw-breathe 4s ease-in-out infinite; }
         @keyframes dw-breathe { 0%,100%{transform:scale(0.9);opacity:0.2} 50%{transform:scale(1.2);opacity:0.3} }
         .dw-pivot { transform-origin:center bottom; position:relative; }
@@ -17334,17 +17333,21 @@ function addDailyWaveStyles() {
         .dw-color-btn:hover { transform:scale(1.2); border-color:#fff; }
         .dw-color-btn.rainbow { background:linear-gradient(135deg,#ef4444,#fbbf24,#22c55e,#3b82f6,#a855f7); font-size:10px; display:flex; align-items:center; justify-content:center; }
         .dw-spotify-wrap { width:100%; border-radius:12px; overflow:hidden; background:#000; box-shadow:0 5px 25px rgba(0,0,0,0.6); border:1px solid rgba(168,85,247,0.2); }
-        
-        @media (max-width:380px) {
-            .dw-sphere { width:100px; height:100px; }
-            .dw-logo { font-size:32px; }
-            .dw-handle { width:26px; height:90px; }
-            .dw-title { font-size:22px; }
-            .dw-era { font-size:32px; }
-            .dw-main { padding:70px 15px 180px; }
-            .dw-stage { height:240px; }
-            .dw-pat-btn { padding:6px 10px; font-size:10px; }
+
+        @media (max-width: 380px) {
+            .dw-main { padding: 40px 15px 220px !important; }
+            .dw-stage { height: 160px !important; }
+            .dw-sphere { width: 90px !important; height: 90px !important; }
+            .dw-logo { font-size: 28px !important; }
+            .dw-handle { width: 22px !important; height: 75px !important; }
+            .dw-title { font-size: 20px !important; }
+            .dw-era { font-size: 30px !important; }
+            .dw-lyric-kr { font-size: 14px !important; text-shadow: 0 0 8px var(--theme-color) !important; }
+            .dw-lyric-en { font-size: 11px !important; }
+            .dw-pat-btn { padding: 6px 10px !important; font-size: 9px !important; }
+            .dw-player-bar { padding: 10px 15px 25px !important; }
         }
+        
         @media (prefers-reduced-motion:reduce) {
             .dw-pivot { animation:none !important; }
             .dw-star,.dw-ambient-light,.dw-fireworks,.dw-era,.dw-lyric-kr { animation:none; }
