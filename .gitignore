@@ -17284,6 +17284,8 @@ function addDailyWaveStyles() {
         .dw-stars { position:absolute; inset:0; }
         .dw-star { position:absolute; width:var(--star-size,2px); height:var(--star-size,2px); background:#fff; border-radius:50%; opacity:0; animation:dw-twinkle 3s infinite ease-in-out; box-shadow:0 0 4px var(--theme-color); }
         @keyframes dw-twinkle { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:0.9;transform:scale(1.3)} }
+        .dw-star:nth-child(3n) { animation-duration: 4.5s; }
+        .dw-star:nth-child(2n) { animation-duration: 2s; }
         .dw-fireworks { position:absolute; inset:0; pointer-events:none; background-image:radial-gradient(circle,var(--theme-color) 1px,transparent 1px); background-size:50px 50px; animation:dw-fireworks 2s ease-out infinite; }
         @keyframes dw-fireworks { 0%{opacity:0.5;transform:scale(0.8)} 100%{opacity:0;transform:scale(1.5)} }
         .dw-header { position:absolute; top:0; left:0; right:0; z-index:20; display:flex; justify-content:space-between; align-items:center; padding:15px 20px; background:linear-gradient(to bottom,rgba(0,0,0,0.8),transparent); }
@@ -17293,7 +17295,7 @@ function addDailyWaveStyles() {
         .dw-badge-text { font-size:10px; font-weight:700; color:#fff; letter-spacing:1.5px; }
         .dw-close { background:rgba(255,255,255,0.1); border:none; color:#fff; width:40px; height:40px; border-radius:50%; font-size:20px; cursor:pointer; transition:all 0.2s; backdrop-filter:blur(10px); }
         .dw-close:hover { background:rgba(255,255,255,0.2); transform:scale(1.1); }
-        .dw-main { position:relative; z-index:10; flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 20px 200px; }
+        .dw-main { position:relative; z-index:10; flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px 160px; }
         .dw-info { text-align:center; margin-bottom:20px; transform:translateY(20px); opacity:0; animation:dw-fade-up 0.8s forwards 0.2s; }
         .dw-era { font-size:40px; display:block; margin-bottom:8px; text-shadow:0 0 30px var(--theme-color); animation:dw-era-pulse 3s ease-in-out infinite; }
         @keyframes dw-era-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
@@ -17313,7 +17315,7 @@ function addDailyWaveStyles() {
         .dw-handle { width:30px; height:110px; background:linear-gradient(90deg,#1a1a1a,#2a2a2a 40%,#111); margin-top:-6px; border-radius:0 0 15px 15px; position:relative; z-index:2; }
         .dw-handle::before { content:''; position:absolute; top:15px; left:50%; transform:translateX(-50%); width:14px; height:22px; background:#000; border:1px solid #333; border-radius:8px; }
         .dw-lyrics { text-align:center; margin-top:25px; padding:0 20px; opacity:0; animation:dw-fade-up 0.8s forwards 0.6s; }
-        .dw-lyric-kr { font-size:16px; color:var(--theme-color); font-weight:500; text-shadow:0 0 15px rgba(0,0,0,0.5); animation:dw-lyric-glow 3s ease-in-out infinite; }
+        .dw-lyric-kr { font-size:18px; color:#fff; font-weight:700; text-shadow:0 0 10px var(--theme-color), 0 0 20px var(--theme-color); animation:dw-lyric-glow 3s ease-in-out infinite; }
         @keyframes dw-lyric-glow { 0%,100%{opacity:0.8} 50%{opacity:1} }
         .dw-lyric-en { font-size:12px; color:rgba(255,255,255,0.5); font-style:italic; margin-top:6px; }
         @keyframes dw-slow-sway { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-10deg) translateX(-12px)} 75%{transform:rotate(10deg) translateX(12px)} }
@@ -17321,7 +17323,7 @@ function addDailyWaveStyles() {
         @keyframes dw-heartbeat { 0%,100%{transform:scale(1)} 15%{transform:scale(1.08)} 30%{transform:scale(1)} 45%{transform:scale(1.05)} }
         @keyframes dw-stars { 0%,100%{transform:translateY(0) rotate(0)} 25%{transform:translateY(-12px) rotate(3deg)} 75%{transform:translateY(-8px) rotate(-3deg)} }
         @keyframes dw-flutter { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-5deg) translate(-3px,-3px)} 50%{transform:rotate(0) translate(0,-5px)} 75%{transform:rotate(5deg) translate(3px,-3px)} }
-        .dw-player-bar { position:absolute; bottom:0; left:0; right:0; z-index:30; background:linear-gradient(to top,#000 85%,transparent); padding:15px 20px 35px; display:flex; flex-direction:column; gap:12px; }
+        .dw-player-bar { position:absolute; bottom:0; left:0; right:0; z-index:30; background:linear-gradient(to top,#000 90%,transparent); backdrop-filter:blur(15px); padding:15px 20px 35px; display:flex; flex-direction:column; gap:12px; border-top:1px solid rgba(255,255,255,0.05); }
         .dw-controls { display:flex; gap:8px; overflow-x:auto; padding-bottom:5px; justify-content:center; flex-wrap:wrap; }
         .dw-pat-btn { background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.2); color:rgba(255,255,255,0.7); padding:8px 14px; border-radius:20px; font-size:11px; white-space:nowrap; cursor:pointer; transition:all 0.2s; }
         .dw-pat-btn:hover { background:rgba(168,85,247,0.2); border-color:rgba(168,85,247,0.4); }
