@@ -17295,14 +17295,14 @@ function addDailyWaveStyles() {
         .dw-badge-text { font-size:10px; font-weight:700; color:#fff; letter-spacing:1.5px; }
         .dw-close { background:rgba(255,255,255,0.1); border:none; color:#fff; width:40px; height:40px; border-radius:50%; font-size:20px; cursor:pointer; transition:all 0.2s; backdrop-filter:blur(10px); }
         .dw-close:hover { background:rgba(255,255,255,0.2); transform:scale(1.1); }
-        .dw-main { position:relative; z-index:10; flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px 160px; }
+        .dw-main { position:relative; z-index:10; flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 20px 240px; }
         .dw-info { text-align:center; margin-bottom:20px; transform:translateY(20px); opacity:0; animation:dw-fade-up 0.8s forwards 0.2s; }
         .dw-era { font-size:40px; display:block; margin-bottom:8px; text-shadow:0 0 30px var(--theme-color); animation:dw-era-pulse 3s ease-in-out infinite; }
         @keyframes dw-era-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
         .dw-title { font-size:28px; font-weight:800; color:#fff; margin:0; letter-spacing:-0.5px; text-shadow:0 0 20px rgba(0,0,0,0.5); }
         .dw-artist { font-size:13px; color:rgba(255,255,255,0.6); margin-top:6px; }
         @keyframes dw-fade-up { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-        .dw-stage { position:relative; width:100%; height:280px; display:flex; align-items:center; justify-content:center; }
+        .dw-stage { position:relative; width:100%; height:240px; display:flex; align-items:center; justify-content:center; }
         .dw-ambient-light { position:absolute; width:250px; height:250px; border-radius:50%; background:var(--theme-color); filter:blur(100px); opacity:0.25; animation:dw-breathe 4s ease-in-out infinite; }
         @keyframes dw-breathe { 0%,100%{transform:scale(0.9);opacity:0.2} 50%{transform:scale(1.2);opacity:0.3} }
         .dw-pivot { transform-origin:center bottom; position:relative; }
@@ -17314,7 +17314,7 @@ function addDailyWaveStyles() {
         .dw-logo { font-size:40px; font-weight:700; color:#fff; z-index:5; text-shadow:0 0 15px var(--theme-color); transition:text-shadow 0.5s; }
         .dw-handle { width:30px; height:110px; background:linear-gradient(90deg,#1a1a1a,#2a2a2a 40%,#111); margin-top:-6px; border-radius:0 0 15px 15px; position:relative; z-index:2; }
         .dw-handle::before { content:''; position:absolute; top:15px; left:50%; transform:translateX(-50%); width:14px; height:22px; background:#000; border:1px solid #333; border-radius:8px; }
-        .dw-lyrics { text-align:center; margin-top:25px; padding:0 20px; opacity:0; animation:dw-fade-up 0.8s forwards 0.6s; }
+        .dw-lyrics { text-align:center; margin-top:0; margin-bottom:20px; padding:0 20px; opacity:0; animation:dw-fade-up 0.8s forwards 0.6s; z-index:50; }
         .dw-lyric-kr { font-size:18px; color:#fff; font-weight:700; text-shadow:0 0 10px var(--theme-color), 0 0 20px var(--theme-color); animation:dw-lyric-glow 3s ease-in-out infinite; }
         @keyframes dw-lyric-glow { 0%,100%{opacity:0.8} 50%{opacity:1} }
         .dw-lyric-en { font-size:12px; color:rgba(255,255,255,0.5); font-style:italic; margin-top:6px; }
