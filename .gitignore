@@ -16487,17 +16487,27 @@ function launchDailyWaveExperience(currentSong, isGrandFinale = false) {
             </div>
         </div>
         
-        <div class="dw-player-bar">
+<div class="dw-player-bar">
+            <!-- Pattern Selection -->
             <div class="dw-controls">
-                <button class="dw-pat-btn ${currentSong.wave === 'slow-sway' ? 'active' : ''}" onclick="setWavePattern('slow-sway')">〰️ Sway</button>
-                <button class="dw-pat-btn ${currentSong.wave === 'ocean' ? 'active' : ''}" onclick="setWavePattern('ocean')">🌊 Ocean</button>
-                <button class="dw-pat-btn ${currentSong.wave === 'heartbeat' ? 'active' : ''}" onclick="setWavePattern('heartbeat')">💜 Heart</button>
-                <button class="dw-pat-btn ${currentSong.wave === 'stars' ? 'active' : ''}" onclick="setWavePattern('stars')">✨ Stars</button>
-                <button class="dw-pat-btn ${currentSong.wave === 'flutter' ? 'active' : ''}" onclick="setWavePattern('flutter')">🦋 Flutter</button>
+                <button class="dw-pat-btn" onclick="setWavePattern('slow-sway')">〰️ Sway</button>
+                <button class="dw-pat-btn" onclick="setWavePattern('drift')">🪐 Drift</button>
+                <button class="dw-pat-btn" onclick="setWavePattern('ocean')">🌊 Ocean</button>
+                <button class="dw-pat-btn" onclick="setWavePattern('stars')">✨ Stars</button>
+                <button class="dw-pat-btn" onclick="setWavePattern('flutter')">🦋 Flutter</button>
             </div>
             
+            <!-- Speed Selection -->
+            <div class="dw-speed-controls">
+                <span class="speed-label">Speed:</span>
+                <button class="dw-speed-btn" onclick="setWaveSpeed(8, this)">Slow</button>
+                <button class="dw-speed-btn active" onclick="setWaveSpeed(4, this)">Medium</button>
+                <button class="dw-speed-btn" onclick="setWaveSpeed(1, this)">Fast</button>
+            </div>
+            
+            <!-- Color Selection (Added Green & Gold) -->
             <div class="dw-color-controls">
-                <span class="color-label">Bomb Color:</span>
+                <span class="color-label">Color:</span>
                 <button class="dw-color-btn" style="--btn-color:#a855f7" onclick="setBombColor('#a855f7')"></button>
                 <button class="dw-color-btn" style="--btn-color:#e879f9" onclick="setBombColor('#e879f9')"></button>
                 <button class="dw-color-btn" style="--btn-color:#6366f1" onclick="setBombColor('#6366f1')"></button>
@@ -16506,21 +16516,19 @@ function launchDailyWaveExperience(currentSong, isGrandFinale = false) {
                 <button class="dw-color-btn rainbow" onclick="setBombColor('rainbow')">🌈</button>
             </div>
             
-            <div class="dw-spotify-wrap" id="dw-embed-container">
-                <iframe style="border-radius:12px" 
-                    src="https://open.spotify.com/embed/track/${currentSong.spotifyId}?utm_source=generator&theme=0" 
-                    width="100%" height="80" frameBorder="0" allowfullscreen="" 
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                    loading="lazy"></iframe>
+            <div class="dw-spotify-wrap">
+                <iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/${currentSong.spotifyId}?utm_source=generator&theme=0" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
             </div>
         </div>
     `;
     
     document.body.appendChild(root);
-    
-    const pivot = document.getElementById('dw-bomb-pivot');
-    const duration = 60000 / currentSong.bpm * (currentSong.wave === 'slow-sway' ? 2 : 1);
-    pivot.style.animation = `dw-${currentSong.wave} ${duration}ms infinite ease-in-out`;
+
+    _currentWaveBPM = currentSong.bpm;
+    _currentWavePattern = currentSong.wave;
+    _currentWaveMultiplier = 4;
+   const pivot = document.getElementById('dw-bomb-pivot');
+   updateWaveAnimation();
     
     setTimeout(() => root.classList.add('visible'), 50);
     addDailyWaveStyles();
@@ -16536,13 +16544,16 @@ function closeDailyWave() {
 }
 
 function setWavePattern(pattern) {
-    const pivot = document.getElementById('dw-bomb-pivot');
-    if (!pivot) return;
-    pivot.style.animationName = `dw-${pattern}`;
-    document.querySelectorAll('.dw-pat-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    _currentWavePattern = pattern;
+    updateWaveAnimation();
+    
+    // UI Update: Highlight the correct pattern button
+    document.querySelectorAll('.dw-pat-btn').forEach(btn => {
+        // Match the button based on the pattern name
+        const isMatch = pattern.includes(btn.innerText.toLowerCase().trim().replace('〰️ ', '').replace('🪐 ', '').replace('🌊 ', '').replace('✨ ', ''));
+        btn.classList.toggle('active', isMatch);
+    });
 }
-
 let _rainbowInterval = null;
 
 function setBombColor(color) {
@@ -16562,7 +16573,40 @@ function setBombColor(color) {
         root.style.setProperty('--bg-glow', color);
     }
 }
+// Initialize state for the wave
+let _currentWaveBPM = 80;
+let _currentWaveMultiplier = 4; // Default to Medium
+let _currentWavePattern = 'drift';
 
+function setWavePattern(pattern) {
+    _currentWavePattern = pattern;
+    updateWaveAnimation();
+    
+    // UI Update: Toggle active button
+    document.querySelectorAll('.dw-pat-btn').forEach(btn => {
+        // Simple match: if button text contains the pattern name
+        const matchName = pattern.replace('slow-','');
+        btn.classList.toggle('active', btn.innerText.toLowerCase().includes(matchName));
+    });
+}
+
+function setWaveSpeed(multiplier, btn) {
+    _currentWaveMultiplier = multiplier;
+    updateWaveAnimation();
+    
+    // UI Update: Toggle active button
+    document.querySelectorAll('.dw-speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function updateWaveAnimation() {
+    const pivot = document.getElementById('dw-bomb-pivot');
+    if (!pivot) return;
+    
+    // Recalculate duration: (ms per beat) * Multiplier
+    const duration = (60000 / _currentWaveBPM) * _currentWaveMultiplier;
+    pivot.style.animation = `dw-${_currentWavePattern} ${duration}ms infinite ease-in-out`;
+}
 // =============================================
 // HOME WIDGET
 // =============================================
@@ -17322,6 +17366,41 @@ function addDailyWaveStyles() {
         @keyframes dw-heartbeat { 0%,100%{transform:scale(1)} 15%{transform:scale(1.08)} 30%{transform:scale(1)} 45%{transform:scale(1.05)} }
         @keyframes dw-stars { 0%,100%{transform:translateY(0) rotate(0)} 25%{transform:translateY(-12px) rotate(3deg)} 75%{transform:translateY(-8px) rotate(-3deg)} }
         @keyframes dw-flutter { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-5deg) translate(-3px,-3px)} 50%{transform:rotate(0) translate(0,-5px)} 75%{transform:rotate(5deg) translate(3px,-3px)} }
+        @keyframes dw-drift { 
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(15px, -10px) rotate(3deg); }
+            50% { transform: translate(-5px, -20px) rotate(-2deg); }
+            75% { transform: translate(-15px, -5px) rotate(1deg); }
+        }
+        /* Speed Control Styling */
+        .dw-speed-controls { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 10px; 
+            margin-bottom: 5px; 
+        }
+        .speed-label { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .dw-speed-btn { 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid #333; 
+            color: #888; 
+            padding: 5px 12px; 
+            border-radius: 20px; 
+            font-size: 10px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+        }
+        .dw-speed-btn.active { background: #fff; color: #000; border-color: #fff; font-weight: 700; }
+
+        /* The New Galaxy Drift Pattern */
+        @keyframes dw-drift { 
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            20% { transform: translate(12px, -18px) rotate(3deg); }
+            40% { transform: translate(22px, 8px) rotate(-2deg); }
+            60% { transform: translate(-12px, 18px) rotate(2deg); }
+            80% { transform: translate(-22px, -8px) rotate(-3deg); }
+        }
         .dw-player-bar { position:absolute; bottom:0; left:0; right:0; z-index:30; background:linear-gradient(to top,#000 90%,transparent); backdrop-filter:blur(15px); padding:15px 20px 35px; display:flex; flex-direction:column; gap:12px; border-top:1px solid rgba(255,255,255,0.05); }
         .dw-controls { display:flex; gap:8px; overflow-x:auto; padding-bottom:5px; justify-content:center; flex-wrap:wrap; }
         .dw-pat-btn { background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.2); color:rgba(255,255,255,0.7); padding:8px 14px; border-radius:20px; font-size:11px; white-space:nowrap; cursor:pointer; transition:all 0.2s; }
