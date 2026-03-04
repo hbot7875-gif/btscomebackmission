@@ -452,23 +452,21 @@ function getKSTToDateString() {
 function formatLastUpdated(dateStr) {
     if (!dateStr) return 'Unknown';
     try {
-        // 1. Remove Z so browser doesn't convert timezone
-        let cleanStr = dateStr.replace('Z', '').replace(/\+.*$/, '');
+        // Create a proper date object from the UTC string
+        const date = new Date(dateStr);
         
-        const date = new Date(cleanStr);
+        // If the date is invalid, return the raw string
         if (isNaN(date.getTime())) return dateStr;
 
-        let hours = date.getHours();
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12;
-        
-        const month = date.toLocaleString('en-US', { month: 'short' });
-        const day = date.getDate();
-
-        // Added "IST" at the end for clarity
-        return `${month} ${day}, ${hours}:${minutes} ${ampm} IST`; 
+        // Use the browser's built-in tool to convert to IST
+        return date.toLocaleString('en-US', {
+            timeZone: 'Asia/Kolkata',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        }) + " IST";
     } catch (e) { 
         return dateStr; 
     }
@@ -5454,6 +5452,7 @@ async function updateActivityFeedUI() {
                 case 'team_surge':
                     tColor = teamColor(data.team);
                     icon = '🚀';
+                    const streamCount = (data.streams && data.streams > 0) ? fmt(data.streams) : 'High';
                     text = `<strong style="color:${tColor}">${sanitize(data.team)}</strong> is surging! <span class="activity-highlight">${fmt(data.streams)} streams/hr</span>`;
                     break;
 
