@@ -14,7 +14,7 @@ jobs:
   sync:
     name: 🔄 Safe Sync
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Get Week
         id: week
@@ -42,12 +42,13 @@ jobs:
           TOTAL_OK=0
           TOTAL_FAIL=0
           
+          # 10 Shards (0-9) ensures each request processes only ~15 agents
           for SHARD in 0 1 2 3 4 5 6 7 8 9; do
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "🔄 Syncing Shard $SHARD/5"
+            echo "🔄 Syncing Shard $SHARD/10"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             
-            RESP=$(curl -s --max-time 120 -X POST "$EDGE_URL" \
+            RESP=$(curl -s --max-time 180 -X POST "$EDGE_URL" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $ANON_KEY" \
               -H "apikey: $ANON_KEY" \
@@ -62,7 +63,8 @@ jobs:
             
             echo "✅ Shard $SHARD: $OK synced, $FAIL failed"
             
-            sleep 3
+            # 5 second rest prevents DB lockups
+            sleep 5
           done
           
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -76,7 +78,7 @@ jobs:
           WEEK: ${{ steps.week.outputs.week }}
         run: |
           echo "📊 Aggregating Results..."
-          curl -s --max-time 60 -X POST "$EDGE_URL" \
+          curl -s --max-time 120 -X POST "$EDGE_URL" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $ANON_KEY" \
             -H "apikey: $ANON_KEY" \
