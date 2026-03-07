@@ -42,7 +42,7 @@ jobs:
           TOTAL_OK=0
           TOTAL_FAIL=0
           
-          for SHARD in 0 1 2 3 4; do
+          for SHARD in 0 1 2 3 4 5 6 7 8 9; do
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "🔄 Syncing Shard $SHARD/5"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -51,7 +51,7 @@ jobs:
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $ANON_KEY" \
               -H "apikey: $ANON_KEY" \
-              -d "{\"action\":\"initiateFairSyncShard\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\",\"shard\":$SHARD,\"totalShards\":5}" || echo '{"completed":0,"failed":0,"error":"timeout"}')
+              -d "{\"action\":\"initiateFairSyncShard\",\"adminKey\":\"$ADMIN_KEY\",\"week\":\"$WEEK\",\"shard\":$SHARD,\"totalShards\":10}" || echo '{"completed":0,"failed":0,"error":"timeout"}')
             
             echo "$RESP" | jq .
             
