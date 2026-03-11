@@ -15368,7 +15368,7 @@ const _WAVE_SONGS = [
     { day: 3, id: 'magic-shop', title: 'Magic Shop', artist: 'BTS', album: 'LOVE YOURSELF 轉 Tear', era: '✨', bpm: 80, color: '#818cf8', wave: 'stars', spotifyId: '5MTGPkmiUuud9NkA0sl2nI', lyric: '"You gave me the best of me"', lyricEn: '"So you’ll give you the best of you"' },    
     { day: 4, id: 'euphoria', title: 'Euphoria', artist: 'Jungkook', album: 'LOVE YOURSELF 結 Answer', era: '🌊', bpm: 100, color: '#a78bfa', wave: 'ocean', spotifyId: '5YMXGBD6vcYP7IolemyLtK', lyric: '"Take my hands now, you are the cause of my euphoria"', lyricEn: '"Take my hands now, you are the cause of my euphoria"' },    
     { day: 5, id: 'film-out', title: 'Film Out', artist: 'BTS', album: 'BTS, THE BEST', era: '🎬', bpm: 72, color: '#94a3b8', wave: 'slow-sway', spotifyId: '6g9Vd4z3JnVUiAIRwFlVCG', lyric: '"Tantan to furitsumotta kioku no naka de, kimi dake wo hiroi atsumete tsunagete"', lyricEn: '"I gather up the memories of you, link them together"' },    
-    { day: 6, id: 'louder-than-bombs', title: 'Louder Than Bombs', artist: 'BTS', album: 'MAP OF THE SOUL: 7', era: '💣', bpm: 81, color: '#6366f1', wave: 'heartbeat', spotifyId: '4Aw8n6r2vuU0KUo1a2nftp', lyric: '"네 목소리를 들려줘"', lyricEn: '"Let me hear your voice"' },   
+    { day: 6, id: 'louder-than-bombs', title: 'Louder Than Bombs', artist: 'BTS', album: 'MAP OF THE SOUL: 7', era: '🌩️', bpm: 81, color: '#6366f1', wave: 'heartbeat', spotifyId: '4Aw8n6r2vuU0KUo1a2nftp', lyric: "Louder than bombs I say<br>Sesang ape malhalge<br>Neoreul oemyeonhaetdeon sigan<br>Jakku domangchyeotdeon nanal ije deoneun eopseo<br>Louder than bombs I say", lyricEn: "" },
     { day: 7, id: 'truth-untold', title: 'The Truth Untold', artist: 'BTS, Steve Aoki', album: 'LOVE YOURSELF 結 Answer', era: '🌹', bpm: 76, color: '#a855f7', wave: 'slow-sway', spotifyId: '4eP8Syl3aBEQw3Jy5Bhq0D', lyric: "Show you me, give you me... Chorahan moseub boyeojul sun eopseo", lyricEn: "Tto gamyeoneul sseugo neol mannareo ga... But I still want you" },
     { day: 8, id: 'butterfly', title: 'Butterfly', artist: 'BTS', album: 'The Most Beautiful Moment in Life pt.2', era: '🦋', bpm: 78, color: '#fbbf24', wave: 'flutter', spotifyId: '3bjg5cbmuwDoS7e2dAWyRG', lyric: '"Butterfly (butterfly), like a butterfly (butterfly)"', lyricEn: '"Butterfly (fly), like a butterfly (butterfly)"' },
     { day: 9, id: 'mikrokosmos', title: 'Mikrokosmos', artist: 'BTS', album: 'MAP OF THE SOUL: PERSONA', era: '🌌', bpm: 86, color: '#818cf8', wave: 'stars', spotifyId: '0jSccBRnhNU4KtACMQPvco', lyric: '"You got me / Nan neoleul bomyeo kkum-eul kkwo"', lyricEn: '"I got you / Chilheug gatdeon bamdeul sog / Seologa bon seoloui bich"' },    
@@ -17191,7 +17191,8 @@ function addDailyWaveStyles() {
         .dw-logo { font-size:40px; font-weight:700; color:#fff; z-index:5; text-shadow:0 0 15px var(--theme-color); transition:text-shadow 0.5s; }
         .dw-handle { width:30px; height:110px; background:linear-gradient(90deg,#1a1a1a,#2a2a2a 40%,#111); margin-top:-6px; border-radius:0 0 15px 15px; position:relative; z-index:2; }
         .dw-handle::before { content:''; position:absolute; top:15px; left:50%; transform:translateX(-50%); width:14px; height:22px; background:#000; border:1px solid #333; border-radius:8px; }
-        .dw-lyrics { text-align:center; margin-top: 10px; padding:0 20px; opacity:0; animation:dw-fade-up 0.8s forwards 0.6s; z-index:100; position:relative; width: 100%; min-height: 40px; }     .dw-lyric-kr { font-size:14px; color:#fff; font-weight:700; text-shadow:0 0 10px var(--theme-color); animation:dw-lyric-glow 3s ease-in-out infinite; line-height:1.4; } @keyframes dw-lyric-glow { 0%,100%{opacity:0.7;text-shadow:0 0 8px var(--theme-color)} 50%{opacity:1;text-shadow:0 0 18px var(--theme-color)} }
+        .dw-lyrics { text-align:center; margin-top: 10px; padding:0 20px; opacity:0; animation:dw-fade-up 0.8s forwards 0.6s; z-index:100; position:relative; width: 100%; min-height: 40px; }     
+        .dw-lyric-kr { font-size:14px; color:#fff; font-weight:700; text-shadow:0 0 10px var(--theme-color); animation:dw-lyric-glow 3s ease-in-out infinite; line-height:1.4; } @keyframes dw-lyric-glow { 0%,100%{opacity:0.7;text-shadow:0 0 8px var(--theme-color)} 50%{opacity:1;text-shadow:0 0 18px var(--theme-color)} }
         .dw-lyric-en { font-size:13px; color:rgba(255,255,255,0.7); font-style:italic; margin-top:8px; line-height:1.4; }
         @keyframes dw-slow-sway { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-10deg) translateX(-12px)} 75%{transform:rotate(10deg) translateX(12px)} }
         @keyframes dw-ocean { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-20px) rotate(4deg)} }
@@ -17247,7 +17248,7 @@ function addDailyWaveStyles() {
 
         @media (max-width: 380px) {
             .dw-main { padding: 40px 15px 100px !important; }
-            .dw-stage { height: 160px !important; }
+            .dw-stage { height: 150px !important; }
             .dw-sphere { width: 90px !important; height: 90px !important; }
             .dw-logo { font-size: 28px !important; }
             .dw-handle { width: 22px !important; height: 75px !important; }
