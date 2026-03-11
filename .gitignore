@@ -16382,6 +16382,9 @@ function launchDailyWaveExperience(currentSong, isGrandFinale = false) {
     const existing = document.getElementById('daily-wave-root');
     if (existing) existing.remove();
     
+    // Ensure styles are injected
+    addDailyWaveStyles();
+    
     const root = document.createElement('div');
     root.id = 'daily-wave-root';
     root.style.setProperty('--theme-color', currentSong.color);
@@ -16398,9 +16401,7 @@ function launchDailyWaveExperience(currentSong, isGrandFinale = false) {
         <div class="dw-bg-layer">
             <div class="dw-gradient"></div>
             <div class="dw-stars">${starsHTML}</div>
-            ${isGrandFinale ? '<div class="dw-fireworks"></div>' : ''}
         </div>
-        
         <div class="dw-header">
             <div class="dw-badge">
                 <span class="dw-dot"></span>
@@ -16408,14 +16409,12 @@ function launchDailyWaveExperience(currentSong, isGrandFinale = false) {
             </div>
             <button class="dw-close" onclick="closeDailyWave()">✕</button>
         </div>
-        
         <div class="dw-main">
             <div class="dw-info">
                 <span class="dw-era">${currentSong.era}</span>
                 <h1 class="dw-title">${currentSong.title}</h1>
                 <p class="dw-artist">${currentSong.artist} • ${currentSong.album}</p>
             </div>
-            
             <div class="dw-stage">
                 <div class="dw-ambient-light"></div>
                 <div class="dw-pivot" id="dw-bomb-pivot">
@@ -16428,15 +16427,12 @@ function launchDailyWaveExperience(currentSong, isGrandFinale = false) {
                     </div>
                 </div>
             </div>
-            
             <div class="dw-lyrics">
                 <div class="dw-lyric-kr">${currentSong.lyric}</div>
                 <div class="dw-lyric-en">${currentSong.lyricEn}</div>
             </div>
         </div>
-        
-<div class="dw-player-bar">
-            <!-- Pattern Selection -->
+        <div class="dw-player-bar">
             <div class="dw-controls">
                 <button class="dw-pat-btn" onclick="setWavePattern('slow-sway')">〰️ Sway</button>
                 <button class="dw-pat-btn" onclick="setWavePattern('drift')">🪐 Drift</button>
@@ -16444,16 +16440,12 @@ function launchDailyWaveExperience(currentSong, isGrandFinale = false) {
                 <button class="dw-pat-btn" onclick="setWavePattern('stars')">✨ Stars</button>
                 <button class="dw-pat-btn" onclick="setWavePattern('flutter')">🦋 Flutter</button>
             </div>
-            
-            <!-- Speed Selection -->
             <div class="dw-speed-controls">
                 <span class="speed-label">Speed:</span>
                 <button class="dw-speed-btn" onclick="setWaveSpeed(8, this)">Slow</button>
                 <button class="dw-speed-btn active" onclick="setWaveSpeed(4, this)">Medium</button>
                 <button class="dw-speed-btn" onclick="setWaveSpeed(1, this)">Fast</button>
             </div>
-            
-            <!-- Color Selection (Added Green & Gold) -->
             <div class="dw-color-controls">
                 <span class="color-label">Color:</span>
                 <button class="dw-color-btn" style="--btn-color:#a855f7" onclick="setBombColor('#a855f7')"></button>
@@ -16463,23 +16455,24 @@ function launchDailyWaveExperience(currentSong, isGrandFinale = false) {
                 <button class="dw-color-btn" style="--btn-color:#fbbf24" onclick="setBombColor('#fbbf24')"></button>
                 <button class="dw-color-btn rainbow" onclick="setBombColor('rainbow')">🌈</button>
             </div>
-            
             <div class="dw-spotify-wrap">
-               <iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/${currentSong.spotifyId}?utm_source=generator&autoplay=1" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+               <iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/${currentSong.spotifyId}?utm_source=generator" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
             </div>
         </div>
     `;
     
     document.body.appendChild(root);
 
-    _currentWaveBPM = currentSong.bpm;
-    _currentWavePattern = currentSong.wave;
+    // Set song-specific defaults
+    _currentWaveBPM = currentSong.bpm || 80;
+    _currentWavePattern = currentSong.wave || 'slow-sway';
     _currentWaveMultiplier = 4;
-   const pivot = document.getElementById('dw-bomb-pivot');
-   updateWaveAnimation();
     
-    setTimeout(() => root.classList.add('visible'), 50);
-    addDailyWaveStyles();
+    // 🔥 THE FIX: Wait for DOM to exist before animating
+    setTimeout(() => {
+        root.classList.add('visible');
+        updateWaveAnimation(); 
+    }, 100);
 }
 
 function closeDailyWave() {
@@ -17150,6 +17143,126 @@ function addArirangStyles() {
             .wire-flow,.charge-sparks span,.power-bar-shimmer,.energy-fill-gradient::after,.energy-fill-surface,.concert-star,.fill-bubble { animation:none !important; }
             .charge-wire.wire-live { animation:none; }
             .charge-ambient-blazing,.charge-ambient-fully-charged { animation:none; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+// =============================================
+// DAILY WAVE STYLES
+// =============================================
+function addDailyWaveStyles() {
+    if (document.getElementById('daily-wave-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'daily-wave-styles';
+    style.textContent = `
+        #daily-wave-root { position:fixed; inset:0; z-index: 9999999; background:#050508; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; overflow:hidden; opacity:0; transition:opacity 0.5s; display:flex; flex-direction:column; align-items:center; }
+        #daily-wave-root.visible { opacity:1; }
+        .dw-bg-layer { position:absolute; inset:0; z-index:0; }
+        .dw-gradient { position:absolute; inset:0; background:radial-gradient(ellipse at center 40%,var(--bg-glow,#a855f7) 0%,transparent 70%); opacity:0.2; transition:background 1s; }
+        .dw-stars { position:absolute; inset:0; }
+        .dw-star { position:absolute; width:var(--star-size,2px); height:var(--star-size,2px); background:#fff; border-radius:50%; opacity:0; animation:dw-twinkle 3s infinite ease-in-out; box-shadow:0 0 4px var(--theme-color); }
+        @keyframes dw-twinkle { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:0.9;transform:scale(1.3)} }
+        .dw-star:nth-child(3n) { animation-duration: 4.5s; }
+        .dw-star:nth-child(2n) { animation-duration: 2s; }
+        .dw-fireworks { position:absolute; inset:0; pointer-events:none; background-image:radial-gradient(circle,var(--theme-color) 1px,transparent 1px); background-size:50px 50px; animation:dw-fireworks 2s ease-out infinite; }
+        @keyframes dw-fireworks { 0%{opacity:0.5;transform:scale(0.8)} 100%{opacity:0;transform:scale(1.5)} }
+        .dw-header { position:absolute; top:0; left:0; right:0; z-index:20; display:flex; justify-content:space-between; align-items:center; padding:15px 20px; background:linear-gradient(to bottom,rgba(0,0,0,0.8),transparent); }
+        .dw-badge { display:flex; align-items:center; gap:8px; background:rgba(168,85,247,0.15); backdrop-filter:blur(10px); padding:6px 12px; border-radius:20px; border:1px solid rgba(168,85,247,0.3); }
+        .dw-dot { width:6px; height:6px; border-radius:50%; background:var(--theme-color); animation:dw-pulse 2s infinite; }
+        @keyframes dw-pulse { 0%{box-shadow:0 0 0 0 var(--theme-color)} 70%{box-shadow:0 0 0 8px transparent} }
+        .dw-badge-text { font-size:10px; font-weight:700; color:#fff; letter-spacing:1.5px; }
+        .dw-close { background:rgba(255,255,255,0.1); border:none; color:#fff; width:40px; height:40px; border-radius:50%; font-size:20px; cursor:pointer; transition:all 0.2s; backdrop-filter:blur(10px); }
+        .dw-close:hover { background:rgba(255,255,255,0.2); transform:scale(1.1); }
+        .dw-main { position:relative; z-index:10; flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content: flex-start; padding:60px 20px 80px; }       .dw-info { text-align:center; margin-bottom:20px; transform:translateY(20px); opacity:0; animation:dw-fade-up 0.8s forwards 0.2s; }
+        .dw-era { font-size:40px; display:block; margin-bottom:8px; text-shadow:0 0 30px var(--theme-color); animation:dw-era-pulse 3s ease-in-out infinite; }
+        @keyframes dw-era-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+        .dw-title { font-size:28px; font-weight:800; color:#fff; margin:0; letter-spacing:-0.5px; text-shadow:0 0 20px rgba(0,0,0,0.5); }
+        .dw-artist { font-size:13px; color:rgba(255,255,255,0.6); margin-top:6px; }
+        @keyframes dw-fade-up { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        .dw-stage { position:relative; width:100%; height:210px; display:flex; align-items:center; justify-content:center; margin-bottom: 10px; }
+        .dw-ambient-light { position:absolute; width:250px; height:250px; border-radius:50%; background:var(--theme-color); filter:blur(100px); opacity:0.25; animation:dw-breathe 4s ease-in-out infinite; }
+        @keyframes dw-breathe { 0%,100%{transform:scale(0.9);opacity:0.2} 50%{transform:scale(1.2);opacity:0.3} }
+        .dw-pivot { transform-origin:center bottom; position:relative; }
+        .dw-bomb { display:flex; flex-direction:column; align-items:center; filter:drop-shadow(0 15px 40px rgba(0,0,0,0.6)); }
+        .dw-sphere { width:120px; height:120px; border-radius:50%; background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.15),rgba(0,0,0,0.4)); border:1px solid rgba(255,255,255,0.2); box-shadow:inset 0 0 30px var(--theme-color),0 0 25px var(--theme-color); position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; transition:box-shadow 0.5s; }
+        .dw-sphere.finale-glow { box-shadow:inset 0 0 40px var(--theme-color),0 0 50px var(--theme-color),0 0 100px var(--theme-color); animation:dw-finale-glow 1s ease-in-out infinite alternate; }
+        @keyframes dw-finale-glow { 0%{box-shadow:inset 0 0 40px var(--theme-color),0 0 50px var(--theme-color)} 100%{box-shadow:inset 0 0 60px var(--theme-color),0 0 80px var(--theme-color),0 0 120px var(--theme-color)} }
+        .dw-fill { position:absolute; bottom:0; left:0; right:0; height:100%; background:linear-gradient(to top,var(--theme-color),transparent); opacity:0.4; transition:all 0.5s; }
+        .dw-logo { font-size:40px; font-weight:700; color:#fff; z-index:5; text-shadow:0 0 15px var(--theme-color); transition:text-shadow 0.5s; }
+        .dw-handle { width:30px; height:110px; background:linear-gradient(90deg,#1a1a1a,#2a2a2a 40%,#111); margin-top:-6px; border-radius:0 0 15px 15px; position:relative; z-index:2; }
+        .dw-handle::before { content:''; position:absolute; top:15px; left:50%; transform:translateX(-50%); width:14px; height:22px; background:#000; border:1px solid #333; border-radius:8px; }
+        .dw-lyrics { text-align:center; margin-top: 10px; padding:0 20px; opacity:0; animation:dw-fade-up 0.8s forwards 0.6s; z-index:100; position:relative; width: 100%; min-height: 40px; }     .dw-lyric-kr { font-size:14px; color:#fff; font-weight:700; text-shadow:0 0 10px var(--theme-color); animation:dw-lyric-glow 3s ease-in-out infinite; line-height:1.4; } @keyframes dw-lyric-glow { 0%,100%{opacity:0.7;text-shadow:0 0 8px var(--theme-color)} 50%{opacity:1;text-shadow:0 0 18px var(--theme-color)} }
+        .dw-lyric-en { font-size:13px; color:rgba(255,255,255,0.7); font-style:italic; margin-top:8px; line-height:1.4; }
+        @keyframes dw-slow-sway { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-10deg) translateX(-12px)} 75%{transform:rotate(10deg) translateX(12px)} }
+        @keyframes dw-ocean { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-20px) rotate(4deg)} }
+        @keyframes dw-heartbeat { 0%,100%{transform:scale(1)} 15%{transform:scale(1.08)} 30%{transform:scale(1)} 45%{transform:scale(1.05)} }
+        @keyframes dw-stars { 0%,100%{transform:translateY(0) rotate(0)} 25%{transform:translateY(-12px) rotate(3deg)} 75%{transform:translateY(-8px) rotate(-3deg)} }
+        @keyframes dw-flutter { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-5deg) translate(-3px,-3px)} 50%{transform:rotate(0) translate(0,-5px)} 75%{transform:rotate(5deg) translate(3px,-3px)} }
+        @keyframes dw-drift { 
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(15px, -10px) rotate(3deg); }
+            50% { transform: translate(-5px, -20px) rotate(-2deg); }
+            75% { transform: translate(-15px, -5px) rotate(1deg); }
+        }
+        /* Speed Control Styling */
+        .dw-speed-controls { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 10px; 
+            margin-bottom: 5px; 
+        }
+        .speed-label { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .dw-speed-btn { 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid #333; 
+            color: #888; 
+            padding: 5px 12px; 
+            border-radius: 20px; 
+            font-size: 10px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+        }
+        .dw-speed-btn.active { background: #fff; color: #000; border-color: #fff; font-weight: 700; }
+
+        /* The New Galaxy Drift Pattern */
+        @keyframes dw-drift { 
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            20% { transform: translate(12px, -18px) rotate(3deg); }
+            40% { transform: translate(22px, 8px) rotate(-2deg); }
+            60% { transform: translate(-12px, 18px) rotate(2deg); }
+            80% { transform: translate(-22px, -8px) rotate(-3deg); }
+        }
+        .dw-player-bar { position:absolute; bottom:0; left:0; right:0; z-index:30; background:linear-gradient(to top,#000 90%,transparent); backdrop-filter:blur(15px); padding:15px 20px 35px; display:flex; flex-direction:column; gap:12px; border-top:1px solid rgba(255,255,255,0.05); }
+        .dw-controls { display:flex; gap:8px; overflow-x:auto; padding-bottom:5px; justify-content:center; flex-wrap:wrap; }
+        .dw-pat-btn { background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.2); color:rgba(255,255,255,0.7); padding:8px 14px; border-radius:20px; font-size:11px; white-space:nowrap; cursor:pointer; transition:all 0.2s; }
+        .dw-pat-btn:hover { background:rgba(168,85,247,0.2); border-color:rgba(168,85,247,0.4); }
+        .dw-pat-btn.active { background:linear-gradient(135deg,var(--theme-color),#7c3aed); color:#fff; border-color:var(--theme-color); font-weight:700; box-shadow:0 0 15px rgba(168,85,247,0.4); }
+        .dw-color-controls { display:flex; align-items:center; justify-content:center; gap:8px; }
+        .color-label { font-size:10px; color:#666; }
+        .dw-color-btn { width:24px; height:24px; border-radius:50%; border:2px solid rgba(255,255,255,0.2); background:var(--btn-color); cursor:pointer; transition:all 0.2s; }
+        .dw-color-btn:hover { transform:scale(1.2); border-color:#fff; }
+        .dw-color-btn.rainbow { background:linear-gradient(135deg,#ef4444,#fbbf24,#22c55e,#3b82f6,#a855f7); font-size:10px; display:flex; align-items:center; justify-content:center; }
+        .dw-spotify-wrap { width:100%; border-radius:12px; overflow:hidden; background:#000; box-shadow:0 5px 25px rgba(0,0,0,0.6); border:1px solid rgba(168,85,247,0.2); }
+
+        @media (max-width: 380px) {
+            .dw-main { padding: 40px 15px 100px !important; }
+            .dw-stage { height: 160px !important; }
+            .dw-sphere { width: 90px !important; height: 90px !important; }
+            .dw-logo { font-size: 28px !important; }
+            .dw-handle { width: 22px !important; height: 75px !important; }
+            .dw-title { font-size: 20px !important; }
+            .dw-era { font-size: 30px !important; }
+            .dw-lyric-kr { font-size: 14px !important; text-shadow: 0 0 8px var(--theme-color) !important; }
+            .dw-lyric-en { font-size: 11px !important; }
+            .dw-pat-btn { padding: 6px 10px !important; font-size: 9px !important; }
+            .dw-player-bar { padding: 10px 15px 25px !important; }
+        }
+        
+        @media (prefers-reduced-motion:reduce) {
+            .dw-pivot { animation:none !important; }
+            .dw-star,.dw-ambient-light,.dw-fireworks,.dw-era,.dw-lyric-kr { animation:none; }
+            .dw-star { opacity:0.5; }
         }
     `;
     document.head.appendChild(style);
