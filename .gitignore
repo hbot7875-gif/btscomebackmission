@@ -2113,11 +2113,6 @@ function clearAllNotifications() {
 function setupNotificationChecks() {
     console.log('🔔 Setting up notification checks...');
     
-    // ✅ Check every 3 minutes
-    setInterval(() => {
-        console.log('⏰ Periodic notification check...');
-        checkNotifications();
-    }, 60 * 1000); 
     
     // ✅ Check when user returns to tab
     document.addEventListener('visibilitychange', () => {
@@ -6033,7 +6028,7 @@ async function loadDashboard() {
             if (typeof updateActivityFeedUI === 'function') {
                 updateActivityFeedUI();
                 if (window.activityInterval) clearInterval(window.activityInterval);
-                window.activityInterval = setInterval(updateActivityFeedUI, 300000);
+                
             }
             if (typeof setupNotificationChecks === 'function') setupNotificationChecks();
             
@@ -6565,11 +6560,7 @@ async function renderHome() {
 let heartbeatInterval = null;
 let onlineCount = 0;
 
-function startHeartbeat() {
-    if (heartbeatInterval) clearInterval(heartbeatInterval);
-    sendHeartbeat();
-    heartbeatInterval = setInterval(sendHeartbeat, 120000);
-}
+
 
 async function sendHeartbeat() {
     try {
@@ -6844,11 +6835,7 @@ async function renderChat() {
     await loadMessages(true);
     await updateOnlineCount();
 
-    cleanupChat();
-    chatRefreshInterval = setInterval(() => {
-        loadMessages(false);
-        updateOnlineCount();
-    }, 2000);
+    
 }
 
 // ==================== FREQUENCY SWITCH ====================
@@ -7071,11 +7058,6 @@ function markChatRead() {
     if (dot) dot.classList.remove('active');
 }
 
-function startUnreadCheck() {
-    checkUnreadMessages();
-    if (unreadCheckInterval) clearInterval(unreadCheckInterval);
-    unreadCheckInterval = setInterval(checkUnreadMessages, 30000);
-}
 
 function stopUnreadCheck() {
     if (unreadCheckInterval) {
