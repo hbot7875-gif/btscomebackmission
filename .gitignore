@@ -5793,7 +5793,7 @@ function initApp() {
         checkAdminStatus();
         loadSeenResults();
         loadDashboard();
-        startUnreadCheck();
+        
     } else {
         if (getCurrentRoute() !== 'login' && getCurrentRoute() !== '') {
             history.replaceState({ page: 'login', route: 'login' }, '', '#/login');
@@ -5857,7 +5857,7 @@ async function handleLogin() {
             checkAdminStatus();
             loadSeenResults();
             await loadDashboard();
-            startUnreadCheck();
+            
             
             showToast(`Authentication Successful. Welcome, ${res.agent.name}.`, 'success');
         } else {
@@ -5935,7 +5935,7 @@ async function loadDashboard() {
     console.log('🏠 Loading dashboard (Live Data)...');
     
     loading(true);
-    startHeartbeat();
+    
     
     try {
         const dashboardData = await api('getDashboardData');
@@ -6229,8 +6229,7 @@ async function logout() {
     }
     
     // 2. Stop all background processes
-    if (typeof stopHeartbeat === 'function') stopHeartbeat();
-    if (typeof stopUnreadCheck === 'function') stopUnreadCheck();
+    
     
     if (typeof notificationInterval !== 'undefined' && notificationInterval) {
         clearInterval(notificationInterval);
@@ -6750,7 +6749,7 @@ async function renderChat() {
                 <div class="chat-header-pro">
                     <div class="connection-status">
                         <div class="pulse-dot"></div>
-                        <span class="status-text">${STATE.chatMode === 'global' ? 'GLOBAL' : 'TEAM'} — <span id="online-count">0</span> ACTIVE</span>
+                        <span class="status-text">${STATE.chatMode === 'global' ? 'GLOBAL' : 'TEAM'} CHANNEL</span>
                     </div>
                     <button class="refresh-chat-btn" onclick="loadMessages(true)" title="Refresh">🔄</button>
                 </div>
@@ -17340,7 +17339,6 @@ window.dismissNotificationPopup = dismissNotificationPopup;
 window.sendMessage = sendMessage;
 window.loadMessages = loadMessages;
 window.showOnlineUsers = showOnlineUsers;
-window.startHeartbeat = startHeartbeat;
 window.stopHeartbeat = stopHeartbeat;
 window.renderSongOfDay = renderSongOfDay;
 window.submitSongAnswer = submitSongAnswer;
