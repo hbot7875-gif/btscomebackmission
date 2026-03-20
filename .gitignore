@@ -15362,7 +15362,7 @@ const _WAVE_SONGS = [
     { day: 17, id: 'permission-to-dance', title: 'Permission to Dance', artist: 'BTS', album: 'Butter', era: '🕺', bpm: 125, color: '#facc15', wave: 'stars', spotifyId: '4UAnQaQTSMjKjHkqjKwEYx', lyric: "We don't need permission to dance", lyricEn: "" },
     { day: 18, id: 'mikrokosmos', title: 'Mikrokosmos', artist: 'BTS', album: 'MAP OF THE SOUL: PERSONA', era: '🌌', bpm: 86, color: '#818cf8', wave: 'stars', spotifyId: '0jSccBRnhNU4KtACMQPvco', lyric: '"You got me / Nan neoleul bomyeo kkum-eul kkwo"', lyricEn: '"I got you / Chilheug gatdeon bamdeul sog / Seologa bon seoloui bich"' },    
     { day: 19, id: 'friends', title: 'Friends', artist: 'Jimin & V', album: 'MAP OF THE SOUL: 7', era: '👫', bpm: 110, color: '#f472b6', wave: 'heartbeat', spotifyId: '5cfXqWEKD1QHGb1X1eliBr', lyric: '"영원히 함께 가자"', lyricEn: '"Let\'s go together forever"' },
-    { day: 20, id: 'arirang', title: 'ARIRANG', artist: 'BTS', album: 'ARIRANG', era: '💜', bpm: 95, color: '#e879f9', wave: 'stars', spotifyId: 'ARIRANG_SPOTIFY_ID', lyric: '"아리랑 아리랑 아라리요"', lyricEn: '"Arirang Arirang Arariyo"' }
+    { day: 20, id: 'swim', title: 'SWiM', artist: 'BTS', album: 'Arirang', era: '🌊', bpm: 100, color: '#dc2626', wave: 'ocean', spotifyId: '68lbSrXDORS51pmyjZv712', lyric: "I just wanna dive, I just wanna dive<br>🌊🌊🌊", lyricEn: "" },
 ];
 
 // =============================================
